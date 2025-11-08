@@ -1,0 +1,138 @@
+using Lilly.Engine.Core.Data.Scripts;
+
+namespace Lilly.Engine.Core.Interfaces.Services;
+
+/// <summary>
+/// Interface for the script engine service that manages JavaScript execution.
+/// </summary>
+public interface IScriptEngineService
+{
+    delegate bool LuaFileChangedHandler(string filePath);
+
+    event LuaFileChangedHandler? FileChanged;
+
+    /// <summary>
+    /// Event raised when a script error occurs
+    /// </summary>
+    event EventHandler<ScriptErrorInfo>? OnScriptError;
+
+    /// <summary>
+    /// Adds a callback function that can be called from JavaScript.
+    /// </summary>
+    /// <param name="name">The name of the callback function in JavaScript.</param>
+    /// <param name="callback">The C# action to execute when the callback is invoked.</param>
+    void AddCallback(string name, Action<object[]> callback);
+
+    /// <summary>
+    /// Adds a constant value accessible from JavaScript.
+    /// </summary>
+    /// <param name="name">The name of the constant in JavaScript.</param>
+    /// <param name="value">The value of the constant.</param>
+    void AddConstant(string name, object value);
+
+    /// <summary>
+    /// Adds a script to be executed during engine initialization.
+    /// </summary>
+    /// <param name="script">The JavaScript code to execute on startup.</param>
+    void AddInitScript(string script);
+
+    void AddManualModuleFunction(string moduleName, string functionName, Action<object[]> callback);
+
+    void AddManualModuleFunction<TInput, TOutput>(
+        string moduleName,
+        string functionName,
+        Func<TInput?, TOutput> callback
+    );
+
+    /// <summary>
+    /// Adds a .NET type as a module accessible from JavaScript.
+    /// </summary>
+    /// <param name="type">The type to register as a script module.</param>
+    void AddScriptModule(Type type);
+
+    /// <summary>
+    /// Clears the script cache
+    /// </summary>
+    void ClearScriptCache();
+
+    /// <summary>
+    /// Executes a previously registered callback function.
+    /// </summary>
+    /// <param name="name">The name of the callback to execute.</param>
+    /// <param name="args">Arguments to pass to the callback.</param>
+    void ExecuteCallback(string name, params object[] args);
+
+    /// <summary>
+    /// Executes a JavaScript function and returns the result.
+    /// </summary>
+    /// <param name="command">The JavaScript function call to execute.</param>
+    /// <returns>A ScriptResult containing the execution outcome.</returns>
+    ScriptResult ExecuteFunction(string command);
+
+    /// <summary>
+    /// Asynchronously executes a JavaScript function and returns the result.
+    /// </summary>
+    /// <param name="command">The JavaScript function call to execute.</param>
+    /// <returns>A task containing a ScriptResult with the execution outcome.</returns>
+    Task<ScriptResult> ExecuteFunctionAsync(string command);
+
+    /// <summary>
+    /// Executes a JavaScript script string.
+    /// </summary>
+    /// <param name="script">The JavaScript code to execute.</param>
+    void ExecuteScript(string script);
+
+    /// <summary>
+    /// Executes a JavaScript file.
+    /// </summary>
+    /// <param name="scriptFile">The path to the JavaScript file to execute.</param>
+    void ExecuteScriptFile(string scriptFile);
+
+    /// <summary>
+    /// Gets execution metrics for performance monitoring
+    /// </summary>
+    /// <returns>Metrics about script execution</returns>
+    ScriptExecutionMetrics GetExecutionMetrics();
+
+    /// <summary>
+    /// Registers a global object/value accessible from scripts.
+    /// </summary>
+    /// <param name="name">The name of the global in scripts.</param>
+    /// <param name="value">The object/value to register.</param>
+    void RegisterGlobal(string name, object value);
+
+    /// <summary>
+    /// Registers a global function that can be called from scripts.
+    /// </summary>
+    /// <param name="name">The name of the global function in scripts.</param>
+    /// <param name="func">The delegate to register as a global function.</param>
+    void RegisterGlobalFunction(string name, Delegate func);
+
+    /// <summary>
+    /// Starts the script engine service asynchronously.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task StartAsync();
+
+    /// <summary>
+    /// Stops the script engine service asynchronously.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task StopAsync();
+
+    void ExecuteEngineReady();
+
+    /// <summary>
+    /// Converts a .NET method name to a JavaScript-compatible function name.
+    /// </summary>
+    /// <param name="name">The .NET method name to convert.</param>
+    /// <returns>The JavaScript-compatible function name.</returns>
+    string ToScriptEngineFunctionName(string name);
+
+    /// <summary>
+    /// Unregisters a global function or value.
+    /// </summary>
+    /// <param name="name">The name of the global to unregister.</param>
+    /// <returns>True if the global was found and removed, false otherwise.</returns>
+    bool UnregisterGlobal(string name);
+}

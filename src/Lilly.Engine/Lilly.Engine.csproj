@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <PackageReference Include="FontStashSharp.Base" Version="1.2.2" />
+        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1" />
+        <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
+        <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.10" />
+        <PackageReference Include="Serilog" Version="4.3.0" />
+        <PackageReference Include="Silk.NET.GLFW" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Input.Extensions" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0" />
+
+        <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.22.0"/>
+        <PackageReference Include="TrippyGL" Version="1.2.2"/>
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj" />
+        <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+{
+  "sdk": {
+    "rollForward": "latestFeature"
+  },
+  "msbuild-sdks": {
+    "Microsoft.Build.NoTargets": "3.8.0"
+  }
+}

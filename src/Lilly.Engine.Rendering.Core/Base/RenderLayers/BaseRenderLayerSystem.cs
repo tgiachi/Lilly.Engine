@@ -1,0 +1,119 @@
+using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Rendering.Core.Collections;
+using Lilly.Engine.Rendering.Core.Commands;
+using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
+using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Types;
+
+namespace Lilly.Engine.Rendering.Core.Base.RenderLayers;
+
+public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where TEntity : IGameObject
+{
+    public RenderLayer Layer { get; }
+    public string Name { get; }
+
+    private readonly Lock _collectionLock = new();
+
+    private List<RenderCommand> _renderCommands = new(512);
+
+    protected GameObjectCollection<TEntity> GameObjects { get; } = new();
+
+    protected BaseRenderLayerSystem(string name, RenderLayer layer)
+    {
+        Layer = layer;
+        Name = name;
+    }
+
+    public virtual void Initialize() { }
+    public virtual void Update(GameTime gameTime) { }
+
+    public void Add(IGameObject gameObject)
+    {
+        lock (_collectionLock)
+        {
+            if (gameObject is TEntity entity)
+            {
+                GameObjects.Add(entity);
+
+                if (gameObject is IInitializable initializable)
+                {
+                    initializable.Initialize();
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot add game object of type {gameObject.GetType().Name} to layer system of type {typeof(TEntity).Name}"
+                );
+            }
+        }
+    }
+
+    public void Remove(IGameObject gameObject)
+    {
+        lock (_collectionLock)
+        {
+            if (gameObject is TEntity entity)
+            {
+                GameObjects.Remove(entity);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot remove game object of type {gameObject.GetType().Name} from layer system of type {typeof(TEntity).Name}"
+                );
+            }
+        }
+    }
+
+    public void Clear()
+    {
+        lock (_collectionLock)
+        {
+            GameObjects.Clear();
+        }
+    }
+
+    public IEnumerable<IGameObject> GetAllGameObjects()
+    {
+        foreach (var gameObject in GameObjects)
+        {
+            yield return gameObject;
+        }
+    }
+
+    public IEnumerable<TEntity> GetAllTypedGameObjects()
+    {
+        foreach (var gameObject in GameObjects)
+        {
+            yield return gameObject;
+        }
+    }
+
+    public virtual bool CanAddOrRemove(IGameObject gameObject)
+    {
+        return gameObject is TEntity;
+    }
+
+    public virtual void OnViewportResize(int width, int height) { }
+
+    public List<RenderCommand> CollectRenderCommands(GameTime gameTime)
+    {
+        _renderCommands.Clear();
+
+        foreach (var gameObject in GetAllTypedGameObjects())
+        {
+            gameObject.Render(gameTime, ref _renderCommands);
+        }
+
+        return _renderCommands;
+    }
+
+    public virtual void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
+
+    public bool CanRemove(IGameObject gameObject)
+    {
+        return gameObject is TEntity;
+    }
+}
