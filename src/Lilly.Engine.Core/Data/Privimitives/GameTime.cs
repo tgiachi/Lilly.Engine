@@ -3,17 +3,17 @@ namespace Lilly.Engine.Core.Data.Privimitives;
 /// <summary>
 /// Represents game timing information for frame updates and rendering.
 /// </summary>
-public class GameTime
+public readonly struct GameTime
 {
     /// <summary>
-    /// Gets or sets the total elapsed game time since the start of the game.
+    /// Gets the total elapsed game time since the start of the game in milliseconds.
     /// </summary>
-    public double TotalGameTime { get; set; }
+    public double TotalGameTime { get; init; }
 
     /// <summary>
-    /// Gets or sets the time elapsed since the last update.
+    /// Gets the time elapsed since the last update in milliseconds.
     /// </summary>
-    public double ElapsedGameTime { get; set; }
+    public double ElapsedGameTime { get; init; }
 
     /// <summary>
     /// Gets the elapsed game time as a TimeSpan.
@@ -26,19 +26,31 @@ public class GameTime
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
     /// <summary>
+    /// Initializes a new instance of the GameTime struct.
+    /// </summary>
+    /// <param name="totalGameTime">The total elapsed game time in milliseconds.</param>
+    /// <param name="elapsedGameTime">The time elapsed since the last update in milliseconds.</param>
+    public GameTime(double totalGameTime, double elapsedGameTime)
+    {
+        TotalGameTime = totalGameTime;
+        ElapsedGameTime = elapsedGameTime;
+    }
+
+    /// <summary>
+    /// Creates a new GameTime with updated elapsed time.
+    /// </summary>
+    /// <param name="elapsedSeconds">The time elapsed since the last frame in seconds.</param>
+    /// <returns>A new GameTime instance with updated values.</returns>
+    public GameTime Update(double elapsedSeconds)
+    {
+        var elapsedMs = elapsedSeconds * 1000.0; // Convert to milliseconds
+        return new GameTime(TotalGameTime + elapsedMs, elapsedMs);
+    }
+
+    /// <summary>
     /// Returns a string representation of the game time.
     /// </summary>
     /// <returns>A string containing total and elapsed game time information.</returns>
     public override string ToString()
-        => $"TotalGameTime: {TotalGameTime}s, ElapsedGameTime: {ElapsedGameTime}s";
-
-    /// <summary>
-    /// Updates the game time with the elapsed time since the last frame.
-    /// </summary>
-    /// <param name="elapsedMilliseconds">The time elapsed since the last frame in milliseconds.</param>
-    public void Update(double elapsedMilliseconds)
-    {
-        ElapsedGameTime = elapsedMilliseconds;
-        TotalGameTime += elapsedMilliseconds;
-    }
+        => $"TotalGameTime: {TotalGameTime}ms, ElapsedGameTime: {ElapsedGameTime}ms";
 }

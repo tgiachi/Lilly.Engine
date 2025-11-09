@@ -126,7 +126,7 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <param name="obj">The elapsed time since the last update.</param>
     private void WindowOnUpdate(double obj)
     {
-        Context.GameTime.Update(obj);
+        Context.GameTime = Context.GameTime.Update(obj);
         Update?.Invoke(Context.GameTime);
     }
 }

@@ -90,12 +90,6 @@ public class RenderPipelineDiagnostics
                 PeakCommandsPerFrame = TotalCommandsThisFrame;
             }
 
-            // Calculate FPS
-            if (deltaTimeMs > 0)
-            {
-                CurrentFPS = 1000.0 / deltaTimeMs;
-            }
-
             // Add to history
             _frameHistory.Enqueue(new FrameStatistics
             {
@@ -110,10 +104,17 @@ public class RenderPipelineDiagnostics
                 _frameHistory.Dequeue();
             }
 
-            // Calculate average
+            // Calculate averages based on frame history
             if (_frameHistory.Count > 0)
             {
                 AverageCommandsPerFrame = _frameHistory.Average(f => f.TotalCommands);
+                
+                // Calculate FPS as average over frame history for smoother display
+                var avgDeltaTimeMs = _frameHistory.Average(f => f.DeltaTimeMs);
+                if (avgDeltaTimeMs > 0)
+                {
+                    CurrentFPS = 1000.0 / avgDeltaTimeMs;
+                }
             }
 
             // Update layer averages

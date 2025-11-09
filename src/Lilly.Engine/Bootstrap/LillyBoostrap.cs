@@ -15,6 +15,7 @@ using Lilly.Engine.Modules;
 using Lilly.Engine.Rendering.Core.Data.Config;
 using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Wrappers;
@@ -77,6 +78,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
             .RegisterService<IJobSystemService, JobSystemService>()
             .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
+            .RegisterService<IGameObjectFactory, GameObjectFactory>()
             ;
 
         _container
@@ -85,6 +87,10 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<SpriteBatchRenderSystem>()
             .RegisterRenderSystem<UpdatableRenderSystem>()
             ;
+
+
+        _container.RegisterGameObject<ImGuiActionDebugger>();
+
 
         _container.AddLuaUserData<Vector2D<int>>();
         _container.AddScriptModule<ConsoleModule>();
@@ -134,6 +140,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         var scriptEngine = _container.Resolve<IScriptEngineService>();
 
+        _container.Resolve<IGameObjectFactory>();
         await scriptEngine.StartAsync();
 
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
