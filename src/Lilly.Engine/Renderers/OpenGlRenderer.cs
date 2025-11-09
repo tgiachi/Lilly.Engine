@@ -11,21 +11,47 @@ using TrippyGL;
 
 namespace Lilly.Engine.Renderers;
 
+/// <summary>
+/// Implements an OpenGL-based graphics renderer for the Lilly Engine.
+/// </summary>
 public class OpenGlRenderer : IGraphicRenderer
 {
     private readonly ILogger _logger = Log.ForContext<OpenGlRenderer>();
 
+    /// <summary>
+    /// Gets the name of the renderer.
+    /// </summary>
     public string Name => "OpenGL";
 
+    /// <summary>
+    /// Gets the type of renderer.
+    /// </summary>
     public RendererType RendererType => RendererType.OpenGL;
 
+    /// <summary>
+    /// Gets the rendering context containing window, graphics device, and input information.
+    /// </summary>
     public RenderContext Context { get; } = new();
 
+    /// <summary>
+    /// Event raised during the update phase of each frame.
+    /// </summary>
     public event IGraphicRenderer.UpdateHandler? Update;
 
+    /// <summary>
+    /// Event raised during the render phase of each frame.
+    /// </summary>
     public event IGraphicRenderer.RenderHandler? Render;
+
+    /// <summary>
+    /// Event raised when the window is resized.
+    /// </summary>
     public event IGraphicRenderer.ResizeHandler? Resize;
 
+    /// <summary>
+    /// Initializes the OpenGL renderer with the specified engine options.
+    /// </summary>
+    /// <param name="options">The engine initialization options.</param>
     public void Initialize(InitialEngineOptions options)
     {
         _logger.Information("Initializing Lilly Engine...");
@@ -53,6 +79,9 @@ public class OpenGlRenderer : IGraphicRenderer
         Context.Window.Update += WindowOnUpdate;
     }
 
+    /// <summary>
+    /// Handles the window load event and initializes OpenGL context and graphics device.
+    /// </summary>
     private void WindowOnLoad()
     {
         Context.Gl = Context.Window.CreateOpenGL();
@@ -63,6 +92,10 @@ public class OpenGlRenderer : IGraphicRenderer
         _logger.Information("Window Loaded");
     }
 
+    /// <summary>
+    /// Handles the window framebuffer resize event and updates the viewport.
+    /// </summary>
+    /// <param name="size">The new framebuffer size.</param>
     private void WindowOnFramebufferResize(Vector2D<int> size)
     {
         _logger.Information("Window Resized to {Width}x{Height}", size.X, size.Y);
@@ -70,18 +103,29 @@ public class OpenGlRenderer : IGraphicRenderer
         Resize?.Invoke(size.X, size.Y);
     }
 
+    /// <summary>
+    /// Handles the window update event and invokes the Update event.
+    /// </summary>
+    /// <param name="obj">The elapsed time since the last update.</param>
     private void WindowOnUpdate(double obj)
     {
         Context.GameTime.Update(obj);
         Update?.Invoke(Context.GameTime);
     }
 
+    /// <summary>
+    /// Handles the window render event, clears the screen, and invokes the Render event.
+    /// </summary>
+    /// <param name="obj">The elapsed time since the last render.</param>
     private void WindowOnRender(double obj)
     {
         Context.GraphicsDevice.Clear(ClearBuffers.Color);
         Render?.Invoke(Context.GameTime);
     }
 
+    /// <summary>
+    /// Starts the rendering loop.
+    /// </summary>
     public void Run()
     {
         Context.Window.Run();

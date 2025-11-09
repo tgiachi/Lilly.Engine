@@ -3,8 +3,16 @@ using Serilog.Events;
 
 namespace Lilly.Engine.Core.Extensions.Logger;
 
+/// <summary>
+/// Extension methods for converting log levels between different logging frameworks.
+/// </summary>
 public static class LogLevelExtensions
 {
+    /// <summary>
+    /// Converts a LogLevelType to a Serilog LogEventLevel.
+    /// </summary>
+    /// <param name="logLevel">The log level to convert.</param>
+    /// <returns>The corresponding Serilog log event level.</returns>
     public static LogEventLevel ToSerilogLogLevel(this LogLevelType logLevel)
     {
         return logLevel switch

@@ -1,5 +1,8 @@
 namespace Lilly.Engine.Core.Interfaces.Dispatchers;
 
+/// <summary>
+/// Defines the contract for dispatching actions to a specific thread with queue management.
+/// </summary>
 public interface IThreadDispatcher
 {
     /// <summary>

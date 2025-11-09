@@ -15,8 +15,11 @@ using Lilly.Engine.Lua.Scripting.Services;
 using Lilly.Engine.Modules;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Data.Config;
+using Lilly.Engine.Rendering.Core.Data.Internal;
+using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Wrappers;
 using Serilog;
@@ -33,8 +36,7 @@ public class LillyBoostrap : ILillyBootstrap
     public event ILillyBootstrap.UpdateHandler? OnUpdate;
 
     private readonly IContainer _container;
-
-    private readonly RenderLayerCollection _renderLayers = new();
+    private IGraphicRenderPipeline _renderPipeline;
 
     private readonly ILogger _logger = Log.ForContext<LillyBoostrap>();
 
@@ -58,7 +60,9 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IVersionService, VersionService>()
             .RegisterService<ITimerService, TimerService>()
             .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
-            .RegisterService<IJobSystemService, JobSystemService>();
+            .RegisterService<IJobSystemService, JobSystemService>()
+            .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
+            ;
 
         _container
             .RegisterRenderSystem<ImGuiRenderSystem>()
@@ -85,10 +89,7 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void RendererOnResize(int width, int height)
     {
-        foreach (var layer in _renderLayers.GetLayersSpan())
-        {
-            layer.OnViewportResize(width, height);
-        }
+        _renderPipeline.ViewportResize(width, height);
     }
 
     private void RendererOnRender(GameTime gameTime)
@@ -101,26 +102,7 @@ public class LillyBoostrap : ILillyBootstrap
             _isRenderInitialized = true;
         }
         OnRender?.Invoke(gameTime);
-
-        foreach (var layer in _renderLayers.GetLayersSpan())
-        {
-            var collectRenderCommands = layer.CollectRenderCommands(gameTime);
-            layer.ProcessRenderCommands(ref collectRenderCommands);
-        }
-    }
-
-    private void InitializeRenderSystems()
-    {
-        var layers = _container.Resolve<List<RenderSystemRegistration>>();
-
-        foreach (var layer in layers)
-        {
-            var system = _container.Resolve<IRenderLayerSystem>(layer.Type);
-
-            _logger.Information("Initializing Render Layer: {LayerName} type: {Layer}", system.Name, system.Layer);
-            system.Initialize();
-            _renderLayers.Add(system);
-        }
+        _renderPipeline.Render(gameTime);
     }
 
     private async Task StartServicesAsync()
@@ -139,9 +121,10 @@ public class LillyBoostrap : ILillyBootstrap
 
         await scriptEngine.StartAsync();
 
-        InitializeRenderSystems();
+        _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
+        _renderPipeline.Initialize();
 
-        _renderLayers.AddGameObject(
+        _renderPipeline.AddGameObject(
             new ImGuiActionDebugger(
                 "Action Debugger",
                 () =>
@@ -164,7 +147,7 @@ public class LillyBoostrap : ILillyBootstrap
             _initialized = true;
         }
         OnUpdate?.Invoke(gameTime);
-        _renderLayers.UpdateAll(gameTime);
+        _renderPipeline.Update(gameTime);
     }
 
     public async Task RunAsync()

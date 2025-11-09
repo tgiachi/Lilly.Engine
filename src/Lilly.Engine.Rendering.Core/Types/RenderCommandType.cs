@@ -1,9 +1,27 @@
 namespace Lilly.Engine.Rendering.Core.Types;
 
+/// <summary>
+/// Defines the types of rendering commands that can be executed.
+/// </summary>
 public enum RenderCommandType : byte
 {
-    Clear = 0,
+    /// <summary>
+    /// Clear the screen or render target.
+    /// </summary>
+    Clear,
+
+    /// <summary>
+    /// Draw text on the screen.
+    /// </summary>
     DrawText,
+
+    /// <summary>
+    /// Draw a texture or sprite.
+    /// </summary>
     DrawTexture,
+
+    /// <summary>
+    /// Render ImGui debug interface.
+    /// </summary>
     ImGui,
 }

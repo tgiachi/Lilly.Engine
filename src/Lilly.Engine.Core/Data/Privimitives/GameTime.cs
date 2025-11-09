@@ -1,5 +1,8 @@
 namespace Lilly.Engine.Core.Data.Privimitives;
 
+/// <summary>
+/// Represents game timing information for frame updates and rendering.
+/// </summary>
 public class GameTime
 {
     /// <summary>
@@ -22,12 +25,20 @@ public class GameTime
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
+    /// <summary>
+    /// Updates the game time with the elapsed time since the last frame.
+    /// </summary>
+    /// <param name="elapsedMilliseconds">The time elapsed since the last frame in milliseconds.</param>
     public void Update(double elapsedMilliseconds)
     {
         ElapsedGameTime = elapsedMilliseconds;
         TotalGameTime += elapsedMilliseconds;
     }
 
+    /// <summary>
+    /// Returns a string representation of the game time.
+    /// </summary>
+    /// <returns>A string containing total and elapsed game time information.</returns>
     public override string ToString()
         => $"TotalGameTime: {TotalGameTime}s, ElapsedGameTime: {ElapsedGameTime}s";
 }

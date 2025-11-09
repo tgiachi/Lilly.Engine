@@ -7,8 +7,16 @@ namespace Lilly.Engine.Core.Interfaces.Services;
 /// </summary>
 public interface IScriptEngineService
 {
+    /// <summary>
+    /// Delegate for handling script file change events.
+    /// </summary>
+    /// <param name="filePath">The path to the changed file.</param>
+    /// <returns>True if the file change was handled successfully, false otherwise.</returns>
     delegate bool LuaFileChangedHandler(string filePath);
 
+    /// <summary>
+    /// Event raised when a script file is modified.
+    /// </summary>
     event LuaFileChangedHandler? FileChanged;
 
     /// <summary>
@@ -36,8 +44,22 @@ public interface IScriptEngineService
     /// <param name="script">The JavaScript code to execute on startup.</param>
     void AddInitScript(string script);
 
+    /// <summary>
+    /// Adds a manual module function that can be called from scripts.
+    /// </summary>
+    /// <param name="moduleName">The name of the module.</param>
+    /// <param name="functionName">The name of the function.</param>
+    /// <param name="callback">The callback to execute when the function is called.</param>
     void AddManualModuleFunction(string moduleName, string functionName, Action<object[]> callback);
 
+    /// <summary>
+    /// Adds a typed manual module function that can be called from scripts.
+    /// </summary>
+    /// <typeparam name="TInput">The input parameter type.</typeparam>
+    /// <typeparam name="TOutput">The output return type.</typeparam>
+    /// <param name="moduleName">The name of the module.</param>
+    /// <param name="functionName">The name of the function.</param>
+    /// <param name="callback">The callback function to execute.</param>
     void AddManualModuleFunction<TInput, TOutput>(
         string moduleName,
         string functionName,
@@ -120,6 +142,9 @@ public interface IScriptEngineService
     /// <returns>A task representing the asynchronous operation.</returns>
     Task StopAsync();
 
+    /// <summary>
+    /// Notifies the script engine that the engine initialization is complete and ready.
+    /// </summary>
     void ExecuteEngineReady();
 
     /// <summary>

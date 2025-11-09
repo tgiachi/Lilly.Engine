@@ -7,6 +7,9 @@ using TrippyGL;
 
 namespace Lilly.Engine.Layers;
 
+/// <summary>
+/// Provides a render system for batch rendering 2D game objects using sprite batching.
+/// </summary>
 public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDisposable
 {
     private TextureBatcher _spriteBatcher;
@@ -15,11 +18,18 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
     private List<RenderCommand> _renderCommands = new(512);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem"/> class.
+    /// </summary>
+    /// <param name="context">The render context containing graphics device information.</param>
     public SpriteBatchRenderSystem(RenderContext context) : base("SpriteBatch", RenderLayer.UI)
     {
         _context = context;
     }
 
+    /// <summary>
+    /// Initializes the sprite batcher and shader program.
+    /// </summary>
     public override void Initialize()
     {
         _spriteBatcher = new TextureBatcher(_context.GraphicsDevice);
@@ -31,6 +41,10 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
 
 
+    /// <summary>
+    /// Processes render commands for sprite batching.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
         _spriteBatcher.Begin();
@@ -40,6 +54,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         base.ProcessRenderCommands(ref renderCommands);
     }
 
+    /// <summary>
+    /// Disposes the sprite batcher, shader program, and releases resources.
+    /// </summary>
     public void Dispose()
     {
         _spriteBatcher.Dispose();
