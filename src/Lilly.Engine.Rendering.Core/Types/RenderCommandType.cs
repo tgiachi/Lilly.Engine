@@ -11,6 +11,11 @@ public enum RenderCommandType : byte
     Clear,
 
     /// <summary>
+    ///  Set window options
+    /// </summary>
+    Window,
+
+    /// <summary>
     /// Draw text on the screen.
     /// </summary>
     DrawText,
