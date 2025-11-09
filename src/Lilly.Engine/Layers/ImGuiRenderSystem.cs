@@ -50,7 +50,7 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        foreach (var command in renderCommands)
+        foreach (var command in renderCommands.ToArray())
         {
             var payload = command.GetPayload<ImGuiDataPayload>()!;
 

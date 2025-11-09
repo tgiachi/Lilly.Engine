@@ -5,6 +5,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Layers;
@@ -152,5 +153,7 @@ public class LillyBoostrap : ILillyBootstrap
                 }
             )
         );
+
+        _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
 }
