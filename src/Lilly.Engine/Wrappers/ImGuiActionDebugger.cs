@@ -12,7 +12,7 @@ public class ImGuiActionDebugger : IImGuiDebugger
     public IGameObject? Parent { get; set; }
     public GameObjectCollection<IGameObject> Children { get; } = new();
     public uint Id { get; set; }
-    public string Name { get; }
+    public string Name { get; set; }
     public ushort Order { get; }
 
     private readonly Action _callback;

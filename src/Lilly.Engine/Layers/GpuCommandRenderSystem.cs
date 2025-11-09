@@ -6,6 +6,7 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Types;
+using Lilly.Engine.Types;
 using TrippyGL;
 
 namespace Lilly.Engine.Layers;
@@ -39,8 +40,30 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                     _renderContext.GraphicsDevice.Clear(ClearBuffers.Color | ClearBuffers.Depth);
 
                     break;
+
+                case RenderCommandType.Window:
+                    var windowPayload = cmd.GetPayload<WindowPayload>();
+                    ProcessWindowCommand(windowPayload);
+
+                    break;
             }
         }
         base.ProcessRenderCommands(ref renderCommands);
+    }
+
+    private void ProcessWindowCommand(WindowPayload payload)
+    {
+        switch (payload.SubCommandType)
+        {
+            case WindowSubCommandType.SetTitle:
+                _renderContext.Window.Title = payload.Data as string;
+                break;
+            case WindowSubCommandType.SetFullscreen:
+                if (payload.Data is bool isFullscreen)
+                {
+                }
+                break;
+            
+        }
     }
 }

@@ -12,7 +12,7 @@ public interface IGameObject
 
     uint Id { get; set; }
 
-    string Name { get; }
+    string Name { get; set; }
 
     ushort Order { get; }
 
