@@ -30,6 +30,21 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         _renderLayers.AddGameObject(gameObject);
     }
 
+    public TRenderSystem? GetRenderLayerSystem<TRenderSystem>() where TRenderSystem : class, IRenderLayerSystem
+        => _renderLayers.GetLayer<TRenderSystem>();
+
+    public void Initialize()
+    {
+        foreach (var layer in _renderSystemsRegistrations)
+        {
+            var system = _container.Resolve<IRenderLayerSystem>(layer.Type);
+
+            _logger.Information("Initializing Render Layer: {LayerName} type: {Layer}", system.Name, system.Layer);
+            system.Initialize();
+            _renderLayers.Add(system);
+        }
+    }
+
     public void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject
     {
         _renderLayers.RemoveGameObject(gameObject);
@@ -54,18 +69,6 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         foreach (var layer in _renderLayers.GetLayersSpan())
         {
             layer.OnViewportResize(width, height);
-        }
-    }
-
-    public void Initialize()
-    {
-        foreach (var layer in _renderSystemsRegistrations)
-        {
-            var system = _container.Resolve<IRenderLayerSystem>(layer.Type);
-
-            _logger.Information("Initializing Render Layer: {LayerName} type: {Layer}", system.Name, system.Layer);
-            system.Initialize();
-            _renderLayers.Add(system);
         }
     }
 }

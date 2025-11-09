@@ -6,19 +6,18 @@ namespace Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 
 public interface IGraphicRenderPipeline
 {
+    ReadOnlySpan<IRenderLayerSystem> RenderLayers { get; }
     void AddGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject;
 
-    void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject;
+    TRenderSystem? GetRenderLayerSystem<TRenderSystem>() where TRenderSystem : class, IRenderLayerSystem;
 
-    ReadOnlySpan<IRenderLayerSystem> RenderLayers { get; }
+    void Initialize();
+
+    void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject;
 
     void Render(GameTime gameTime);
 
     void Update(GameTime gameTime);
 
-
     void ViewportResize(int width, int height);
-
-    void Initialize();
-
 }

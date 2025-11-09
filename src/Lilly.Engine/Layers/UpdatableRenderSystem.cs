@@ -1,7 +1,6 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Types;
 
 namespace Lilly.Engine.Layers;
@@ -12,7 +11,7 @@ namespace Lilly.Engine.Layers;
 public class UpdatableRenderSystem : BaseRenderLayerSystem<IUpdatable>
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="UpdatableRenderSystem"/> class.
+    /// Initializes a new instance of the <see cref="UpdatableRenderSystem" /> class.
     /// </summary>
     public UpdatableRenderSystem() : base("Updateable", RenderLayer.Background) { }
 

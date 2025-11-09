@@ -15,9 +15,7 @@ public static class RenderCommandHelpers
     /// <param name="payload">The clear payload containing the clear operation details.</param>
     /// <returns>A render command configured for clear operations.</returns>
     public static RenderCommand CreateClear(ClearPayload payload)
-    {
-        return new RenderCommand(RenderCommandType.Clear, payload);
-    }
+        => new(RenderCommandType.Clear, payload);
 
     /// <summary>
     /// Creates a render command for drawing text.
@@ -25,9 +23,7 @@ public static class RenderCommandHelpers
     /// <param name="payload">The draw text payload containing text rendering details.</param>
     /// <returns>A render command configured for text rendering.</returns>
     public static RenderCommand CreateDrawText(DrawTextPayload payload)
-    {
-        return new RenderCommand(RenderCommandType.DrawText, payload);
-    }
+        => new(RenderCommandType.DrawText, payload);
 
     /// <summary>
     /// Creates a render command for drawing a texture.
@@ -35,9 +31,7 @@ public static class RenderCommandHelpers
     /// <param name="payload">The draw texture payload containing texture rendering details.</param>
     /// <returns>A render command configured for texture rendering.</returns>
     public static RenderCommand CreateDrawTexture(DrawTexturePayload payload)
-    {
-        return new RenderCommand(RenderCommandType.DrawTexture, payload);
-    }
+        => new(RenderCommandType.DrawTexture, payload);
 
     /// <summary>
     /// Creates a render command for ImGui rendering.
@@ -45,7 +39,5 @@ public static class RenderCommandHelpers
     /// <param name="payload">The ImGui data payload containing UI rendering details.</param>
     /// <returns>A render command configured for ImGui operations.</returns>
     public static RenderCommand ImGuiRender(ImGuiDataPayload payload)
-    {
-        return new RenderCommand(RenderCommandType.ImGui, payload);
-    }
+        => new(RenderCommandType.ImGui, payload);
 }

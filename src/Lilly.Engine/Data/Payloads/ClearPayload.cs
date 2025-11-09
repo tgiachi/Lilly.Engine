@@ -17,7 +17,5 @@ public readonly struct ClearPayload
     /// </summary>
     /// <param name="color">Optional clear color (defaults to black).</param>
     public ClearPayload(Color4b? color = null)
-    {
-        Color = color ?? Color4b.Black;
-    }
+        => Color = color ?? Color4b.Black;
 }

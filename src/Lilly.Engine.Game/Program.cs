@@ -7,7 +7,6 @@ using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
-using Lilly.Engine.Rendering.Core.Data.Config;
 using Serilog;
 using Serilog.Events;
 
@@ -19,11 +18,11 @@ await ConsoleApp.RunAsync(
         LogLevelType logLevel = LogLevelType.Debug
     ) =>
     {
-
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
 
-        rootDirectory ??= Environment.GetEnvironmentVariable("LILLY_ENGINE_ROOT") ?? Path.Combine(AppContext.BaseDirectory, "lilly");
+        rootDirectory ??= Environment.GetEnvironmentVariable("LILLY_ENGINE_ROOT") ??
+                          Path.Combine(AppContext.BaseDirectory, "lilly");
 
         var directoriesConfig = new DirectoriesConfig(rootDirectory, Enum.GetNames<AssetType>());
 
@@ -33,7 +32,7 @@ await ConsoleApp.RunAsync(
 
         var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
 
-        await bootstrap.InitializeAsync(new InitialEngineOptions());
+        await bootstrap.InitializeAsync(new());
 
         await bootstrap.RunAsync();
 

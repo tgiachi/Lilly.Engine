@@ -27,32 +27,17 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     public GraphicsDevice GraphicsDevice => _textureManager.GraphicsDevice;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FontStashRenderer"/> class.
+    /// Initializes a new instance of the <see cref="FontStashRenderer" /> class.
     /// </summary>
     /// <param name="graphicsDevice">The graphics device to use for rendering operations.</param>
     public FontStashRenderer(GraphicsDevice graphicsDevice)
     {
-        _textureManager = new Texture2DManager(graphicsDevice);
+        _textureManager = new(graphicsDevice);
 
         _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(graphicsDevice, 0, 0, true);
-        _batch = new TextureBatcher(graphicsDevice);
+        _batch = new(graphicsDevice);
         _batch.SetShaderProgram(_shaderProgram);
         OnViewportChanged();
-    }
-
-    /// <summary>
-    /// Updates the projection matrix when the viewport changes.
-    /// </summary>
-    public void OnViewportChanged()
-    {
-        _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(
-            0,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            0,
-            0,
-            1
-        );
     }
 
     /// <summary>
@@ -62,10 +47,14 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
         => _batch.Begin();
 
     /// <summary>
-    /// Ends the current batch rendering session and flushes all queued draw calls.
+    /// Disposes the shader program, texture batcher, and releases resources.
     /// </summary>
-    public void End()
-        => _batch.End();
+    public void Dispose()
+    {
+        _shaderProgram?.Dispose();
+        _batch?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Draws a texture at the specified position with the given properties.
@@ -94,12 +83,23 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     }
 
     /// <summary>
-    /// Disposes the shader program, texture batcher, and releases resources.
+    /// Ends the current batch rendering session and flushes all queued draw calls.
     /// </summary>
-    public void Dispose()
+    public void End()
+        => _batch.End();
+
+    /// <summary>
+    /// Updates the projection matrix when the viewport changes.
+    /// </summary>
+    public void OnViewportChanged()
     {
-        _shaderProgram?.Dispose();
-        _batch?.Dispose();
-        GC.SuppressFinalize(this);
+        _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(
+            0,
+            GraphicsDevice.Viewport.Width,
+            GraphicsDevice.Viewport.Height,
+            0,
+            0,
+            1
+        );
     }
 }

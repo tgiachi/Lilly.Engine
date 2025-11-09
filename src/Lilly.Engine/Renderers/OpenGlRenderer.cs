@@ -7,7 +7,6 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using TrippyGL;
 
 namespace Lilly.Engine.Renderers;
 
@@ -58,11 +57,11 @@ public class OpenGlRenderer : IGraphicRenderer
 
         var windowOptions = WindowOptions.Default;
         windowOptions.Title = options.WindowTitle;
-        windowOptions.API = new GraphicsAPI(
+        windowOptions.API = new(
             ContextAPI.OpenGL,
             ContextProfile.Core,
             ContextFlags.Debug,
-            new APIVersion(options.TargetRenderVersion.Major, options.TargetRenderVersion.Minor)
+            new(options.TargetRenderVersion.Major, options.TargetRenderVersion.Minor)
         );
 
         _logger.Information(
@@ -80,16 +79,11 @@ public class OpenGlRenderer : IGraphicRenderer
     }
 
     /// <summary>
-    /// Handles the window load event and initializes OpenGL context and graphics device.
+    /// Starts the rendering loop.
     /// </summary>
-    private void WindowOnLoad()
+    public void Run()
     {
-        Context.Gl = Context.Window.CreateOpenGL();
-        Context.GraphicsDevice = new GraphicsDevice(Context.Gl);
-        Context.InputContext = Context.Window.CreateInput();
-        Context.GraphicsDevice.ClearColor = Color4b.CornflowerBlue;
-
-        _logger.Information("Window Loaded");
+        Context.Window.Run();
     }
 
     /// <summary>
@@ -104,13 +98,17 @@ public class OpenGlRenderer : IGraphicRenderer
     }
 
     /// <summary>
-    /// Handles the window update event and invokes the Update event.
+    /// Handles the window load event and initializes OpenGL context and graphics device.
     /// </summary>
-    /// <param name="obj">The elapsed time since the last update.</param>
-    private void WindowOnUpdate(double obj)
+    private void WindowOnLoad()
     {
-        Context.GameTime.Update(obj);
-        Update?.Invoke(Context.GameTime);
+        Context.Gl = Context.Window.CreateOpenGL();
+        Context.GraphicsDevice = new(Context.Gl);
+        Context.InputContext = Context.Window.CreateInput();
+
+        //Context.GraphicsDevice.ClearColor = Color4b.CornflowerBlue;
+
+        _logger.Information("Window Loaded");
     }
 
     /// <summary>
@@ -119,15 +117,16 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <param name="obj">The elapsed time since the last render.</param>
     private void WindowOnRender(double obj)
     {
-        Context.GraphicsDevice.Clear(ClearBuffers.Color);
         Render?.Invoke(Context.GameTime);
     }
 
     /// <summary>
-    /// Starts the rendering loop.
+    /// Handles the window update event and invokes the Update event.
     /// </summary>
-    public void Run()
+    /// <param name="obj">The elapsed time since the last update.</param>
+    private void WindowOnUpdate(double obj)
     {
-        Context.Window.Run();
+        Context.GameTime.Update(obj);
+        Update?.Invoke(Context.GameTime);
     }
 }

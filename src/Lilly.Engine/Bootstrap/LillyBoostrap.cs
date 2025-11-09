@@ -5,19 +5,14 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Data;
 using Lilly.Engine.Dispatchers;
-using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Layers;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Lua.Scripting.Services;
 using Lilly.Engine.Modules;
-using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Data.Config;
-using Lilly.Engine.Rendering.Core.Data.Internal;
 using Lilly.Engine.Rendering.Core.Extensions;
-using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
@@ -53,27 +48,6 @@ public class LillyBoostrap : ILillyBootstrap
         RegisterDefaults();
     }
 
-    private void RegisterDefaults()
-    {
-        _container
-            .RegisterService<IScriptEngineService, LuaScriptEngineService>()
-            .RegisterService<IVersionService, VersionService>()
-            .RegisterService<ITimerService, TimerService>()
-            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
-            .RegisterService<IJobSystemService, JobSystemService>()
-            .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
-            ;
-
-        _container
-            .RegisterRenderSystem<ImGuiRenderSystem>()
-            .RegisterRenderSystem<SpriteBatchRenderSystem>()
-            .RegisterRenderSystem<UpdatableRenderSystem>()
-            ;
-
-        _container.AddLuaUserData<Vector2D<int>>();
-        _container.AddScriptModule<ConsoleModule>();
-    }
-
     public Task InitializeAsync(InitialEngineOptions options)
     {
         Renderer.Initialize(options);
@@ -87,9 +61,32 @@ public class LillyBoostrap : ILillyBootstrap
         return Task.CompletedTask;
     }
 
-    private void RendererOnResize(int width, int height)
+    public async Task RunAsync()
+        => Renderer.Run();
+
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
+    private void RegisterDefaults()
     {
-        _renderPipeline.ViewportResize(width, height);
+        _container
+            .RegisterService<IScriptEngineService, LuaScriptEngineService>()
+            .RegisterService<IVersionService, VersionService>()
+            .RegisterService<ITimerService, TimerService>()
+            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
+            .RegisterService<IJobSystemService, JobSystemService>()
+            .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
+            ;
+
+        _container
+            .RegisterRenderSystem<GpuCommandRenderSystem>()
+            .RegisterRenderSystem<ImGuiRenderSystem>()
+            .RegisterRenderSystem<SpriteBatchRenderSystem>()
+            .RegisterRenderSystem<UpdatableRenderSystem>()
+            ;
+
+        _container.AddLuaUserData<Vector2D<int>>();
+        _container.AddScriptModule<ConsoleModule>();
     }
 
     private void RendererOnRender(GameTime gameTime)
@@ -103,6 +100,23 @@ public class LillyBoostrap : ILillyBootstrap
         }
         OnRender?.Invoke(gameTime);
         _renderPipeline.Render(gameTime);
+    }
+
+    private void RendererOnResize(int width, int height)
+    {
+        _renderPipeline.ViewportResize(width, height);
+    }
+
+    private void RendererOnUpdate(GameTime gameTime)
+    {
+        if (!_initialized)
+        {
+            _logger.Information("Lilly Engine Initialized Successfully.");
+            StartServicesAsync().GetAwaiter().GetResult();
+            _initialized = true;
+        }
+        OnUpdate?.Invoke(gameTime);
+        _renderPipeline.Update(gameTime);
     }
 
     private async Task StartServicesAsync()
@@ -124,39 +138,19 @@ public class LillyBoostrap : ILillyBootstrap
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _renderPipeline.Initialize();
 
+        var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
+
         _renderPipeline.AddGameObject(
             new ImGuiActionDebugger(
                 "Action Debugger",
                 () =>
                 {
-                    var clearColor = Renderer.Context.GraphicsDevice.ClearColor;
+                    var clearColor = gpuCommandRenderSystem.ClearColor.ToVector4();
                     ImGui.Text("Lilly Engine Action Debugger");
                     ImGui.ColorEdit4("Clear Color", ref clearColor);
-                    Renderer.Context.GraphicsDevice.ClearColor = clearColor;
+                    gpuCommandRenderSystem.ClearColor = clearColor;
                 }
             )
         );
-    }
-
-    private void RendererOnUpdate(GameTime gameTime)
-    {
-        if (!_initialized)
-        {
-            _logger.Information("Lilly Engine Initialized Successfully.");
-            StartServicesAsync().GetAwaiter().GetResult();
-            _initialized = true;
-        }
-        OnUpdate?.Invoke(gameTime);
-        _renderPipeline.Update(gameTime);
-    }
-
-    public async Task RunAsync()
-    {
-        Renderer.Run();
-    }
-
-    public Task ShutdownAsync()
-    {
-        return Task.CompletedTask;
     }
 }

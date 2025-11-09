@@ -85,6 +85,11 @@ public interface IScriptEngineService
     void ExecuteCallback(string name, params object[] args);
 
     /// <summary>
+    /// Notifies the script engine that the engine initialization is complete and ready.
+    /// </summary>
+    void ExecuteEngineReady();
+
+    /// <summary>
     /// Executes a JavaScript function and returns the result.
     /// </summary>
     /// <param name="command">The JavaScript function call to execute.</param>
@@ -141,11 +146,6 @@ public interface IScriptEngineService
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task StopAsync();
-
-    /// <summary>
-    /// Notifies the script engine that the engine initialization is complete and ready.
-    /// </summary>
-    void ExecuteEngineReady();
 
     /// <summary>
     /// Converts a .NET method name to a JavaScript-compatible function name.

@@ -45,17 +45,6 @@ public interface IGraphicRenderer
     RenderContext Context { get; }
 
     /// <summary>
-    /// Initializes the renderer with the specified engine options.
-    /// </summary>
-    /// <param name="options">The engine initialization options.</param>
-    void Initialize(InitialEngineOptions options);
-
-    /// <summary>
-    /// Starts the rendering loop.
-    /// </summary>
-    void Run();
-
-    /// <summary>
     /// Event raised during the update phase of each frame.
     /// </summary>
     event UpdateHandler Update;
@@ -70,7 +59,14 @@ public interface IGraphicRenderer
     /// </summary>
     event ResizeHandler Resize;
 
+    /// <summary>
+    /// Initializes the renderer with the specified engine options.
+    /// </summary>
+    /// <param name="options">The engine initialization options.</param>
+    void Initialize(InitialEngineOptions options);
 
-
-
+    /// <summary>
+    /// Starts the rendering loop.
+    /// </summary>
+    void Run();
 }

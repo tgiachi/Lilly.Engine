@@ -11,25 +11,23 @@ public interface IRenderLayerSystem
 
     string Name { get; }
 
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-
     void Add(IGameObject gameObject);
-
-    void Remove(IGameObject gameObject);
-
-    void Clear();
-
-    IEnumerable<IGameObject> GetAllGameObjects();
 
     bool CanAddOrRemove(IGameObject gameObject);
 
-    void OnViewportResize(int width, int height);
+    void Clear();
 
     List<RenderCommand> CollectRenderCommands(GameTime gameTime);
 
+    IEnumerable<IGameObject> GetAllGameObjects();
+
+    void Initialize();
+
+    void OnViewportResize(int width, int height);
+
     void ProcessRenderCommands(ref List<RenderCommand> renderCommands);
 
+    void Remove(IGameObject gameObject);
+
+    void Update(GameTime gameTime);
 }

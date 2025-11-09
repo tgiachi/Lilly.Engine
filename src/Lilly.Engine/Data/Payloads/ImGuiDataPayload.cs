@@ -25,5 +25,4 @@ public readonly struct ImGuiDataPayload
         Name = name;
         DrawAction = drawAction;
     }
-
 }

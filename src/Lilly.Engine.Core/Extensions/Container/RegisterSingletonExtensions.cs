@@ -1,4 +1,3 @@
-
 using DryIoc;
 
 namespace Lilly.Engine.Core.Extensions.Container;
@@ -15,11 +14,11 @@ public static class RegisterSingletonExtensions
     /// <typeparam name="TImplementation">The implementation type.</typeparam>
     /// <param name="container">The dependency injection container.</param>
     /// <returns>The container for method chaining.</returns>
-    public static IContainer RegisterService<TService, TImplementation>(this IContainer container) where TImplementation : TService
+    public static IContainer RegisterService<TService, TImplementation>(this IContainer container)
+        where TImplementation : TService
     {
-        container.Register<TService,TImplementation>(Reuse.Singleton);
+        container.Register<TService, TImplementation>(Reuse.Singleton);
 
         return container;
     }
-
 }

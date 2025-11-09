@@ -52,13 +52,23 @@ public abstract class BaseGameObject2D : IGameObject2D
     public int Layer { get; set; }
 
     /// <summary>
+    /// Draws the game object by adding render commands to the list.
+    /// </summary>
+    /// <param name="gameTime">The game timing information.</param>
+    /// <param name="renderCommands">The list of render commands to populate.</param>
+    public abstract void Draw(GameTime gameTime, ref List<RenderCommand> renderCommands);
+
+    /// <summary>
     /// Renders the game object and its children.
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
     /// <param name="renderCommands">The list of render commands to populate.</param>
     public void Render(GameTime gameTime, ref List<RenderCommand> renderCommands)
     {
-        if (!IsVisible) return;
+        if (!IsVisible)
+        {
+            return;
+        }
 
         Draw(gameTime, ref renderCommands);
 
@@ -67,11 +77,4 @@ public abstract class BaseGameObject2D : IGameObject2D
             child.Render(gameTime, ref renderCommands);
         }
     }
-
-    /// <summary>
-    /// Draws the game object by adding render commands to the list.
-    /// </summary>
-    /// <param name="gameTime">The game timing information.</param>
-    /// <param name="renderCommands">The list of render commands to populate.</param>
-    public abstract void Draw(GameTime gameTime, ref List<RenderCommand> renderCommands);
 }

@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Drawing;
 using System.Globalization;
-using System.Numerics;
 using System.Reflection;
 using System.Text;
 using Lilly.Engine.Core.Attributes.Scripts;
@@ -43,8 +41,6 @@ public static class LuaDocumentationGenerator
         ArgumentNullException.ThrowIfNull(type);
         _classTypesToGenerate.Add(type);
     }
-
-
 
     /// <summary>
     /// Clears all internal caches and state

@@ -337,6 +337,11 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         }
     }
 
+    public void ExecuteEngineReady()
+    {
+        ExecuteFunctionFromBootstrap(OnEngineRunFunctionName);
+    }
+
     /// <summary>
     /// Executes a Lua function and returns the result.
     /// </summary>
@@ -584,7 +589,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             _isInitialized = true;
             _logger.Information("Lua engine initialized successfully");
 
-
             // if (_watcher == null)
             // {
             //     _watcher = new(_directoriesConfig[DirectoryType.Scripts], "*.lua")
@@ -669,12 +673,12 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     {
         return dynValue.Type switch
         {
-            DataType.Nil => null,
+            DataType.Nil     => null,
             DataType.Boolean => dynValue.Boolean,
-            DataType.Number => Convert.ChangeType(dynValue.Number, targetType, CultureInfo.InvariantCulture),
-            DataType.String => dynValue.String,
-            DataType.Table => dynValue.ToObject(),
-            _ => dynValue.ToObject()
+            DataType.Number  => Convert.ChangeType(dynValue.Number, targetType, CultureInfo.InvariantCulture),
+            DataType.String  => dynValue.String,
+            DataType.Table   => dynValue.ToObject(),
+            _                => dynValue.ToObject()
         };
     }
 
@@ -685,7 +689,9 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     /// Creates a factory function that dynamically invokes the correct constructor.
     /// Uses reflection to find the constructor matching the number of arguments passed from Lua.
     /// </summary>
-    private Func<dynamic, dynamic, dynamic, dynamic, dynamic> CreateConstructorWrapper([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
+    private Func<dynamic, dynamic, dynamic, dynamic, dynamic> CreateConstructorWrapper(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type
+    )
     {
         // Cache constructors by parameter count for performance
         var constructorsByParamCount = new Dictionary<int, ConstructorInfo>();
@@ -976,9 +982,22 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         return script;
     }
 
-    public void ExecuteEngineReady()
+    private void ExecuteBootFunction()
     {
-        ExecuteFunctionFromBootstrap(OnEngineRunFunctionName);
+        ExecuteFunctionFromBootstrap(OnReadyFunctionName);
+    }
+
+    private void ExecuteBootstrap()
+    {
+        foreach (var file in _initScripts.Select(s => Path.Combine(_directoriesConfig[DirectoryType.Scripts], s)))
+        {
+            if (File.Exists(file))
+            {
+                var fileName = Path.GetFileName(file);
+                _logger.Information("Executing {FileName} script", fileName);
+                ExecuteScriptFile(file);
+            }
+        }
     }
 
     private void ExecuteFunctionFromBootstrap(string name)
@@ -1014,25 +1033,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             _logger.Error(ex, "Error executing onReady function");
 
             throw;
-        }
-    }
-
-    private void ExecuteBootFunction()
-    {
-
-        ExecuteFunctionFromBootstrap(OnReadyFunctionName);
-    }
-
-    private void ExecuteBootstrap()
-    {
-        foreach (var file in _initScripts.Select(s => Path.Combine(_directoriesConfig[DirectoryType.Scripts], s)))
-        {
-            if (File.Exists(file))
-            {
-                var fileName = Path.GetFileName(file);
-                _logger.Information("Executing {FileName} script", fileName);
-                ExecuteScriptFile(file);
-            }
         }
     }
 
@@ -1132,7 +1132,8 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
 
                 if (userData.UserType.IsEnum)
                 {
-                    LuaDocumentationGenerator.FoundEnums.Add( userData.UserType);
+                    LuaDocumentationGenerator.FoundEnums.Add(userData.UserType);
+
                     continue;
                 }
 
@@ -1142,8 +1143,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             var version = _versionService.GetVersionInfo();
 
             AddConstant("engine_version", version.ToString());
-
-
 
             // Generate meta.lua
             var manualModulesSnapshot = _manualModuleFunctions.ToDictionary(
@@ -1332,17 +1331,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         return (normalizedModuleName, normalizedFunctionName, moduleTable);
     }
 
-    [RequiresUnreferencedCode("Enum metadata is discovered dynamically when building Lua documentation.")]
-    private void RegisterEnums()
-    {
-        var enumsFound = LuaDocumentationGenerator.FoundEnums;
-
-        foreach (var enumType in enumsFound)
-        {
-            RegisterEnum(enumType);
-        }
-    }
-
     [RequiresUnreferencedCode("Enum registration uses reflection to access enum metadata.")]
     private void RegisterEnum(Type enumType)
     {
@@ -1351,6 +1339,7 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         if (!enumType.IsEnum)
         {
             _logger.Warning("Type {TypeName} is not an enum, skipping registration", enumType.Name);
+
             return;
         }
 
@@ -1381,51 +1370,57 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         var metatable = new Table(LuaScript);
 
         // __index: allows case-insensitive access
-        metatable["__index"] = DynValue.NewCallback((ctx, args) =>
-        {
-            var key = args[1].String;
-
-            if (string.IsNullOrEmpty(key))
+        metatable["__index"] = DynValue.NewCallback(
+            (ctx, args) =>
             {
+                var key = args[1].String;
+
+                if (string.IsNullOrEmpty(key))
+                {
+                    return DynValue.Nil;
+                }
+
+                // Try exact match first
+                var value = enumTable.Get(key);
+
+                if (value.Type != DataType.Nil)
+                {
+                    return value;
+                }
+
+                // Try case-insensitive match
+                if (enumValuesByName.TryGetValue(key, out var intValue))
+                {
+                    return DynValue.NewNumber(intValue);
+                }
+
+                _logger.Warning(
+                    "Attempt to access undefined enum value {EnumName}.{ValueName}",
+                    enumName,
+                    key
+                );
+
                 return DynValue.Nil;
             }
-
-            // Try exact match first
-            var value = enumTable.Get(key);
-            if (value.Type != DataType.Nil)
-            {
-                return value;
-            }
-
-            // Try case-insensitive match
-            if (enumValuesByName.TryGetValue(key, out var intValue))
-            {
-                return DynValue.NewNumber(intValue);
-            }
-
-            _logger.Warning(
-                "Attempt to access undefined enum value {EnumName}.{ValueName}",
-                enumName,
-                key
-            );
-
-            return DynValue.Nil;
-        });
+        );
 
         // __newindex: prevents modifications (read-only)
-        metatable["__newindex"] = DynValue.NewCallback((ctx, args) =>
-        {
-            var key = args[1].String;
-            throw new ScriptRuntimeException(
-                $"Cannot modify enum {enumName}.{key}: enums are read-only"
-            );
-        });
+        metatable["__newindex"] = DynValue.NewCallback(
+            (ctx, args) =>
+            {
+                var key = args[1].String;
+
+                throw new ScriptRuntimeException($"Cannot modify enum {enumName}.{key}: enums are read-only");
+            }
+        );
 
         // __tostring: pretty print
-        metatable["__tostring"] = DynValue.NewCallback((ctx, args) =>
-        {
-            return DynValue.NewString($"enum<{enumName}>");
-        });
+        metatable["__tostring"] = DynValue.NewCallback(
+            (ctx, args) =>
+            {
+                return DynValue.NewString($"enum<{enumName}>");
+            }
+        );
 
         // Set the enum table first
         var enumTableDynValue = DynValue.NewTable(enumTable);
@@ -1450,6 +1445,17 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             enumName,
             enumValuesByName.Count
         );
+    }
+
+    [RequiresUnreferencedCode("Enum metadata is discovered dynamically when building Lua documentation.")]
+    private void RegisterEnums()
+    {
+        var enumsFound = LuaDocumentationGenerator.FoundEnums;
+
+        foreach (var enumType in enumsFound)
+        {
+            RegisterEnum(enumType);
+        }
     }
 
     private void RegisterGlobalFunctions()

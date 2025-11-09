@@ -123,6 +123,7 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     public List<T>.Enumerator GetEnumerator()
     {
         EnsureSorted();
+
         return _gameObjects.GetEnumerator();
     }
 
@@ -134,6 +135,7 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     public ReadOnlySpan<T> GetSpan()
     {
         EnsureSorted();
+
         return CollectionsMarshal.AsSpan(_gameObjects);
     }
 
@@ -150,22 +152,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     }
 
     /// <summary>
-    /// Removes a game object by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the game object to remove.</param>
-    /// <returns>True if the game object was removed, false if not found.</returns>
-    public bool RemoveById(uint id)
-    {
-        var index = _gameObjects.FindIndex(go => go.Id == id);
-        if (index >= 0)
-        {
-            _gameObjects.RemoveAt(index);
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>
     /// Removes all game objects that match the specified predicate.
     /// </summary>
     /// <param name="predicate">The predicate to match.</param>
@@ -178,6 +164,25 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     }
 
     /// <summary>
+    /// Removes a game object by its ID.
+    /// </summary>
+    /// <param name="id">The ID of the game object to remove.</param>
+    /// <returns>True if the game object was removed, false if not found.</returns>
+    public bool RemoveById(uint id)
+    {
+        var index = _gameObjects.FindIndex(go => go.Id == id);
+
+        if (index >= 0)
+        {
+            _gameObjects.RemoveAt(index);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Tries to get a game object by its ID.
     /// </summary>
     /// <param name="id">The ID of the game object.</param>
@@ -186,6 +191,7 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     public bool TryGetById(uint id, out T? gameObject)
     {
         gameObject = _gameObjects.Find(go => go.Id == id);
+
         return gameObject != null;
     }
 

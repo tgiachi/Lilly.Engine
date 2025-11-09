@@ -2,6 +2,7 @@ namespace Lilly.Engine.Core.Attributes.Debugger;
 
 /// <summary>Specifies a header for the debugger display.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+
 /// <summary>
 /// Attribute used to specify a custom header for debugger display of classes or structs.
 /// </summary>

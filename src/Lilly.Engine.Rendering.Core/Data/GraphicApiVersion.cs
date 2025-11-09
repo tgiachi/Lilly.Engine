@@ -8,4 +8,3 @@ namespace Lilly.Engine.Rendering.Core.Data;
 /// <param name="Build">The build number.</param>
 /// <param name="Revision">The revision number.</param>
 public record GraphicApiVersion(int Major, int Minor, int Build, int Revision);
-

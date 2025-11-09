@@ -16,14 +16,12 @@ internal class Texture2DManager : ITexture2DManager
     public GraphicsDevice GraphicsDevice { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Texture2DManager"/> class.
+    /// Initializes a new instance of the <see cref="Texture2DManager" /> class.
     /// </summary>
     /// <param name="device">The graphics device to use for texture operations.</param>
     /// <exception cref="ArgumentNullException">Thrown when device is null.</exception>
     public Texture2DManager(GraphicsDevice device)
-    {
-        GraphicsDevice = device ?? throw new ArgumentNullException(nameof(device));
-    }
+        => GraphicsDevice = device ?? throw new ArgumentNullException(nameof(device));
 
     /// <summary>
     /// Creates a new 2D texture with the specified dimensions.
@@ -43,7 +41,7 @@ internal class Texture2DManager : ITexture2DManager
     {
         var xnaTexture = (Texture2D)texture;
 
-        return new Point((int)xnaTexture.Width, (int)xnaTexture.Height);
+        return new((int)xnaTexture.Width, (int)xnaTexture.Height);
     }
 
     /// <summary>

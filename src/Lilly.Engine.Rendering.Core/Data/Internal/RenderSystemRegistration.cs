@@ -5,4 +5,3 @@ namespace Lilly.Engine.Rendering.Core.Data.Internal;
 /// </summary>
 /// <param name="Type">The type of the render layer system.</param>
 public record RenderSystemRegistration(Type Type);
-

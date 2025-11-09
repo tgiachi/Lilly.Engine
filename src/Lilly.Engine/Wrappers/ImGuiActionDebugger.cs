@@ -1,6 +1,5 @@
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Payloads;
 using Lilly.Engine.Interfaces.Debuggers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
@@ -26,8 +25,6 @@ public class ImGuiActionDebugger : IImGuiDebugger
 
     public void Render(GameTime gameTime, ref List<RenderCommand> renderCommands)
     {
-        renderCommands.Add(RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, _callback)));
+        renderCommands.Add(RenderCommandHelpers.ImGuiRender(new(Name, _callback)));
     }
-
-
 }

@@ -13,6 +13,7 @@ public class Transform3D
         var translation = Matrix4X4.CreateTranslation(Position);
         var rotation = Matrix4X4.CreateFromQuaternion(Rotation);
         var scaling = Matrix4X4.CreateScale(Scale);
+
         return scaling * rotation * translation;
     }
 }

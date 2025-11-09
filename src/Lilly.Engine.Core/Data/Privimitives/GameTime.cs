@@ -16,14 +16,21 @@ public class GameTime
     public double ElapsedGameTime { get; set; }
 
     /// <summary>
-    ///  Gets the elapsed game time as a TimeSpan.
+    /// Gets the elapsed game time as a TimeSpan.
     /// </summary>
     public TimeSpan ElapsedGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(ElapsedGameTime);
 
     /// <summary>
-    ///  Gets the total game time as a TimeSpan.
+    /// Gets the total game time as a TimeSpan.
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
+
+    /// <summary>
+    /// Returns a string representation of the game time.
+    /// </summary>
+    /// <returns>A string containing total and elapsed game time information.</returns>
+    public override string ToString()
+        => $"TotalGameTime: {TotalGameTime}s, ElapsedGameTime: {ElapsedGameTime}s";
 
     /// <summary>
     /// Updates the game time with the elapsed time since the last frame.
@@ -34,11 +41,4 @@ public class GameTime
         ElapsedGameTime = elapsedMilliseconds;
         TotalGameTime += elapsedMilliseconds;
     }
-
-    /// <summary>
-    /// Returns a string representation of the game time.
-    /// </summary>
-    /// <returns>A string containing total and elapsed game time information.</returns>
-    public override string ToString()
-        => $"TotalGameTime: {TotalGameTime}s, ElapsedGameTime: {ElapsedGameTime}s";
 }

@@ -36,7 +36,5 @@ public readonly struct RenderCommand
     /// <typeparam name="TPayload">The type to cast the payload to.</typeparam>
     /// <returns>The payload cast to the specified type, or default if the cast fails.</returns>
     public TPayload GetPayload<TPayload>() where TPayload : struct
-    {
-        return Data is TPayload ? (TPayload)Data : default;
-    }
+        => Data is TPayload ? (TPayload)Data : default;
 }

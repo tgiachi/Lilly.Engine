@@ -11,7 +11,7 @@ public static class TableExtensions
     {
         var proxy = DispatchProxy.Create<TInterface, LuaProxy<TInterface>>();
         ((LuaProxy<TInterface>)(object)proxy).Table = table;
+
         return proxy;
     }
-
 }

@@ -2,6 +2,7 @@ namespace Lilly.Engine.Core.Attributes.Debugger;
 
 /// <summary>Specifies a range for debugger editing.</summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+
 /// <summary>
 /// Attribute that specifies a range for debugger editing of numeric fields or properties.
 /// </summary>

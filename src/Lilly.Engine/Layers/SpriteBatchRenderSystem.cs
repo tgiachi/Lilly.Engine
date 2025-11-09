@@ -19,40 +19,11 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     private List<RenderCommand> _renderCommands = new(512);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem"/> class.
+    /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem" /> class.
     /// </summary>
     /// <param name="context">The render context containing graphics device information.</param>
     public SpriteBatchRenderSystem(RenderContext context) : base("SpriteBatch", RenderLayer.UI)
-    {
-        _context = context;
-    }
-
-    /// <summary>
-    /// Initializes the sprite batcher and shader program.
-    /// </summary>
-    public override void Initialize()
-    {
-        _spriteBatcher = new TextureBatcher(_context.GraphicsDevice);
-        _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(_context.GraphicsDevice, 0, 0, true);
-        _spriteBatcher.SetShaderProgram(_shaderProgram);
-
-        base.Initialize();
-    }
-
-
-
-    /// <summary>
-    /// Processes render commands for sprite batching.
-    /// </summary>
-    /// <param name="renderCommands">The list of render commands to process.</param>
-    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
-    {
-        _spriteBatcher.Begin();
-
-
-        _spriteBatcher.End();
-        base.ProcessRenderCommands(ref renderCommands);
-    }
+        => _context = context;
 
     /// <summary>
     /// Disposes the sprite batcher, shader program, and releases resources.
@@ -63,5 +34,29 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         _shaderProgram.Dispose();
 
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Initializes the sprite batcher and shader program.
+    /// </summary>
+    public override void Initialize()
+    {
+        _spriteBatcher = new(_context.GraphicsDevice);
+        _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(_context.GraphicsDevice, 0, 0, true);
+        _spriteBatcher.SetShaderProgram(_shaderProgram);
+
+        base.Initialize();
+    }
+
+    /// <summary>
+    /// Processes render commands for sprite batching.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
+    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
+    {
+        _spriteBatcher.Begin();
+
+        _spriteBatcher.End();
+        base.ProcessRenderCommands(ref renderCommands);
     }
 }

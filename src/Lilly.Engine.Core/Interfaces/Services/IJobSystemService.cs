@@ -8,24 +8,6 @@ namespace Lilly.Engine.Core.Interfaces.Services;
 public interface IJobSystemService
 {
     /// <summary>
-    /// Initializes the worker pool.
-    /// </summary>
-    /// <param name="workerCount">Number of worker threads to create.</param>
-    void Initialize(int workerCount);
-
-    /// <summary>
-    /// Schedules a synchronous job without waiting for completion.
-    /// </summary>
-    /// <param name="job">The job to enqueue.</param>
-    void Schedule(IJob job);
-
-    /// <summary>
-    /// Schedules an asynchronous job without waiting for completion.
-    /// </summary>
-    /// <param name="job">The job to enqueue.</param>
-    void Schedule(IAsyncJob job);
-
-    /// <summary>
     /// Executes a synchronous job and returns a task that completes when the job finishes.
     /// </summary>
     /// <param name="job">The job to execute.</param>
@@ -58,6 +40,24 @@ public interface IJobSystemService
     /// <typeparam name="TResult">Type of the result.</typeparam>
     /// <returns>A task that completes with the job result.</returns>
     Task<TResult> ExecuteAsync<TResult>(IAsyncJob<TResult> job, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Initializes the worker pool.
+    /// </summary>
+    /// <param name="workerCount">Number of worker threads to create.</param>
+    void Initialize(int workerCount);
+
+    /// <summary>
+    /// Schedules a synchronous job without waiting for completion.
+    /// </summary>
+    /// <param name="job">The job to enqueue.</param>
+    void Schedule(IJob job);
+
+    /// <summary>
+    /// Schedules an asynchronous job without waiting for completion.
+    /// </summary>
+    /// <param name="job">The job to enqueue.</param>
+    void Schedule(IAsyncJob job);
 
     /// <summary>
     /// Requests shutdown of the worker pool.

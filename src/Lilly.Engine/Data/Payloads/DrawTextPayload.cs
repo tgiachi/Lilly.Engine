@@ -64,7 +64,7 @@ public readonly struct DrawTextPayload
     )
     {
         color ??= Color4b.White;
-        scale ??= new Vector2D<float>(1f, 1f);
+        scale ??= new(1f, 1f);
 
         FontFamily = fontFamily;
         Text = text;
@@ -73,6 +73,5 @@ public readonly struct DrawTextPayload
         Scale = scale.Value;
         Rotation = rotation;
         Color = color.Value;
-
     }
 }

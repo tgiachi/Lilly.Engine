@@ -39,5 +39,4 @@ public enum LogLevelType : byte
     /// Critical level logging.
     /// </summary>
     Critical = 6
-
 }

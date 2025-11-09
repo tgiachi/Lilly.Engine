@@ -265,7 +265,6 @@ public sealed class RenderLayerCollection
         }
     }
 
-
     /// <summary>
     /// Tries to get the first render layer with the specified RenderLayer enum.
     /// </summary>

@@ -10,6 +10,7 @@ namespace Lilly.Engine.Modules;
 /// All output is routed through Serilog for centralized logging.
 /// </summary>
 [ScriptModule("console", "Console API for logging and debugging")]
+
 /// <summary>
 /// Provides console logging functions for scripts, routing output through Serilog.
 /// </summary>

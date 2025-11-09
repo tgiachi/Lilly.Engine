@@ -17,6 +17,8 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
 
     private List<RenderCommand> _renderCommands = new(512);
 
+    protected List<RenderCommand> RenderCommands => _renderCommands;
+
     protected GameObjectCollection<TEntity> GameObjects { get; } = new();
 
     protected BaseRenderLayerSystem(string name, RenderLayer layer)
@@ -24,9 +26,6 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         Layer = layer;
         Name = name;
     }
-
-    public virtual void Initialize() { }
-    public virtual void Update(GameTime gameTime) { }
 
     public void Add(IGameObject gameObject)
     {
@@ -50,22 +49,11 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
-    public void Remove(IGameObject gameObject)
-    {
-        lock (_collectionLock)
-        {
-            if (gameObject is TEntity entity)
-            {
-                GameObjects.Remove(entity);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    $"Cannot remove game object of type {gameObject.GetType().Name} from layer system of type {typeof(TEntity).Name}"
-                );
-            }
-        }
-    }
+    public virtual bool CanAddOrRemove(IGameObject gameObject)
+        => gameObject is TEntity;
+
+    public bool CanRemove(IGameObject gameObject)
+        => gameObject is TEntity;
 
     public void Clear()
     {
@@ -73,6 +61,18 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         {
             GameObjects.Clear();
         }
+    }
+
+    public virtual List<RenderCommand> CollectRenderCommands(GameTime gameTime)
+    {
+        _renderCommands.Clear();
+
+        foreach (var gameObject in GetAllTypedGameObjects())
+        {
+            gameObject.Render(gameTime, ref _renderCommands);
+        }
+
+        return _renderCommands;
     }
 
     public IEnumerable<IGameObject> GetAllGameObjects()
@@ -91,29 +91,33 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
-    public virtual bool CanAddOrRemove(IGameObject gameObject)
-    {
-        return gameObject is TEntity;
-    }
+    public virtual void Initialize() { }
 
     public virtual void OnViewportResize(int width, int height) { }
 
-    public List<RenderCommand> CollectRenderCommands(GameTime gameTime)
-    {
-        _renderCommands.Clear();
-
-        foreach (var gameObject in GetAllTypedGameObjects())
-        {
-            gameObject.Render(gameTime, ref _renderCommands);
-        }
-
-        return _renderCommands;
-    }
-
     public virtual void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
 
-    public bool CanRemove(IGameObject gameObject)
+    public void Remove(IGameObject gameObject)
     {
-        return gameObject is TEntity;
+        lock (_collectionLock)
+        {
+            if (gameObject is TEntity entity)
+            {
+                GameObjects.Remove(entity);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot remove game object of type {gameObject.GetType().Name} from layer system of type {typeof(TEntity).Name}"
+                );
+            }
+        }
+    }
+
+    public virtual void Update(GameTime gameTime) { }
+
+    protected void AddRenderCommand(RenderCommand command)
+    {
+        _renderCommands.Add(command);
     }
 }

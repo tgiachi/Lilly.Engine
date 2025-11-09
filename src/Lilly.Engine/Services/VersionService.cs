@@ -17,7 +17,7 @@ public class VersionService : IVersionService
     {
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version?.ToString() ?? "0.0.0";
-        var appName = assembly.GetName().Name ;
+        var appName = assembly.GetName().Name;
         const string codeName = "Oceanus";
 
         return new(appName, codeName, version);

@@ -25,6 +25,7 @@ public static class AddScriptModuleExtension
     public static IContainer AddLuaUserData<TUserData>(this IContainer container)
     {
         UserData.RegisterType<TUserData>();
+
         return container.AddLuaUserData(typeof(TUserData));
     }
 

@@ -30,6 +30,13 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         _renderer.Update += Update;
     }
 
+    public void Dispose()
+    {
+        _renderer.Update -= Update;
+        _actionQueue.Clear();
+        GC.SuppressFinalize(this);
+    }
+
     public void EnqueueAction(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
@@ -78,12 +85,5 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
                 );
             }
         }
-    }
-
-    public void Dispose()
-    {
-        _renderer.Update -= Update;
-        _actionQueue.Clear();
-        GC.SuppressFinalize(this);
     }
 }

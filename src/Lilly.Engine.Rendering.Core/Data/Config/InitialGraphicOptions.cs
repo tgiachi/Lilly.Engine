@@ -1,4 +1,3 @@
-
 using Silk.NET.Maths;
 
 namespace Lilly.Engine.Rendering.Core.Data.Config;
