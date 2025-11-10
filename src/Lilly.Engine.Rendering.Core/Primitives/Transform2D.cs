@@ -2,6 +2,9 @@ using Silk.NET.Maths;
 
 namespace Lilly.Engine.Rendering.Core.Primitives;
 
+/// <summary>
+/// Represents a 2D transformation with position, rotation, and scale.
+/// </summary>
 public class Transform2D
 {
     public Vector2D<float> Position { get; set; } = Vector2D<float>.Zero;

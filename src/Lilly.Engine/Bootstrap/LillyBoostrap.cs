@@ -44,6 +44,11 @@ public class LillyBoostrap : ILillyBootstrap
     private bool _initialized;
     private bool _isRenderInitialized;
 
+    /// <summary>
+    /// Initializes a new instance of the LillyBoostrap class.
+    /// </summary>
+    /// <param name="container">The dependency injection container.</param>
+    /// <param name="renderer">The graphics renderer.</param>
     public LillyBoostrap(IContainer container, IGraphicRenderer renderer)
     {
         _container = container;

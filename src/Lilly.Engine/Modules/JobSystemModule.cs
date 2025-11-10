@@ -16,6 +16,11 @@ public class JobSystemModule
 
     private readonly IMainThreadDispatcher _mainThreadDispatcher;
 
+    /// <summary>
+    /// Initializes a new instance of the JobSystemModule class.
+    /// </summary>
+    /// <param name="jobSystemService">The job system service.</param>
+    /// <param name="mainThreadDispatcher">The main thread dispatcher.</param>
     public JobSystemModule(IJobSystemService jobSystemService, IMainThreadDispatcher mainThreadDispatcher)
     {
         _jobSystemService = jobSystemService;
