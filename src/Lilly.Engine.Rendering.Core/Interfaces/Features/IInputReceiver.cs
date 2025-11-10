@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Silk.NET.Input.Extensions;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Features;
@@ -8,13 +9,8 @@ namespace Lilly.Engine.Rendering.Core.Interfaces.Features;
 /// <summary>
 /// Defines the contract for objects that can receive keyboard and mouse input events.
 /// </summary>
-public interface IInputReceiver
+public interface IInputReceiver : IGameObject
 {
-    /// <summary>
-    /// Gets the name of this input receiver.
-    /// </summary>
-    string Name { get; }
-
     /// <summary>
     /// Gets or sets whether this object can receive focus.
     /// </summary>

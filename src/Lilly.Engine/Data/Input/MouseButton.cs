@@ -1,4 +1,4 @@
-namespace Squid.Engine.Data.Input;
+namespace Lilly.Engine.Data.Input;
 
 /// <summary>
 /// Represents mouse buttons that can be detected by the input manager.

@@ -1,4 +1,4 @@
-using Silk.NET.GLFW;
+using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 
 namespace Lilly.Engine.Data.Input;
@@ -22,7 +22,7 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
     /// <summary>
     /// Gets the primary key for this binding.
     /// </summary>
-    public Keys Key { get; }
+    public Key Key { get; }
 
     /// <summary>
     /// Gets whether the Ctrl modifier is required for this binding to activate.
@@ -52,7 +52,7 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
     /// 2. All required modifiers are pressed
     /// 3. No other modifiers are pressed (that weren't required)
     /// </remarks>
-    public KeyBinding(Keys key, bool requiresCtrl = false, bool requiresShift = false, bool requiresAlt = false)
+    public KeyBinding(Key key, bool requiresCtrl = false, bool requiresShift = false, bool requiresAlt = false)
     {
         Key = key;
         RequiresCtrl = requiresCtrl;
@@ -148,14 +148,14 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
     /// </remarks>
     public bool IsPressed(KeyboardState keyboardState)
     {
-        if (!keyboardState.IsKeyDown(Key))
+        if (!keyboardState.IsKeyPressed(Key))
         {
             return false;
         }
 
-        var ctrlPressed = keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
-        var shiftPressed = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
-        var altPressed = keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
+        var ctrlPressed = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+        var shiftPressed = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+        var altPressed = keyboardState.IsKeyPressed(Key.AltLeft) || keyboardState.IsKeyPressed(Key.AltRight);
 
         // Check that all required modifiers are pressed
         if (RequiresCtrl && !ctrlPressed)
@@ -203,14 +203,14 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
     /// </remarks>
     public bool IsPressedLoose(KeyboardState keyboardState)
     {
-        if (!keyboardState.IsKeyDown(Key))
+        if (!keyboardState.IsKeyPressed(Key))
         {
             return false;
         }
 
-        var ctrlPressed = keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl);
-        var shiftPressed = keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift);
-        var altPressed = keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt);
+        var ctrlPressed = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+        var shiftPressed = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+        var altPressed = keyboardState.IsKeyPressed(Key.AltLeft) || keyboardState.IsKeyPressed(Key.AltRight);
 
         // Check that all required modifiers are pressed
         if (RequiresCtrl && !ctrlPressed)
@@ -276,7 +276,7 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
         var requiresCtrl = false;
         var requiresShift = false;
         var requiresAlt = false;
-        Keys? key = null;
+        Key? key = null;
 
         foreach (var part in parts)
         {
@@ -296,7 +296,7 @@ public readonly struct KeyBinding : IEquatable<KeyBinding>
             }
             else
             {
-                if (Enum.TryParse<Keys>(part, true, out var parsedKey))
+                if (Enum.TryParse<Key>(part, true, out var parsedKey))
                 {
                     key = parsedKey;
                 }

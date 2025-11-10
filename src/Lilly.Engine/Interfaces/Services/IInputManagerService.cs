@@ -2,8 +2,9 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Input;
 using Lilly.Engine.Events;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
-using Silk.NET.GLFW;
+using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
+using MouseButton = Lilly.Engine.Data.Input.MouseButton;
 
 namespace Lilly.Engine.Interfaces.Services;
 
@@ -91,21 +92,21 @@ public interface IInputManagerService : IDisposable
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>Duration in seconds that the key has been pressed.</returns>
-    float GetKeyPressDuration(Keys key);
+    float GetKeyPressDuration(Key key);
 
     /// <summary>
     /// Checks if a key is currently down.
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>True if the key is down.</returns>
-    bool IsKeyDown(Keys key);
+    bool IsKeyDown(Key key);
 
     /// <summary>
     /// Checks if a key is held (pressed and not just pressed this frame).
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>True if the key is down but was already down last frame.</returns>
-    bool IsKeyHeld(Keys key);
+    bool IsKeyHeld(Key key);
 
     /// <summary>
     /// Checks if a key has been held for at least the specified duration.
@@ -113,21 +114,21 @@ public interface IInputManagerService : IDisposable
     /// <param name="key">The key to check.</param>
     /// <param name="duration">The minimum duration in seconds.</param>
     /// <returns>True if the key is currently pressed and has been held for at least the duration.</returns>
-    bool IsKeyHeldFor(Keys key, float duration);
+    bool IsKeyHeldFor(Key key, float duration);
 
     /// <summary>
     /// Checks if a key was just pressed this frame.
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>True if the key was just pressed.</returns>
-    bool IsKeyPressed(Keys key);
+    bool IsKeyPressed(Key key);
 
     /// <summary>
     /// Checks if a key was just released this frame.
     /// </summary>
     /// <param name="key">The key to check.</param>
     /// <returns>True if the key was just released.</returns>
-    bool IsKeyReleased(Keys key);
+    bool IsKeyReleased(Key key);
 
     /// <summary>
     /// Checks if a mouse button is currently down.

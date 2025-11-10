@@ -78,6 +78,7 @@ public class LillyBoostrap : ILillyBootstrap
         _container
             .RegisterService<IScriptEngineService, LuaScriptEngineService>()
             .RegisterService<IVersionService, VersionService>()
+            .RegisterService<IInputManagerService, InputManagerService>()
             .RegisterService<ITimerService, TimerService>()
             .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
             .RegisterService<IJobSystemService, JobSystemService>()
@@ -91,6 +92,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<ImGuiRenderSystem>()
             .RegisterRenderSystem<SpriteBatchRenderSystem>()
             .RegisterRenderSystem<UpdatableRenderSystem>()
+            .RegisterRenderSystem<InputRenderSystem>()
             ;
 
         _container.RegisterGameObject<ImGuiActionDebugger>();

@@ -28,5 +28,9 @@ public enum RenderCommandType : byte
     /// <summary>
     /// Render ImGui debug interface.
     /// </summary>
-    ImGui
+    ImGui,
+    /// <summary>
+    ///  No specific render command.
+    /// </summary>
+    None
 }
