@@ -93,7 +93,10 @@ public class LillyBoostrap : ILillyBootstrap
 
 
         _container.AddLuaUserData<Vector2D<int>>();
-        _container.AddScriptModule<ConsoleModule>();
+        _container
+            .AddScriptModule<ConsoleModule>()
+            .AddScriptModule<WindowModule>()
+            ;
     }
 
     private void RendererOnRender(GameTime gameTime)

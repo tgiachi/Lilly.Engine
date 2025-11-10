@@ -37,4 +37,6 @@ public readonly struct RenderCommand
     /// <returns>The payload cast to the specified type, or default if the cast fails.</returns>
     public TPayload GetPayload<TPayload>() where TPayload : struct
         => Data is TPayload ? (TPayload)Data : default;
+
+    public override string ToString() => $"RenderCommand: {CommandType}";
 }

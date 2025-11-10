@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
@@ -18,18 +19,20 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
 {
     private readonly RenderLayerCollection _renderLayers = new();
     private readonly IContainer _container;
-    private readonly RenderPipelineDiagnostics _diagnostics = new();
 
     private readonly List<RenderSystemRegistration> _renderSystemsRegistrations;
     private readonly ILogger _logger = Log.ForContext<GraphicRenderPipeline>();
 
     // Command collection buffer - reused every frame to avoid allocations
-    private List<RenderCommand> _collectedCommands = new(2048);
+    private readonly List<RenderCommand> _collectedCommands = new(2048);
+
+    // Temporary buffer for filtered commands per layer (reused to avoid allocations)
+    private List<RenderCommand> _filteredCommandsBuffer = new(1024);
 
     /// <summary>
     /// Gets the diagnostic information for the render pipeline.
     /// </summary>
-    public RenderPipelineDiagnostics Diagnostics => _diagnostics;
+    public RenderPipelineDiagnostics Diagnostics { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the GraphicRenderPipeline class.
@@ -78,23 +81,19 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     /// <param name="gameTime">The current game time.</param>
     public void Render(GameTime gameTime)
     {
-        _diagnostics.BeginFrame();
-
-        // PHASE 1: COLLECT - Gather all render commands from all layers
-        _collectedCommands.Clear();
+        Diagnostics.BeginFrame();
 
         foreach (var layer in _renderLayers.GetLayersSpan())
         {
             var layerCommands = layer.CollectRenderCommands(gameTime);
 
             // Record diagnostics for this layer
-            _diagnostics.RecordLayerCommands(layer.Name, layerCommands.Count);
+            Diagnostics.RecordLayerCommands(layer.Name, layerCommands.Count);
 
             // Collect all commands into a single buffer
             _collectedCommands.AddRange(layerCommands);
         }
 
-        // PHASE 2: OPTIMIZE (optional) - Sort and optimize commands
         // This phase can be extended to:
         // - Sort by texture/shader to reduce GPU state changes
         // - Batch similar commands together
@@ -102,45 +101,72 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         // - Remove redundant state changes
         OptimizeCommands(_collectedCommands);
 
-        // PHASE 3: SUBMIT - Process all optimized commands
         // Commands are now processed in optimal order regardless of layer origin
         SubmitCommands(_collectedCommands);
 
-        _diagnostics.EndFrame(gameTime.ElapsedGameTime);
+        _collectedCommands.Clear();
+
+        Diagnostics.EndFrame(gameTime.ElapsedGameTime);
     }
 
     /// <summary>
     /// Optimizes the collected render commands.
-    /// Override this method to implement custom optimization strategies.
+    /// Base implementation groups commands by type to minimize GPU state changes.
+    /// Override in derived classes for more advanced optimization (texture sorting, depth sorting, etc.).
     /// </summary>
     /// <param name="commands">The list of commands to optimize.</param>
     protected virtual void OptimizeCommands(List<RenderCommand> commands)
     {
-        // Default implementation: no optimization
-        // Subclasses can override to implement:
-        // - Texture/shader sorting
-        // - Command batching
-        // - Culling
+        if (commands.Count == 0)
+            return;
+
+        // BASIC OPTIMIZATION: Sort by CommandType to group similar operations
+        // This alone provides significant performance improvements by:
+        // 1. Grouping all Clear commands together
+        // 2. Grouping all DrawTexture commands together (reduces texture binding)
+        // 3. Grouping all DrawText commands together (reduces font atlas binding)
+        // 4. Grouping all Window commands together
+        // 5. Grouping all ImGui commands together
+        //
+        // For more advanced optimizations (texture/shader sorting, depth sorting):
+        // - Create a custom GraphicRenderPipeline subclass in your game project
+        // - Override this method with access to your specific payload types
+        // - Implement sorting by texture handle, depth, font, etc.
+
+        commands.Sort((x, y) => x.CommandType.CompareTo(y.CommandType));
+
     }
 
     /// <summary>
     /// Submits the optimized commands to the appropriate render systems.
-    /// Filters commands by layer capabilities for optimal performance.
+    /// Filters commands by layer capabilities with zero allocations using buffer reuse.
     /// </summary>
     /// <param name="commands">The list of commands to submit.</param>
     protected virtual void SubmitCommands(List<RenderCommand> commands)
     {
+        // Get a zero-copy span view of the commands list
+        var commandsSpan = CollectionsMarshal.AsSpan(commands);
+
         // Process commands through each layer, filtering by supported types
         foreach (var layer in _renderLayers.GetLayersSpan())
         {
-            // Filter commands that this layer can process
-            var filteredCommands = commands
-                .Where(cmd => layer.SupportedCommandTypes.Contains(cmd.CommandType))
-                .ToList();
+            // Reuse buffer instead of allocating new list
+            _filteredCommandsBuffer.Clear();
 
-            if (filteredCommands.Count > 0)
+            // Filter commands that this layer can process (in-place, no LINQ allocation)
+            var supportedTypes = layer.SupportedCommandTypes;
+            foreach (var cmd in commandsSpan)
             {
-                layer.ProcessRenderCommands(ref filteredCommands);
+                if (supportedTypes.Contains(cmd.CommandType))
+                {
+                    _filteredCommandsBuffer.Add(cmd);
+                }
+            }
+
+            // Only process if we have commands for this layer
+            if (_filteredCommandsBuffer.Count > 0)
+            {
+                layer.ProcessRenderCommands(ref _filteredCommandsBuffer);
             }
         }
     }
@@ -156,5 +182,10 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         {
             layer.OnViewportResize(width, height);
         }
+    }
+
+    public void EnqueueRenderCommand(RenderCommand command)
+    {
+        _collectedCommands.Add(command);
     }
 }

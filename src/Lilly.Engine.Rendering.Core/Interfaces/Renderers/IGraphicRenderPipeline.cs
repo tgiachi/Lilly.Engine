@@ -1,4 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Data.Diagnostics;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
@@ -64,4 +65,6 @@ public interface IGraphicRenderPipeline
     /// <param name="width">The new viewport width.</param>
     /// <param name="height">The new viewport height.</param>
     void ViewportResize(int width, int height);
+
+    void EnqueueRenderCommand(RenderCommand command);
 }
