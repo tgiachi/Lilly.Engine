@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Game", "src\Li
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Lua.Scripting", "src\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj", "{DC984A46-5CBC-4D35-A2B8-F0B897049549}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.GameObjects", "src\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj", "{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

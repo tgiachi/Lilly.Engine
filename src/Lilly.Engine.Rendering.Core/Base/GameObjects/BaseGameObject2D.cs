@@ -90,7 +90,48 @@ public abstract class BaseGameObject2D : IGameObject2D
         }
     }
 
+    /// <summary>
+    /// Creates a render command to draw text using the object's Transform2D.
+    /// </summary>
+    /// <param name="fontFamily">The font family to use.</param>
+    /// <param name="text">The text to draw.</param>
+    /// <param name="fontSize">The font size.</param>
+    /// <param name="color">The text color.</param>
+    /// <param name="useTransform">Whether to use the object's Transform2D (default: true).</param>
+    /// <returns>A render command for drawing the text.</returns>
     protected RenderCommand DrawText(
+        string fontFamily,
+        string text,
+        int fontSize,
+        Color4b? color = null,
+        bool useTransform = true
+    )
+    {
+        return RenderCommandHelpers.CreateDrawText(
+            new DrawTextPayload(
+                fontFamily,
+                text,
+                fontSize,
+                useTransform ? Transform.Position : Vector2D<float>.Zero,
+                useTransform ? Transform.Scale : null,
+                useTransform ? Transform.Rotation : 0f,
+                color
+            )
+        );
+    }
+
+    /// <summary>
+    /// Creates a render command to draw text with custom transform parameters.
+    /// </summary>
+    /// <param name="fontFamily">The font family to use.</param>
+    /// <param name="text">The text to draw.</param>
+    /// <param name="fontSize">The font size.</param>
+    /// <param name="position">The position to draw the text at.</param>
+    /// <param name="scale">The scale factor.</param>
+    /// <param name="rotation">The rotation angle in radians.</param>
+    /// <param name="color">The text color.</param>
+    /// <returns>A render command for drawing the text.</returns>
+    protected RenderCommand DrawTextCustom(
         string fontFamily,
         string text,
         int fontSize,
@@ -102,6 +143,84 @@ public abstract class BaseGameObject2D : IGameObject2D
     {
         return RenderCommandHelpers.CreateDrawText(
             new DrawTextPayload(fontFamily, text, fontSize, position, scale, rotation, color)
+        );
+    }
+
+    /// <summary>
+    /// Creates a render command to draw a texture using the object's Transform2D.
+    /// </summary>
+    /// <param name="texture">The name of the texture to draw.</param>
+    /// <param name="source">The source rectangle within the texture.</param>
+    /// <param name="color">The color tint to apply.</param>
+    /// <param name="origin">The origin point for rotation and scaling.</param>
+    /// <param name="depth">The depth value for layering.</param>
+    /// <param name="useTransform">Whether to use the object's Transform2D (default: true).</param>
+    /// <returns>A render command for drawing the texture.</returns>
+    protected RenderCommand DrawTexture(
+        string texture,
+        Rectangle<float>? source = null,
+        Color4b? color = null,
+        Vector2D<float>? origin = null,
+        float depth = 0.0f,
+        bool useTransform = true
+    )
+    {
+        return RenderCommandHelpers.CreateDrawTexture(
+            new DrawTexturePayload(
+                texture,
+                transform: null,
+                position: useTransform ? Transform.Position : null,
+                destination: null,
+                source: source,
+                color: color,
+                origin: origin,
+                scale: useTransform ? Transform.Scale : null,
+                rotation: useTransform ? Transform.Rotation : null,
+                depth: depth
+            )
+        );
+    }
+
+    /// <summary>
+    /// Creates a render command to draw a texture with custom transform parameters.
+    /// </summary>
+    /// <param name="texture">The name of the texture to draw.</param>
+    /// <param name="transform">The transformation matrix to apply.</param>
+    /// <param name="position">The position to draw the texture at.</param>
+    /// <param name="destination">The destination rectangle.</param>
+    /// <param name="source">The source rectangle within the texture.</param>
+    /// <param name="color">The color tint to apply.</param>
+    /// <param name="origin">The origin point for rotation and scaling.</param>
+    /// <param name="scale">The scale factor.</param>
+    /// <param name="rotation">The rotation angle in radians.</param>
+    /// <param name="depth">The depth value for layering.</param>
+    /// <returns>A render command for drawing the texture.</returns>
+    protected RenderCommand DrawTextureCustom(
+        string texture,
+        Matrix3X2<float>? transform = null,
+        Vector2D<float>? position = null,
+        Rectangle<float>? destination = null,
+        Rectangle<float>? source = null,
+        Color4b? color = null,
+        Vector2D<float>? origin = null,
+        Vector2D<float>? scale = null,
+        float? rotation = null,
+        float depth = 0.0f
+    )
+    {
+        return RenderCommandHelpers.CreateDrawTexture(
+            new DrawTexturePayload(
+                texture,
+                transform,
+                position,
+                destination,
+                source,
+                color,
+                origin,
+                scale,
+                rotation,
+                depth
+            )
         );
     }
 }

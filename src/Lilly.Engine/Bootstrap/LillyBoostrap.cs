@@ -8,6 +8,7 @@ using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Layers;
@@ -125,8 +126,19 @@ public class LillyBoostrap : ILillyBootstrap
             new TextGameObject()
             {
                 Text = "Lilly Lilly",
+                Transform = { Position = new Vector2D<float>(300, 300)}
             }
         );
+
+        var logo = new ImageGameObject()
+        {
+            TextureKey = "logo",
+        };
+
+        logo.Transform.Position = new Vector2D<float>(200, 200);
+        logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
+
+        _renderPipeline.AddGameObject(logo);
 
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
@@ -144,7 +156,6 @@ public class LillyBoostrap : ILillyBootstrap
             );
             InitializeRenderSystem();
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
-
 
             _isRenderInitialized = true;
         }
@@ -202,6 +213,11 @@ public class LillyBoostrap : ILillyBootstrap
                 typeof(LillyBoostrap).Assembly,
                 "Assets.Fonts.DefaultMonoFontAlternative.ttf"
             )
+        );
+
+        assetManager.LoadTextureFromMemory(
+            "logo",
+            ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBoostrap).Assembly, "Assets.Textures.SquidVortexLogo.png")
         );
     }
 }
