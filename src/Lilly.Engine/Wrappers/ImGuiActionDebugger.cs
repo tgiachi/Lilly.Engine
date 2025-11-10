@@ -23,8 +23,8 @@ public class ImGuiActionDebugger : IImGuiDebugger
         _callback = callback;
     }
 
-    public void Render(GameTime gameTime, ref List<RenderCommand> renderCommands)
+    public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        renderCommands.Add(RenderCommandHelpers.ImGuiRender(new(Name, _callback)));
+        yield return RenderCommandHelpers.ImGuiRender(new(Name, _callback));
     }
 }

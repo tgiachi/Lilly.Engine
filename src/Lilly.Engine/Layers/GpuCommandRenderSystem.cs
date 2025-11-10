@@ -17,6 +17,16 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 
     public Color4b ClearColor { get; set; } = Color4b.BlanchedAlmond;
 
+    /// <summary>
+    /// This layer processes Clear and Window commands.
+    /// </summary>
+    public override IReadOnlySet<RenderCommandType> SupportedCommandTypes { get; } =
+        new HashSet<RenderCommandType>
+        {
+            RenderCommandType.Clear,
+            RenderCommandType.Window
+        };
+
     public GpuCommandRenderSystem(RenderContext renderContext) : base("GpuCommandSystem", RenderLayer.Background)
         => _renderContext = renderContext;
 

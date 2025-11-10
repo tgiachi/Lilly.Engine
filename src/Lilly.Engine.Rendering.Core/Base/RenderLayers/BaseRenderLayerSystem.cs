@@ -13,6 +13,13 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     public RenderLayer Layer { get; }
     public string Name { get; }
 
+    /// <summary>
+    /// Gets the set of command types that this layer system can process.
+    /// Override this in derived classes to specify which command types the layer handles.
+    /// </summary>
+    public virtual IReadOnlySet<RenderCommandType> SupportedCommandTypes { get; } =
+        new HashSet<RenderCommandType>();
+
     private readonly Lock _collectionLock = new();
 
     private List<RenderCommand> _renderCommands = new(512);
@@ -69,7 +76,11 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
 
         foreach (var gameObject in GetAllTypedGameObjects())
         {
-            gameObject.Render(gameTime, ref _renderCommands);
+            // Collect commands from each game object (including its children)
+            foreach (var command in gameObject.Render(gameTime))
+            {
+                _renderCommands.Add(command);
+            }
         }
 
         return _renderCommands;

@@ -19,6 +19,16 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     private List<RenderCommand> _renderCommands = new(512);
 
     /// <summary>
+    /// This layer processes DrawTexture and DrawText commands.
+    /// </summary>
+    public override IReadOnlySet<RenderCommandType> SupportedCommandTypes { get; } =
+        new HashSet<RenderCommandType>
+        {
+            RenderCommandType.DrawTexture,
+            RenderCommandType.DrawText
+        };
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem" /> class.
     /// </summary>
     /// <param name="context">The render context containing graphics device information.</param>

@@ -11,6 +11,12 @@ public interface IRenderLayerSystem
 
     string Name { get; }
 
+    /// <summary>
+    /// Gets the set of command types that this layer system can process.
+    /// This enables efficient command filtering in the rendering pipeline.
+    /// </summary>
+    IReadOnlySet<RenderCommandType> SupportedCommandTypes { get; }
+
     void Add(IGameObject gameObject);
 
     bool CanAddOrRemove(IGameObject gameObject);

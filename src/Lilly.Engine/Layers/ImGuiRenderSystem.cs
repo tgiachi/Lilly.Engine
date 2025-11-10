@@ -20,6 +20,15 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     private readonly RenderContext _context;
 
     /// <summary>
+    /// This layer processes ImGui commands.
+    /// </summary>
+    public override IReadOnlySet<RenderCommandType> SupportedCommandTypes { get; } =
+        new HashSet<RenderCommandType>
+        {
+            RenderCommandType.ImGui
+        };
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ImGuiRenderSystem" /> class.
     /// </summary>
     /// <param name="context">The render context containing window and graphics device information.</param>
@@ -50,7 +59,7 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        foreach (var command in renderCommands.ToArray())
+        foreach (var command in renderCommands)
         {
             var payload = command.GetPayload<ImGuiDataPayload>()!;
 

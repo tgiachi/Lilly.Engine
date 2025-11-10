@@ -67,9 +67,9 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// <summary>
     /// Renders the game object (IGameObject implementation).
     /// </summary>
-    public void Render(GameTime gameTime, ref List<RenderCommand> renderCommands)
+    public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        renderCommands.Add(RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, Render)));
+        yield return RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, Render));
     }
 
     /// <summary>

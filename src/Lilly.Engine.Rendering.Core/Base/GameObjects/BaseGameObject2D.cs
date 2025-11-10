@@ -52,29 +52,37 @@ public abstract class BaseGameObject2D : IGameObject2D
     public int Layer { get; set; }
 
     /// <summary>
-    /// Draws the game object by adding render commands to the list.
+    /// Draws the game object by returning render commands.
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
-    /// <param name="renderCommands">The list of render commands to populate.</param>
-    public abstract void Draw(GameTime gameTime, ref List<RenderCommand> renderCommands);
+    /// <returns>An enumerable collection of render commands for this object.</returns>
+    protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
 
     /// <summary>
-    /// Renders the game object and its children.
+    /// Renders the game object and its children by collecting all render commands.
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
-    /// <param name="renderCommands">The list of render commands to populate.</param>
-    public void Render(GameTime gameTime, ref List<RenderCommand> renderCommands)
+    /// <returns>An enumerable collection of render commands from this object and all its children.</returns>
+    public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
         if (!IsVisible)
         {
-            return;
+            yield break;
         }
 
-        Draw(gameTime, ref renderCommands);
+        // Yield commands from this object
+        foreach (var command in Draw(gameTime))
+        {
+            yield return command;
+        }
 
+        // Yield commands from all children
         foreach (var child in Children)
         {
-            child.Render(gameTime, ref renderCommands);
+            foreach (var command in child.Render(gameTime))
+            {
+                yield return command;
+            }
         }
     }
 }
