@@ -5,8 +5,14 @@ using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.Base;
 
+/// <summary>
+/// Represents a game object that renders an image using a texture key.
+/// </summary>
 public class ImageGameObject : BaseGameObject2D
 {
+    /// <summary>
+    /// Gets or sets the key of the texture to be drawn.
+    /// </summary>
     public string TextureKey { get; set; }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)

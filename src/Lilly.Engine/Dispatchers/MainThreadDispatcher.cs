@@ -10,7 +10,7 @@ namespace Lilly.Engine.Dispatchers;
 /// Dispatcher specifically designed for main thread execution with thread-safety guarantees.
 /// Handles actions from multiple threads and executes them in parallel on the main thread.
 /// </summary>
-public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
+public class MainThreadDispatcher : IThreadDispatcher, IDisposable
 {
     private readonly int _mainThreadId;
 
@@ -20,9 +20,10 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
 
     private readonly IGraphicRenderer _renderer;
 
-    public int QueuedActionCount => _actionQueue.Count;
-    public int ConcurrentActionCount { get; } = 3;
-
+    /// <summary>
+    /// Initializes a new instance of the MainThreadDispatcher class.
+    /// </summary>
+    /// <param name="renderer">The graphic renderer to hook updates to.</param>
     public MainThreadDispatcher(IGraphicRenderer renderer)
     {
         _renderer = renderer;
@@ -30,12 +31,19 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         _renderer.Update += Update;
     }
 
+    /// <summary>
+    /// Disposes the MainThreadDispatcher and releases resources.
+    /// </summary>
     public void Dispose()
     {
         _renderer.Update -= Update;
         _actionQueue.Clear();
         GC.SuppressFinalize(this);
     }
+
+    public int QueuedActionCount =>
+        _actionQueue.Count;
+    public int ConcurrentActionCount => 3;
 
     /// <summary>
     /// Enqueues an action to be executed on the main thread.
@@ -48,6 +56,10 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         _actionQueue.Enqueue(action);
     }
 
+    /// <summary>
+    /// Executes queued actions on the main thread.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public void Update(GameTime gameTime)
     {
         if (Environment.CurrentManagedThreadId != _mainThreadId)

@@ -57,10 +57,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// </summary>
     /// <param name="gameObjects">The game objects to add.</param>
     /// <exception cref="ArgumentNullException">Thrown when gameObjects is null.</exception>
-    /// <summary>
-    /// Adds a range of game objects to the collection.
-    /// </summary>
-    /// <param name="gameObjects">The game objects to add.</param>
     public void AddRange(IEnumerable<T> gameObjects)
     {
         ArgumentNullException.ThrowIfNull(gameObjects);
@@ -83,11 +79,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// </summary>
     /// <param name="gameObject">The game object to check.</param>
     /// <returns>True if the game object exists, false otherwise.</returns>
-    /// <summary>
-    /// Checks if the collection contains a specific game object.
-    /// </summary>
-    /// <param name="gameObject">The game object to check.</param>
-    /// <returns>True if the game object exists, false otherwise.</returns>
     public bool Contains(T gameObject)
         => _gameObjects.Contains(gameObject);
 
@@ -96,18 +87,9 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// </summary>
     /// <param name="id">The ID to check.</param>
     /// <returns>True if a game object with the ID exists, false otherwise.</returns>
-    /// <summary>
-    /// Checks if the collection contains a game object with the specified ID.
-    /// </summary>
-    /// <param name="id">The ID to check.</param>
-    /// <returns>True if a game object with the ID exists, false otherwise.</returns>
     public bool ContainsId(uint id)
         => _gameObjects.Exists(go => go.Id == id);
 
-    /// <summary>
-    /// Executes an action for each game object in Order.
-    /// </summary>
-    /// <param name="action">The action to execute.</param>
     /// <summary>
     /// Executes an action for each game object in Order.
     /// </summary>
@@ -128,21 +110,11 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// </summary>
     /// <param name="id">The ID of the game object.</param>
     /// <returns>The game object if found, otherwise null.</returns>
-    /// <summary>
-    /// Gets a game object by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the game object.</param>
-    /// <returns>The game object if found, otherwise null.</returns>
     public T? GetById(uint id)
     {
         return _gameObjects.Find(go => go.Id == id);
     }
 
-    /// <summary>
-    /// Gets an enumerator for iterating over all game objects.
-    /// Game objects are automatically sorted by Order before enumeration.
-    /// </summary>
-    /// <returns>An enumerator.</returns>
     /// <summary>
     /// Gets an enumerator for iterating over all game objects.
     /// Game objects are automatically sorted by Order before enumeration.
@@ -160,11 +132,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// Use this for custom iteration scenarios.
     /// </summary>
     /// <returns>A read-only span of game objects.</returns>
-    /// <summary>
-    /// Gets a read-only span of all game objects sorted by Order.
-    /// Use this for custom iteration scenarios.
-    /// </summary>
-    /// <returns>A read-only span of game objects.</returns>
     public ReadOnlySpan<T> GetSpan()
     {
         EnsureSorted();
@@ -172,11 +139,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
         return CollectionsMarshal.AsSpan(_gameObjects);
     }
 
-    /// <summary>
-    /// Removes a specific game object from the collection.
-    /// </summary>
-    /// <param name="gameObject">The game object to remove.</param>
-    /// <returns>True if the game object was removed, false if not found.</returns>
     /// <summary>
     /// Removes a specific game object from the collection.
     /// </summary>
@@ -194,11 +156,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
     /// </summary>
     /// <param name="predicate">The predicate to match.</param>
     /// <returns>The number of game objects removed.</returns>
-    /// <summary>
-    /// Removes all game objects that match the specified predicate.
-    /// </summary>
-    /// <param name="predicate">The predicate to match.</param>
-    /// <returns>The number of game objects removed.</returns>
     public int RemoveAll(Predicate<T> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
@@ -206,11 +163,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
         return _gameObjects.RemoveAll(predicate);
     }
 
-    /// <summary>
-    /// Removes a game object by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the game object to remove.</param>
-    /// <returns>True if the game object was removed, false if not found.</returns>
     /// <summary>
     /// Removes a game object by its ID.
     /// </summary>
@@ -230,12 +182,6 @@ public sealed class GameObjectCollection<T> where T : IGameObject
         return false;
     }
 
-    /// <summary>
-    /// Tries to get a game object by its ID.
-    /// </summary>
-    /// <param name="id">The ID of the game object.</param>
-    /// <param name="gameObject">The game object if found, otherwise null.</param>
-    /// <returns>True if the game object was found, false otherwise.</returns>
     /// <summary>
     /// Tries to get a game object by its ID.
     /// </summary>

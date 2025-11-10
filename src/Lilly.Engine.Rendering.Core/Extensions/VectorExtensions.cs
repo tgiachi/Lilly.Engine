@@ -3,6 +3,9 @@ using Silk.NET.Maths;
 
 namespace Lilly.Engine.Rendering.Core.Extensions;
 
+/// <summary>
+/// Extension methods for converting between Silk.NET and System.Numerics vector and matrix types.
+/// </summary>
 public static class VectorExtensions
 {
 

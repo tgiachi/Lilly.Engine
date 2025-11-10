@@ -21,6 +21,10 @@ public class InputRenderSystem : BaseRenderLayerSystem<IInputReceiver>
 
     private readonly IInputManagerService _inputManagerService;
 
+    /// <summary>
+    /// Initializes a new instance of the InputRenderSystem class.
+    /// </summary>
+    /// <param name="inputManagerService">The input manager service.</param>
     public InputRenderSystem(IInputManagerService inputManagerService) : base("InputLayer", RenderLayer.Input)
     {
         _inputManagerService = inputManagerService;

@@ -71,10 +71,6 @@ public sealed class RenderLayerCollection
     /// Adds a game object to all layers that can accept it.
     /// </summary>
     /// <param name="gameObject">The game object to add.</param>
-    /// <summary>
-    /// Adds a game object to all layers that can accept it.
-    /// </summary>
-    /// <param name="gameObject">The game object to add.</param>
     public void AddGameObject(IGameObject gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
@@ -111,18 +107,9 @@ public sealed class RenderLayerCollection
     /// </summary>
     /// <param name="layerEnum">The RenderLayer enum to check.</param>
     /// <returns>True if at least one layer exists, false otherwise.</returns>
-    /// <summary>
-    /// Checks if at least one layer with the specified RenderLayer enum exists.
-    /// </summary>
-    /// <param name="layerEnum">The RenderLayer enum to check.</param>
-    /// <returns>True if at least one layer exists, false otherwise.</returns>
     public bool Contains(RenderLayer layerEnum)
         => _layersByEnum.ContainsKey(layerEnum) && _layersByEnum[layerEnum].Count > 0;
 
-    /// <summary>
-    /// Executes an action for each layer in priority order.
-    /// </summary>
-    /// <param name="action">The action to execute.</param>
     /// <summary>
     /// Executes an action for each layer in priority order.
     /// </summary>
@@ -143,11 +130,6 @@ public sealed class RenderLayerCollection
     /// Layers are automatically sorted before enumeration.
     /// </summary>
     /// <returns>An enumerator.</returns>
-    /// <summary>
-    /// Gets an enumerator for iterating over all layers.
-    /// Layers are automatically sorted before enumeration.
-    /// </summary>
-    /// <returns>An enumerator.</returns>
     public List<IRenderLayerSystem>.Enumerator GetEnumerator()
     {
         EnsureSorted();
@@ -155,11 +137,6 @@ public sealed class RenderLayerCollection
         return _layers.GetEnumerator();
     }
 
-    /// <summary>
-    /// Gets the first render layer with the specified RenderLayer enum.
-    /// </summary>
-    /// <param name="layerEnum">The RenderLayer enum.</param>
-    /// <returns>The first layer if found, otherwise null.</returns>
     /// <summary>
     /// Gets the first render layer with the specified RenderLayer enum.
     /// </summary>
@@ -175,11 +152,6 @@ public sealed class RenderLayerCollection
         return null;
     }
 
-    /// <summary>
-    /// Gets the first render layer of the specified type.
-    /// </summary>
-    /// <typeparam name="TLayer">The type of the layer to get.</typeparam>
-    /// <returns>The first layer of the specified type if found, otherwise null.</returns>
     /// <summary>
     /// Gets the first render layer of the specified type.
     /// </summary>
@@ -203,11 +175,6 @@ public sealed class RenderLayerCollection
     /// </summary>
     /// <param name="layerEnum">The RenderLayer enum.</param>
     /// <returns>List of layers with the specified priority, or empty list if none found.</returns>
-    /// <summary>
-    /// Gets all render layers with the specified RenderLayer enum.
-    /// </summary>
-    /// <param name="layerEnum">The RenderLayer enum.</param>
-    /// <returns>List of layers with the specified priority, or empty list if none found.</returns>
     public IReadOnlyList<IRenderLayerSystem> GetLayers(RenderLayer layerEnum)
     {
         if (_layersByEnum.TryGetValue(layerEnum, out var layerList))
@@ -223,11 +190,6 @@ public sealed class RenderLayerCollection
     /// Use this for custom iteration scenarios.
     /// </summary>
     /// <returns>A read-only span of layers.</returns>
-    /// <summary>
-    /// Gets a read-only span of all layers sorted by priority.
-    /// Use this for custom iteration scenarios.
-    /// </summary>
-    /// <returns>A read-only span of layers.</returns>
     public ReadOnlySpan<IRenderLayerSystem> GetLayersSpan()
     {
         EnsureSorted();
@@ -235,11 +197,6 @@ public sealed class RenderLayerCollection
         return CollectionsMarshal.AsSpan(_layers);
     }
 
-    /// <summary>
-    /// Removes all render layers with the specified RenderLayer enum.
-    /// </summary>
-    /// <param name="layerEnum">The RenderLayer enum of the layers to remove.</param>
-    /// <returns>True if at least one layer was removed, false if not found.</returns>
     /// <summary>
     /// Removes all render layers with the specified RenderLayer enum.
     /// </summary>
@@ -262,11 +219,6 @@ public sealed class RenderLayerCollection
         return false;
     }
 
-    /// <summary>
-    /// Removes a specific render layer from the collection.
-    /// </summary>
-    /// <param name="layer">The layer to remove.</param>
-    /// <returns>True if the layer was removed, false if not found.</returns>
     /// <summary>
     /// Removes a specific render layer from the collection.
     /// </summary>
@@ -299,10 +251,6 @@ public sealed class RenderLayerCollection
     /// Removes a game object from all layers.
     /// </summary>
     /// <param name="gameObject">The game object to remove.</param>
-    /// <summary>
-    /// Removes a game object from all layers.
-    /// </summary>
-    /// <param name="gameObject">The game object to remove.</param>
     public void RemoveGameObject(IGameObject gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
@@ -323,12 +271,6 @@ public sealed class RenderLayerCollection
     /// <param name="layerEnum">The RenderLayer enum.</param>
     /// <param name="layer">The first layer if found, otherwise null.</param>
     /// <returns>True if at least one layer was found, false otherwise.</returns>
-    /// <summary>
-    /// Tries to get the first render layer with the specified RenderLayer enum.
-    /// </summary>
-    /// <param name="layerEnum">The RenderLayer enum.</param>
-    /// <param name="layer">The first layer if found, otherwise null.</param>
-    /// <returns>True if at least one layer was found, false otherwise.</returns>
     public bool TryGetLayer(RenderLayer layerEnum, out IRenderLayerSystem? layer)
     {
         if (_layersByEnum.TryGetValue(layerEnum, out var layerList) && layerList.Count > 0)
@@ -342,10 +284,6 @@ public sealed class RenderLayerCollection
         return false;
     }
 
-    /// <summary>
-    /// Updates all layers in priority order.
-    /// </summary>
-    /// <param name="gameTime">Game timing information.</param>
     /// <summary>
     /// Updates all layers in priority order.
     /// </summary>

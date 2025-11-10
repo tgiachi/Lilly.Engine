@@ -28,6 +28,11 @@ public class ImGuiActionDebugger : IImGuiDebugger
         _callback = callback;
     }
 
+    /// <summary>
+    /// Renders the debugger by yielding an ImGui render command.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    /// <returns>An enumerable of render commands.</returns>
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
         yield return RenderCommandHelpers.ImGuiRender(new(Name, _callback));

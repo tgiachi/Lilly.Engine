@@ -3,6 +3,9 @@ using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Payloads;
 
+/// <summary>
+/// Payload data for texture rendering commands.
+/// </summary>
 public readonly struct DrawTexturePayload
 {
     public string Texture { get; init; }

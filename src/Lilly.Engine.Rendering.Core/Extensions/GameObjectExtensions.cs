@@ -5,6 +5,9 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 
 namespace Lilly.Engine.Rendering.Core.Extensions;
 
+/// <summary>
+/// Extension methods for registering game objects in the dependency injection container.
+/// </summary>
 public static class GameObjectExtensions
 {
     /// <summary>

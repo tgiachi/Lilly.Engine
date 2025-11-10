@@ -8,6 +8,6 @@ namespace Lilly.Engine.Lua.Scripting.Context;
  JsonSerializable(typeof(LuarcCompletionConfig)), JsonSerializable(typeof(LuarcFormatConfig))]
 
 /// <summary>
-///
+/// JSON serialization context for Lua scripting configuration types.
 /// </summary>
 public partial class LillyLuaScriptJsonContext : JsonSerializerContext { }

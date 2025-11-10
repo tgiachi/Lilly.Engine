@@ -8,6 +8,9 @@ using Lilly.Engine.Rendering.Core.Types;
 
 namespace Lilly.Engine.Rendering.Core.Base.RenderLayers;
 
+/// <summary>
+/// Base class for render layer systems that manage collections of game objects and handle rendering commands.
+/// </summary>
 public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where TEntity : IGameObject
 {
     public RenderLayer Layer { get; }
@@ -60,6 +63,11 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
+    /// <summary>
+    /// Determines whether the specified game object can be added or removed from this layer.
+    /// </summary>
+    /// <param name="gameObject">The game object to check.</param>
+    /// <returns>True if the game object can be added or removed, false otherwise.</returns>
     public virtual bool CanAddOrRemove(IGameObject gameObject)
         => gameObject is TEntity;
 
@@ -82,6 +90,11 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
+    /// <summary>
+    /// Collects render commands from all game objects in this layer.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    /// <returns>A list of render commands to be processed.</returns>
     public virtual List<RenderCommand> CollectRenderCommands(GameTime gameTime)
     {
         _renderCommands.Clear();
@@ -122,10 +135,22 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
-    public virtual void Initialize() { }
+    /// <summary>
+    /// Initializes the render layer system.
+    /// </summary>
+    public virtual void Initialize() {     }
 
-    public virtual void OnViewportResize(int width, int height) { }
+    /// <summary>
+    /// Handles viewport resize events.
+    /// </summary>
+    /// <param name="width">The new viewport width.</param>
+    /// <param name="height">The new viewport height.</param>
+    public virtual void OnViewportResize(int width, int height) {     }
 
+    /// <summary>
+    /// Processes the provided render commands.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
     public virtual void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
 
     /// <summary>
@@ -149,6 +174,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
+    /// <summary>
+    /// Updates the render layer system.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public virtual void Update(GameTime gameTime) { }
 
     /// <summary>

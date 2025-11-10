@@ -61,7 +61,11 @@ public static class RenderCommandHelpers
             Data = title
         });
 
-
+    /// <summary>
+    /// Creates a window command to set the refresh rate.
+    /// </summary>
+    /// <param name="refreshRate">The refresh rate in Hz.</param>
+    /// <returns>A render command to set the refresh rate.</returns>
     public static RenderCommand SetRefreshRate(int refreshRate)
         => CreateWindow(new WindowPayload
         {

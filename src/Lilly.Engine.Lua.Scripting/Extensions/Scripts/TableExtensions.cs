@@ -4,6 +4,9 @@ using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 
+/// <summary>
+/// Provides extension methods for MoonSharp Table objects to enable proxying to interfaces.
+/// </summary>
 public static class TableExtensions
 {
     /// <summary>

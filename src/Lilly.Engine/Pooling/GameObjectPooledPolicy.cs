@@ -9,6 +9,11 @@ public class GameObjectPooledPolicy : IPooledObjectPolicy<IGameObject>
     private readonly IContainer _container;
     private readonly Type _type;
 
+    /// <summary>
+    /// Initializes a new instance of the GameObjectPooledPolicy class.
+    /// </summary>
+    /// <param name="container">The dependency injection container.</param>
+    /// <param name="type">The type of game object to create.</param>
     public GameObjectPooledPolicy(IContainer container, Type type)
     {
         _container = container;

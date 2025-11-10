@@ -14,6 +14,12 @@ public class LuaJobWrap : IJob
 
     public string Name { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the LuaJobWrap class.
+    /// </summary>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="execute">The Lua closure to execute.</param>
+    /// <param name="state">Optional state to pass to the closure.</param>
     public LuaJobWrap(string name, Closure execute, object? state = null)
     {
         Name = name;
