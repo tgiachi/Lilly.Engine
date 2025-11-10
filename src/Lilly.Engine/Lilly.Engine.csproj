@@ -21,8 +21,10 @@
 
         <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.22.0"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
+        <PackageReference Include="TrippyGL.ImageSharp" Version="1.2.2" />
     </ItemGroup>
 
 
@@ -30,6 +32,18 @@
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
         <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <Folder Include="Assets\" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <None Remove="Assets\**\*" />
+      <EmbeddedResource Include="Assets\**\*" />
+    
     </ItemGroup>
 
 </Project>

@@ -5,9 +5,11 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Interfaces.Bootstrap;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Layers;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Lua.Scripting.Services;
@@ -79,6 +81,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IJobSystemService, JobSystemService>()
             .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
             .RegisterService<IGameObjectFactory, GameObjectFactory>()
+            .RegisterService<IAssetManager, AssetManager>()
             ;
 
         _container
@@ -88,14 +91,13 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<UpdatableRenderSystem>()
             ;
 
-
         _container.RegisterGameObject<ImGuiActionDebugger>();
-
 
         _container.AddLuaUserData<Vector2D<int>>();
         _container
             .AddScriptModule<ConsoleModule>()
             .AddScriptModule<WindowModule>()
+            .AddScriptModule<AssetsModule>()
             ;
     }
 
@@ -148,6 +150,24 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _renderPipeline.Initialize();
+
+        var assetManager = _container.Resolve<IAssetManager>();
+
+        assetManager.LoadFontFromMemory(
+            "defaultUiFont",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBoostrap).Assembly,
+                "Assets.Fonts.DefaultMonoFont.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
+            "defaultUiAlterativeFont",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBoostrap).Assembly,
+                "Assets.Fonts.DefaultMonoFontAlternative.ttf"
+            )
+        );
 
         var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
 
