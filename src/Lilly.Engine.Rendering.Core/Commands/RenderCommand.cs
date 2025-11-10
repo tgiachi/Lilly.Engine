@@ -38,5 +38,9 @@ public readonly struct RenderCommand
     public TPayload GetPayload<TPayload>() where TPayload : struct
         => Data is TPayload ? (TPayload)Data : default;
 
+    /// <summary>
+    /// Returns a string representation of the render command.
+    /// </summary>
+    /// <returns>A string describing the render command.</returns>
     public override string ToString() => $"RenderCommand: {CommandType}";
 }

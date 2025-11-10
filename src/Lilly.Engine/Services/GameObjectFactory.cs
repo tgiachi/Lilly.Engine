@@ -45,6 +45,11 @@ public class GameObjectFactory : IGameObjectFactory
         BuildDynamicScriptModule();
     }
 
+    /// <summary>
+    /// Creates a new instance of the specified game object type.
+    /// </summary>
+    /// <typeparam name="TGameObject">The type of game object to create.</typeparam>
+    /// <returns>A new game object instance.</returns>
     public TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
     {
         var type = typeof(TGameObject);
@@ -64,6 +69,11 @@ public class GameObjectFactory : IGameObjectFactory
         return CreateNewInstance<TGameObject>();
     }
 
+    /// <summary>
+    /// Creates a new instance of the specified game object type.
+    /// </summary>
+    /// <param name="type">The type of game object to create.</param>
+    /// <returns>A new game object instance.</returns>
     public IGameObject CreateGameObject(Type type)
     {
         if (!_container.IsRegistered(type))

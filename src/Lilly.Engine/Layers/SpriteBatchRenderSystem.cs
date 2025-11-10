@@ -49,6 +49,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// <summary>
     /// Disposes the sprite batcher, shader program, and releases resources.
     /// </summary>
+    /// <summary>
+    /// Disposes the sprite batcher and shader program.
+    /// </summary>
     public void Dispose()
     {
         _spriteBatcher.Dispose();
@@ -57,6 +60,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Initializes the sprite batcher and shader program.
+    /// </summary>
     /// <summary>
     /// Initializes the sprite batcher and shader program.
     /// </summary>
@@ -85,6 +91,11 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// <summary>
     /// Handles viewport resize events to update the projection matrix.
     /// </summary>
+    /// <summary>
+    /// Updates the projection matrix when the viewport resizes.
+    /// </summary>
+    /// <param name="width">The new width of the viewport.</param>
+    /// <param name="height">The new height of the viewport.</param>
     public override void OnViewportResize(int width, int height)
     {
         _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(0, width, height, 0, 0, 1);
@@ -93,6 +104,10 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
     /// <summary>
     /// Processes render commands for sprite batching.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
+    /// <summary>
+    /// Processes render commands for drawing textures and text.
     /// </summary>
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)

@@ -49,14 +49,27 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
 
     public ReadOnlySpan<IRenderLayerSystem> RenderLayers => _renderLayers.GetLayersSpan();
 
+    /// <summary>
+    /// Adds a game object to the appropriate render layer.
+    /// </summary>
+    /// <typeparam name="TGameObject">The type of game object.</typeparam>
+    /// <param name="gameObject">The game object to add.</param>
     public void AddGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject
     {
         _renderLayers.AddGameObject(gameObject);
     }
 
+    /// <summary>
+    /// Gets a specific render layer system by type.
+    /// </summary>
+    /// <typeparam name="TRenderSystem">The type of render system to retrieve.</typeparam>
+    /// <returns>The render system instance, or null if not found.</returns>
     public TRenderSystem? GetRenderLayerSystem<TRenderSystem>() where TRenderSystem : class, IRenderLayerSystem
         => _renderLayers.GetLayer<TRenderSystem>();
 
+    /// <summary>
+    /// Initializes the render pipeline and all registered render systems.
+    /// </summary>
     public void Initialize()
     {
         foreach (var layer in _renderSystemsRegistrations)
@@ -69,6 +82,11 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         }
     }
 
+    /// <summary>
+    /// Removes a game object from its render layer.
+    /// </summary>
+    /// <typeparam name="TGameObject">The type of game object.</typeparam>
+    /// <param name="gameObject">The game object to remove.</param>
     public void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject
     {
         _renderLayers.RemoveGameObject(gameObject);
@@ -171,11 +189,20 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         }
     }
 
+    /// <summary>
+    /// Updates all render layers.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public void Update(GameTime gameTime)
     {
         _renderLayers.UpdateAll(gameTime);
     }
 
+    /// <summary>
+    /// Notifies all render layers of a viewport resize.
+    /// </summary>
+    /// <param name="width">The new viewport width.</param>
+    /// <param name="height">The new viewport height.</param>
     public void ViewportResize(int width, int height)
     {
         foreach (var layer in _renderLayers.GetLayersSpan())
@@ -184,6 +211,10 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         }
     }
 
+    /// <summary>
+    /// Enqueues a render command to be processed in the next frame.
+    /// </summary>
+    /// <param name="command">The render command to enqueue.</param>
     public void EnqueueRenderCommand(RenderCommand command)
     {
         _collectedCommands.Add(command);

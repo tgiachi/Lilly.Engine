@@ -29,6 +29,11 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     public GpuCommandRenderSystem(RenderContext renderContext) : base("GpuCommandSystem", RenderLayer.Background)
         => _renderContext = renderContext;
 
+    /// <summary>
+    /// Collects render commands for clearing the screen and handling window operations.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    /// <returns>A list of render commands.</returns>
     public override List<RenderCommand> CollectRenderCommands(GameTime gameTime)
     {
         RenderCommands.Clear();
@@ -37,6 +42,10 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         return RenderCommands;
     }
 
+    /// <summary>
+    /// Processes the render commands for clearing the screen and handling window operations.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;

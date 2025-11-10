@@ -69,6 +69,11 @@ public class AssetManager : IAssetManager
                throw new InvalidOperationException($"Cannot cast white texture to {typeof(TTexture).Name}");
     }
 
+    /// <summary>
+    /// Loads a font from a file and registers it with the asset manager.
+    /// </summary>
+    /// <param name="fontName">The name to associate with the loaded font.</param>
+    /// <param name="fontPath">The path to the font file.</param>
     public void LoadFontFromFile(string fontName, string fontPath)
     {
         var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], fontPath);
@@ -78,6 +83,11 @@ public class AssetManager : IAssetManager
         LoadFontFromMemory(fontName, stream);
     }
 
+    /// <summary>
+    /// Loads a font from a stream and registers it with the asset manager.
+    /// </summary>
+    /// <param name="fontName">The name to associate with the loaded font.</param>
+    /// <param name="stream">The stream containing the font data.</param>
     public void LoadFontFromMemory(string fontName, Stream stream)
     {
         var fontSystem = new FontSystem(_defaultFontSettings);
@@ -97,6 +107,11 @@ public class AssetManager : IAssetManager
         }
     }
 
+    /// <summary>
+    /// Loads a texture from a file and registers it with the asset manager.
+    /// </summary>
+    /// <param name="textureName">The name to associate with the loaded texture.</param>
+    /// <param name="texturePath">The path to the texture file.</param>
     public void LoadTextureFromFile(string textureName, string texturePath)
     {
         var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
@@ -106,6 +121,11 @@ public class AssetManager : IAssetManager
         LoadTextureFromMemory(textureName, stream);
     }
 
+    /// <summary>
+    /// Loads a texture from a stream and registers it with the asset manager.
+    /// </summary>
+    /// <param name="textureName">The name to associate with the loaded texture.</param>
+    /// <param name="stream">The stream containing the texture data.</param>
     public void LoadTextureFromMemory(string textureName, Stream stream)
     {
         var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
@@ -113,6 +133,13 @@ public class AssetManager : IAssetManager
         _logger.Information("Loaded texture {TextureName}", textureName);
     }
 
+    /// <summary>
+    /// Loads a shader program from vertex and fragment files and registers it with the asset manager.
+    /// </summary>
+    /// <param name="shaderName">The name to associate with the loaded shader.</param>
+    /// <param name="vertexPath">The path to the vertex shader file.</param>
+    /// <param name="fragmentPath">The path to the fragment shader file.</param>
+    /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
     public void LoadShaderFromFile<TVertex>(string shaderName, string vertexPath, string fragmentPath)
         where TVertex :
         unmanaged, IVertex
@@ -126,6 +153,13 @@ public class AssetManager : IAssetManager
         LoadShaderFromMemory<TVertex>(shaderName, vertexStream, fragmentStream);
     }
 
+    /// <summary>
+    /// Loads a shader program from vertex and fragment streams and registers it with the asset manager.
+    /// </summary>
+    /// <param name="shaderName">The name to associate with the loaded shader.</param>
+    /// <param name="vertexStream">The stream containing the vertex shader source.</param>
+    /// <param name="fragmentStream">The stream containing the fragment shader source.</param>
+    /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
     public void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream)
         where TVertex : unmanaged, IVertex
     {
@@ -143,6 +177,11 @@ public class AssetManager : IAssetManager
 
     }
 
+    /// <summary>
+    /// Retrieves a previously loaded shader program by name.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader program.</param>
+    /// <returns>The shader program.</returns>
     public ShaderProgram GetShaderProgram(string shaderName)
     {
         return _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
@@ -150,6 +189,13 @@ public class AssetManager : IAssetManager
                    : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
     }
 
+    /// <summary>
+    /// Retrieves a font with the specified name and size.
+    /// </summary>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The size of the font.</param>
+    /// <typeparam name="TFont">The type of the font.</typeparam>
+    /// <returns>The font instance.</returns>
     public TFont GetFont<TFont>(string fontName, int size) where TFont : class
     {
         var key = $"{fontName}_{size}";
@@ -170,6 +216,12 @@ public class AssetManager : IAssetManager
         throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
     }
 
+    /// <summary>
+    /// Retrieves a previously loaded texture by name.
+    /// </summary>
+    /// <param name="textureName">The name of the texture.</param>
+    /// <typeparam name="TTexture">The type of the texture.</typeparam>
+    /// <returns>The texture instance.</returns>
     public TTexture GetTexture<TTexture>(string textureName) where TTexture : class
     {
         if (_texture2Ds.TryGetValue(textureName, out var texture))

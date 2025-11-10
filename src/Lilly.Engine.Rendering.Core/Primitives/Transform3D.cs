@@ -8,6 +8,10 @@ public class Transform3D
     public Quaternion<float> Rotation { get; set; } = Quaternion<float>.Identity;
     public Vector3D<float> Scale { get; set; } = Vector3D<float>.One;
 
+    /// <summary>
+    /// Gets the transformation matrix combining translation, rotation, and scaling.
+    /// </summary>
+    /// <returns>The combined transformation matrix.</returns>
     public Matrix4X4<float> GetTransformationMatrix()
     {
         var translation = Matrix4X4.CreateTranslation(Position);

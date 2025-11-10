@@ -4,6 +4,9 @@ using Lilly.Engine.Rendering.Core.Commands;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 
+/// <summary>
+/// Represents a basic game object in the rendering system that can be rendered and has hierarchical relationships.
+/// </summary>
 public interface IGameObject
 {
     IGameObject? Parent { get; set; }

@@ -15,11 +15,20 @@ public class GameObjectPooledPolicy : IPooledObjectPolicy<IGameObject>
         _type = type;
     }
 
+    /// <summary>
+    /// Creates a new game object instance for the pool.
+    /// </summary>
+    /// <returns>A new game object instance.</returns>
     public IGameObject Create()
     {
         return (IGameObject)_container.Resolve(_type);
     }
 
+    /// <summary>
+    /// Resets the game object state before returning to the pool.
+    /// </summary>
+    /// <param name="obj">The game object to reset.</param>
+    /// <returns>True if the object can be returned to the pool.</returns>
     public bool Return(IGameObject obj)
     {
         // Reset the game object state before returning to pool

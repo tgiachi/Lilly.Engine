@@ -21,6 +21,9 @@ public class LuaJobWrap : IJob
         State = state;
     }
 
+    /// <summary>
+    /// Executes the wrapped Lua closure.
+    /// </summary>
     public void Execute()
     {
         if (State == null)

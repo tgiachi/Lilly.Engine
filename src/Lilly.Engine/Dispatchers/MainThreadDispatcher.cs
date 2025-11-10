@@ -37,6 +37,10 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Enqueues an action to be executed on the main thread.
+    /// </summary>
+    /// <param name="action">The action to enqueue.</param>
     public void EnqueueAction(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);

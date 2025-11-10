@@ -181,6 +181,9 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         _initScripts.Add(script);
     }
 
+    /// <summary>
+    /// Adds a manual module function that can be called from Lua scripts with a callback.
+    /// </summary>
     public void AddManualModuleFunction(string moduleName, string functionName, Action<object[]> callback)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleName);
@@ -216,6 +219,9 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         RegisterManualModuleFunction(normalizedModule, normalizedFunction);
     }
 
+    /// <summary>
+    /// Adds a manual module function with typed input and output that can be called from Lua scripts.
+    /// </summary>
     public void AddManualModuleFunction<TInput, TOutput>(
         string moduleName,
         string functionName,
@@ -337,6 +343,9 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Executes the engine ready function from bootstrap scripts.
+    /// </summary>
     public void ExecuteEngineReady()
     {
         ExecuteFunctionFromBootstrap(OnEngineRunFunctionName);

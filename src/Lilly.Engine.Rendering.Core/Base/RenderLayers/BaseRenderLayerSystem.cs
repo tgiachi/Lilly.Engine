@@ -34,6 +34,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         Name = name;
     }
 
+    /// <summary>
+    /// Adds a game object to the layer if it matches the entity type.
+    /// </summary>
+    /// <param name="gameObject">The game object to add.</param>
     public void Add(IGameObject gameObject)
     {
         lock (_collectionLock)
@@ -59,9 +63,17 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     public virtual bool CanAddOrRemove(IGameObject gameObject)
         => gameObject is TEntity;
 
+    /// <summary>
+    /// Determines whether the specified game object can be removed from this layer.
+    /// </summary>
+    /// <param name="gameObject">The game object to check.</param>
+    /// <returns>True if the game object can be removed, false otherwise.</returns>
     public bool CanRemove(IGameObject gameObject)
         => gameObject is TEntity;
 
+    /// <summary>
+    /// Removes all game objects from the layer.
+    /// </summary>
     public void Clear()
     {
         lock (_collectionLock)
@@ -86,6 +98,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         return _renderCommands;
     }
 
+    /// <summary>
+    /// Gets an enumerable collection of all game objects in the layer.
+    /// </summary>
+    /// <returns>An enumerable of game objects.</returns>
     public IEnumerable<IGameObject> GetAllGameObjects()
     {
         foreach (var gameObject in GameObjects)
@@ -94,6 +110,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
         }
     }
 
+    /// <summary>
+    /// Gets an enumerable collection of all game objects in the layer as the specific entity type.
+    /// </summary>
+    /// <returns>An enumerable of typed game objects.</returns>
     public IEnumerable<TEntity> GetAllTypedGameObjects()
     {
         foreach (var gameObject in GameObjects)
@@ -108,6 +128,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
 
     public virtual void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
 
+    /// <summary>
+    /// Removes a game object from the layer if it matches the entity type.
+    /// </summary>
+    /// <param name="gameObject">The game object to remove.</param>
     public void Remove(IGameObject gameObject)
     {
         lock (_collectionLock)
@@ -127,6 +151,10 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
 
     public virtual void Update(GameTime gameTime) { }
 
+    /// <summary>
+    /// Adds a render command to the collection of commands for this frame.
+    /// </summary>
+    /// <param name="command">The render command to add.</param>
     protected void AddRenderCommand(RenderCommand command)
     {
         _renderCommands.Add(command);

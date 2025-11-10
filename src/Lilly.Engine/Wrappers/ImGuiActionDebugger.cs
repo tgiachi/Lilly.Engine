@@ -17,6 +17,11 @@ public class ImGuiActionDebugger : IImGuiDebugger
 
     private readonly Action _callback;
 
+    /// <summary>
+    /// Initializes a new instance of the ImGuiActionDebugger class.
+    /// </summary>
+    /// <param name="name">The name of the debugger.</param>
+    /// <param name="callback">The action to execute for rendering.</param>
     public ImGuiActionDebugger(string name, Action callback)
     {
         Name = name;

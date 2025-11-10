@@ -10,6 +10,9 @@ namespace Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 /// </summary>
 public static class AddScriptModuleExtension
 {
+    /// <summary>
+    /// Registers a user data type with the container for Lua scripting.
+    /// </summary>
     public static IContainer AddLuaUserData(this IContainer container, Type userDataType)
     {
         if (userDataType == null)
@@ -22,6 +25,9 @@ public static class AddScriptModuleExtension
         return container;
     }
 
+    /// <summary>
+    /// Registers a user data type with the container for Lua scripting using generics.
+    /// </summary>
     public static IContainer AddLuaUserData<TUserData>(this IContainer container)
     {
         UserData.RegisterType<TUserData>();

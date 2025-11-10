@@ -61,6 +61,11 @@ public abstract class BaseGameObject2D : IGameObject2D
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
     /// <returns>An enumerable collection of render commands for this object.</returns>
+    /// <summary>
+    /// Draws the game object by returning render commands.
+    /// </summary>
+    /// <param name="gameTime">The game timing information.</param>
+    /// <returns>An enumerable collection of render commands for this object.</returns>
     protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
 
     /// <summary>

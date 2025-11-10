@@ -67,11 +67,15 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// <summary>
     /// Renders the game object (IGameObject implementation).
     /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
         yield return RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, Render));
     }
 
+    /// <summary>
+    /// Renders the diagnostics window using ImGui.
+    /// </summary>
     /// <summary>
     /// Renders the diagnostics window using ImGui.
     /// </summary>

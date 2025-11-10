@@ -54,6 +54,11 @@ public class LillyBoostrap : ILillyBootstrap
         RegisterDefaults();
     }
 
+    /// <summary>
+    /// Initializes the engine asynchronously with the provided options.
+    /// </summary>
+    /// <param name="options">The initial engine configuration options.</param>
+    /// <returns>A task representing the initialization operation.</returns>
     public Task InitializeAsync(InitialEngineOptions options)
     {
         Renderer.Initialize(options);
@@ -67,9 +72,17 @@ public class LillyBoostrap : ILillyBootstrap
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Runs the engine's main loop asynchronously.
+    /// </summary>
+    /// <returns>A task representing the run operation.</returns>
     public async Task RunAsync()
         => Renderer.Run();
 
+    /// <summary>
+    /// Shuts down the engine asynchronously.
+    /// </summary>
+    /// <returns>A task representing the shutdown operation.</returns>
     public Task ShutdownAsync()
         => Task.CompletedTask;
 

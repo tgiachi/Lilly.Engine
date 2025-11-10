@@ -23,12 +23,22 @@ public class JobSystemModule
     }
 
     [ScriptFunction("run_in_main_thread", "Schedules a closure to be executed in the main thread.")]
+    /// <summary>
+    /// Schedules a Lua closure to be executed in the main thread.
+    /// </summary>
+    /// <param name="closure">The Lua closure to execute.</param>
     public void RunInMainThread(Closure closure)
     {
         _mainThreadDispatcher.EnqueueAction(() => { closure.Call(); });
     }
 
     [ScriptFunction("schedule", "Schedules a job to be executed by the job system.")]
+    /// <summary>
+    /// Schedules a job to be executed by the job system.
+    /// </summary>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="closure">The Lua closure to execute.</param>
+    /// <param name="userData">Optional user data to pass to the job.</param>
     public void Schedule(string name, Closure closure, object? userData = null)
     {
         _jobSystemService.Schedule(new LuaJobWrap(name, closure, userData));

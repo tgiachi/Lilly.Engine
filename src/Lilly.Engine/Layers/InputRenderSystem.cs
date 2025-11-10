@@ -26,6 +26,10 @@ public class InputRenderSystem : BaseRenderLayerSystem<IInputReceiver>
         _inputManagerService = inputManagerService;
     }
 
+    /// <summary>
+    /// Updates the input render system by updating the input manager and distributing input.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public override void Update(GameTime gameTime)
     {
         _inputManagerService.Update(gameTime);

@@ -38,6 +38,9 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     /// <summary>
     /// Disposes the ImGui controller and releases resources.
     /// </summary>
+    /// <summary>
+    /// Disposes the ImGui controller.
+    /// </summary>
     public void Dispose()
     {
         _imGuiController.Dispose();
@@ -47,6 +50,9 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     /// <summary>
     /// Initializes the ImGui controller with the graphics context.
     /// </summary>
+    /// <summary>
+    /// Initializes the ImGui controller.
+    /// </summary>
     public override void Initialize()
     {
         _imGuiController = new(_context.Gl, _context.Window, _context.InputContext);
@@ -55,6 +61,10 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
 
     /// <summary>
     /// Processes render commands for ImGui debug windows and renders them.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
+    /// <summary>
+    /// Processes render commands for ImGui debug windows.
     /// </summary>
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
@@ -70,6 +80,10 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
         _imGuiController.Render();
     }
 
+    /// <summary>
+    /// Updates the ImGui controller with the current frame timing.
+    /// </summary>
+    /// <param name="gameTime">The current game time information.</param>
     /// <summary>
     /// Updates the ImGui controller with the current frame timing.
     /// </summary>

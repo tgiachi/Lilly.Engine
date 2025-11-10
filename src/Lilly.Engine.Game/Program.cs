@@ -1,4 +1,4 @@
-﻿using ConsoleAppFramework;
+using ConsoleAppFramework;
 using DryIoc;
 using Lilly.Engine.Bootstrap;
 using Lilly.Engine.Core.Data.Directories;
@@ -40,6 +40,9 @@ await ConsoleApp.RunAsync(
     }
 );
 
+/// <summary>
+/// Initializes the Serilog logger with the specified log level, console output, and optional file logging.
+/// </summary>
 void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDirectory)
 {
     var logConfiguration = new LoggerConfiguration();
