@@ -1,5 +1,6 @@
 using System.Numerics;
 using FontStashSharp;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.Fonts;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
@@ -106,6 +107,11 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                     DrawText(command.GetPayload<DrawTextPayload>());
 
                     break;
+
+                case RenderCommandType.DrawTexture:
+                    DrawTexture(command.GetPayload<DrawTexturePayload>());
+
+                    break;
             }
         }
 
@@ -117,7 +123,6 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     {
         var font = _assetManager.GetFont<DynamicSpriteFont>(textPayload.FontFamily, textPayload.FontSize);
 
-        // GetFont already throws if font not found, but check null for safety
         if (font == null)
         {
             throw new InvalidOperationException(
@@ -125,12 +130,10 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
             );
         }
 
-        // var scale = new Vector2(2, 2);
+        var size = font.MeasureString(textPayload.Text, textPayload.Scale.ToNumerics());
+        var origin = new Vector2(size.X / 2.0f, size.Y / 2.0f);
+
         //
-        // var size = font.MeasureString(textPayload.Text, scale);
-        // var origin = new Vector2(size.X / 2.0f, size.Y / 2.0f);
-        //
-        // font.DrawText(_fontRenderer, textPayload.Text, new Vector2(400, 400), FSColor.LightCoral, 0, origin, scale);
 
         font.DrawText(
             _fontRenderer,
@@ -138,7 +141,80 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
             textPayload.Position.ToNumerics(),
             new FSColor(textPayload.Color.ToVector4()),
             textPayload.Rotation,
+            origin,
             textPayload.Scale.ToNumerics()
+        );
+    }
+
+    private void DrawTexture(DrawTexturePayload payload)
+    {
+        var texture = _assetManager.GetTexture<Texture2D>(payload.Texture);
+
+        if (texture == null)
+        {
+            throw new InvalidOperationException($"Texture '{payload.Texture}' not found in asset manager.");
+        }
+
+        // Handle Transform matrix if provided
+        if (payload.Transform.HasValue)
+        {
+            _spriteBatcher.Draw(
+                texture,
+                payload.Transform.Value.ToNumerics(),
+                payload.Source?.ToSystemDrawing(),
+                payload.Color.ToVector4(),
+                payload.Depth
+            );
+
+            return;
+        }
+
+        // Handle Destination rectangle if provided
+        if (payload.Destination.HasValue)
+        {
+            _spriteBatcher.Draw(
+                texture,
+                payload.Destination.Value.ToSystemDrawing(),
+                payload.Source?.ToSystemDrawing(),
+                payload.Color.ToVector4(),
+                payload.Depth
+            );
+
+            return;
+        }
+
+        // Handle Position with optional rotation, scale, and origin
+        if (payload.Position.HasValue)
+        {
+            var position = payload.Position.Value.ToNumerics();
+            var scale = payload.Scale?.ToNumerics() ?? Vector2.One;
+            var rotation = payload.Rotation ?? 0.0f;
+            var origin = payload.Origin?.ToNumerics() ?? Vector2.Zero;
+
+            _spriteBatcher.Draw(
+                texture,
+                position,
+                payload.Source?.ToSystemDrawing(),
+                payload.Color.ToVector4(),
+                scale,
+                rotation,
+                origin,
+                payload.Depth
+            );
+
+            return;
+        }
+
+        // Fallback: draw at origin if no position/transform/destination specified
+        _spriteBatcher.Draw(
+            texture,
+            Vector2.Zero,
+            payload.Source?.ToSystemDrawing(),
+            payload.Color.ToVector4(),
+            Vector2.One,
+            0.0f,
+            Vector2.Zero,
+            payload.Depth
         );
     }
 }

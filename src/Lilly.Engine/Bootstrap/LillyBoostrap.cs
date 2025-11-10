@@ -125,7 +125,6 @@ public class LillyBoostrap : ILillyBootstrap
             new TextGameObject()
             {
                 Text = "Lilly Lilly",
-                Color = new(255, 255, 255, 255) // Bianco
             }
         );
 
@@ -146,10 +145,7 @@ public class LillyBoostrap : ILillyBootstrap
             InitializeRenderSystem();
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
-            _renderPipeline.ViewportResize(
-                (int)Renderer.Context.GraphicsDevice.Viewport.Width,
-                (int)Renderer.Context.GraphicsDevice.Viewport.Height
-            );
+
             _isRenderInitialized = true;
         }
         OnRender?.Invoke(gameTime);

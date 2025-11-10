@@ -39,8 +39,8 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        _renderContext.GraphicsDevice.DepthState = DepthState.None;
-        _renderContext.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         foreach (var cmd in renderCommands)
         {
             switch (cmd.CommandType)

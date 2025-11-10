@@ -5,7 +5,7 @@ namespace Lilly.Engine.Rendering.Core.Payloads;
 
 public readonly struct DrawTexturePayload
 {
-    public Texture2D Texture { get; init; }
+    public string Texture { get; init; }
     public Matrix3X2<float>? Transform { get; init; }
     public Vector2D<float>? Position { get; init; }
     public Rectangle<float>? Destination { get; init; }
@@ -17,7 +17,7 @@ public readonly struct DrawTexturePayload
     public float Depth { get; init; }
 
     public DrawTexturePayload(
-        Texture2D texture,
+        string texture,
         Matrix3X2<float>? transform = null,
         Vector2D<float>? position = null,
         Rectangle<float>? destination = null,

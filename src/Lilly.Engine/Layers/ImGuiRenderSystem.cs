@@ -32,7 +32,7 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     /// Initializes a new instance of the <see cref="ImGuiRenderSystem" /> class.
     /// </summary>
     /// <param name="context">The render context containing window and graphics device information.</param>
-    public ImGuiRenderSystem(RenderContext context) : base("ImGui", RenderLayer.UI)
+    public ImGuiRenderSystem(RenderContext context) : base("ImGui", RenderLayer.Debug)
         => _context = context;
 
     /// <summary>
