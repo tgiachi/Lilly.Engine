@@ -61,6 +61,14 @@ public static class RenderCommandHelpers
             Data = title
         });
 
+
+    public static RenderCommand SetRefreshRate(int refreshRate)
+        => CreateWindow(new WindowPayload
+        {
+            SubCommandType = WindowSubCommandType.SetRefreshRate,
+            Data = refreshRate
+        });
+
     /// <summary>
     /// Creates a window command to set the window size.
     /// </summary>

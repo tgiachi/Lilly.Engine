@@ -31,4 +31,16 @@ public class WindowModule
     }
 
 
+    [ScriptFunction("set_vsync", "Enables or disables vertical synchronization (VSync) for the application window.")]
+    public void SetVSync(bool enabled)
+    {
+        _graphicRenderPipeline.EnqueueRenderCommand(RenderCommandHelpers.SetWindowVSync(enabled));
+    }
+
+    [ScriptFunction("set_refresh_rate", "Sets the refresh rate of the application window.")]
+    public void SetRefreshRate(int refreshRate)
+    {
+        _graphicRenderPipeline.EnqueueRenderCommand(RenderCommandHelpers.SetRefreshRate(refreshRate));
+    }
+
 }

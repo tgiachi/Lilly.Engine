@@ -41,6 +41,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     {
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+
         foreach (var cmd in renderCommands)
         {
             switch (cmd.CommandType)
@@ -68,13 +69,26 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         {
             case WindowSubCommandType.SetTitle:
                 _renderContext.Window.Title = payload.Data as string;
+
                 break;
             case WindowSubCommandType.SetFullscreen:
-                if (payload.Data is bool isFullscreen)
-                {
-                }
-                break;
+                if (payload.Data is bool isFullscreen) { }
 
+                break;
+            case WindowSubCommandType.SetVSync:
+                if (payload.Data is bool isVSync)
+                {
+                    _renderContext.Window.VSync = isVSync;
+                }
+
+                break;
+            case WindowSubCommandType.SetRefreshRate:
+                if (payload.Data is int refreshRate)
+                {
+                    _renderContext.Window.FramesPerSecond = refreshRate;
+                }
+
+                break;
         }
     }
 }

@@ -23,6 +23,7 @@ public class AssetManager : IAssetManager
     private readonly Dictionary<string, DynamicSpriteFont> _dynamicSpriteFonts = new();
 
     private readonly Dictionary<string, Texture2D> _texture2Ds = new();
+    private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
 
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
@@ -110,6 +111,43 @@ public class AssetManager : IAssetManager
         var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
         _texture2Ds[textureName] = texture;
         _logger.Information("Loaded texture {TextureName}", textureName);
+    }
+
+    public void LoadShaderFromFile<TVertex>(string shaderName, string vertexPath, string fragmentPath)
+        where TVertex :
+        unmanaged, IVertex
+    {
+        var fullVertexPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], vertexPath);
+        var fullFragmentPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], fragmentPath);
+
+        using var vertexStream = new FileStream(fullVertexPath, FileMode.Open, FileAccess.Read);
+        using var fragmentStream = new FileStream(fullFragmentPath, FileMode.Open, FileAccess.Read);
+
+        LoadShaderFromMemory<TVertex>(shaderName, vertexStream, fragmentStream);
+    }
+
+    public void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream)
+        where TVertex : unmanaged, IVertex
+    {
+        using var reader = new StreamReader(vertexStream);
+        var vertexSource = reader.ReadToEnd();
+
+        using var fragReader = new StreamReader(fragmentStream);
+        var fragmentSource = fragReader.ReadToEnd();
+
+        var _program = ShaderProgram.FromCode<TVertex>(_context.GraphicsDevice, vertexSource, fragmentSource);
+
+        _logger.Information("Loaded shader {ShaderName}", shaderName);
+
+        _shaderPrograms[shaderName] = _program;
+
+    }
+
+    public ShaderProgram GetShaderProgram(string shaderName)
+    {
+        return _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
+                   ? shaderProgram
+                   : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
     }
 
     public TFont GetFont<TFont>(string fontName, int size) where TFont : class
