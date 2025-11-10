@@ -3,6 +3,9 @@ using TrippyGL;
 
 namespace Lilly.Engine.Interfaces.Services;
 
+/// <summary>
+/// Defines the contract for managing game assets such as textures, fonts, and shaders.
+/// </summary>
 public interface IAssetManager
 {
     TTexture GetWhiteTexture<TTexture>() where TTexture : class;
