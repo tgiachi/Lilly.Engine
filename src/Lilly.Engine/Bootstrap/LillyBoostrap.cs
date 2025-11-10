@@ -24,6 +24,7 @@ using Lilly.Engine.Services;
 using Lilly.Engine.Wrappers;
 using Serilog;
 using Silk.NET.Maths;
+using TrippyGL;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -137,6 +138,17 @@ public class LillyBoostrap : ILillyBootstrap
 
         logo.Transform.Position = new Vector2D<float>(200, 200);
         logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
+
+
+        var rectangle = new RectangleGameObject()
+        {
+            Size = new Vector2D<float>(200, 100),
+            Color = Color4b.CornflowerBlue,
+            BorderThickness = 2,
+        };
+
+        rectangle.Transform.Position = new Vector2D<float>(400, 400);
+        _renderPipeline.AddGameObject(rectangle);
 
         _renderPipeline.AddGameObject(logo);
 
