@@ -1,12 +1,11 @@
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Payloads;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
-using Lilly.Engine.Types;
 using TrippyGL;
 
 namespace Lilly.Engine.Layers;
@@ -40,6 +39,8 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
+        _renderContext.GraphicsDevice.DepthState = DepthState.None;
+        _renderContext.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
         foreach (var cmd in renderCommands)
         {
             switch (cmd.CommandType)
@@ -73,7 +74,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                 {
                 }
                 break;
-            
+
         }
     }
 }

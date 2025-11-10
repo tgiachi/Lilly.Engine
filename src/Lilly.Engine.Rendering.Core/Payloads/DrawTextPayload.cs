@@ -1,7 +1,7 @@
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Lilly.Engine.Data.Payloads;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 /// <summary>
 /// Payload data for text rendering commands.
@@ -21,7 +21,7 @@ public readonly struct DrawTextPayload
     /// <summary>
     /// Gets the font size in pixels.
     /// </summary>
-    public float FontSize { get; init; }
+    public int FontSize { get; init; }
 
     /// <summary>
     /// Gets the position where the text will be rendered.
@@ -56,7 +56,7 @@ public readonly struct DrawTextPayload
     public DrawTextPayload(
         string fontFamily,
         string text,
-        float fontSize,
+        int fontSize,
         Vector2D<float> position,
         Vector2D<float>? scale = null,
         float rotation = 0f,

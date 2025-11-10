@@ -1,8 +1,12 @@
+using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Primitives;
+using Silk.NET.Maths;
+using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 
@@ -84,5 +88,20 @@ public abstract class BaseGameObject2D : IGameObject2D
                 yield return command;
             }
         }
+    }
+
+    protected RenderCommand DrawText(
+        string fontFamily,
+        string text,
+        int fontSize,
+        Vector2D<float> position,
+        Vector2D<float>? scale = null,
+        float rotation = 0f,
+        Color4b? color = null
+    )
+    {
+        return RenderCommandHelpers.CreateDrawText(
+            new DrawTextPayload(fontFamily, text, fontSize, position, scale, rotation, color)
+        );
     }
 }

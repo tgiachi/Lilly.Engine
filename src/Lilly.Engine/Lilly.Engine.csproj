@@ -37,6 +37,7 @@
 
     <ItemGroup>
       <Folder Include="Assets\" />
+      <Folder Include="Data\" />
     </ItemGroup>
 
 

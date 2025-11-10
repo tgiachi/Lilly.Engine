@@ -101,13 +101,55 @@ public class LillyBoostrap : ILillyBootstrap
             ;
     }
 
+    private void InitializeRenderSystem()
+    {
+        _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
+        _renderPipeline.Initialize();
+
+        var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
+
+        _renderPipeline.AddGameObject(
+            new ImGuiActionDebugger(
+                "Action Debugger",
+                () =>
+                {
+                    var clearColor = gpuCommandRenderSystem.ClearColor.ToVector4();
+                    ImGui.Text("Lilly Engine Action Debugger");
+                    ImGui.ColorEdit4("Clear Color", ref clearColor);
+                    gpuCommandRenderSystem.ClearColor = clearColor;
+                }
+            )
+        );
+
+        _renderPipeline.AddGameObject(
+            new TextGameObject()
+            {
+                Text = "Lilly Lilly",
+                Color = new(255, 255, 255, 255) // Bianco
+            }
+        );
+
+        _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
+    }
+
     private void RendererOnRender(GameTime gameTime)
     {
         if (!_isRenderInitialized)
         {
             _logger.Information("Render System Initialized Successfully.");
-
+            Renderer.Context.GraphicsDevice.SetViewport(
+                0,
+                0,
+                (uint)Renderer.Context.Window.Size.X,
+                (uint)Renderer.Context.Window.Size.Y
+            );
+            InitializeRenderSystem();
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
+
+            _renderPipeline.ViewportResize(
+                (int)Renderer.Context.GraphicsDevice.Viewport.Width,
+                (int)Renderer.Context.GraphicsDevice.Viewport.Height
+            );
             _isRenderInitialized = true;
         }
         OnRender?.Invoke(gameTime);
@@ -128,7 +170,7 @@ public class LillyBoostrap : ILillyBootstrap
             _initialized = true;
         }
         OnUpdate?.Invoke(gameTime);
-        _renderPipeline.Update(gameTime);
+        _renderPipeline?.Update(gameTime);
     }
 
     private async Task StartServicesAsync()
@@ -148,9 +190,6 @@ public class LillyBoostrap : ILillyBootstrap
         _container.Resolve<IGameObjectFactory>();
         await scriptEngine.StartAsync();
 
-        _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
-        _renderPipeline.Initialize();
-
         var assetManager = _container.Resolve<IAssetManager>();
 
         assetManager.LoadFontFromMemory(
@@ -168,22 +207,5 @@ public class LillyBoostrap : ILillyBootstrap
                 "Assets.Fonts.DefaultMonoFontAlternative.ttf"
             )
         );
-
-        var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
-
-        _renderPipeline.AddGameObject(
-            new ImGuiActionDebugger(
-                "Action Debugger",
-                () =>
-                {
-                    var clearColor = gpuCommandRenderSystem.ClearColor.ToVector4();
-                    ImGui.Text("Lilly Engine Action Debugger");
-                    ImGui.ColorEdit4("Clear Color", ref clearColor);
-                    gpuCommandRenderSystem.ClearColor = clearColor;
-                }
-            )
-        );
-
-        _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
 }

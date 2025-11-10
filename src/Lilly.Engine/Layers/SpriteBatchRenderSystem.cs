@@ -1,7 +1,13 @@
+using System.Numerics;
+using FontStashSharp;
+using Lilly.Engine.Fonts;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using TrippyGL;
 
@@ -15,8 +21,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     private TextureBatcher _spriteBatcher;
     private readonly RenderContext _context;
     private SimpleShaderProgram _shaderProgram;
+    private FontStashRenderer _fontRenderer;
 
-    private List<RenderCommand> _renderCommands = new(512);
+    private readonly IAssetManager _assetManager;
 
     /// <summary>
     /// This layer processes DrawTexture and DrawText commands.
@@ -32,8 +39,11 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem" /> class.
     /// </summary>
     /// <param name="context">The render context containing graphics device information.</param>
-    public SpriteBatchRenderSystem(RenderContext context) : base("SpriteBatch", RenderLayer.UI)
-        => _context = context;
+    public SpriteBatchRenderSystem(RenderContext context, IAssetManager assetManager) : base("SpriteBatch", RenderLayer.UI)
+    {
+        _context = context;
+        _assetManager = assetManager;
+    }
 
     /// <summary>
     /// Disposes the sprite batcher, shader program, and releases resources.
@@ -53,9 +63,31 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     {
         _spriteBatcher = new(_context.GraphicsDevice);
         _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(_context.GraphicsDevice, 0, 0, true);
+        _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(
+            0,
+            _context.GraphicsDevice.Viewport.Width,
+            _context.GraphicsDevice.Viewport.Height,
+            0,
+            0,
+            1
+        );
+
         _spriteBatcher.SetShaderProgram(_shaderProgram);
+        _fontRenderer = new FontStashRenderer(_context.GraphicsDevice);
+
+        _fontRenderer.SpriteBatcher = _spriteBatcher;
+        _fontRenderer.SetShaderProgram(_shaderProgram);
 
         base.Initialize();
+    }
+
+    /// <summary>
+    /// Handles viewport resize events to update the projection matrix.
+    /// </summary>
+    public override void OnViewportResize(int width, int height)
+    {
+        _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(0, width, height, 0, 0, 1);
+        base.OnViewportResize(width, height);
     }
 
     /// <summary>
@@ -66,7 +98,47 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     {
         _spriteBatcher.Begin();
 
+        foreach (var command in renderCommands)
+        {
+            switch (command.CommandType)
+            {
+                case RenderCommandType.DrawText:
+                    DrawText(command.GetPayload<DrawTextPayload>());
+
+                    break;
+            }
+        }
+
         _spriteBatcher.End();
         base.ProcessRenderCommands(ref renderCommands);
+    }
+
+    private void DrawText(DrawTextPayload textPayload)
+    {
+        var font = _assetManager.GetFont<DynamicSpriteFont>(textPayload.FontFamily, textPayload.FontSize);
+
+        // GetFont already throws if font not found, but check null for safety
+        if (font == null)
+        {
+            throw new InvalidOperationException(
+                $"Font '{textPayload.FontFamily}' with size {textPayload.FontSize} not found in asset manager."
+            );
+        }
+
+        // var scale = new Vector2(2, 2);
+        //
+        // var size = font.MeasureString(textPayload.Text, scale);
+        // var origin = new Vector2(size.X / 2.0f, size.Y / 2.0f);
+        //
+        // font.DrawText(_fontRenderer, textPayload.Text, new Vector2(400, 400), FSColor.LightCoral, 0, origin, scale);
+
+        font.DrawText(
+            _fontRenderer,
+            textPayload.Text,
+            textPayload.Position.ToNumerics(),
+            new FSColor(textPayload.Color.ToVector4()),
+            textPayload.Rotation,
+            textPayload.Scale.ToNumerics()
+        );
     }
 }

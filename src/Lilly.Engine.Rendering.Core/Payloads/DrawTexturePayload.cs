@@ -1,7 +1,7 @@
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Lilly.Engine.Data.Payloads;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 public readonly struct DrawTexturePayload
 {

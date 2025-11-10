@@ -1,4 +1,4 @@
-namespace Lilly.Engine.Types;
+namespace Lilly.Engine.Rendering.Core.Types;
 
 /// <summary>
 /// Defines the types of window operations that can be performed.

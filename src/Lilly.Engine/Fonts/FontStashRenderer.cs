@@ -1,8 +1,8 @@
-using System.Drawing;
 using System.Numerics;
 using FontStashSharp;
 using FontStashSharp.Interfaces;
 using Lilly.Engine.Extensions;
+using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Engine.Fonts;
@@ -12,9 +12,10 @@ namespace Lilly.Engine.Fonts;
 /// </summary>
 public class FontStashRenderer : IFontStashRenderer, IDisposable
 {
-    private readonly SimpleShaderProgram _shaderProgram;
-    private readonly TextureBatcher _batch;
+    public TextureBatcher SpriteBatcher { get; set; }
+
     private readonly Texture2DManager _textureManager;
+    private SimpleShaderProgram _shaderProgram;
 
     /// <summary>
     /// Gets the texture manager for font texture operations.
@@ -33,26 +34,27 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     public FontStashRenderer(GraphicsDevice graphicsDevice)
     {
         _textureManager = new(graphicsDevice);
+    }
 
-        _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(graphicsDevice, 0, 0, true);
-        _batch = new(graphicsDevice);
-        _batch.SetShaderProgram(_shaderProgram);
-        OnViewportChanged();
+    /// <summary>
+    /// Sets the shader program to use for rendering and updates the projection matrix.
+    /// </summary>
+    /// <param name="shaderProgram">The shader program to use.</param>
+    public void SetShaderProgram(SimpleShaderProgram shaderProgram)
+    {
+        _shaderProgram = shaderProgram;
     }
 
     /// <summary>
     /// Begins a new batch rendering session.
     /// </summary>
-    public void Begin()
-        => _batch.Begin();
+    public void Begin() { }
 
     /// <summary>
     /// Disposes the shader program, texture batcher, and releases resources.
     /// </summary>
     public void Dispose()
     {
-        _shaderProgram?.Dispose();
-        _batch?.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -66,11 +68,19 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     /// <param name="rotation">The rotation angle in radians.</param>
     /// <param name="scale">The scale factor to apply.</param>
     /// <param name="depth">The depth value for layering.</param>
-    public void Draw(object texture, Vector2 pos, Rectangle? src, FSColor color, float rotation, Vector2 scale, float depth)
+    public void Draw(
+        object texture,
+        Vector2 pos,
+        System.Drawing.Rectangle? src,
+        FSColor color,
+        float rotation,
+        Vector2 scale,
+        float depth
+    )
     {
         var tex = (Texture2D)texture;
 
-        _batch.Draw(
+        SpriteBatcher.Draw(
             tex,
             pos,
             src,
@@ -85,21 +95,5 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     /// <summary>
     /// Ends the current batch rendering session and flushes all queued draw calls.
     /// </summary>
-    public void End()
-        => _batch.End();
-
-    /// <summary>
-    /// Updates the projection matrix when the viewport changes.
-    /// </summary>
-    public void OnViewportChanged()
-    {
-        _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(
-            0,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            0,
-            0,
-            1
-        );
-    }
+    public void End() { }
 }

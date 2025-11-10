@@ -1,6 +1,6 @@
 using TrippyGL;
 
-namespace Lilly.Engine.Data.Payloads;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 /// <summary>
 /// Payload data for screen clear commands.

@@ -1,6 +1,6 @@
-using Lilly.Engine.Types;
+using Lilly.Engine.Rendering.Core.Types;
 
-namespace Lilly.Engine.Data.Payloads;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 public readonly struct WindowPayload
 {

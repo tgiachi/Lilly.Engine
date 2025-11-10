@@ -1,4 +1,4 @@
-namespace Lilly.Engine.Data.Payloads;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 /// <summary>
 /// Payload data for ImGui rendering commands.
