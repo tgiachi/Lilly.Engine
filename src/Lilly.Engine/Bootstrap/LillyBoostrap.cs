@@ -102,6 +102,9 @@ public class LillyBoostrap : ILillyBootstrap
             .AddScriptModule<ConsoleModule>()
             .AddScriptModule<WindowModule>()
             .AddScriptModule<AssetsModule>()
+            .AddScriptModule<ImGuiModule>()
+            .AddScriptModule<JobSystemModule>()
+            .AddScriptModule<InputManagerModule>()
             ;
     }
 
@@ -129,7 +132,7 @@ public class LillyBoostrap : ILillyBootstrap
             new TextGameObject()
             {
                 Text = "Lilly Lilly",
-                Transform = { Position = new Vector2D<float>(300, 300)}
+                Transform = { Position = new Vector2D<float>(300, 300) }
             }
         );
 
@@ -140,7 +143,6 @@ public class LillyBoostrap : ILillyBootstrap
 
         logo.Transform.Position = new Vector2D<float>(200, 200);
         logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
-
 
         var rectangle = new RectangleGameObject()
         {
