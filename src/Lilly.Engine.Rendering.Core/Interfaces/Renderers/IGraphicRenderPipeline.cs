@@ -3,13 +3,14 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Data.Diagnostics;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 
 /// <summary>
 /// Defines the contract for the graphics rendering pipeline.
 /// </summary>
-public interface IGraphicRenderPipeline
+public interface IGraphicRenderPipeline : IGameObjectManager
 {
     /// <summary>
     /// Gets the collection of render layers in the pipeline.
@@ -21,12 +22,7 @@ public interface IGraphicRenderPipeline
     /// </summary>
     RenderPipelineDiagnostics Diagnostics { get; }
 
-    /// <summary>
-    /// Adds a game object to the appropriate render layer.
-    /// </summary>
-    /// <typeparam name="TGameObject">The type of game object.</typeparam>
-    /// <param name="gameObject">The game object to add.</param>
-    void AddGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject;
+
 
     /// <summary>
     /// Gets a specific render layer system by type.
@@ -40,12 +36,6 @@ public interface IGraphicRenderPipeline
     /// </summary>
     void Initialize();
 
-    /// <summary>
-    /// Removes a game object from its render layer.
-    /// </summary>
-    /// <typeparam name="TGameObject">The type of game object.</typeparam>
-    /// <param name="gameObject">The game object to remove.</param>
-    void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject;
 
     /// <summary>
     /// Renders all layers for the current frame.

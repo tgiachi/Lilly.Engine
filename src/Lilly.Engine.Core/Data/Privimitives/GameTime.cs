@@ -25,6 +25,11 @@ public readonly struct GameTime
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
+
+    public float GetTotalGameTimeSeconds() => (float)(TotalGameTime / 1000.0);
+
+    public float GetElapsedSeconds() => (float)(ElapsedGameTime / 1000.0);
+
     /// <summary>
     /// Initializes a new instance of the GameTime struct.
     /// </summary>

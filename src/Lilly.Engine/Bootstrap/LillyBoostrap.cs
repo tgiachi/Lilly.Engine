@@ -129,6 +129,7 @@ public class LillyBoostrap : ILillyBootstrap
     private void InitializeRenderSystem()
     {
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
+        _container.RegisterInstance<IGameObjectManager>(_renderPipeline);
         _renderPipeline.Initialize();
 
         var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
