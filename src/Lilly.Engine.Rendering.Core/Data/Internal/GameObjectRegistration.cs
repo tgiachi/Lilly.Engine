@@ -3,4 +3,5 @@ namespace Lilly.Engine.Rendering.Core.Data.Internal;
 /// <summary>
 /// Record containing information about a registered game object type.
 /// </summary>
-public record GameObjectRegistration(Type Type, bool UseObjectPooling = false);
+/// <param name="Type">The type of the game object to register.</param>
+public record GameObjectRegistration(Type Type);

@@ -3,7 +3,10 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 /// <summary>
-/// Defines a factory for creating instances of game objects.
+/// Defines a factory for creating instances of game objects using dependency injection.
+/// This factory provides simple, direct object creation without built-in pooling.
+/// For performance-critical scenarios requiring manual pooling (e.g., bullets, particles),
+/// use IGameObjectPool instead.
 /// </summary>
 public interface IGameObjectFactory
 {
@@ -20,4 +23,18 @@ public interface IGameObjectFactory
     /// <param name="type">The type of game object to create.</param>
     /// <returns>A new instance of the game object.</returns>
     IGameObject CreateGameObject(Type type);
+
+    /// <summary>
+    /// Determines whether a game object type is registered in the factory.
+    /// </summary>
+    /// <typeparam name="TGameObject">The game object type to check.</typeparam>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    bool IsRegistered<TGameObject>() where TGameObject : class, IGameObject;
+
+    /// <summary>
+    /// Determines whether a game object type is registered in the factory.
+    /// </summary>
+    /// <param name="type">The game object type to check.</param>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    bool IsRegistered(Type type);
 }

@@ -1,26 +1,26 @@
 using DryIoc;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Pooling;
 using Lilly.Engine.Rendering.Core.Data.Internal;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Microsoft.Extensions.ObjectPool;
 using MoonSharp.Interpreter;
 using Serilog;
 
 namespace Lilly.Engine.Services;
 
+/// <summary>
+/// Factory for creating instances of game objects using dependency injection.
+/// This factory provides simple, direct object creation. For performance-critical scenarios
+/// with high object creation/destruction rates (e.g., bullets, particles), consider using
+/// IGameObjectPool for manual pooling management.
+/// </summary>
 public class GameObjectFactory : IGameObjectFactory
 {
     private readonly ILogger _logger = Log.ForContext<GameObjectFactory>();
 
-    private uint _nextObjectId = 1;
-
-    private readonly Dictionary<Type, ObjectPool<IGameObject>> _objectPools = new();
+    private long _nextObjectId = 1;
 
     private readonly List<GameObjectRegistration> _registrations;
-
-    private readonly Dictionary<Type, bool> _useObjectPooling = new();
 
     private readonly IContainer _container;
 
@@ -35,12 +35,6 @@ public class GameObjectFactory : IGameObjectFactory
         _registrations = registrations;
         _container = container;
         _scriptEngineService = scriptEngineService;
-
-        foreach (var registration in _registrations)
-        {
-            _useObjectPooling[registration.Type] = registration.UseObjectPooling;
-
-        }
 
         BuildDynamicScriptModule();
     }
@@ -59,14 +53,21 @@ public class GameObjectFactory : IGameObjectFactory
             throw new InvalidOperationException($"Game object of type {type.FullName} is not registered.");
         }
 
-        // Check if object pooling is enabled for this type
-        if (_useObjectPooling.TryGetValue(type, out var usePooling) && usePooling)
+        var instance = _container.Resolve<TGameObject>();
+        var objectId = GenerateObjectId();
+        instance.Id = objectId;
+        instance.Name = GenerateGameObjectName(type, objectId);
+
+        if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
         {
-            return GetOrCreateFromPool<TGameObject>();
+            _logger.Debug(
+                "Created game object of type {GameObjectType} with ID {GameObjectId}",
+                type.FullName,
+                objectId
+            );
         }
 
-        // Create without pooling
-        return CreateNewInstance<TGameObject>();
+        return instance;
     }
 
     /// <summary>
@@ -81,62 +82,37 @@ public class GameObjectFactory : IGameObjectFactory
             throw new InvalidOperationException($"Game object of type {type.FullName} is not registered.");
         }
 
-        // Check if object pooling is enabled for this type
-        if (_useObjectPooling.TryGetValue(type, out var usePooling) && usePooling)
+        var instance = _container.Resolve<IGameObject>(type);
+        var objectId = GenerateObjectId();
+        instance.Id = objectId;
+        instance.Name = GenerateGameObjectName(type, objectId);
+
+        if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
         {
-            var method = typeof(GameObjectFactory).GetMethod(nameof(GetOrCreateFromPool))!
-                                                  .MakeGenericMethod(type);
-
-            return (IGameObject)method.Invoke(this, null)!;
-        }
-
-        // Create without pooling
-        var createMethod = typeof(GameObjectFactory).GetMethod(nameof(CreateNewInstance))!
-                                                    .MakeGenericMethod(type);
-
-        return (IGameObject)createMethod.Invoke(this, null)!;
-    }
-
-    private TGameObject GetOrCreateFromPool<TGameObject>() where TGameObject : class, IGameObject
-    {
-        var type = typeof(TGameObject);
-
-        // Create pool if it doesn't exist
-        if (!_objectPools.TryGetValue(type, out var pool))
-        {
-            pool = new DefaultObjectPool<IGameObject>(
-                new GameObjectPooledPolicy(_container, type),
-                maximumRetained: 100
+            _logger.Debug(
+                "Created game object of type {GameObjectType} with ID {GameObjectId}",
+                type.FullName,
+                objectId
             );
-            _objectPools[type] = pool;
-
-            _logger.Debug("Created object pool for {GameObjectType} with maximum retention of 100", type.FullName);
         }
-
-        var instance = (TGameObject)pool.Get();
-        instance.Id = _nextObjectId++;
-        instance.Name = type.Name + "_" + instance.Id;
-        _logger.Debug(
-            "Retrieved game object of type {GameObjectType} from pool with ID {GameObjectId}",
-            type.FullName,
-            instance.Id
-        );
 
         return instance;
     }
 
-    private TGameObject CreateNewInstance<TGameObject>() where TGameObject : class, IGameObject
+    /// <summary>
+    /// Generates a unique object ID in a thread-safe manner.
+    /// </summary>
+    private uint GenerateObjectId()
     {
-        var instance = _container.Resolve<TGameObject>();
-        instance.Id = _nextObjectId++;
-        instance.Name = typeof(TGameObject).Name + "_" + instance.Id;
-        _logger.Debug(
-            "Created game object of type {GameObjectType} with ID {GameObjectId}",
-            typeof(TGameObject).FullName,
-            instance.Id
-        );
+        return (uint)Interlocked.Increment(ref _nextObjectId);
+    }
 
-        return instance;
+    /// <summary>
+    /// Generates a unique name for a game object based on its type and ID.
+    /// </summary>
+    private static string GenerateGameObjectName(Type type, uint id)
+    {
+        return $"{type.Name}_{id}";
     }
 
     private void BuildDynamicScriptModule()
@@ -155,11 +131,14 @@ public class GameObjectFactory : IGameObjectFactory
 
             var functionName = $"new_{_scriptEngineService.ToScriptEngineFunctionName(baseName)}";
 
-            _logger.Debug(
-                "Registering script function {FunctionName} for GameObject type {GameObjectType}",
-                functionName,
-                gameObjectType.Name
-            );
+            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            {
+                _logger.Debug(
+                    "Registering script function {FunctionName} for GameObject type {GameObjectType}",
+                    functionName,
+                    gameObjectType.Name
+                );
+            }
 
             _scriptEngineService.AddManualModuleFunction<object[], object>(
                 moduleName,
@@ -172,32 +151,27 @@ public class GameObjectFactory : IGameObjectFactory
     }
 
     /// <summary>
-    /// Returns a game object to the pool if pooling is enabled for its type.
+    /// Determines whether a game object type is registered in the factory.
     /// </summary>
-    /// <param name="gameObject">The game object to return to the pool.</param>
-    public void ReturnToPool(IGameObject gameObject)
+    /// <typeparam name="TGameObject">The game object type to check.</typeparam>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    public bool IsRegistered<TGameObject>() where TGameObject : class, IGameObject
     {
-        var type = gameObject.GetType();
+        return _container.IsRegistered<TGameObject>();
+    }
 
-        if (_useObjectPooling.TryGetValue(type, out var usePooling) && usePooling)
+    /// <summary>
+    /// Determines whether a game object type is registered in the factory.
+    /// </summary>
+    /// <param name="type">The game object type to check.</param>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    public bool IsRegistered(Type type)
+    {
+        if (type == null)
         {
-            if (_objectPools.TryGetValue(type, out var pool))
-            {
-                pool.Return(gameObject);
-                _logger.Debug(
-                    "Returned game object of type {GameObjectType} with ID {GameObjectId} to pool",
-                    type.FullName,
-                    gameObject.Id
-                );
-            }
+            throw new ArgumentNullException(nameof(type));
         }
-        else
-        {
-            _logger.Debug(
-                "Game object of type {GameObjectType} with ID {GameObjectId} does not use pooling, allowing GC",
-                type.FullName,
-                gameObject.Id
-            );
-        }
+
+        return _container.IsRegistered(type);
     }
 }

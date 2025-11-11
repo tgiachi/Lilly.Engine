@@ -36,9 +36,15 @@ public class GameObjectPooledPolicy : IPooledObjectPolicy<IGameObject>
     /// <returns>True if the object can be returned to the pool.</returns>
     public bool Return(IGameObject obj)
     {
-        // Reset the game object state before returning to pool
+        // Reset basic hierarchy state
         obj.Parent = null;
         obj.Children.Clear();
+
+        // If the object implements IPoolable, allow it to customize the reset behavior
+        if (obj is IPoolable poolable)
+        {
+            poolable.ResetForPooling();
+        }
 
         return true;
     }
