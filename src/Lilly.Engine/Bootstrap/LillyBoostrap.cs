@@ -251,6 +251,22 @@ public class LillyBoostrap : ILillyBootstrap
         );
 
         assetManager.LoadFontFromMemory(
+            "defaultGameFont",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBoostrap).Assembly,
+                "Assets.Fonts.Monocraft.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
+            "imGuiFontAlternative",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBoostrap).Assembly,
+                "Assets.Fonts.ImGuiFontAlternative.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
             "defaultUiAlterativeFont",
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBoostrap).Assembly,

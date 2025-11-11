@@ -11,4 +11,8 @@
       <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="UI\Theme\" />
+    </ItemGroup>
+
 </Project>
