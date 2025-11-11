@@ -3,6 +3,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Silk.NET.Input.Extensions;
+using Silk.NET.Maths;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Features;
 
@@ -24,7 +25,7 @@ public interface IInputReceiver : IGameObject
     /// <summary>
     /// Gets the bounds of this UI element for interaction detection.
     /// </summary>
-    Rectangle Bounds { get; }
+    Rectangle<int> Bounds { get; }
 
     /// <summary>
     /// Handles keyboard input when the object has focus.

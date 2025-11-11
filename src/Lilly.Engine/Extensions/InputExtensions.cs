@@ -1,4 +1,4 @@
-using Lilly.Engine.Data.Input;
+using Lilly.Engine.Rendering.Core.Data.Input;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 

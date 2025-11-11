@@ -1,7 +1,7 @@
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 
-namespace Lilly.Engine.Data.Input;
+namespace Lilly.Engine.Rendering.Core.Data.Input;
 
 /// <summary>
 /// Represents a key binding with optional modifiers (Ctrl, Shift, Alt).

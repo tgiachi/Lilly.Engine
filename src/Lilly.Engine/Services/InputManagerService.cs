@@ -1,16 +1,17 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Input;
 using Lilly.Engine.Events;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Engine.Rendering.Core.Data.Input;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
-using ButtonState = Lilly.Engine.Data.Input.ButtonState;
-using MouseButton = Lilly.Engine.Data.Input.MouseButton;
+using ButtonState = Lilly.Engine.Rendering.Core.Data.Input.ButtonState;
+using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.Services;
 

@@ -1,4 +1,4 @@
-namespace Lilly.Engine.Data.Input;
+namespace Lilly.Engine.Rendering.Core.Data.Input;
 
 /// <summary>
 /// Represents the state of a button (pressed or released).

@@ -1,4 +1,4 @@
-namespace Lilly.Engine.Data.Input;
+namespace Lilly.Engine.Rendering.Core.Types;
 
 /// <summary>
 /// Represents mouse buttons that can be detected by the input manager.

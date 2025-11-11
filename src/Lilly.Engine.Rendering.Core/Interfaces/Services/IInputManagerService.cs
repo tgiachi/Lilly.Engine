@@ -1,12 +1,12 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Input;
 using Lilly.Engine.Events;
+using Lilly.Engine.Rendering.Core.Data.Input;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
-using MouseButton = Lilly.Engine.Data.Input.MouseButton;
+using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
-namespace Lilly.Engine.Interfaces.Services;
+namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 /// <summary>
 /// Defines the contract for input management services.

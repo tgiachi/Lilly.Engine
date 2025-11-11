@@ -10,6 +10,7 @@ using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 await ConsoleApp.RunAsync(
     args,
@@ -50,7 +51,7 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.MinimumLevel.Is(logEventLevel);
 
-    logConfiguration.WriteTo.Console();
+    logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
 
     if (logToFile)
     {
