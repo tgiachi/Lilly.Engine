@@ -49,6 +49,11 @@ public readonly struct DrawTextPayload
     public float Depth { get; init; }
 
     /// <summary>
+    /// Gets the origin point for rotation and positioning (defaults to Vector2.Zero for top-left).
+    /// </summary>
+    public Vector2D<float> Origin { get; init; }
+
+    /// <summary>
     /// Initializes a new instance of the DrawTextPayload struct.
     /// </summary>
     /// <param name="fontFamily">The font family name.</param>
@@ -59,6 +64,7 @@ public readonly struct DrawTextPayload
     /// <param name="rotation">Optional rotation in radians (defaults to 0).</param>
     /// <param name="color">Optional text color (defaults to white).</param>
     /// <param name="depth">Optional depth value for layering (defaults to 0).</param>
+    /// <param name="origin">Optional origin point for rotation and positioning (defaults to 0,0 for top-left).</param>
     public DrawTextPayload(
         string fontFamily,
         string text,
@@ -67,11 +73,13 @@ public readonly struct DrawTextPayload
         Vector2D<float>? scale = null,
         float rotation = 0f,
         Color4b? color = null,
-        float depth = 0f
+        float depth = 0f,
+        Vector2D<float>? origin = null
     )
     {
         color ??= Color4b.White;
         scale ??= new(1f, 1f);
+        origin ??= new(0f, 0f);
 
         FontFamily = fontFamily;
         Text = text;
@@ -81,5 +89,6 @@ public readonly struct DrawTextPayload
         Rotation = rotation;
         Color = color.Value;
         Depth = depth;
+        Origin = origin.Value;
     }
 }

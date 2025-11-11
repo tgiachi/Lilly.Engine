@@ -1,3 +1,4 @@
+using System;
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
@@ -56,6 +57,45 @@ public abstract class BaseGameObject2D : IGameObject2D
     /// </summary>
     public int Layer { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether automatic scissoring should be applied based on the transform.
+    /// Override to customize opt-in/out behavior.
+    /// </summary>
+    protected virtual bool EnableAutoScissor
+        => false;
+
+    /// <summary>
+    /// Tries to build the scissor rectangle for this object using its transform.
+    /// Override to supply custom bounds (e.g., padding or parent-relative coordinates).
+    /// </summary>
+    /// <param name="rectangle">The rectangle to use for clipping.</param>
+    /// <returns>True if a rectangle is available; otherwise, false.</returns>
+    protected virtual bool TryGetAutoScissorRectangle(out Rectangle<int> rectangle)
+    {
+        if (!EnableAutoScissor)
+        {
+            rectangle = default;
+            return false;
+        }
+
+        var scaledWidth = Transform.Size.X * Transform.Scale.X;
+        var scaledHeight = Transform.Size.Y * Transform.Scale.Y;
+
+        if (scaledWidth <= 0f || scaledHeight <= 0f)
+        {
+            rectangle = default;
+            return false;
+        }
+
+        var x = (int)MathF.Round(Transform.Position.X);
+        var y = (int)MathF.Round(Transform.Position.Y);
+        var width = Math.Max(1, (int)MathF.Ceiling(MathF.Abs(scaledWidth)));
+        var height = Math.Max(1, (int)MathF.Ceiling(MathF.Abs(scaledHeight)));
+
+        rectangle = new Rectangle<int>(new Vector2D<int>(x, y), new Vector2D<int>(width, height));
+        return true;
+    }
+
 /// <summary>
 /// Draws the game object by returning render commands.
 /// </summary>
@@ -75,6 +115,13 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
             yield break;
         }
 
+        var hasAutoScissor = TryGetAutoScissorRectangle(out var scissorRectangle);
+
+        if (hasAutoScissor)
+        {
+            yield return RenderCommandHelpers.CreateScissor(scissorRectangle);
+        }
+
         // Yield commands from this object
         foreach (var command in Draw(gameTime))
         {
@@ -89,6 +136,11 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
                 yield return command;
             }
         }
+
+        if (hasAutoScissor)
+        {
+            yield return RenderCommandHelpers.CreateDisableScissor();
+        }
     }
 
     /// <summary>
@@ -100,6 +152,7 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
     /// <param name="color">The text color.</param>
     /// <param name="depth">The depth value for layering (defaults to Order if null).</param>
     /// <param name="useTransform">Whether to use the object's Transform2D (default: true).</param>
+    /// <param name="origin">The origin point for rotation and positioning (defaults to top-left).</param>
     /// <returns>A render command for drawing the text.</returns>
     protected RenderCommand DrawText(
         string fontFamily,
@@ -107,7 +160,8 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
         int fontSize,
         Color4b? color = null,
         float? depth = null,
-        bool useTransform = true
+        bool useTransform = true,
+        Vector2D<float>? origin = null
     )
     {
         return RenderCommandHelpers.CreateDrawText(
@@ -119,7 +173,8 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
                 useTransform ? Transform.Scale : null,
                 useTransform ? Transform.Rotation : 0f,
                 color,
-                depth ?? Order
+                depth ?? Order,
+                origin
             )
         );
     }
@@ -135,6 +190,7 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
     /// <param name="rotation">The rotation angle in radians.</param>
     /// <param name="color">The text color.</param>
     /// <param name="depth">The depth value for layering (defaults to Order if null).</param>
+    /// <param name="origin">The origin point for rotation and positioning (defaults to top-left).</param>
     /// <returns>A render command for drawing the text.</returns>
     protected RenderCommand DrawTextCustom(
         string fontFamily,
@@ -144,11 +200,12 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
         Vector2D<float>? scale = null,
         float rotation = 0f,
         Color4b? color = null,
-        float? depth = null
+        float? depth = null,
+        Vector2D<float>? origin = null
     )
     {
         return RenderCommandHelpers.CreateDrawText(
-            new DrawTextPayload(fontFamily, text, fontSize, position, scale, rotation, color, depth ?? Order)
+            new DrawTextPayload(fontFamily, text, fontSize, position, scale, rotation, color, depth ?? Order, origin)
         );
     }
 

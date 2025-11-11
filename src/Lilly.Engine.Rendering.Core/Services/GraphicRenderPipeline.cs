@@ -8,6 +8,7 @@ using Lilly.Engine.Rendering.Core.Data.Internal;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
 
 namespace Lilly.Engine.Rendering.Core.Services;
@@ -137,6 +138,13 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     {
         if (commands.Count == 0)
             return;
+
+        // Some command types (e.g., Scissor) depend on precise ordering relative to draw calls.
+        // When such commands are present we must preserve the original sequence.
+        if (commands.Exists(static c => c.CommandType == RenderCommandType.Scissor))
+        {
+            return;
+        }
 
         // BASIC OPTIMIZATION: Sort by CommandType to group similar operations
         // This alone provides significant performance improvements by:

@@ -39,6 +39,7 @@ public class InputRenderSystem : BaseRenderLayerSystem<IInputReceiver>
     {
         _inputManagerService.Update(gameTime);
 
+        _inputManagerService.UpdateFocusFromMouse(GetAllTypedGameObjects());
 
         _inputManagerService.DistributeInput(gameTime);
 

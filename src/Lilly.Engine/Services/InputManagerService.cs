@@ -5,6 +5,7 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Data.Input;
+using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Serilog;
@@ -241,6 +242,11 @@ public class InputManagerService : IInputManagerService
     /// <returns>True if the button was just pressed.</returns>
     public bool IsMouseButtonPressed(MouseButton button)
     {
+        if (PreviousMouseState == null)
+        {
+            return false;
+        }
+
         var wasReleased = button switch
         {
             MouseButton.Left     => PreviousMouseState.LeftButton() == ButtonState.Released,

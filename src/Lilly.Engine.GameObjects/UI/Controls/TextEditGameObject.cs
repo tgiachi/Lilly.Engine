@@ -21,7 +21,6 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 {
     private readonly IInputManagerService _inputManager;
     private readonly IAssetManager _assetManager;
-    private readonly UITheme _theme;
 
     private string _text = string.Empty;
     private int _cursorPosition = 0;
@@ -33,6 +32,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     private bool _isDragging = false;
     private int _dragStartIndex = 0;
     private bool _hasFocus;
+    private int _width = 200;
+    private int _height = 32;
 
     private const double CursorBlinkInterval = 0.5; // 500ms
     private const int Padding = 4;
@@ -47,16 +48,16 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
-        _theme = theme ?? throw new ArgumentNullException(nameof(theme));
+        Theme = theme ?? throw new ArgumentNullException(nameof(theme));
+        UpdateTransformSize();
     }
 
     public int MaxLength { get; set; } = 256;
     public bool IsReadOnly { get; set; } = false;
     public bool IsPassword { get; set; } = false;
     public string PlaceholderText { get; set; } = string.Empty;
-    public int Width { get; set; } = 200;
-    public int Height { get; set; } = 32;
-    public UITheme Theme => _theme;
+
+    public UITheme Theme { get; }
 
     public string Text
     {
@@ -110,7 +111,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     public Rectangle<int> Bounds
         => new(
             new((int)Transform.Position.X, (int)Transform.Position.Y),
-            new(Width, Height)
+            new((int)Transform.Size.X, (int)Transform.Size.Y)
         );
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
@@ -180,7 +181,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (_inputManager.IsMouseButtonPressed(MouseButton.Left))
         {
             var localX = mousePos.X - Transform.Position.X - Padding + _scrollOffset;
-            _cursorPosition = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, _theme.FontName, _theme.FontSize);
+            _cursorPosition = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, Theme.FontName, Theme.FontSize);
             _dragStartIndex = _cursorPosition;
             _isDragging = true;
             ClearSelection();
@@ -190,7 +191,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (_isDragging && _inputManager.IsMouseButtonDown(MouseButton.Left))
         {
             var localX = mousePos.X - Transform.Position.X - Padding + _scrollOffset;
-            var currentIndex = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, _theme.FontName, _theme.FontSize);
+            var currentIndex = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, Theme.FontName, Theme.FontSize);
 
             if (currentIndex != _dragStartIndex)
             {
@@ -228,15 +229,15 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             yield break;
         }
 
-        var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(Width, Height));
+        var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y));
 
         // Background
-        var bgColor = HasFocus ? _theme.BackgroundColorFocused : _theme.BackgroundColor;
+        var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
         yield return DrawRectangle(bounds, bgColor, depth: 0.50f);
 
         // Border
-        var borderColor = HasFocus ? _theme.BorderColorFocused : _theme.BorderColor;
-        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Width, Height), borderColor, _theme.BorderThickness))
+        var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
+        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness))
         {
             yield return cmd;
         }
@@ -245,7 +246,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (_selectionLength > 0 && HasFocus)
         {
             var selectionRect = GetSelectionRectangle();
-            var selectionColor = new Color4b(_theme.ItemSelectedColor.R, _theme.ItemSelectedColor.G, _theme.ItemSelectedColor.B, 128);
+            var selectionColor = new Color4b(Theme.ItemSelectedColor.R, Theme.ItemSelectedColor.G, Theme.ItemSelectedColor.B, 128);
             yield return DrawRectangle(selectionRect, selectionColor, depth: 0.51f);
         }
 
@@ -256,19 +257,19 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         {
             var textPos = new Vector2D<float>(
                 Transform.Position.X + Padding - _scrollOffset,
-                Transform.Position.Y + (Height - _theme.FontSize) / 2f
+                Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(_theme.FontName, displayText, _theme.FontSize, textPos, color: _theme.TextColor, depth: 0.52f);
+            yield return DrawTextCustom(Theme.FontName, displayText, Theme.FontSize, textPos, color: Theme.TextColor, depth: 0.52f);
         }
         else if (!HasFocus && !string.IsNullOrEmpty(PlaceholderText))
         {
             var textPos = new Vector2D<float>(
                 Transform.Position.X + Padding,
-                Transform.Position.Y + (Height - _theme.FontSize) / 2f
+                Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(_theme.FontName, PlaceholderText, _theme.FontSize, textPos, color: _theme.PlaceholderTextColor, depth: 0.52f);
+            yield return DrawTextCustom(Theme.FontName, PlaceholderText, Theme.FontSize, textPos, color: Theme.PlaceholderTextColor, depth: 0.52f);
         }
 
         // Cursor
@@ -279,9 +280,14 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             if (_cursorVisible)
             {
                 var cursorRect = GetCursorRectangle();
-                yield return DrawRectangle(cursorRect, _theme.BorderColorFocused, depth: 0.53f);
+                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, depth: 0.53f);
             }
         }
+    }
+
+    private void UpdateTransformSize()
+    {
+        Transform.Size = new Vector2D<float>(_width, _height);
     }
 
     private void HandleBackspace()
@@ -560,12 +566,12 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         var textBeforeSelection = displayText[.._selectionStart];
         var selectedText = displayText.Substring(_selectionStart, _selectionLength);
 
-        var startX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeSelection, _theme.FontName, _theme.FontSize);
-        var width = TextMeasurement.MeasureStringWidth(_assetManager, selectedText, _theme.FontName, _theme.FontSize);
+        var startX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeSelection, Theme.FontName, Theme.FontSize);
+        var width = TextMeasurement.MeasureStringWidth(_assetManager, selectedText, Theme.FontName, Theme.FontSize);
 
         return new Rectangle<float>(
             new Vector2D<float>(Transform.Position.X + Padding + startX - _scrollOffset, Transform.Position.Y + 2),
-            new Vector2D<float>(width, Height - 4)
+            new Vector2D<float>(width, Transform.Size.Y - 4)
         );
     }
 
@@ -573,11 +579,11 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     {
         var displayText = GetDisplayText();
         var textBeforeCursor = _cursorPosition > 0 ? displayText[.._cursorPosition] : string.Empty;
-        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, _theme.FontName, _theme.FontSize);
+        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, Theme.FontName, Theme.FontSize);
 
         return new Rectangle<float>(
             new Vector2D<float>(Transform.Position.X + Padding + cursorX - _scrollOffset, Transform.Position.Y + 4),
-            new Vector2D<float>(2, Height - 8)
+            new Vector2D<float>(2, Transform.Size.Y - 8)
         );
     }
 
@@ -585,8 +591,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     {
         var displayText = GetDisplayText();
         var textBeforeCursor = _cursorPosition > 0 ? displayText[.._cursorPosition] : string.Empty;
-        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, _theme.FontName, _theme.FontSize);
-        var visibleWidth = Width - Padding * 2;
+        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, Theme.FontName, Theme.FontSize);
+        var visibleWidth = Transform.Size.X - Padding * 2;
 
         if (cursorX - _scrollOffset > visibleWidth)
         {

@@ -12,10 +12,20 @@ namespace Lilly.Engine.GameObjects.Base;
 /// </summary>
 public class RectangleGameObject : BaseGameObject2D
 {
+    private Vector2D<float> _size = new(100, 100);
+
     /// <summary>
     /// The size of the rectangle.
     /// </summary>
-    public Vector2D<float> Size { get; set; } = new(100, 100);
+    public Vector2D<float> Size
+    {
+        get => _size;
+        set
+        {
+            _size = value;
+            Transform.Size = value;
+        }
+    }
 
     /// <summary>
     /// The color of the rectangle.
@@ -36,6 +46,11 @@ public class RectangleGameObject : BaseGameObject2D
     /// Optional custom white pixel texture. If null, uses DefaultTextures.WhiteTextureKey.
     /// </summary>
     public string? CustomWhitePixelTexture { get; set; } = null;
+
+    public RectangleGameObject()
+    {
+        Transform.Size = _size;
+    }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {

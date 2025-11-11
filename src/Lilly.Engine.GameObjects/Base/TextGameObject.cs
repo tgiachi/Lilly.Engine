@@ -1,6 +1,8 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.Base;
@@ -10,6 +12,8 @@ namespace Lilly.Engine.GameObjects.Base;
 /// </summary>
 public class TextGameObject : BaseGameObject2D
 {
+    private readonly IAssetManager? _assetManager;
+
     /// <summary>
     /// Gets or sets the text to be displayed.
     /// </summary>
@@ -26,9 +30,36 @@ public class TextGameObject : BaseGameObject2D
     /// Gets or sets the font size of the text.
     /// </summary>
     public int FontSize { get; set; } = 32;
+    /// <summary>
+    /// Gets or sets whether the text should be centered on its position (default: false, top-left aligned).
+    /// </summary>
+    public bool CenterText { get; set; } = false;
+
+    public TextGameObject()
+    {
+        _assetManager = null;
+    }
+
+    public TextGameObject(IAssetManager assetManager)
+    {
+        _assetManager = assetManager;
+    }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
-        yield return DrawText(FontFamily, Text, FontSize, Color);
+        Vector2D<float>? origin = null;
+
+        if (CenterText && _assetManager != null)
+        {
+            // Calculate centered origin
+            var font = _assetManager.GetFont<FontStashSharp.DynamicSpriteFont>(FontFamily, FontSize);
+            if (font != null)
+            {
+                var size = font.MeasureString(Text);
+                origin = new Vector2D<float>(size.X / 2f, size.Y / 2f);
+            }
+        }
+
+        yield return DrawText(FontFamily, Text, FontSize, Color, origin: origin);
     }
 }

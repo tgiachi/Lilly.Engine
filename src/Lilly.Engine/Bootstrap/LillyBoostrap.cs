@@ -9,6 +9,8 @@ using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.GameObjects.UI.Controls;
+using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Layers;
@@ -172,7 +174,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         var rectangle = new RectangleGameObject()
         {
-            Size = new Vector2D<float>(200, 100),
+            Size = new Vector2D<float>(400, 100),
             Color = Color4b.CornflowerBlue,
             BorderThickness = 2,
         };
@@ -181,6 +183,18 @@ public class LillyBoostrap : ILillyBootstrap
         _renderPipeline.AddGameObject(rectangle);
 
         _renderPipeline.AddGameObject(logo);
+
+        var textBox = new TextEditGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        );
+
+        textBox.Text = "Welcome to Lilly Engine!";
+        textBox.Transform.Position = new Vector2D<float>(50, 50);
+        textBox.Transform.Size = new Vector2D<float>(400, 32);
+
+        _renderPipeline.AddGameObject(textBox);
 
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
