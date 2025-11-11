@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Logging;
 using Serilog.Events;
 
-namespace Lilly.Engine.Debuggers;
+namespace Lilly.Engine.Data.Logger;
 
 /// <summary>
 /// Represents a log entry with deduplication support.

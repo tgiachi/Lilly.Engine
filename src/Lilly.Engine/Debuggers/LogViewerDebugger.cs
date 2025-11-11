@@ -2,6 +2,7 @@ using System.Numerics;
 using ImGuiNET;
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Data.Logger;
 using Lilly.Engine.Interfaces.Debuggers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;

@@ -38,6 +38,7 @@ public class InputRenderSystem : BaseRenderLayerSystem<IInputReceiver>
     {
         _inputManagerService.Update(gameTime);
 
+
         _inputManagerService.DistributeInput(gameTime);
 
         base.Update(gameTime);

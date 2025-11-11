@@ -1,4 +1,5 @@
 using Lilly.Engine.Core.Logging;
+using Lilly.Engine.Data.Logger;
 using Serilog.Events;
 
 namespace Lilly.Engine.Debuggers;
