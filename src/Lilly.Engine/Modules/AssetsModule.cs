@@ -1,5 +1,6 @@
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Modules;
 

@@ -15,4 +15,8 @@
       <Folder Include="UI\Theme\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1" />
+    </ItemGroup>
+
 </Project>

@@ -1,7 +1,6 @@
-using System.Runtime.InteropServices.ComTypes;
 using TrippyGL;
 
-namespace Lilly.Engine.Interfaces.Services;
+namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 /// <summary>
 /// Defines the contract for managing game assets such as textures, fonts, and shaders.

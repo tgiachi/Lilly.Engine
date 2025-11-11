@@ -8,6 +8,7 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using TrippyGL;
@@ -20,7 +21,7 @@ namespace Lilly.Engine.Layers;
 public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDisposable
 {
     private TextureBatcher _spriteBatcher;
-    private readonly RenderContext _context;
+    private readonly RenderContext _renderContext;
     private SimpleShaderProgram _shaderProgram;
     private FontStashRenderer _fontRenderer;
 
@@ -33,23 +34,27 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         new HashSet<RenderCommandType>
         {
             RenderCommandType.DrawTexture,
-            RenderCommandType.DrawText
+            RenderCommandType.DrawText,
+            RenderCommandType.Scissor
         };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SpriteBatchRenderSystem" /> class.
     /// </summary>
-    /// <param name="context">The render context containing graphics device information.</param>
-    public SpriteBatchRenderSystem(RenderContext context, IAssetManager assetManager) : base("SpriteBatch", RenderLayer.UI)
+    /// <param name="renderContext">The render context containing graphics device information.</param>
+    public SpriteBatchRenderSystem(RenderContext renderContext, IAssetManager assetManager) : base(
+        "SpriteBatch",
+        RenderLayer.UI
+    )
     {
-        _context = context;
+        _renderContext = renderContext;
         _assetManager = assetManager;
     }
 
-/// <summary>
-/// Disposes the sprite batcher, shader program, and releases resources.
-/// </summary>
-public void Dispose()
+    /// <summary>
+    /// Disposes the sprite batcher, shader program, and releases resources.
+    /// </summary>
+    public void Dispose()
     {
         _spriteBatcher.Dispose();
         _shaderProgram.Dispose();
@@ -57,24 +62,24 @@ public void Dispose()
         GC.SuppressFinalize(this);
     }
 
-/// <summary>
-/// Initializes the sprite batcher and shader program.
-/// </summary>
-public override void Initialize()
+    /// <summary>
+    /// Initializes the sprite batcher and shader program.
+    /// </summary>
+    public override void Initialize()
     {
-        _spriteBatcher = new(_context.GraphicsDevice);
-        _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(_context.GraphicsDevice, 0, 0, true);
+        _spriteBatcher = new(_renderContext.GraphicsDevice);
+        _shaderProgram = SimpleShaderProgram.Create<VertexColorTexture>(_renderContext.GraphicsDevice, 0, 0, true);
         _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(
             0,
-            _context.GraphicsDevice.Viewport.Width,
-            _context.GraphicsDevice.Viewport.Height,
+            _renderContext.GraphicsDevice.Viewport.Width,
+            _renderContext.GraphicsDevice.Viewport.Height,
             0,
             0,
             1
         );
 
         _spriteBatcher.SetShaderProgram(_shaderProgram);
-        _fontRenderer = new FontStashRenderer(_context.GraphicsDevice);
+        _fontRenderer = new FontStashRenderer(_renderContext.GraphicsDevice);
 
         _fontRenderer.SpriteBatcher = _spriteBatcher;
         _fontRenderer.SetShaderProgram(_shaderProgram);
@@ -82,22 +87,22 @@ public override void Initialize()
         base.Initialize();
     }
 
-/// <summary>
-/// Handles viewport resize events to update the projection matrix.
-/// </summary>
-/// <param name="width">The new width of the viewport.</param>
-/// <param name="height">The new height of the viewport.</param>
-public override void OnViewportResize(int width, int height)
+    /// <summary>
+    /// Handles viewport resize events to update the projection matrix.
+    /// </summary>
+    /// <param name="width">The new width of the viewport.</param>
+    /// <param name="height">The new height of the viewport.</param>
+    public override void OnViewportResize(int width, int height)
     {
         _shaderProgram.Projection = Matrix4x4.CreateOrthographicOffCenter(0, width, height, 0, 0, 1);
         base.OnViewportResize(width, height);
     }
 
-/// <summary>
-/// Processes render commands for sprite batching.
-/// </summary>
-/// <param name="renderCommands">The list of render commands to process.</param>
-public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
+    /// <summary>
+    /// Processes render commands for sprite batching.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
+    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
         _spriteBatcher.Begin();
 
@@ -114,11 +119,36 @@ public override void ProcessRenderCommands(ref List<RenderCommand> renderCommand
                     DrawTexture(command.GetPayload<DrawTexturePayload>());
 
                     break;
+
+                case RenderCommandType.Scissor:
+                    var scissorPayload = command.GetPayload<ScissorPayload>();
+                    ProcessScissorCommand(scissorPayload);
+
+                    break;
             }
         }
 
         _spriteBatcher.End();
         base.ProcessRenderCommands(ref renderCommands);
+    }
+
+    private void ProcessScissorCommand(ScissorPayload payload)
+    {
+        if (payload.IsEnabled)
+        {
+            _renderContext.GraphicsDevice.ScissorRectangle = new Viewport(
+                payload.X,
+                payload.Y,
+                (uint)payload.Width,
+                (uint)payload.Height
+            );
+
+            _renderContext.GraphicsDevice.ScissorTestEnabled = true;
+
+            return;
+        }
+
+        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
     }
 
     private void DrawText(DrawTextPayload textPayload)

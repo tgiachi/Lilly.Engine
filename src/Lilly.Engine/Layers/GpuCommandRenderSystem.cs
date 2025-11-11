@@ -24,7 +24,6 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         {
             RenderCommandType.Clear,
             RenderCommandType.Window,
-            RenderCommandType.Scissor
         };
 
     public GpuCommandRenderSystem(RenderContext renderContext) : base("GpuCommandSystem", RenderLayer.Background)
@@ -68,11 +67,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                     ProcessWindowCommand(windowPayload);
 
                     break;
-                case RenderCommandType.Scissor:
-                    var scissorPayload = cmd.GetPayload<ScissorPayload>();
-                    ProcessScissorCommand(scissorPayload);
 
-                    break;
             }
         }
         base.ProcessRenderCommands(ref renderCommands);
@@ -107,22 +102,5 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         }
     }
 
-    private void ProcessScissorCommand(ScissorPayload payload)
-    {
-        if (payload.IsEnabled)
-        {
-            _renderContext.GraphicsDevice.ScissorRectangle = new Viewport(
-                payload.X,
-                payload.Y,
-                (uint)payload.Width,
-                (uint)payload.Height
-            );
 
-            _renderContext.GraphicsDevice.ScissorTestEnabled = true;
-
-            return;
-        }
-
-        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
-    }
 }
