@@ -8,6 +8,7 @@ using Lilly.Engine.Rendering.Core.Data.Internal;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
 
@@ -118,7 +119,7 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         // - Batch similar commands together
         // - Perform frustum culling
         // - Remove redundant state changes
-        OptimizeCommands(_collectedCommands);
+        // OptimizeCommands(_collectedCommands); // Temporarily disabled - breaks rendering order for borders
 
         // Commands are now processed in optimal order regardless of layer origin
         SubmitCommands(_collectedCommands);
@@ -159,8 +160,33 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         // - Override this method with access to your specific payload types
         // - Implement sorting by texture handle, depth, font, etc.
 
-        commands.Sort((x, y) => x.CommandType.CompareTo(y.CommandType));
+        commands.Sort((x, y) =>
+        {
+            // First, sort by command type to group similar operations
+            var typeComparison = x.CommandType.CompareTo(y.CommandType);
+            if (typeComparison != 0)
+                return typeComparison;
 
+            // If same type, sort by depth to maintain proper layering
+            var xDepth = GetCommandDepth(x);
+            var yDepth = GetCommandDepth(y);
+            return xDepth.CompareTo(yDepth);
+        });
+    }
+
+    /// <summary>
+    /// Extracts the depth value from a render command payload.
+    /// </summary>
+    /// <param name="command">The render command.</param>
+    /// <returns>The depth value, or 0 if the command type doesn't support depth.</returns>
+    private static float GetCommandDepth(RenderCommand command)
+    {
+        return command.CommandType switch
+        {
+            RenderCommandType.DrawTexture => command.GetPayload<DrawTexturePayload>().Depth,
+            RenderCommandType.DrawText => command.GetPayload<DrawTextPayload>().Depth,
+            _ => 0f
+        };
     }
 
     /// <summary>

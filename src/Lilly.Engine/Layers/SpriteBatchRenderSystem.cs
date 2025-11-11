@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Numerics;
 using FontStashSharp;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Fonts;
-using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
@@ -111,6 +108,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     {
         _scissorStack.Clear();
         _renderContext.GraphicsDevice.ScissorTestEnabled = false;
+        // _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        // _renderContext.GraphicsDevice.BlendingEnabled = true;
+        // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         BeginSpriteBatch();
 
         foreach (var command in renderCommands)
@@ -147,7 +147,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         if (payload.IsEnabled)
         {
             var rectangle = new Rectangle<int>(
-                new Vector2D<int>(payload.X, payload.Y),
+                new(payload.X, payload.Y),
                 new Vector2D<int>(payload.Width, payload.Height)
             );
 
@@ -158,6 +158,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
             _scissorStack.Push(rectangle);
             ApplyScissor(rectangle);
+
             return;
         }
 
@@ -194,7 +195,8 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
             new FSColor(textPayload.Color.ToVector4()),
             textPayload.Rotation,
             textPayload.Origin.ToNumerics(),
-            textPayload.Scale.ToNumerics()
+            textPayload.Scale.ToNumerics(),
+            layerDepth: textPayload.Depth
         );
     }
 

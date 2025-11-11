@@ -237,7 +237,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 
         // Border
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
-        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness))
+        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness, depth: 0.51f))
         {
             yield return cmd;
         }
@@ -247,7 +247,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         {
             var selectionRect = GetSelectionRectangle();
             var selectionColor = new Color4b(Theme.ItemSelectedColor.R, Theme.ItemSelectedColor.G, Theme.ItemSelectedColor.B, 128);
-            yield return DrawRectangle(selectionRect, selectionColor, depth: 0.51f);
+            yield return DrawRectangle(selectionRect, selectionColor, depth: 0.52f);
         }
 
         // Text content or placeholder
@@ -260,7 +260,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, displayText, Theme.FontSize, textPos, color: Theme.TextColor, depth: 0.52f);
+            yield return DrawTextCustom(Theme.FontName, displayText, Theme.FontSize, textPos, color: Theme.TextColor, depth: 0.53f);
         }
         else if (!HasFocus && !string.IsNullOrEmpty(PlaceholderText))
         {
@@ -269,7 +269,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, PlaceholderText, Theme.FontSize, textPos, color: Theme.PlaceholderTextColor, depth: 0.52f);
+            yield return DrawTextCustom(Theme.FontName, PlaceholderText, Theme.FontSize, textPos, color: Theme.PlaceholderTextColor, depth: 0.53f);
         }
 
         // Cursor
@@ -280,7 +280,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             if (_cursorVisible)
             {
                 var cursorRect = GetCursorRectangle();
-                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, depth: 0.53f);
+                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, depth: 0.54f);
             }
         }
     }
