@@ -18,6 +18,10 @@
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Windowing.Common" Version="2.22.0"/>
+        <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>
