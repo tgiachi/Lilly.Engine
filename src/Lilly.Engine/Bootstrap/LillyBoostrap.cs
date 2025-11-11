@@ -103,6 +103,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
             .RegisterService<IGameObjectFactory, GameObjectFactory>()
             .RegisterService<IAssetManager, AssetManager>()
+            .RegisterService<ICamera3dService, Camera3dService>()
             ;
 
         _container
@@ -111,6 +112,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<SpriteBatchRenderSystem>()
             .RegisterRenderSystem<UpdatableRenderSystem>()
             .RegisterRenderSystem<InputRenderSystem>()
+            .RegisterRenderSystem<RenderLayerSystem3D>()
             ;
 
         _container.RegisterGameObject<ImGuiActionDebugger>();
@@ -175,6 +177,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(logo);
 
+        _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
 

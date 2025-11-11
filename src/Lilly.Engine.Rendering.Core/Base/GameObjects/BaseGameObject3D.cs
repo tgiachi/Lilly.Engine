@@ -1,6 +1,7 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
+using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Primitives;
 
@@ -50,6 +51,17 @@ public abstract class BaseGameObject3D : IGameObject3D
     /// Gets or sets the layer of the game object.
     /// </summary>
     public int Layer { get; set; }
+
+
+    /// <summary>
+    ///  Draws the game object using the provided camera and game time.
+    /// </summary>
+    /// <param name="camera"></param>
+    /// <param name="gameTime"></param>
+    public virtual void Draw(ICamera3D camera, GameTime gameTime)
+    {
+
+    }
 
     /// <summary>
     /// Draws the game object by returning render commands.

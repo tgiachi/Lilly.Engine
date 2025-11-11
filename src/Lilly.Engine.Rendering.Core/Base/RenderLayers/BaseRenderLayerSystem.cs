@@ -25,9 +25,7 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
 
     private readonly Lock _collectionLock = new();
 
-    private List<RenderCommand> _renderCommands = new(512);
-
-    protected List<RenderCommand> RenderCommands => _renderCommands;
+    protected List<RenderCommand> RenderCommands { get; } = new(512);
 
     protected GameObjectCollection<TEntity> GameObjects { get; } = new();
 
@@ -97,18 +95,18 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     /// <returns>A list of render commands to be processed.</returns>
     public virtual List<RenderCommand> CollectRenderCommands(GameTime gameTime)
     {
-        _renderCommands.Clear();
+        RenderCommands.Clear();
 
         foreach (var gameObject in GetAllTypedGameObjects())
         {
             // Collect commands from each game object (including its children)
             foreach (var command in gameObject.Render(gameTime))
             {
-                _renderCommands.Add(command);
+                RenderCommands.Add(command);
             }
         }
 
-        return _renderCommands;
+        return RenderCommands;
     }
 
     /// <summary>
@@ -186,6 +184,6 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     /// <param name="command">The render command to add.</param>
     protected void AddRenderCommand(RenderCommand command)
     {
-        _renderCommands.Add(command);
+        RenderCommands.Add(command);
     }
 }

@@ -1,4 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -35,4 +36,10 @@ public class RenderContext
     /// Gets or sets the input context for handling keyboard, mouse, and other input devices.
     /// </summary>
     public IInputContext InputContext { get; set; }
+
+
+    /// <summary>
+    ///  Gets or sets the graphic renderer in use.
+    /// </summary>
+    public IGraphicRenderer Renderer { get; set; }
 }

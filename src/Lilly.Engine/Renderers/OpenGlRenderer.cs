@@ -81,6 +81,8 @@ public class OpenGlRenderer : IGraphicRenderer
         Context.Window.Render += WindowOnRender;
         Context.Window.Update += WindowOnUpdate;
         Context.Window.ShouldSwapAutomatically = true;
+
+        Context.Renderer = this;
     }
 
     /// <summary>

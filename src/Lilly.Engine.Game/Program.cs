@@ -5,6 +5,7 @@ using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
+using Lilly.Engine.Core.Logging;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
 using Serilog;
@@ -58,6 +59,10 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
             rollingInterval: RollingInterval.Day
         );
     }
+
+    logConfiguration.Enrich.FromLogContext();
+
+    logConfiguration.WriteTo.EventSink();
 
     Log.Logger = logConfiguration.CreateLogger();
 

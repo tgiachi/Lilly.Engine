@@ -4,7 +4,7 @@ using Lilly.Engine.Rendering.Core.Primitives;
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Lilly.Engine.Interfaces.Camera;
+namespace Lilly.Engine.Rendering.Core.Interfaces.Camera;
 
 public interface ICamera3D : IUpdatable
 {
