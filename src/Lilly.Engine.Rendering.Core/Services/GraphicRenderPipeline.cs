@@ -54,7 +54,7 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     /// </summary>
     /// <typeparam name="TGameObject">The type of game object.</typeparam>
     /// <param name="gameObject">The game object to add.</param>
-    public void AddGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject
+    public void AddGameObject<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject
     {
         _renderLayers.AddGameObject(gameObject);
     }
@@ -87,7 +87,7 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     /// </summary>
     /// <typeparam name="TGameObject">The type of game object.</typeparam>
     /// <param name="gameObject">The game object to remove.</param>
-    public void RemoveGameObject<TGameObject>(TGameObject gameObject) where TGameObject : IGameObject
+    public void RemoveGameObject(IGameObject gameObject)
     {
         _renderLayers.RemoveGameObject(gameObject);
     }

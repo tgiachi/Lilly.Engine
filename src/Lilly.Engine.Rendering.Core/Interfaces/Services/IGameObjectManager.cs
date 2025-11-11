@@ -19,7 +19,6 @@ public interface IGameObjectManager
     /// <summary>
     /// Removes a game object from all rendering layers.
     /// </summary>
-    /// <typeparam name="T">The type of the game object.</typeparam>
     /// <param name="gameObject">The game object to remove.</param>
-    void RemoveGameObject<T>(T gameObject) where T : class;
+    void RemoveGameObject(IGameObject gameObject);
 }
