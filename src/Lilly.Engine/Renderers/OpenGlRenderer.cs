@@ -1,3 +1,4 @@
+using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Data.Config;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
@@ -73,6 +74,8 @@ public class OpenGlRenderer : IGraphicRenderer
             options.TargetRenderVersion.Major,
             options.TargetRenderVersion.Minor
         );
+
+        _logger.Information("OS: {OS}", PlatformUtils.GetCurrentPlatform());
 
         Context.Window = Window.Create(windowOptions);
 

@@ -6,8 +6,11 @@ using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
+using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
+using Lilly.Engine.Rendering.Core.Data;
+using Lilly.Engine.Rendering.Core.Data.Config;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -34,7 +37,14 @@ await ConsoleApp.RunAsync(
 
         var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
 
-        await bootstrap.InitializeAsync(new());
+        var initialEngineOptions = new InitialEngineOptions();
+
+        if (PlatformUtils.IsRunningOnLinux())
+        {
+            initialEngineOptions.TargetRenderVersion = new GraphicApiVersion(4, 5, 0, 0);
+        }
+
+        await bootstrap.InitializeAsync(initialEngineOptions);
 
         await bootstrap.RunAsync();
 
