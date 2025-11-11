@@ -12,26 +12,55 @@ namespace Lilly.Engine.Modules;
 public class ImGuiModule
 {
 
+    /// <summary>
+    /// Displays text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("text")]
     public void Text(string message)
         => ImGui.Text(message);
 
+    /// <summary>
+    /// Displays colored text using ImGui.
+    /// </summary>
+    /// <param name="r">Red component (0-1).</param>
+    /// <param name="g">Green component (0-1).</param>
+    /// <param name="b">Blue component (0-1).</param>
+    /// <param name="a">Alpha component (0-1).</param>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("text_colored")]
     public void TextColored(float r, float g, float b, float a, string message)
         => ImGui.TextColored(new(r, g, b, a), message);
 
+    /// <summary>
+    /// Displays disabled text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("text_disabled")]
     public void TextDisabled(string message)
         => ImGui.TextDisabled(message);
 
+    /// <summary>
+    /// Displays wrapped text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("text_wrapped")]
     public void TextWrapped(string message)
         => ImGui.TextWrapped(message);
 
+    /// <summary>
+    /// Displays a label with text using ImGui.
+    /// </summary>
+    /// <param name="label">The label.</param>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("label_text")]
     public void LabelText(string label, string message)
         => ImGui.LabelText(label, message);
 
+    /// <summary>
+    /// Displays a bullet point text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
     [ScriptFunction("bullet_text")]
     public void BulletText(string message)
         => ImGui.BulletText(message);

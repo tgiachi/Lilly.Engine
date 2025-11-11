@@ -32,6 +32,8 @@ public class OpenGlRenderer : IGraphicRenderer
     /// </summary>
     public RenderContext Context { get; } = new();
 
+    private DpiManager _dpiManager;
+
     /// <summary>
     /// Event raised during the update phase of each frame.
     /// </summary>
@@ -46,6 +48,8 @@ public class OpenGlRenderer : IGraphicRenderer
     /// Event raised when the window is resized.
     /// </summary>
     public event IGraphicRenderer.ResizeHandler? Resize;
+
+    public event IGraphicRenderer.RenderHandler? PostRender;
 
     /// <summary>
     /// Initializes the OpenGL renderer with the specified engine options.
@@ -76,6 +80,7 @@ public class OpenGlRenderer : IGraphicRenderer
         Context.Window.FramebufferResize += WindowOnFramebufferResize;
         Context.Window.Render += WindowOnRender;
         Context.Window.Update += WindowOnUpdate;
+        Context.Window.ShouldSwapAutomatically = true;
     }
 
     /// <summary>
@@ -93,7 +98,7 @@ public class OpenGlRenderer : IGraphicRenderer
     private void WindowOnFramebufferResize(Vector2D<int> size)
     {
         _logger.Information("Window Resized to {Width}x{Height}", size.X, size.Y);
-        Context.GraphicsDevice.SetViewport(0, 0, (uint)size.X, (uint)size.Y);
+
         Resize?.Invoke(size.X, size.Y);
     }
 
@@ -106,7 +111,7 @@ public class OpenGlRenderer : IGraphicRenderer
         Context.GraphicsDevice = new(Context.Gl);
         Context.InputContext = Context.Window.CreateInput();
 
-        //Context.GraphicsDevice.ClearColor = Color4b.CornflowerBlue;
+        _dpiManager = new(Context.Window, Context.Gl, Context.GraphicsDevice);
 
         _logger.Information("Window Loaded");
     }
@@ -117,7 +122,9 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <param name="obj">The elapsed time since the last render.</param>
     private void WindowOnRender(double obj)
     {
+        _dpiManager.Initialize();
         Render?.Invoke(Context.GameTime);
+        PostRender?.Invoke(Context.GameTime);
     }
 
     /// <summary>

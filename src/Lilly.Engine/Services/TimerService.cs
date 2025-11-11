@@ -25,6 +25,10 @@ public class TimerService : ITimerService
 
     private readonly IGraphicRenderer _renderer;
 
+    /// <summary>
+    /// Initializes a new instance of the TimerService class.
+    /// </summary>
+    /// <param name="renderer">The graphics renderer.</param>
     public TimerService(IGraphicRenderer renderer)
     {
         _renderer = renderer;

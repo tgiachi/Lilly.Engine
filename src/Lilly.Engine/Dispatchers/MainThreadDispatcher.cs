@@ -10,7 +10,7 @@ namespace Lilly.Engine.Dispatchers;
 /// Dispatcher specifically designed for main thread execution with thread-safety guarantees.
 /// Handles actions from multiple threads and executes them in parallel on the main thread.
 /// </summary>
-public class MainThreadDispatcher : IThreadDispatcher, IDisposable
+public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
 {
     private readonly int _mainThreadId;
 

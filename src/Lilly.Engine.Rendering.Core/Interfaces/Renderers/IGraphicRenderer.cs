@@ -60,6 +60,11 @@ public interface IGraphicRenderer
     event ResizeHandler Resize;
 
     /// <summary>
+    ///  Event raised after the rendering of each frame is completed.
+    /// </summary>
+    event RenderHandler PostRender;
+
+    /// <summary>
     /// Initializes the renderer with the specified engine options.
     /// </summary>
     /// <param name="options">The engine initialization options.</param>
