@@ -1,6 +1,7 @@
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
+using Silk.NET.Maths;
 
 namespace Lilly.Engine.Commands;
 
@@ -55,11 +56,13 @@ public static class RenderCommandHelpers
     /// <param name="title">The new window title.</param>
     /// <returns>A render command to set the window title.</returns>
     public static RenderCommand SetWindowTitle(string title)
-        => CreateWindow(new WindowPayload
-        {
-            SubCommandType = WindowSubCommandType.SetTitle,
-            Data = title
-        });
+        => CreateWindow(
+            new WindowPayload
+            {
+                SubCommandType = WindowSubCommandType.SetTitle,
+                Data = title
+            }
+        );
 
     /// <summary>
     /// Creates a window command to set the refresh rate.
@@ -67,11 +70,13 @@ public static class RenderCommandHelpers
     /// <param name="refreshRate">The refresh rate in Hz.</param>
     /// <returns>A render command to set the refresh rate.</returns>
     public static RenderCommand SetRefreshRate(int refreshRate)
-        => CreateWindow(new WindowPayload
-        {
-            SubCommandType = WindowSubCommandType.SetRefreshRate,
-            Data = refreshRate
-        });
+        => CreateWindow(
+            new WindowPayload
+            {
+                SubCommandType = WindowSubCommandType.SetRefreshRate,
+                Data = refreshRate
+            }
+        );
 
     /// <summary>
     /// Creates a window command to set the window size.
@@ -80,11 +85,13 @@ public static class RenderCommandHelpers
     /// <param name="height">The window height.</param>
     /// <returns>A render command to set the window size.</returns>
     public static RenderCommand SetWindowSize(int width, int height)
-        => CreateWindow(new WindowPayload
-        {
-            SubCommandType = WindowSubCommandType.SetSize,
-            Data = (width, height)
-        });
+        => CreateWindow(
+            new WindowPayload
+            {
+                SubCommandType = WindowSubCommandType.SetSize,
+                Data = (width, height)
+            }
+        );
 
     /// <summary>
     /// Creates a window command to enable or disable VSync.
@@ -92,11 +99,13 @@ public static class RenderCommandHelpers
     /// <param name="enabled">True to enable VSync, false to disable.</param>
     /// <returns>A render command to set VSync state.</returns>
     public static RenderCommand SetWindowVSync(bool enabled)
-        => CreateWindow(new WindowPayload
-        {
-            SubCommandType = WindowSubCommandType.SetVSync,
-            Data = enabled
-        });
+        => CreateWindow(
+            new WindowPayload
+            {
+                SubCommandType = WindowSubCommandType.SetVSync,
+                Data = enabled
+            }
+        );
 
     /// <summary>
     /// Creates a window command to set fullscreen mode.
@@ -104,9 +113,26 @@ public static class RenderCommandHelpers
     /// <param name="enabled">True to enable fullscreen, false to disable.</param>
     /// <returns>A render command to set fullscreen state.</returns>
     public static RenderCommand SetWindowFullscreen(bool enabled)
-        => CreateWindow(new WindowPayload
-        {
-            SubCommandType = WindowSubCommandType.SetFullscreen,
-            Data = enabled
-        });
+        => CreateWindow(
+            new WindowPayload
+            {
+                SubCommandType = WindowSubCommandType.SetFullscreen,
+                Data = enabled
+            }
+        );
+
+    /// <summary>
+    ///  Creates a render command for setting the scissor rectangle.
+    /// </summary>
+    /// <param name="rectangle"></param>
+    /// <returns></returns>
+    public static RenderCommand CreateScissor(Rectangle<int> rectangle)
+        => new(RenderCommandType.Scissor, new ScissorPayload(rectangle));
+
+    /// <summary>
+    ///  Creates a render command for disabling the scissor test.
+    /// </summary>
+    /// <returns></returns>
+    public static RenderCommand CreateDisableScissor()
+        => new(RenderCommandType.Scissor, new ScissorPayload());
 }

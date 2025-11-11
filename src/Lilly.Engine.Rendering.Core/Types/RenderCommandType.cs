@@ -16,6 +16,11 @@ public enum RenderCommandType : byte
     Window,
 
     /// <summary>
+    ///  Set scissor rectangle for rendering.
+    /// </summary>
+    Scissor,
+
+    /// <summary>
     /// Draw text on the screen.
     /// </summary>
     DrawText,
