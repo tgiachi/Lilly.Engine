@@ -1,12 +1,14 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
 using Lilly.Engine.Types;
 
 namespace Lilly.Engine.Scenes.Transitions.Base;
 
-
-
+/// <summary>
+/// Base class for scene transitions with timing and state management.
+/// </summary>
 public abstract class Transition : IDisposable
 {
     private readonly float _halfDuration;
@@ -30,7 +32,12 @@ public abstract class Transition : IDisposable
 
     public abstract void Dispose();
 
-    public abstract void Render(GameTime gameTime);
+    /// <summary>
+    /// Renders the transition using the graphics render pipeline.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    /// <param name="renderPipeline">The render pipeline to enqueue render commands to.</param>
+    public abstract void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline);
 
     /// <summary>
     /// Starts the transition between two scenes.
