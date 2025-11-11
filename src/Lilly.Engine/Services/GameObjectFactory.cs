@@ -167,11 +167,6 @@ public class GameObjectFactory : IGameObjectFactory
     /// <returns>True if the game object type is registered; otherwise, false.</returns>
     public bool IsRegistered(Type type)
     {
-        if (type == null)
-        {
-            throw new ArgumentNullException(nameof(type));
-        }
-
-        return _container.IsRegistered(type);
+        return type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
     }
 }
