@@ -217,6 +217,62 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(button);
 
+        var comboBox = new ComboBoxGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Transform =
+            {
+                Position = new Vector2D<float>(50, 150),
+                Size = new Vector2D<float>(200, 30)
+            }
+        };
+
+        comboBox.Items.Add("Option 1");
+        comboBox.Items.Add("Option 2");
+        comboBox.Items.Add("Option 3");
+        comboBox.SelectedIndex = 0;
+
+        _renderPipeline.AddGameObject(comboBox);
+
+        var progressBar = new ProgressBarGameObject(
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Transform =
+            {
+                Position = new Vector2D<float>(50, 200),
+                Size = new Vector2D<float>(300, 25)
+            },
+            Progress = 0.5f
+        };
+
+        _renderPipeline.AddGameObject(progressBar);
+
+        var listBox = new ListBoxGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Transform =
+            {
+                Position = new Vector2D<float>(50, 250),
+                Size = new Vector2D<float>(200, 100)
+            }
+        };
+
+        listBox.Items.Add("Item 1");
+        listBox.Items.Add("Item 2");
+        listBox.Items.Add("Item 3");
+        listBox.Items.Add("Item 4");
+        listBox.Items.Add("Item 5");
+
+        _renderPipeline.AddGameObject(listBox);
+
 
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
