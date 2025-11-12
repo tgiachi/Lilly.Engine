@@ -363,7 +363,7 @@ public class InputManagerService : IInputManagerService
         if (CurrentFocus != null)
         {
             CurrentFocus.HasFocus = true;
-            _logger.Debug("Input focus set to {Receiver}", CurrentFocus.Name);
+            _logger.Debug("Input focus set to {Receiver}", CurrentFocus.Name ?? CurrentFocus.GetType().Name);
         }
         else
         {

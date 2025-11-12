@@ -196,6 +196,28 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(textBox);
 
+        var button = new ButtonGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Text = "Click Me!",
+            Transform =
+            {
+                Position = new Vector2D<float>(50, 100),
+                Size = new Vector2D<float>(150, 40)
+            }
+        };
+
+        button.Click += (sender, args) =>
+                        {
+                            _logger.Information("Button Clicked!");
+                        };
+
+        _renderPipeline.AddGameObject(button);
+
+
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
