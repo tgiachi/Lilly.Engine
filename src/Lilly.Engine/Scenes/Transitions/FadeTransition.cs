@@ -4,6 +4,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
+using Lilly.Engine.Scenes.Transitions.Interfaces;
 using Silk.NET.Maths;
 using TrippyGL;
 
@@ -12,10 +13,9 @@ namespace Lilly.Engine.Scenes.Transitions;
 /// <summary>
 /// A transition effect that fades in a colored overlay.
 /// </summary>
-public class FadeTransition : Transition
+public class FadeTransition : TransitionGameObject
 {
-    private readonly int _viewportWidth;
-    private readonly int _viewportHeight;
+    private readonly FadeTransitionEffect _effect;
 
     /// <summary>
     /// Initializes a new instance of the FadeTransition class.
@@ -25,48 +25,52 @@ public class FadeTransition : Transition
     /// <param name="color">The color of the fading overlay.</param>
     /// <param name="duration">The duration of the transition in seconds.</param>
     public FadeTransition(int viewportWidth, int viewportHeight, Color4b color, float duration = 1.0f)
-        : base(duration)
+        : base(duration, new FadeTransitionEffect(viewportWidth, viewportHeight, color))
     {
-        _viewportWidth = viewportWidth;
-        _viewportHeight = viewportHeight;
-        Color = color;
+        _effect = (FadeTransitionEffect)Effect;
+        Name = "FadeTransition";
     }
 
     /// <summary>
     /// Gets the color of the fading overlay.
     /// </summary>
-    public Color4b Color { get; }
+    public Color4b Color => _effect.Color;
 
     /// <summary>
-    /// Disposes the transition resources.
+    /// Fade transition effect implementation.
     /// </summary>
-    public override void Dispose()
+    private class FadeTransitionEffect : ITransitionEffect
     {
-        GC.SuppressFinalize(this);
-    }
+        private readonly int _viewportWidth;
+        private readonly int _viewportHeight;
 
-    /// <summary>
-    /// Renders the transition effect using render commands.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    /// <param name="renderPipeline">The render pipeline to enqueue commands to.</param>
-    public override void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline)
-    {
-        // Apply alpha based on transition value
-        var alpha = (byte)(Value * 255);
-        var colorWithAlpha = new Color4b(Color.R, Color.G, Color.B, alpha);
+        public FadeTransitionEffect(int viewportWidth, int viewportHeight, Color4b color)
+        {
+            _viewportWidth = viewportWidth;
+            _viewportHeight = viewportHeight;
+            Color = color;
+        }
 
-        var destination = new Rectangle<float>(0, 0, _viewportWidth, _viewportHeight);
+        public Color4b Color { get; }
 
-        var command = RenderCommandHelpers.CreateDrawTexture(
-            new DrawTexturePayload(
-                texture: DefaultTextures.WhiteTextureKey,
-                destination: destination,
-                color: colorWithAlpha,
-                depth: 0.9f // High depth to render on top of most elements
-            )
-        );
+        public void Render(GameTime gameTime, float progress, IGraphicRenderPipeline renderPipeline)
+        {
+            // Apply alpha based on transition progress
+            var alpha = (byte)(progress * 255);
+            var colorWithAlpha = new Color4b(Color.R, Color.G, Color.B, alpha);
 
-        renderPipeline.EnqueueRenderCommand(command);
+            var destination = new Rectangle<float>(0, 0, _viewportWidth, _viewportHeight);
+
+            var command = RenderCommandHelpers.CreateDrawTexture(
+                new DrawTexturePayload(
+                    texture: DefaultTextures.WhiteTextureKey,
+                    destination: destination,
+                    color: colorWithAlpha,
+                    depth: 0.9f
+                )
+            );
+
+            renderPipeline.EnqueueRenderCommand(command);
+        }
     }
 }

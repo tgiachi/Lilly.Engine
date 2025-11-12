@@ -60,8 +60,6 @@ public class LillyBoostrap : ILillyBootstrap
         container.RegisterInstance(renderer);
 
         RegisterDefaults();
-
-
     }
 
     private void InitializePlugins()
@@ -170,7 +168,6 @@ public class LillyBoostrap : ILillyBootstrap
             plugin.EngineInitialized(_container);
         }
 
-
         return Task.CompletedTask;
     }
 
@@ -208,6 +205,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IAssetManager, AssetManager>()
             .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
             .RegisterService<ICamera3dService, Camera3dService>()
+            .RegisterService<ISceneManager, SceneManager>()
             ;
 
         _container
@@ -425,6 +423,10 @@ public class LillyBoostrap : ILillyBootstrap
             InitializeRenderSystem();
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
+            var sceneManager = _container.Resolve<ISceneManager>();
+
+            _renderPipeline.AddGameObject(sceneManager);
+
             _isRenderInitialized = true;
         }
         OnRender?.Invoke(gameTime);
@@ -445,6 +447,7 @@ public class LillyBoostrap : ILillyBootstrap
             _initialized = true;
         }
         OnUpdate?.Invoke(gameTime);
+
         _renderPipeline?.Update(gameTime);
     }
 
@@ -462,10 +465,12 @@ public class LillyBoostrap : ILillyBootstrap
 
         var scriptEngine = _container.Resolve<IScriptEngineService>();
 
-
         InitializePlugins();
 
         _container.Resolve<IGameObjectFactory>();
+
+
+
         await scriptEngine.StartAsync();
 
         var assetManager = _container.Resolve<IAssetManager>();

@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
+using Lilly.Engine.Scenes.Transitions.Interfaces;
 using Lilly.Engine.Types;
 
 namespace Lilly.Engine.Scenes.Transitions.Base;
@@ -14,9 +15,10 @@ public abstract class Transition : IDisposable
     private readonly float _halfDuration;
     private float _currentSeconds;
 
-    protected Transition(float duration)
+    protected Transition(float duration, ITransitionEffect effect)
     {
         Duration = duration;
+        Effect = effect;
         _halfDuration = Duration / 2f;
     }
 
@@ -24,20 +26,32 @@ public abstract class Transition : IDisposable
     public float Duration { get; }
     public float Value => Math.Clamp(_currentSeconds / _halfDuration, 0f, 1f);
 
+    /// <summary>
+    /// Gets the transition effect that renders the visual effect.
+    /// </summary>
+    public ITransitionEffect Effect { get; }
+
     public IScene? FromScene { get; protected set; }
     public IScene? ToScene { get; protected set; }
 
     public event EventHandler StateChanged;
     public event EventHandler Completed;
 
-    public abstract void Dispose();
+    public virtual void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Renders the transition using the graphics render pipeline.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
     /// <param name="renderPipeline">The render pipeline to enqueue render commands to.</param>
-    public abstract void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline);
+    public void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline)
+    {
+        // Delegate rendering to the effect
+        Effect.Render(gameTime, Value, renderPipeline);
+    }
 
     /// <summary>
     /// Starts the transition between two scenes.

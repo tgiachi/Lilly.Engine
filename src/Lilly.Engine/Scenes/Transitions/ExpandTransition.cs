@@ -4,6 +4,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
+using Lilly.Engine.Scenes.Transitions.Interfaces;
 using Silk.NET.Maths;
 using TrippyGL;
 
@@ -12,10 +13,9 @@ namespace Lilly.Engine.Scenes.Transitions;
 /// <summary>
 /// A transition effect that expands a colored rectangle from the center.
 /// </summary>
-public class ExpandTransition : Transition
+public class ExpandTransition : TransitionGameObject
 {
-    private readonly int _viewportWidth;
-    private readonly int _viewportHeight;
+    private readonly ExpandTransitionEffect _effect;
 
     /// <summary>
     /// Initializes a new instance of the ExpandTransition class.
@@ -25,51 +25,55 @@ public class ExpandTransition : Transition
     /// <param name="color">The color of the expanding rectangle.</param>
     /// <param name="duration">The duration of the transition in seconds.</param>
     public ExpandTransition(int viewportWidth, int viewportHeight, Color4b color, float duration = 1.0f)
-        : base(duration)
+        : base(duration, new ExpandTransitionEffect(viewportWidth, viewportHeight, color))
     {
-        _viewportWidth = viewportWidth;
-        _viewportHeight = viewportHeight;
-        Color = color;
+        _effect = (ExpandTransitionEffect)Effect;
+        Name = "ExpandTransition";
     }
 
     /// <summary>
     /// Gets the color of the expanding rectangle.
     /// </summary>
-    public Color4b Color { get; }
+    public Color4b Color => _effect.Color;
 
     /// <summary>
-    /// Disposes the transition resources.
+    /// Expand transition effect implementation.
     /// </summary>
-    public override void Dispose()
+    private class ExpandTransitionEffect : ITransitionEffect
     {
-        GC.SuppressFinalize(this);
-    }
+        private readonly int _viewportWidth;
+        private readonly int _viewportHeight;
 
-    /// <summary>
-    /// Renders the transition effect using render commands.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    /// <param name="renderPipeline">The render pipeline to enqueue commands to.</param>
-    public override void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline)
-    {
-        var halfWidth = _viewportWidth / 2f;
-        var halfHeight = _viewportHeight / 2f;
-        var x = halfWidth * (1.0f - Value);
-        var y = halfHeight * (1.0f - Value);
-        var width = _viewportWidth * Value;
-        var height = _viewportHeight * Value;
+        public ExpandTransitionEffect(int viewportWidth, int viewportHeight, Color4b color)
+        {
+            _viewportWidth = viewportWidth;
+            _viewportHeight = viewportHeight;
+            Color = color;
+        }
 
-        var destination = new Rectangle<float>(x, y, width, height);
+        public Color4b Color { get; }
 
-        var command = RenderCommandHelpers.CreateDrawTexture(
-            new DrawTexturePayload(
-                texture: DefaultTextures.WhiteTextureKey,
-                destination: destination,
-                color: Color,
-                depth: 0.9f // High depth to render on top of most elements
-            )
-        );
+        public void Render(GameTime gameTime, float progress, IGraphicRenderPipeline renderPipeline)
+        {
+            var halfWidth = _viewportWidth / 2f;
+            var halfHeight = _viewportHeight / 2f;
+            var x = halfWidth * (1.0f - progress);
+            var y = halfHeight * (1.0f - progress);
+            var width = _viewportWidth * progress;
+            var height = _viewportHeight * progress;
 
-        renderPipeline.EnqueueRenderCommand(command);
+            var destination = new Rectangle<float>(x, y, width, height);
+
+            var command = RenderCommandHelpers.CreateDrawTexture(
+                new DrawTexturePayload(
+                    texture: DefaultTextures.WhiteTextureKey,
+                    destination: destination,
+                    color: Color,
+                    depth: 0.9f
+                )
+            );
+
+            renderPipeline.EnqueueRenderCommand(command);
+        }
     }
 }
