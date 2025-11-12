@@ -273,6 +273,38 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(listBox);
 
+        var memo = new MemoEditGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Transform =
+            {
+                Position = new Vector2D<float>(300, 50),
+                Size = new Vector2D<float>(400, 150)
+            },
+            Text = "This is a memo edit box.\nYou can write multiple lines of text here."
+        };
+
+        _renderPipeline.AddGameObject(memo);
+
+        var checkBox = new CheckBoxGameObject(
+            _container.Resolve<IInputManagerService>(),
+            _container.Resolve<IAssetManager>(),
+            UITheme.Default
+        )
+        {
+            Transform =
+            {
+                Position = new Vector2D<float>(50, 370),
+                Size = new Vector2D<float>(20, 20)
+            },
+            IsChecked = true,
+            Label = "Is Checked",
+        };
+
+        _renderPipeline.AddGameObject(checkBox);
 
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
