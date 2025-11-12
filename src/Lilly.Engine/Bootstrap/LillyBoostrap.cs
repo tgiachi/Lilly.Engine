@@ -6,17 +6,18 @@ using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Utils;
+using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
-using Lilly.Engine.GameObjects.Base;
-using Lilly.Engine.GameObjects.UI.Controls;
-using Lilly.Engine.GameObjects.UI.Theme;
+using Lilly.Engine.Exceptions;
 using Lilly.Engine.Interfaces.Bootstrap;
+using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Layers;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Lua.Scripting.Services;
 using Lilly.Engine.Modules;
+using Lilly.Engine.Plugins;
 using Lilly.Engine.Rendering.Core.Data.Config;
 using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
@@ -59,6 +60,92 @@ public class LillyBoostrap : ILillyBootstrap
         container.RegisterInstance(renderer);
 
         RegisterDefaults();
+
+
+    }
+
+    private void InitializePlugins()
+    {
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        var pluginRegistrations = _container.Resolve<List<EnginePluginRegistration>>();
+
+        _logger.Debug("Discovering plugins...");
+
+        var allPluginData = pluginRegistrations
+                            .Select(pluginRegistration => (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType))
+                            .Select(plugin => plugin.LillyData)
+                            .ToList();
+
+        _logger.Information("Discovered {PluginCount} plugins", allPluginData.Count);
+
+        _logger.Debug("Checking for circular dependencies...");
+        var circularDependencies = pluginRegistry.CheckForCircularDependencies(allPluginData);
+
+        if (circularDependencies.Any())
+        {
+            var cycle = string.Join(" -> ", circularDependencies);
+            _logger.Fatal("Circular dependency detected: {Cycle}", cycle);
+
+            throw new PluginLoadException(
+                $"Circular dependency detected in plugin chain: {cycle}",
+                "circular-dependency",
+                allPluginData.First(),
+                allPluginData
+            );
+        }
+
+        _logger.Debug("Loading plugins in dependency order...");
+        var sortedPluginData = pluginRegistry.GetPluginsInDependencyOrder(allPluginData).ToList();
+
+        foreach (var pluginData in sortedPluginData)
+        {
+            var pluginRegistration = pluginRegistrations.First(
+                pr =>
+                {
+                    var plugin = (ILillyPlugin)_container.Resolve(pr.PluginType);
+
+                    return plugin.LillyData.Id == pluginData.Id;
+                }
+            );
+
+            try
+            {
+                _logger.Debug("Loading plugin from assembly {Assembly}", pluginRegistration.Assembly.FullName);
+
+                var plugin = (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType);
+
+                _logger.Information(
+                    "Registering plugin {PluginId} v{Version} by {Author}",
+                    plugin.LillyData.Id,
+                    plugin.LillyData.Version,
+                    plugin.LillyData.Author
+                );
+
+                pluginRegistry.RegisterPlugin(plugin);
+
+                _logger.Debug("Registering modules for plugin {PluginId}", plugin.LillyData.Id);
+                plugin.RegisterModule(_container);
+            }
+            catch (PluginLoadException ex)
+            {
+                _logger.Fatal(ex, "Failed to load plugin {PluginId}", pluginData.Id);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.Fatal(ex, "Unexpected error loading plugin {PluginId}", pluginData.Id);
+
+                throw new PluginLoadException(
+                    $"Unexpected error loading plugin '{pluginData.Id}': {ex.Message}",
+                    pluginData.Id,
+                    pluginData,
+                    pluginRegistry.GetLoadedPluginData(),
+                    ex
+                );
+            }
+        }
     }
 
     /// <summary>
@@ -75,6 +162,14 @@ public class LillyBoostrap : ILillyBootstrap
         Renderer.Resize += RendererOnResize;
 
         _container.RegisterInstance(Renderer.Context);
+
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
+        {
+            plugin.EngineInitialized(_container);
+        }
+
 
         return Task.CompletedTask;
     }
@@ -95,6 +190,12 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void RegisterDefaults()
     {
+        _container
+            .Register<PluginRegistry>(Reuse.Singleton);
+
+        _container
+            .Register<PluginDependencyValidator>(Reuse.Singleton);
+
         _container
             .RegisterService<IScriptEngineService, LuaScriptEngineService>()
             .RegisterService<IVersionService, VersionService>()
@@ -156,155 +257,155 @@ public class LillyBoostrap : ILillyBootstrap
             )
         );
 
-        _renderPipeline.AddGameObject(
-            new TextGameObject()
-            {
-                Text = "Lilly Lilly",
-                Transform = { Position = new Vector2D<float>(300, 300) }
-            }
-        );
-
-        var logo = new ImageGameObject()
-        {
-            TextureKey = "logo",
-        };
-
-        logo.Transform.Position = new Vector2D<float>(200, 200);
-        logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
-
-        var rectangle = new RectangleGameObject()
-        {
-            Size = new Vector2D<float>(400, 100),
-            Color = Color4b.CornflowerBlue,
-            BorderThickness = 2,
-        };
-
-        rectangle.Transform.Position = new Vector2D<float>(400, 400);
-        _renderPipeline.AddGameObject(rectangle);
-
-        _renderPipeline.AddGameObject(logo);
-
-        var textBox = new TextEditGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        );
-
-        textBox.Text = "Welcome to Lilly Engine!";
-        textBox.Transform.Position = new Vector2D<float>(50, 50);
-        textBox.Transform.Size = new Vector2D<float>(400, 32);
-
-        _renderPipeline.AddGameObject(textBox);
-
-        var button = new ButtonGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Text = "Click Me!",
-            Transform =
-            {
-                Position = new Vector2D<float>(50, 100),
-                Size = new Vector2D<float>(150, 40)
-            }
-        };
-
-        button.Click += (sender, args) =>
-                        {
-                            _logger.Information("Button Clicked!");
-                        };
-
-        _renderPipeline.AddGameObject(button);
-
-        var comboBox = new ComboBoxGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Transform =
-            {
-                Position = new Vector2D<float>(50, 150),
-                Size = new Vector2D<float>(200, 30)
-            }
-        };
-
-        comboBox.Items.Add("Option 1");
-        comboBox.Items.Add("Option 2");
-        comboBox.Items.Add("Option 3");
-        comboBox.SelectedIndex = 0;
-
-        _renderPipeline.AddGameObject(comboBox);
-
-        var progressBar = new ProgressBarGameObject(
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Transform =
-            {
-                Position = new Vector2D<float>(50, 200),
-                Size = new Vector2D<float>(300, 25)
-            },
-            Progress = 0.5f
-        };
-
-        _renderPipeline.AddGameObject(progressBar);
-
-        var listBox = new ListBoxGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Transform =
-            {
-                Position = new Vector2D<float>(50, 250),
-                Size = new Vector2D<float>(200, 100)
-            }
-        };
-
-        listBox.Items.Add("Item 1");
-        listBox.Items.Add("Item 2");
-        listBox.Items.Add("Item 3");
-        listBox.Items.Add("Item 4");
-        listBox.Items.Add("Item 5");
-
-        _renderPipeline.AddGameObject(listBox);
-
-        var memo = new MemoEditGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Transform =
-            {
-                Position = new Vector2D<float>(300, 50),
-                Size = new Vector2D<float>(400, 150)
-            },
-            Text = "This is a memo edit box.\nYou can write multiple lines of text here."
-        };
-
-        _renderPipeline.AddGameObject(memo);
-
-        var checkBox = new CheckBoxGameObject(
-            _container.Resolve<IInputManagerService>(),
-            _container.Resolve<IAssetManager>(),
-            UITheme.Default
-        )
-        {
-            Transform =
-            {
-                Position = new Vector2D<float>(50, 370),
-                Size = new Vector2D<float>(20, 20)
-            },
-            IsChecked = true,
-            Label = "Is Checked",
-        };
-
-        _renderPipeline.AddGameObject(checkBox);
+        // _renderPipeline.AddGameObject(
+        //     new TextGameObject()
+        //     {
+        //         Text = "Lilly Lilly",
+        //         Transform = { Position = new Vector2D<float>(300, 300) }
+        //     }
+        // );
+        //
+        // var logo = new ImageGameObject()
+        // {
+        //     TextureKey = "logo",
+        // };
+        //
+        // logo.Transform.Position = new Vector2D<float>(200, 200);
+        // logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
+        //
+        // var rectangle = new RectangleGameObject()
+        // {
+        //     Size = new Vector2D<float>(400, 100),
+        //     Color = Color4b.CornflowerBlue,
+        //     BorderThickness = 2,
+        // };
+        //
+        // rectangle.Transform.Position = new Vector2D<float>(400, 400);
+        // _renderPipeline.AddGameObject(rectangle);
+        //
+        // _renderPipeline.AddGameObject(logo);
+        //
+        // var textBox = new TextEditGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // );
+        //
+        // textBox.Text = "Welcome to Lilly Engine!";
+        // textBox.Transform.Position = new Vector2D<float>(50, 50);
+        // textBox.Transform.Size = new Vector2D<float>(400, 32);
+        //
+        // _renderPipeline.AddGameObject(textBox);
+        //
+        // var button = new ButtonGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Text = "Click Me!",
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(50, 100),
+        //         Size = new Vector2D<float>(150, 40)
+        //     }
+        // };
+        //
+        // button.Click += (sender, args) =>
+        //                 {
+        //                     _logger.Information("Button Clicked!");
+        //                 };
+        //
+        // _renderPipeline.AddGameObject(button);
+        //
+        // var comboBox = new ComboBoxGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(50, 150),
+        //         Size = new Vector2D<float>(200, 30)
+        //     }
+        // };
+        //
+        // comboBox.Items.Add("Option 1");
+        // comboBox.Items.Add("Option 2");
+        // comboBox.Items.Add("Option 3");
+        // comboBox.SelectedIndex = 0;
+        //
+        // _renderPipeline.AddGameObject(comboBox);
+        //
+        // var progressBar = new ProgressBarGameObject(
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(50, 200),
+        //         Size = new Vector2D<float>(300, 25)
+        //     },
+        //     Progress = 0.5f
+        // };
+        //
+        // _renderPipeline.AddGameObject(progressBar);
+        //
+        // var listBox = new ListBoxGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(50, 250),
+        //         Size = new Vector2D<float>(200, 100)
+        //     }
+        // };
+        //
+        // listBox.Items.Add("Item 1");
+        // listBox.Items.Add("Item 2");
+        // listBox.Items.Add("Item 3");
+        // listBox.Items.Add("Item 4");
+        // listBox.Items.Add("Item 5");
+        //
+        // _renderPipeline.AddGameObject(listBox);
+        //
+        // var memo = new MemoEditGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(300, 50),
+        //         Size = new Vector2D<float>(400, 150)
+        //     },
+        //     Text = "This is a memo edit box.\nYou can write multiple lines of text here."
+        // };
+        //
+        // _renderPipeline.AddGameObject(memo);
+        //
+        // var checkBox = new CheckBoxGameObject(
+        //     _container.Resolve<IInputManagerService>(),
+        //     _container.Resolve<IAssetManager>(),
+        //     UITheme.Default
+        // )
+        // {
+        //     Transform =
+        //     {
+        //         Position = new Vector2D<float>(50, 370),
+        //         Size = new Vector2D<float>(20, 20)
+        //     },
+        //     IsChecked = true,
+        //     Label = "Is Checked",
+        // };
+        //
+        // _renderPipeline.AddGameObject(checkBox);
 
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
@@ -360,6 +461,9 @@ public class LillyBoostrap : ILillyBootstrap
                   .Initialize(Environment.ProcessorCount);
 
         var scriptEngine = _container.Resolve<IScriptEngineService>();
+
+
+        InitializePlugins();
 
         _container.Resolve<IGameObjectFactory>();
         await scriptEngine.StartAsync();

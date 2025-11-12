@@ -8,14 +8,14 @@ namespace Lilly.Engine.Exceptions;
 public class PluginLoadException : Exception
 {
     public string PluginId { get; }
-    public EnginePluginData PluginData { get; }
-    public IReadOnlyList<EnginePluginData> LoadedPlugins { get; }
+    public LillyPluginData PluginData { get; }
+    public IReadOnlyList<LillyPluginData> LoadedPlugins { get; }
 
     public PluginLoadException(
         string message,
         string pluginId,
-        EnginePluginData pluginData,
-        IReadOnlyList<EnginePluginData> loadedPlugins,
+        LillyPluginData pluginData,
+        IReadOnlyList<LillyPluginData> loadedPlugins,
         Exception innerException = null)
         : base(message, innerException)
     {

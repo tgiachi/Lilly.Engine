@@ -3,9 +3,9 @@ using Lilly.Engine.Data.Plugins;
 
 namespace Lilly.Engine.Interfaces.Plugins;
 
-public interface IEnginePlugin
+public interface ILillyPlugin
 {
-    EnginePluginData EngineData { get; }
+    LillyPluginData LillyData { get; }
 
     IContainer RegisterModule(IContainer container);
 

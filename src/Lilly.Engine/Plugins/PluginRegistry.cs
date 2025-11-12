@@ -9,8 +9,8 @@ namespace Lilly.Engine.Plugins;
 /// </summary>
 public class PluginRegistry
 {
-    private readonly List<IEnginePlugin> _loadedPlugins = new();
-    private readonly List<EnginePluginData> _loadedPluginData = new();
+    private readonly List<ILillyPlugin> _loadedPlugins = [];
+    private readonly List<LillyPluginData> _loadedPluginData = [];
     private readonly PluginDependencyValidator _dependencyValidator;
 
     public PluginRegistry(PluginDependencyValidator dependencyValidator = null)
@@ -21,21 +21,21 @@ public class PluginRegistry
     /// <summary>
     /// Gets all currently loaded plugins.
     /// </summary>
-    public IReadOnlyList<IEnginePlugin> GetLoadedPlugins()
+    public IReadOnlyList<ILillyPlugin> GetLoadedPlugins()
         => _loadedPlugins.AsReadOnly();
 
     /// <summary>
     /// Gets metadata for all loaded plugins.
     /// </summary>
-    public IReadOnlyList<EnginePluginData> GetLoadedPluginData()
+    public IReadOnlyList<LillyPluginData> GetLoadedPluginData()
         => _loadedPluginData.AsReadOnly();
 
     /// <summary>
     /// Gets a specific plugin by ID.
     /// </summary>
-    public IEnginePlugin GetPluginById(string pluginId)
+    public ILillyPlugin GetPluginById(string pluginId)
     {
-        var plugin = _loadedPlugins.FirstOrDefault(p => p.EngineData.Id == pluginId);
+        var plugin = _loadedPlugins.FirstOrDefault(p => p.LillyData.Id == pluginId);
 
         return plugin ?? throw new InvalidOperationException($"Plugin '{pluginId}' not found.");
     }
@@ -43,7 +43,7 @@ public class PluginRegistry
     /// <summary>
     /// Checks if a plugin can be loaded based on dependency requirements.
     /// </summary>
-    public bool CanLoad(EnginePluginData pluginData)
+    public bool CanLoad(LillyPluginData pluginData)
     {
         try
         {
@@ -61,11 +61,11 @@ public class PluginRegistry
     /// Registers a plugin after validating its dependencies.
     /// </summary>
     /// <exception cref="PluginLoadException">If dependencies are missing or circular</exception>
-    public void RegisterPlugin(IEnginePlugin plugin)
+    public void RegisterPlugin(ILillyPlugin plugin)
     {
         ArgumentNullException.ThrowIfNull(plugin);
 
-        var pluginData = plugin.EngineData;
+        var pluginData = plugin.LillyData;
 
         // Check if already loaded
         if (_loadedPluginData.Any(p => p.Id == pluginData.Id))
@@ -90,7 +90,7 @@ public class PluginRegistry
     /// Checks for circular dependencies in a set of plugins.
     /// </summary>
     /// <returns>Empty list if no cycles detected, otherwise returns the cycle</returns>
-    public List<string> CheckForCircularDependencies(IReadOnlyList<EnginePluginData> allPlugins)
+    public List<string> CheckForCircularDependencies(IReadOnlyList<LillyPluginData> allPlugins)
     {
         return _dependencyValidator.DetectCircularDependencies(allPlugins);
     }
@@ -98,7 +98,7 @@ public class PluginRegistry
     /// <summary>
     /// Sorts plugins in dependency order (topological sort).
     /// </summary>
-    public IEnumerable<EnginePluginData> GetPluginsInDependencyOrder(IReadOnlyList<EnginePluginData> allPlugins)
+    public IEnumerable<LillyPluginData> GetPluginsInDependencyOrder(IReadOnlyList<LillyPluginData> allPlugins)
     {
         return _dependencyValidator.TopologicalSort(allPlugins);
     }
@@ -106,14 +106,14 @@ public class PluginRegistry
     /// <summary>
     /// Gets the dependency chain for a specific plugin.
     /// </summary>
-    public IReadOnlyList<IEnginePlugin> GetDependencyChain(string pluginId)
+    public IReadOnlyList<ILillyPlugin> GetDependencyChain(string pluginId)
     {
         var plugin = GetPluginById(pluginId);
-        var chain = new List<IEnginePlugin> { plugin };
+        var chain = new List<ILillyPlugin> { plugin };
 
-        if (plugin.EngineData.Dependencies != null)
+        if (plugin.LillyData.Dependencies != null)
         {
-            foreach (var depId in plugin.EngineData.Dependencies)
+            foreach (var depId in plugin.LillyData.Dependencies)
             {
                 var dep = GetPluginById(depId);
                 chain.AddRange(GetDependencyChain(depId));
@@ -126,10 +126,10 @@ public class PluginRegistry
     /// <summary>
     /// Gets plugins that depend on the specified plugin.
     /// </summary>
-    public IReadOnlyList<IEnginePlugin> GetDependentsOf(string pluginId)
+    public IReadOnlyList<ILillyPlugin> GetDependentsOf(string pluginId)
     {
         return _loadedPlugins
-               .Where(p => p.EngineData.Dependencies?.Contains(pluginId) ?? false)
+               .Where(p => p.LillyData.Dependencies?.Contains(pluginId) ?? false)
                .ToList()
                .AsReadOnly();
     }

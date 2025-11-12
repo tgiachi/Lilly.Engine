@@ -7,6 +7,8 @@ using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
 using Lilly.Engine.Core.Utils;
+using Lilly.Engine.Extensions;
+using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
 using Lilly.Engine.Rendering.Core.Data;
@@ -33,7 +35,11 @@ await ConsoleApp.RunAsync(
 
         container.RegisterInstance(directoriesConfig);
 
+
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
+
+
+        container.RegisterPlugin(typeof(DefaultGameObjectPlugin).Assembly);
 
         var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
 

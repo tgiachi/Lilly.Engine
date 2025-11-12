@@ -16,8 +16,8 @@ public class PluginDependencyValidator
     /// <returns>True if all dependencies are satisfied</returns>
     /// <exception cref="PluginLoadException">If dependencies are missing or circular</exception>
     public bool ValidateDependencies(
-        EnginePluginData pluginData,
-        IReadOnlyList<EnginePluginData> loadedPlugins
+        LillyPluginData pluginData,
+        IReadOnlyList<LillyPluginData> loadedPlugins
     )
     {
         if (pluginData.Dependencies.Length == 0)
@@ -50,7 +50,7 @@ public class PluginDependencyValidator
     /// </summary>
     /// <param name="allPlugins">All plugins to check</param>
     /// <returns>Empty list if no circular dependencies, otherwise list of plugin IDs in cycle</returns>
-    public List<string> DetectCircularDependencies(IReadOnlyList<EnginePluginData> allPlugins)
+    public List<string> DetectCircularDependencies(IReadOnlyList<LillyPluginData> allPlugins)
     {
         var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
         var visited = new HashSet<string>();
@@ -74,7 +74,7 @@ public class PluginDependencyValidator
 
     private List<string> DetectCycleDFS(
         string nodeId,
-        Dictionary<string, EnginePluginData> pluginMap,
+        Dictionary<string, LillyPluginData> pluginMap,
         HashSet<string> visited,
         HashSet<string> recursionStack,
         List<string> path = null
@@ -125,11 +125,11 @@ public class PluginDependencyValidator
     /// </summary>
     /// <param name="allPlugins">All plugins to sort</param>
     /// <returns>Sorted list where dependencies come before dependents</returns>
-    public IEnumerable<EnginePluginData> TopologicalSort(IReadOnlyList<EnginePluginData> allPlugins)
+    public IEnumerable<LillyPluginData> TopologicalSort(IReadOnlyList<LillyPluginData> allPlugins)
     {
         var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
         var visited = new HashSet<string>();
-        var result = new List<EnginePluginData>();
+        var result = new List<LillyPluginData>();
 
         foreach (var plugin in allPlugins)
         {
@@ -144,9 +144,9 @@ public class PluginDependencyValidator
 
     private void TopologicalSortDFS(
         string nodeId,
-        Dictionary<string, EnginePluginData> pluginMap,
+        Dictionary<string, LillyPluginData> pluginMap,
         HashSet<string> visited,
-        List<EnginePluginData> result
+        List<LillyPluginData> result
     )
     {
         visited.Add(nodeId);
