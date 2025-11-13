@@ -504,6 +504,11 @@ public class InputManagerService : IInputManagerService
     }
 
     /// <summary>
+    ///  Gets or sets whether the mouse cursor is visible.
+    /// </summary>
+    public bool IsMouseVisible { get; set; } = true;
+
+    /// <summary>
     /// Processes all registered key bindings and executes bound actions.
     /// </summary>
     private void ProcessKeyBindings()

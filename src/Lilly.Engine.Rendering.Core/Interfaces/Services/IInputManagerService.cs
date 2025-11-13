@@ -220,4 +220,10 @@ public interface IInputManagerService : IDisposable
     /// </summary>
     /// <param name="receivers">All input receivers to check for mouse clicks.</param>
     void UpdateFocusFromMouse(IEnumerable<IInputReceiver> receivers);
+
+
+    /// <summary>
+    ///  Gets or sets whether the mouse cursor is visible.
+    /// </summary>
+    bool IsMouseVisible { get; set; }
 }

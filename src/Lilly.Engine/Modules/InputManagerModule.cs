@@ -10,6 +10,7 @@ namespace Lilly.Engine.Modules;
 /// JavaScript module for input management.
 /// </summary>
 [ScriptModule("input_manager", "Input Manager Module")]
+
 /// <summary>
 /// Provides scripting access to input management, including key binding and context switching.
 /// </summary>
@@ -155,5 +156,29 @@ public class InputManagerModule
     public void UnbindKey(string keyBinding)
     {
         _inputManager.UnbindKey(keyBinding);
+    }
+
+    [ScriptFunction("grab_mouse", "Grabs the mouse cursor and makes it invisible.")]
+    public void GrabMouse()
+    {
+        _inputManager.IsMouseVisible = false;
+    }
+
+    [ScriptFunction("show_mouse", "Shows the mouse cursor.")]
+    public void ShowMouse()
+    {
+        _inputManager.IsMouseVisible = true;
+    }
+
+    [ScriptFunction("is_mouse_visible", "Checks if the mouse cursor is visible.")]
+    public bool IsMouseVisible()
+    {
+        return _inputManager.IsMouseVisible;
+    }
+
+    [ScriptFunction("toggle_mouse", "Sets the mouse cursor visibility.")]
+    public void ToggleMouseVisibility()
+    {
+        _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
     }
 }
