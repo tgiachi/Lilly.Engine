@@ -142,13 +142,22 @@ public class OpenGlRenderer : IGraphicRenderer
         Render?.Invoke(Context.GameTime);
         PostRender?.Invoke(Context.GameTime);
 
-        var end = Stopwatch.GetTimestamp();
-        var elapsed = (end - start) / (double)Stopwatch.Frequency;
-        var sleepTime = _targetDelta - elapsed;
-        if (sleepTime > 0)
+        var targetTicks = (long)(Stopwatch.Frequency * _targetDelta);
+        var remainingTicks = targetTicks - (Stopwatch.GetTimestamp() - start);
+
+        if (remainingTicks > 0)
         {
-            var sleepMilliseconds = (int)(sleepTime * 1000);
-            Thread.Sleep(sleepMilliseconds);
+            var sleepMs = (int)((remainingTicks * 1000) / Stopwatch.Frequency) - 1;
+
+            if (sleepMs > 0)
+            {
+                Thread.Sleep(sleepMs);
+            }
+
+            while (Stopwatch.GetTimestamp() - start < targetTicks)
+            {
+                Thread.SpinWait(10);
+            }
         }
     }
 

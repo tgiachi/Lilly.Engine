@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
+using Serilog;
 using TrippyGL;
 
 namespace Lilly.Engine.Services;
@@ -12,19 +12,10 @@ namespace Lilly.Engine.Services;
 /// </summary>
 public class Camera3dService : ICamera3dService
 {
+    private readonly ILogger _logger = Log.ForContext<Camera3dService>();
     private readonly List<ICamera3D> _cameras = [];
-    private readonly GraphicsDevice _graphicsDevice;
 
-    public Camera3dService(RenderContext renderContext)
-    {
-        _graphicsDevice = renderContext.GraphicsDevice;
-        renderContext.Renderer.Resize += UpdateViewport;
-    }
-
-    private void UpdateViewport(int width, int height)
-    {
-        UpdateViewport(new Viewport(0, 0, (uint)width, (uint)height));
-    }
+    private Viewport _viewport;
 
     //private Viewport _currentViewport;
 
@@ -48,11 +39,11 @@ public class Camera3dService : ICamera3dService
             }
 
             ActiveCamera = value;
+            _logger.Debug("Camera {Name} set to active.", value?.GetType().Name ?? "null");
             ActiveCameraChanged?.Invoke(ActiveCamera);
         }
     }
 
-    public Viewport Viewport => _graphicsDevice.Viewport;
 
     /// <summary>
     /// Event raised whenever the active camera changes.
@@ -87,7 +78,7 @@ public class Camera3dService : ICamera3dService
         _cameras.Add(camera);
 
         // Update the viewport for the newly registered camera
-        camera.AspectRatio = _graphicsDevice.Viewport.Width / (float)_graphicsDevice.Viewport.Height;
+        camera.AspectRatio = _viewport.Width / (float)_viewport.Height;
     }
 
     /// <summary>
@@ -118,6 +109,7 @@ public class Camera3dService : ICamera3dService
     /// <param name="viewport">The new viewport dimensions.</param>
     public void UpdateViewport(Viewport viewport)
     {
+        _viewport = viewport;
         var aspectRatio = viewport.Width / (float)viewport.Height;
 
         // Update aspect ratio for all registered cameras

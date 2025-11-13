@@ -1,3 +1,4 @@
+using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using TrippyGL;
 
@@ -10,7 +11,6 @@ public interface ICamera3dService
 {
     ICamera3D? CurrentCamera { get; set; }
 
-    Viewport Viewport { get; }
 
     /// <summary>
     /// Event raised whenever the active camera changes.
@@ -44,5 +44,12 @@ public interface ICamera3dService
     /// </summary>
     /// <param name="viewport">The new viewport dimensions.</param>
     void UpdateViewport(Viewport viewport);
+
+
+    /// <summary>
+    ///  Updates the camera service with the current game time.
+    /// </summary>
+    /// <param name="gameTime"></param>
+    void Update(GameTime gameTime);
 
 }

@@ -148,12 +148,13 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
                 ImGui.TableHeadersRow();
 
                 // Data rows
-                foreach (var (layerName, stats) in diagnostics.LayerStatistics.OrderBy(kvp => kvp.Key))
+                foreach (var (layerName, stats) in diagnostics.LayerStatistics.OrderByDescending(kvp => kvp.Value.LayerOrder))
                 {
                     ImGui.TableNextRow();
 
                     ImGui.TableSetColumnIndex(0);
                     ImGui.Text(layerName);
+
 
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text($"{stats.CommandsThisFrame:N0}");

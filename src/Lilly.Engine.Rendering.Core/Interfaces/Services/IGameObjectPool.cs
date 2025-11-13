@@ -24,12 +24,6 @@ public interface IGameObjectPool
     IGameObject GetOrCreate(Type type);
 
     /// <summary>
-    /// Returns a game object to the pool for reuse.
-    /// </summary>
-    /// <param name="gameObject">The game object to return to the pool.</param>
-    void Return(IGameObject gameObject);
-
-    /// <summary>
     /// Clears all pooled objects of the specified type.
     /// </summary>
     /// <typeparam name="TGameObject">The game object type to clear from the pool.</typeparam>

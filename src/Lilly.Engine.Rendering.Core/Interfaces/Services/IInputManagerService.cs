@@ -34,22 +34,22 @@ public interface IInputManagerService : IDisposable
     /// <summary>
     /// Gets the current keyboard snapshot.
     /// </summary>
-    KeyboardState CurrentKeyboardState { get; }
+    KeyboardState? CurrentKeyboardState { get; }
 
     /// <summary>
     /// Gets the previous keyboard snapshot.
     /// </summary>
-    KeyboardState PreviousKeyboardState { get; }
+    KeyboardState? PreviousKeyboardState { get; }
 
     /// <summary>
     /// Gets the current mouse snapshot.
     /// </summary>
-    MouseState CurrentMouseState { get; }
+    MouseState? CurrentMouseState { get; }
 
     /// <summary>
     /// Gets the previous mouse snapshot.
     /// </summary>
-    MouseState PreviousMouseState { get; }
+    MouseState? PreviousMouseState { get; }
 
     /// <summary>
     /// Gets the current input focus receiver.
@@ -60,6 +60,11 @@ public interface IInputManagerService : IDisposable
     /// Gets the depth of the focus stack.
     /// </summary>
     int FocusStackDepth { get; }
+
+    /// <summary>
+    /// Gets a read-only list of currently pressed keys.
+    /// </summary>
+    IReadOnlyList<Key> PressedKeys { get; }
 
     /// <summary>
     /// Event raised when the input context changes.

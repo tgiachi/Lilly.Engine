@@ -43,7 +43,8 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     /// <param name="container">The dependency injection container.</param>
     public GraphicRenderPipeline(
         List<RenderSystemRegistration> renderSystemsRegistrations,
-        IContainer container)
+        IContainer container
+    )
     {
         _renderSystemsRegistrations = renderSystemsRegistrations;
         _container = container;
@@ -108,7 +109,7 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
             var layerCommands = layer.CollectRenderCommands(gameTime);
 
             // Record diagnostics for this layer
-            Diagnostics.RecordLayerCommands(layer.Name, layerCommands.Count);
+            Diagnostics.RecordLayerCommands(layer.Name, (int)layer.Layer, layerCommands.Count);
 
             // Collect all commands into a single buffer
             _collectedCommands.AddRange(layerCommands);
@@ -160,18 +161,22 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         // - Override this method with access to your specific payload types
         // - Implement sorting by texture handle, depth, font, etc.
 
-        commands.Sort((x, y) =>
-        {
-            // First, sort by command type to group similar operations
-            var typeComparison = x.CommandType.CompareTo(y.CommandType);
-            if (typeComparison != 0)
-                return typeComparison;
+        commands.Sort(
+            (x, y) =>
+            {
+                // First, sort by command type to group similar operations
+                var typeComparison = x.CommandType.CompareTo(y.CommandType);
 
-            // If same type, sort by depth to maintain proper layering
-            var xDepth = GetCommandDepth(x);
-            var yDepth = GetCommandDepth(y);
-            return xDepth.CompareTo(yDepth);
-        });
+                if (typeComparison != 0)
+                    return typeComparison;
+
+                // If same type, sort by depth to maintain proper layering
+                var xDepth = GetCommandDepth(x);
+                var yDepth = GetCommandDepth(y);
+
+                return xDepth.CompareTo(yDepth);
+            }
+        );
     }
 
     /// <summary>
@@ -184,8 +189,8 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
         return command.CommandType switch
         {
             RenderCommandType.DrawTexture => command.GetPayload<DrawTexturePayload>().Depth,
-            RenderCommandType.DrawText => command.GetPayload<DrawTextPayload>().Depth,
-            _ => 0f
+            RenderCommandType.DrawText    => command.GetPayload<DrawTextPayload>().Depth,
+            _                             => 0f
         };
     }
 
@@ -207,6 +212,7 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
 
             // Filter commands that this layer can process (in-place, no LINQ allocation)
             var supportedTypes = layer.SupportedCommandTypes;
+
             foreach (var cmd in commandsSpan)
             {
                 if (supportedTypes.Contains(cmd.CommandType))

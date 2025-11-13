@@ -32,6 +32,7 @@ public class InputManagerService : IInputManagerService
     private readonly IKeyboard? _keyboard;
     private readonly IMouse? _mouse;
     private string _currentContext = string.Empty;
+    private IReadOnlyList<Key> _pressedKeys = Array.Empty<Key>();
 
     public InputManagerService(RenderContext renderContext)
     {
@@ -98,6 +99,11 @@ public class InputManagerService : IInputManagerService
     /// Gets the depth of the focus stack.
     /// </summary>
     public int FocusStackDepth => _focusStack.Count;
+
+    /// <summary>
+    /// Gets a read-only list of currently pressed keys.
+    /// </summary>
+    public IReadOnlyList<Key> PressedKeys => _pressedKeys;
 
     /// <summary>
     /// Event raised when the input context changes.
@@ -466,6 +472,9 @@ public class InputManagerService : IInputManagerService
 
         CurrentKeyboardState = _keyboard.CaptureState();
         CurrentMouseState = _mouse.CaptureState();
+
+        // Update pressed keys list
+        _pressedKeys = CurrentKeyboardState.GetPressedKeys().ToArray();
 
         UpdateKeyPressDuration(gameTime);
         ProcessKeyBindings();

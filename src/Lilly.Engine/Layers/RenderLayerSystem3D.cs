@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
+using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Types;
@@ -13,14 +14,24 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 {
     private readonly ICamera3dService _camera3dService;
 
+    private readonly RenderContext _renderContext;
     private readonly ILogger _logger = Log.ForContext<RenderLayerSystem3D>();
 
-    public RenderLayerSystem3D(ICamera3dService camera3dService) : base("3d", RenderLayer.ThreeDimension)
+
+    public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base("3d", RenderLayer.ThreeDimension)
     {
         _camera3dService = camera3dService;
+        _renderContext = renderContext;
+        _camera3dService.UpdateViewport(renderContext.GraphicsDevice.Viewport);
     }
 
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
+
+    public override void Update(GameTime gameTime)
+    {
+        _camera3dService.Update(gameTime);
+        base.Update(gameTime);
+    }
 
     public override List<RenderCommand> CollectRenderCommands(GameTime gameTime)
     {

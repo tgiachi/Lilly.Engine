@@ -217,7 +217,11 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<RenderLayerSystem3D>()
             ;
 
-        _container.RegisterGameObject<ImGuiActionDebugger>();
+        _container
+            .RegisterGameObject<ImGuiActionDebugger>()
+            .RegisterGameObject<CameraDebugger>()
+            .RegisterGameObject<InputDebugger>()
+            ;
 
         _container.AddLuaUserData<Vector2D<int>>();
         _container
@@ -232,6 +236,7 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void InitializeRenderSystem()
     {
+        var factory = _container.Resolve<IGameObjectFactory>();
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _container.RegisterInstance<IGameObjectManager>(_renderPipeline);
         _renderPipeline.Initialize();
@@ -254,6 +259,10 @@ public class LillyBoostrap : ILillyBootstrap
                 }
             )
         );
+
+        _renderPipeline.AddGameObject(factory.CreateGameObject<CameraDebugger>());
+
+        _renderPipeline.AddGameObject(factory.CreateGameObject<InputDebugger>());
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()
@@ -468,8 +477,6 @@ public class LillyBoostrap : ILillyBootstrap
         InitializePlugins();
 
         _container.Resolve<IGameObjectFactory>();
-
-
 
         await scriptEngine.StartAsync();
 

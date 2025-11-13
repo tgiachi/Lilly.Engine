@@ -30,7 +30,7 @@ public class RenderContext
     /// <summary>
     /// Gets or sets the current game time information.
     /// </summary>
-    public GameTime GameTime { get; set; } = new();
+    public GameTime GameTime { get; set; }
 
     /// <summary>
     /// Gets or sets the input context for handling keyboard, mouse, and other input devices.

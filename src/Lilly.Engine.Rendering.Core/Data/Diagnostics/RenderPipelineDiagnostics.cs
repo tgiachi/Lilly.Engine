@@ -59,7 +59,7 @@ public class RenderPipelineDiagnostics
     /// </summary>
     /// <param name="layerName">The name of the render layer.</param>
     /// <param name="commandCount">The number of commands processed.</param>
-    public void RecordLayerCommands(string layerName, int commandCount)
+    public void RecordLayerCommands(string layerName, int layerOrder, int commandCount)
     {
         TotalCommandsThisFrame += commandCount;
 
@@ -67,6 +67,7 @@ public class RenderPipelineDiagnostics
         stat.CommandsThisFrame = commandCount;
         stat.TotalCommandsProcessed += commandCount;
         stat.TotalFrames++;
+        stat.LayerOrder = layerOrder;
 
         if (commandCount > stat.PeakCommands)
         {
@@ -108,7 +109,7 @@ public class RenderPipelineDiagnostics
             if (_frameHistory.Count > 0)
             {
                 AverageCommandsPerFrame = _frameHistory.Average(f => f.TotalCommands);
-                
+
                 // Calculate FPS as average over frame history for smoother display
                 var avgDeltaTimeMs = _frameHistory.Average(f => f.DeltaTimeMs);
                 if (avgDeltaTimeMs > 0)
@@ -203,6 +204,11 @@ public class LayerStatistics
     /// Gets the name of the render layer.
     /// </summary>
     public string LayerName { get; }
+
+    /// <summary>
+    ///  Gets or sets the order of the layer in the render pipeline.
+    /// </summary>
+    public int LayerOrder { get; set; }
 
     /// <summary>
     /// Gets or sets the number of commands processed in the current frame.

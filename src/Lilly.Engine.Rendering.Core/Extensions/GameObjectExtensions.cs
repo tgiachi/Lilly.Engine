@@ -19,7 +19,7 @@ public static class GameObjectExtensions
     public static IContainer RegisterGameObject<TGameObject>(this IContainer container)
         where TGameObject : class, IGameObject
     {
-        container.Register<IGameObject, TGameObject>(Reuse.Transient);
+        container.Register<TGameObject>(Reuse.Transient);
         container.AddToRegisterTypedList(new GameObjectRegistration(typeof(TGameObject)));
 
         return container;
