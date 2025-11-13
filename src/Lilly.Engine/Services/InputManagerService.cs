@@ -27,6 +27,7 @@ public class InputManagerService : IInputManagerService
     private readonly Dictionary<KeyBinding, (Action Action, string? Context)> _keyBindings = new();
     private readonly HashSet<KeyBinding> _processedBindings = [];
     private readonly Dictionary<Key, float> _keyPressDuration = new();
+    private readonly Dictionary<Key, float> _keyRepeatTimers = new();
 
     private readonly IKeyboard? _keyboard;
     private readonly IMouse? _mouse;
@@ -55,6 +56,18 @@ public class InputManagerService : IInputManagerService
             }
         }
     }
+
+    /// <summary>
+    /// Gets or sets the delay in seconds before key repeat starts.
+    /// Default is 0.5 seconds (500ms).
+    /// </summary>
+    public float KeyRepeatDelay { get; set; } = 0.5f;
+
+    /// <summary>
+    /// Gets or sets the interval in seconds between key repeats.
+    /// Default is 0.05 seconds (50ms).
+    /// </summary>
+    public float KeyRepeatInterval { get; set; } = 0.05f;
 
     /// <summary>
     /// Gets the current keyboard snapshot.
@@ -149,6 +162,7 @@ public class InputManagerService : IInputManagerService
         _keyBindings.Clear();
         _processedBindings.Clear();
         _keyPressDuration.Clear();
+        _keyRepeatTimers.Clear();
         CurrentFocus = null;
         GC.SuppressFinalize(this);
     }
@@ -216,6 +230,47 @@ public class InputManagerService : IInputManagerService
     /// <returns>True if the key was just released.</returns>
     public bool IsKeyReleased(Key key)
         => CurrentKeyboardState.IsKeyUp(key) && PreviousKeyboardState.IsKeyDown(key);
+
+    /// <summary>
+    /// Checks if a key was just pressed or should repeat based on key repeat timing.
+    /// Returns true on initial press, then after KeyRepeatDelay, then every KeyRepeatInterval.
+    /// </summary>
+    /// <param name="key">The key to check.</param>
+    /// <returns>True if the key was just pressed or should repeat.</returns>
+    public bool IsKeyRepeated(Key key)
+    {
+        // Check if the key was just pressed (first frame)
+        if (IsKeyPressed(key))
+        {
+            return true;
+        }
+
+        // Check if the key is currently held down
+        if (!IsKeyDown(key))
+        {
+            return false;
+        }
+
+        // Check if we have a repeat timer for this key
+        if (!_keyRepeatTimers.TryGetValue(key, out var lastRepeatTime))
+        {
+            return false;
+        }
+
+        var pressDuration = GetKeyPressDuration(key);
+
+        // If we haven't reached the initial delay yet, don't repeat
+        if (pressDuration < KeyRepeatDelay)
+        {
+            return false;
+        }
+
+        // Calculate time since last repeat
+        var timeSinceLastRepeat = pressDuration - lastRepeatTime;
+
+        // Check if it's time for another repeat
+        return timeSinceLastRepeat >= KeyRepeatInterval;
+    }
 
     /// <summary>
     /// Checks if a mouse button is currently down.
@@ -477,6 +532,7 @@ public class InputManagerService : IInputManagerService
 
     /// <summary>
     /// Updates key press duration tracking for all currently pressed keys.
+    /// Also updates key repeat timers.
     /// </summary>
     private void UpdateKeyPressDuration(GameTime gameTime)
     {
@@ -500,6 +556,7 @@ public class InputManagerService : IInputManagerService
         foreach (var key in keysToRemove)
         {
             _keyPressDuration.Remove(key);
+            _keyRepeatTimers.Remove(key);
         }
 
         // Add newly pressed keys
@@ -509,7 +566,30 @@ public class InputManagerService : IInputManagerService
         {
             if (_keyPressDuration.TryAdd(key, deltaTime))
             {
-                // Key was just added, initialized with deltaTime
+                // Key was just pressed, initialize repeat timer
+                _keyRepeatTimers[key] = 0f;
+            }
+        }
+
+        // Update repeat timers for keys that should repeat
+        foreach (var key in pressedKeys)
+        {
+            if (_keyRepeatTimers.ContainsKey(key))
+            {
+                var pressDuration = _keyPressDuration[key];
+                var lastRepeatTime = _keyRepeatTimers[key];
+
+                // If we've passed the initial delay and it's time to repeat
+                if (pressDuration >= KeyRepeatDelay)
+                {
+                    var timeSinceLastRepeat = pressDuration - lastRepeatTime;
+
+                    if (timeSinceLastRepeat >= KeyRepeatInterval)
+                    {
+                        // Update the timer to mark that a repeat occurred
+                        _keyRepeatTimers[key] = pressDuration;
+                    }
+                }
             }
         }
     }

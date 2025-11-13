@@ -67,7 +67,6 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                     ProcessWindowCommand(windowPayload);
 
                     break;
-
             }
         }
         base.ProcessRenderCommands(ref renderCommands);
@@ -95,12 +94,10 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
             case WindowSubCommandType.SetRefreshRate:
                 if (payload.Data is int refreshRate)
                 {
-                    _renderContext.Window.FramesPerSecond = refreshRate;
+                    _renderContext.Renderer.TargetFramesPerSecond = refreshRate;
                 }
 
                 break;
         }
     }
-
-
 }

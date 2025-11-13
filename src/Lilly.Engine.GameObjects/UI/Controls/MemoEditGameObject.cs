@@ -353,11 +353,40 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             return;
         }
 
+        var isControlPressed = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+
+        // Define keys that should NOT repeat
+        var noRepeatKeys = new HashSet<Key> { Key.Enter };
+
+        // Add Ctrl+A to no-repeat (only if Ctrl is pressed)
+        if (isControlPressed && _inputManager.IsKeyPressed(Key.A))
+        {
+            ProcessKey(Key.A, keyboardState);
+            return;
+        }
+
         var pressedKeys = keyboardState.GetPressedKeys();
 
         foreach (var key in pressedKeys)
         {
-            if (!previousKeyboardState.IsKeyPressed(key))
+            // Skip Ctrl, Shift, Alt keys themselves
+            if (key == Key.ControlLeft || key == Key.ControlRight ||
+                key == Key.ShiftLeft || key == Key.ShiftRight ||
+                key == Key.AltLeft || key == Key.AltRight)
+            {
+                continue;
+            }
+
+            // For keys that should not repeat, only process on initial press
+            if (noRepeatKeys.Contains(key))
+            {
+                if (!previousKeyboardState.IsKeyPressed(key))
+                {
+                    ProcessKey(key, keyboardState);
+                }
+            }
+            // For all other keys, use repeat logic
+            else if (_inputManager.IsKeyRepeated(key))
             {
                 ProcessKey(key, keyboardState);
             }

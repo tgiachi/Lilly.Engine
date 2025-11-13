@@ -121,36 +121,38 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             return;
         }
 
-        if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Backspace))
+        // Keys that should repeat
+        if (_inputManager.IsKeyRepeated(Key.Backspace))
         {
             HandleBackspace();
             ResetCursorBlink(gameTime);
         }
-        else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Delete))
+        else if (_inputManager.IsKeyRepeated(Key.Delete))
         {
             HandleDelete();
             ResetCursorBlink(gameTime);
         }
-        else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Left))
+        else if (_inputManager.IsKeyRepeated(Key.Left))
         {
             HandleLeftArrow(keyboardState);
             ResetCursorBlink(gameTime);
         }
-        else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Right))
+        else if (_inputManager.IsKeyRepeated(Key.Right))
         {
             HandleRightArrow(keyboardState);
             ResetCursorBlink(gameTime);
         }
-        else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Home))
+        else if (_inputManager.IsKeyRepeated(Key.Home))
         {
             HandleHome(keyboardState);
             ResetCursorBlink(gameTime);
         }
-        else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.End))
+        else if (_inputManager.IsKeyRepeated(Key.End))
         {
             HandleEnd(keyboardState);
             ResetCursorBlink(gameTime);
         }
+        // Keys that should NOT repeat
         else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Enter))
         {
             EnterPressed?.Invoke(this, EventArgs.Empty);

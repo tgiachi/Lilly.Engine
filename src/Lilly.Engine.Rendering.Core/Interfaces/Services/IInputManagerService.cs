@@ -20,6 +20,18 @@ public interface IInputManagerService : IDisposable
     string CurrentContext { get; set; }
 
     /// <summary>
+    /// Gets or sets the delay in seconds before key repeat starts.
+    /// Default is 0.5 seconds (500ms).
+    /// </summary>
+    float KeyRepeatDelay { get; set; }
+
+    /// <summary>
+    /// Gets or sets the interval in seconds between key repeats.
+    /// Default is 0.05 seconds (50ms).
+    /// </summary>
+    float KeyRepeatInterval { get; set; }
+
+    /// <summary>
     /// Gets the current keyboard snapshot.
     /// </summary>
     KeyboardState CurrentKeyboardState { get; }
@@ -129,6 +141,14 @@ public interface IInputManagerService : IDisposable
     /// <param name="key">The key to check.</param>
     /// <returns>True if the key was just released.</returns>
     bool IsKeyReleased(Key key);
+
+    /// <summary>
+    /// Checks if a key was just pressed or should repeat based on key repeat timing.
+    /// Returns true on initial press, then after KeyRepeatDelay, then every KeyRepeatInterval.
+    /// </summary>
+    /// <param name="key">The key to check.</param>
+    /// <returns>True if the key was just pressed or should repeat.</returns>
+    bool IsKeyRepeated(Key key);
 
     /// <summary>
     /// Checks if a mouse button is currently down.

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Data.Config;
@@ -22,6 +23,13 @@ public class OpenGlRenderer : IGraphicRenderer
     /// Gets the name of the renderer.
     /// </summary>
     public string Name => "OpenGL";
+
+    /// <summary>
+    ///  Gets or sets the target frames per second for rendering.
+    /// </summary>
+    public double TargetFramesPerSecond { get; set; } = 60.0;
+
+    private double _targetDelta => 1.0 / TargetFramesPerSecond;
 
     /// <summary>
     /// Gets the type of renderer.
@@ -127,9 +135,21 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <param name="obj">The elapsed time since the last render.</param>
     private void WindowOnRender(double obj)
     {
+        var start = Stopwatch.GetTimestamp();
+
+        Context.GameTime = Context.GameTime.Update(obj);
         _dpiManager.Initialize();
         Render?.Invoke(Context.GameTime);
         PostRender?.Invoke(Context.GameTime);
+
+        var end = Stopwatch.GetTimestamp();
+        var elapsed = (end - start) / (double)Stopwatch.Frequency;
+        var sleepTime = _targetDelta - elapsed;
+        if (sleepTime > 0)
+        {
+            var sleepMilliseconds = (int)(sleepTime * 1000);
+            Thread.Sleep(sleepMilliseconds);
+        }
     }
 
     /// <summary>

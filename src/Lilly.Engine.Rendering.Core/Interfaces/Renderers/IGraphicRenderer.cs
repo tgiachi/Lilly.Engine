@@ -34,6 +34,12 @@ public interface IGraphicRenderer
     /// </summary>
     string Name { get; }
 
+
+    /// <summary>
+    ///  Gets or sets the target frames per second for rendering.
+    /// </summary>
+    double TargetFramesPerSecond { get; set; }
+
     /// <summary>
     /// Gets the type of renderer (OpenGL, DirectX, Vulkan, Metal).
     /// </summary>
