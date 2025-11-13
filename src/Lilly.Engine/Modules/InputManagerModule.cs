@@ -270,7 +270,6 @@ public class InputManagerModule
         );
     }
 
-
     /// <summary>
     /// Binds a callback to mouse click events globally (always active, regardless of context).
     /// Passes the mouse button name (as string) and position (absolute coordinates).
@@ -341,5 +340,4 @@ public class InputManagerModule
             contextName
         );
     }
-
 }
