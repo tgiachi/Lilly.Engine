@@ -4,6 +4,7 @@ using Lilly.Engine.Rendering.Core.Data.Input;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
+using Silk.NET.Maths;
 using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
@@ -221,6 +222,37 @@ public interface IInputManagerService : IDisposable
     /// <param name="receivers">All input receivers to check for mouse clicks.</param>
     void UpdateFocusFromMouse(IEnumerable<IInputReceiver> receivers);
 
+    /// <summary>
+    /// Gets the mouse delta (movement since last frame).
+    /// </summary>
+    /// <returns>The mouse delta as a Vector2D with X and Y components.</returns>
+    Vector2D<int> GetMouseDelta();
+
+    /// <summary>
+    /// Binds a callback to mouse movement globally (always active, regardless of context).
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Binds a callback to mouse movement, only active in a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
+
+    /// <summary>
+    /// Unbinds a global mouse movement callback.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Unbinds a mouse movement callback for a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    /// <param name="context">The context from which to remove the binding.</param>
+    void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
 
     /// <summary>
     ///  Gets or sets whether the mouse cursor is visible.

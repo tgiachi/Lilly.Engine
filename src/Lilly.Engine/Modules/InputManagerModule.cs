@@ -181,4 +181,90 @@ public class InputManagerModule
     {
         _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
     }
+
+    /// <summary>
+    /// Gets the mouse delta (movement since last frame).
+    /// </summary>
+    /// <returns>A table with 'x' and 'y' keys representing the mouse delta.</returns>
+    [ScriptFunction("get_mouse_delta", "Gets the mouse delta (movement since last frame).")]
+    public DynValue GetMouseDelta()
+    {
+        var delta = _inputManager.GetMouseDelta();
+        var table = new Table(null)
+        {
+            ["x"] = delta.X,
+            ["y"] = delta.Y
+        };
+
+        return DynValue.NewTable(table);
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse movement globally (always active, regardless of context).
+    /// Passes both delta (movement) and position (absolute coordinates).
+    /// </summary>
+    /// <param name="callback">The callback function to execute when mouse moves.</param>
+    [ScriptFunction("bind_mouse", "Binds a callback to global mouse movement (always active).")]
+    public void BindMouseMovement(Closure callback)
+    {
+        if (callback == null)
+        {
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
+        }
+
+        _inputManager.BindMouseMovement(
+            (delta, position) =>
+            {
+                try
+                {
+                    callback.Call(delta.X, delta.Y, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing global mouse movement callback: {ex.Message}",
+                        ex
+                    );
+                }
+            }
+        );
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse movement, only active in a specific context.
+    /// Passes both delta (movement) and position (absolute coordinates).
+    /// </summary>
+    /// <param name="callback">The callback function to execute when mouse moves.</param>
+    /// <param name="contextName">The context in which this callback is active.</param>
+    [ScriptFunction("bind_mouse_context", "Binds a callback to mouse movement for a specific context.")]
+    public void BindMouseMovementContext(Closure callback, string contextName)
+    {
+        if (callback == null)
+        {
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
+        }
+
+        if (string.IsNullOrEmpty(contextName))
+        {
+            throw new ArgumentException("Context name cannot be null or empty", nameof(contextName));
+        }
+
+        _inputManager.BindMouseMovement(
+            (delta, position) =>
+            {
+                try
+                {
+                    callback.Call(delta.X, delta.Y, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing mouse movement callback for context '{contextName}': {ex.Message}",
+                        ex
+                    );
+                }
+            },
+            contextName
+        );
+    }
 }

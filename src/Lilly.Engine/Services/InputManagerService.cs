@@ -9,6 +9,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
+using Silk.NET.Maths;
 using ButtonState = Lilly.Engine.Rendering.Core.Data.Input.ButtonState;
 using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
@@ -26,11 +27,14 @@ public class InputManagerService : IInputManagerService
     private readonly HashSet<KeyBinding> _processedBindings = [];
     private readonly Dictionary<Key, float> _keyPressDuration = new();
     private readonly Dictionary<Key, float> _keyRepeatTimers = new();
+    private readonly List<Action<Vector2D<int>, Vector2D<int>>> _globalMouseMovementListeners = [];
+    private readonly Dictionary<string, List<Action<Vector2D<int>, Vector2D<int>>>> _mouseMovementListeners = new();
 
     private readonly IKeyboard? _keyboard;
     private readonly IMouse? _mouse;
     private string _currentContext = string.Empty;
     private IReadOnlyList<Key> _pressedKeys = Array.Empty<Key>();
+    private Vector2D<int> _lastMousePosition = Vector2D<int>.Zero;
 
     public InputManagerService(RenderContext renderContext)
     {
@@ -463,20 +467,21 @@ public class InputManagerService : IInputManagerService
     /// Also processes key bindings and updates key press durations.
     /// </summary>
     /// <param name="gameTime">Game timing information.</param>
-    public void Update(GameTime gameTime)
-    {
-        PreviousKeyboardState = CurrentKeyboardState;
-        PreviousMouseState = CurrentMouseState;
+     public void Update(GameTime gameTime)
+     {
+         PreviousKeyboardState = CurrentKeyboardState;
+         PreviousMouseState = CurrentMouseState;
 
-        CurrentKeyboardState = _keyboard.CaptureState();
-        CurrentMouseState = _mouse.CaptureState();
+         CurrentKeyboardState = _keyboard.CaptureState();
+         CurrentMouseState = _mouse.CaptureState();
 
-        // Update pressed keys list
-        _pressedKeys = CurrentKeyboardState.GetPressedKeys().ToArray();
+         // Update pressed keys list
+         _pressedKeys = CurrentKeyboardState.GetPressedKeys().ToArray();
 
-        UpdateKeyPressDuration(gameTime);
-        ProcessKeyBindings();
-    }
+         UpdateKeyPressDuration(gameTime);
+         ProcessKeyBindings();
+         ProcessMouseMovement();
+     }
 
     /// <summary>
     /// Checks for clicks on focusable elements and automatically sets focus.
@@ -585,22 +590,157 @@ public class InputManagerService : IInputManagerService
 
         // Update repeat timers for keys that should repeat
         foreach (var key in pressedKeys)
+         {
+             if (_keyRepeatTimers.ContainsKey(key))
+             {
+                 var pressDuration = _keyPressDuration[key];
+                 var lastRepeatTime = _keyRepeatTimers[key];
+
+                 // If we've passed the initial delay and it's time to repeat
+                 if (pressDuration >= KeyRepeatDelay)
+                 {
+                     var timeSinceLastRepeat = pressDuration - lastRepeatTime;
+
+                     if (timeSinceLastRepeat >= KeyRepeatInterval)
+                     {
+                         // Update the timer to mark that a repeat occurred
+                         _keyRepeatTimers[key] = pressDuration;
+                     }
+                 }
+             }
+         }
+     }
+
+    /// <summary>
+    /// Gets the mouse delta (movement since last frame).
+    /// </summary>
+    /// <returns>The mouse delta as a Vector2D with X and Y components.</returns>
+    public Vector2D<int> GetMouseDelta()
+    {
+        var currentPos = new Vector2D<int>((int)CurrentMouseState.Position.X, (int)CurrentMouseState.Position.Y);
+        var delta = currentPos - _lastMousePosition;
+        _lastMousePosition = currentPos;
+        return delta;
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse movement globally (always active, regardless of context).
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    public void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (!_globalMouseMovementListeners.Contains(callback))
         {
-            if (_keyRepeatTimers.ContainsKey(key))
+            _globalMouseMovementListeners.Add(callback);
+            _logger.Debug("Bound global mouse movement callback");
+        }
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse movement, only active in a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    public void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        ArgumentException.ThrowIfNullOrEmpty(context);
+
+        if (!_mouseMovementListeners.TryGetValue(context, out var listeners))
+        {
+            listeners = new List<Action<Vector2D<int>, Vector2D<int>>>();
+            _mouseMovementListeners[context] = listeners;
+        }
+
+        if (!listeners.Contains(callback))
+        {
+            listeners.Add(callback);
+            _logger.Debug("Bound mouse movement callback to context {Context}", context);
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a global mouse movement callback.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    public void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (_globalMouseMovementListeners.Remove(callback))
+        {
+            _logger.Debug("Unbound global mouse movement callback");
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a mouse movement callback for a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    /// <param name="context">The context from which to remove the binding.</param>
+    public void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        ArgumentException.ThrowIfNullOrEmpty(context);
+
+        if (_mouseMovementListeners.TryGetValue(context, out var listeners))
+        {
+            if (listeners.Remove(callback))
             {
-                var pressDuration = _keyPressDuration[key];
-                var lastRepeatTime = _keyRepeatTimers[key];
+                _logger.Debug("Unbound mouse movement callback from context {Context}", context);
+            }
 
-                // If we've passed the initial delay and it's time to repeat
-                if (pressDuration >= KeyRepeatDelay)
+            if (listeners.Count == 0)
+            {
+                _mouseMovementListeners.Remove(context);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes mouse movement listeners (both global and context-specific).
+    /// Passes both delta and absolute position to callbacks.
+    /// </summary>
+    private void ProcessMouseMovement()
+    {
+        var mouseDelta = GetMouseDelta();
+        var mousePosition = new Vector2D<int>((int)CurrentMouseState.Position.X, (int)CurrentMouseState.Position.Y);
+        
+        var hasMoved = mouseDelta.X != 0 || mouseDelta.Y != 0;
+        
+        if (!hasMoved)
+        {
+            return;
+        }
+
+        // Process global listeners (always active)
+        foreach (var listener in _globalMouseMovementListeners)
+        {
+            try
+            {
+                listener?.Invoke(mouseDelta, mousePosition);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error executing global mouse movement callback");
+            }
+        }
+
+        // Process context-specific listeners (only if context matches)
+        if (!string.IsNullOrEmpty(_currentContext) && 
+            _mouseMovementListeners.TryGetValue(_currentContext, out var listeners))
+        {
+            foreach (var listener in listeners)
+            {
+                try
                 {
-                    var timeSinceLastRepeat = pressDuration - lastRepeatTime;
-
-                    if (timeSinceLastRepeat >= KeyRepeatInterval)
-                    {
-                        // Update the timer to mark that a repeat occurred
-                        _keyRepeatTimers[key] = pressDuration;
-                    }
+                    listener?.Invoke(mouseDelta, mousePosition);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error executing context-specific mouse movement callback");
                 }
             }
         }
