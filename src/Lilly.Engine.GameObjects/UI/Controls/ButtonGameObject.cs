@@ -311,10 +311,10 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
         var (bgColor, borderColor, textColor) = GetStateColors();
 
         // Background
-        yield return DrawRectangle(bounds, bgColor, depth: 0.50f);
+        yield return DrawRectangle(bounds, bgColor, depth: NextDepth());
 
         // Border
-        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness, depth: 0.51f))
+        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness, depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -335,7 +335,7 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
 
             // Note: DrawTexture would need to be implemented in BaseGameObject2D
             // For now, we'll skip the icon rendering or you can add it later
-            // yield return DrawTexture(IconTextureName, iconPos, new Vector2D<float>(iconSize, iconSize), depth: 0.52f);
+            // yield return DrawTexture(IconTextureName, iconPos, new Vector2D<float>(iconSize, iconSize), depth: NextDepth());
 
             currentX += iconSize + IconTextSpacing;
         }
@@ -348,7 +348,7 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, _text, Theme.FontSize, textPos, color: textColor, depth: 0.53f);
+            yield return DrawTextCustom(Theme.FontName, _text, Theme.FontSize, textPos, color: textColor, depth: NextDepth());
         }
     }
 

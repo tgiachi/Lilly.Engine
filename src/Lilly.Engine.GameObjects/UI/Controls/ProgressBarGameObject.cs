@@ -121,7 +121,7 @@ public class ProgressBarGameObject : BaseGameObject2D
         var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height));
 
         // Draw background
-        yield return DrawRectangle(bounds, BackgroundColor, depth: 0.50f);
+        yield return DrawRectangle(bounds, BackgroundColor, depth: NextDepth());
 
         // Draw filled portion
         var filledWidth = _width * _progress;
@@ -129,7 +129,7 @@ public class ProgressBarGameObject : BaseGameObject2D
             Transform.Position,
             new Vector2D<float>(filledWidth, _height)
         );
-        yield return DrawRectangle(filledBounds, BarColor, depth: 0.51f);
+        yield return DrawRectangle(filledBounds, BarColor, depth: NextDepth());
 
         // Draw border
         if (ShowBorder)
@@ -139,7 +139,7 @@ public class ProgressBarGameObject : BaseGameObject2D
                 new Vector2D<float>(_width, _height),
                 BorderColor,
                 BorderThickness,
-                depth: 0.52f))
+                depth: NextDepth()))
             {
                 yield return cmd;
             }
@@ -160,7 +160,7 @@ public class ProgressBarGameObject : BaseGameObject2D
                 Theme.FontSize,
                 textPos,
                 color: TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
         }
     }

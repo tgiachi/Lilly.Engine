@@ -225,7 +225,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
                       BorderColor;
 
         // Draw checkbox background
-        yield return DrawRectangle(checkBoxRect, bgColor, depth: 0.50f);
+        yield return DrawRectangle(checkBoxRect, bgColor, depth: NextDepth());
 
         // Draw checkbox border
         foreach (var cmd in DrawHollowRectangle(
@@ -233,7 +233,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
             new Vector2D<float>(CheckBoxSize, CheckBoxSize),
             brColor,
             BorderThickness,
-            depth: 0.51f))
+            depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -254,7 +254,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
                 Theme.FontSize,
                 textPos,
                 color: TextColor,
-                depth: 0.52f
+                depth: NextDepth()
             );
         }
         else if (_isChecked)
@@ -270,7 +270,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
                     new Vector2D<float>(6, 4)
                 ),
                 CheckMarkColor,
-                depth: 0.52f
+                depth: NextDepth()
             );
         }
 
@@ -288,7 +288,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
                 Theme.FontSize,
                 labelPos,
                 color: TextColor,
-                depth: 0.52f
+                depth: NextDepth()
             );
         }
     }

@@ -349,7 +349,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         yield return DrawRectangle(
             new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
             bgColor,
-            depth: 0.50f
+            depth: NextDepth()
         );
 
         // Draw border
@@ -358,7 +358,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
             new Vector2D<float>(_width, _height),
             brColor,
             BorderThickness,
-            depth: 0.51f))
+            depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -382,7 +382,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
                               itemIndex == _hoveredIndex ? ItemHoveredColor :
                               BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, depth: 0.52f);
+            yield return DrawRectangle(itemBounds, itemBgColor, depth: NextDepth());
 
             // Draw item text
             var textPos = new Vector2D<float>(
@@ -396,7 +396,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
                 Theme.FontSize,
                 textPos,
                 color: TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
         }
     }

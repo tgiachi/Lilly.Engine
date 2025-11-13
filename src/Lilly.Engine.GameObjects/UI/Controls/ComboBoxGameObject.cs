@@ -290,7 +290,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         yield return DrawRectangle(
             new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
             bgColor,
-            depth: 0.50f
+            depth: NextDepth()
         );
 
         // Draw border
@@ -299,7 +299,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
             new Vector2D<float>(_width, _height),
             brColor,
             Theme.BorderThickness,
-            depth: 0.51f))
+            depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -318,7 +318,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                 Theme.FontSize,
                 textPos,
                 color: Theme.TextColor,
-                depth: 0.52f
+                depth: NextDepth()
             );
         }
 
@@ -375,12 +375,12 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
             yield return DrawRectangle(
                 new Rectangle<float>(new Vector2D<float>(arrowX, arrowY), new Vector2D<float>(arrowSize, 1)),
                 Theme.TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
             yield return DrawRectangle(
                 new Rectangle<float>(new Vector2D<float>(arrowX + arrowSize / 2f, arrowY), new Vector2D<float>(1, arrowSize)),
                 Theme.TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
         }
         else
@@ -389,12 +389,12 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
             yield return DrawRectangle(
                 new Rectangle<float>(new Vector2D<float>(arrowX, arrowY), new Vector2D<float>(arrowSize, 1)),
                 Theme.TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
             yield return DrawRectangle(
                 new Rectangle<float>(new Vector2D<float>(arrowX + arrowSize / 2f, arrowY), new Vector2D<float>(1, arrowSize)),
                 Theme.TextColor,
-                depth: 0.53f
+                depth: NextDepth()
             );
         }
     }
@@ -415,7 +415,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                 new Vector2D<float>(dropdownBounds.Size.X, dropdownBounds.Size.Y)
             ),
             Theme.BackgroundColor,
-            depth: 0.50f
+            depth: NextDepth()
         );
 
         // Draw border
@@ -424,7 +424,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
             new Vector2D<float>(dropdownBounds.Size.X, dropdownBounds.Size.Y),
             borderColor,
             Theme.BorderThickness,
-            depth: 0.51f))
+            depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -442,7 +442,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                               i == _hoveredIndex ? Theme.ItemHoveredColor :
                               Theme.BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, depth: 0.50f);
+            yield return DrawRectangle(itemBounds, itemBgColor, depth: NextDepth());
 
             // Draw item text
             var textPos = new Vector2D<float>(
@@ -456,7 +456,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                 Theme.FontSize,
                 textPos,
                 color: Theme.TextColor,
-                depth: 0.52f
+                depth: NextDepth()
             );
         }
     }

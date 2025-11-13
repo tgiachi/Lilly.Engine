@@ -452,7 +452,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         yield return DrawRectangle(
             new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
             Theme.BackgroundColor,
-            depth: 0.50f
+            depth: NextDepth()
         );
 
         // Draw border
@@ -462,7 +462,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             new Vector2D<float>(_width, _height),
             borderColor,
             BorderThickness,
-            depth: 0.51f))
+            depth: NextDepth()))
         {
             yield return cmd;
         }
@@ -505,7 +505,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
                         Theme.FontSize,
                         textPos,
                         color: Theme.TextColor,
-                        depth: 0.52f
+                        depth: NextDepth()
                     );
                 }
             }
@@ -526,7 +526,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
                         new Vector2D<float>(2, _lineHeight)
                     ),
                     Theme.TextColor,
-                    depth: 0.53f
+                    depth: NextDepth()
                 );
             }
         }
@@ -654,7 +654,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
                         new Vector2D<float>(selectionWidth, _lineHeight)
                     ),
                     new Color4b(0, 120, 215, 100),
-                    depth: 0.51f
+                    depth: NextDepth()
                 );
             }
         }
