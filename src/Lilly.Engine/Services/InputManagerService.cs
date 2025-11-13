@@ -29,6 +29,9 @@ public class InputManagerService : IInputManagerService
     private readonly Dictionary<Key, float> _keyRepeatTimers = new();
     private readonly List<Action<Vector2D<int>, Vector2D<int>>> _globalMouseMovementListeners = [];
     private readonly Dictionary<string, List<Action<Vector2D<int>, Vector2D<int>>>> _mouseMovementListeners = new();
+    private readonly List<Action<MouseButton, Vector2D<int>>> _globalMouseClickListeners = [];
+    private readonly Dictionary<string, List<Action<MouseButton, Vector2D<int>>>> _mouseClickListeners = new();
+    private readonly HashSet<MouseButton> _processedMouseClicks = [];
 
     private readonly IKeyboard? _keyboard;
     private readonly IMouse? _mouse;
@@ -164,16 +167,21 @@ public class InputManagerService : IInputManagerService
     /// <summary>
     /// Disposes of the input manager and clears all resources.
     /// </summary>
-    public void Dispose()
-    {
-        _focusStack.Clear();
-        _keyBindings.Clear();
-        _processedBindings.Clear();
-        _keyPressDuration.Clear();
-        _keyRepeatTimers.Clear();
-        CurrentFocus = null;
-        GC.SuppressFinalize(this);
-    }
+     public void Dispose()
+     {
+         _focusStack.Clear();
+         _keyBindings.Clear();
+         _processedBindings.Clear();
+         _keyPressDuration.Clear();
+         _keyRepeatTimers.Clear();
+         _globalMouseMovementListeners.Clear();
+         _mouseMovementListeners.Clear();
+         _globalMouseClickListeners.Clear();
+         _mouseClickListeners.Clear();
+         _processedMouseClicks.Clear();
+         CurrentFocus = null;
+         GC.SuppressFinalize(this);
+     }
 
     /// <summary>
     /// Distributes input to the current focus receiver.
@@ -481,6 +489,7 @@ public class InputManagerService : IInputManagerService
          UpdateKeyPressDuration(gameTime);
          ProcessKeyBindings();
          ProcessMouseMovement();
+         ProcessMouseClick();
      }
 
     /// <summary>
@@ -699,48 +708,175 @@ public class InputManagerService : IInputManagerService
         }
     }
 
+     /// <summary>
+     /// Processes mouse movement listeners (both global and context-specific).
+     /// Passes both delta and absolute position to callbacks.
+     /// </summary>
+     private void ProcessMouseMovement()
+     {
+         var mouseDelta = GetMouseDelta();
+         var mousePosition = new Vector2D<int>((int)CurrentMouseState.Position.X, (int)CurrentMouseState.Position.Y);
+         
+         var hasMoved = mouseDelta.X != 0 || mouseDelta.Y != 0;
+         
+         if (!hasMoved)
+         {
+             return;
+         }
+
+         // Process global listeners (always active)
+         foreach (var listener in _globalMouseMovementListeners)
+         {
+             try
+             {
+                 listener?.Invoke(mouseDelta, mousePosition);
+             }
+             catch (Exception ex)
+             {
+                 _logger.Error(ex, "Error executing global mouse movement callback");
+             }
+         }
+
+         // Process context-specific listeners (only if context matches)
+         if (!string.IsNullOrEmpty(_currentContext) && 
+             _mouseMovementListeners.TryGetValue(_currentContext, out var listeners))
+         {
+             foreach (var listener in listeners)
+             {
+                 try
+                 {
+                     listener?.Invoke(mouseDelta, mousePosition);
+                 }
+                 catch (Exception ex)
+                 {
+                     _logger.Error(ex, "Error executing context-specific mouse movement callback");
+                 }
+             }
+         }
+     }
+
     /// <summary>
-    /// Processes mouse movement listeners (both global and context-specific).
-    /// Passes both delta and absolute position to callbacks.
+    /// Binds a callback to mouse click events globally (always active, regardless of context).
     /// </summary>
-    private void ProcessMouseMovement()
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    public void BindMouseClick(Action<MouseButton, Vector2D<int>> callback)
     {
-        var mouseDelta = GetMouseDelta();
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (!_globalMouseClickListeners.Contains(callback))
+        {
+            _globalMouseClickListeners.Add(callback);
+            _logger.Debug("Bound global mouse click callback");
+        }
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse click events, only active in a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    public void BindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        ArgumentException.ThrowIfNullOrEmpty(context);
+
+        if (!_mouseClickListeners.TryGetValue(context, out var listeners))
+        {
+            listeners = new List<Action<MouseButton, Vector2D<int>>>();
+            _mouseClickListeners[context] = listeners;
+        }
+
+        if (!listeners.Contains(callback))
+        {
+            listeners.Add(callback);
+            _logger.Debug("Bound mouse click callback to context {Context}", context);
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a global mouse click callback.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    public void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        if (_globalMouseClickListeners.Remove(callback))
+        {
+            _logger.Debug("Unbound global mouse click callback");
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a mouse click callback for a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    /// <param name="context">The context from which to remove the binding.</param>
+    public void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        ArgumentException.ThrowIfNullOrEmpty(context);
+
+        if (_mouseClickListeners.TryGetValue(context, out var listeners))
+        {
+            if (listeners.Remove(callback))
+            {
+                _logger.Debug("Unbound mouse click callback from context {Context}", context);
+            }
+
+            if (listeners.Count == 0)
+            {
+                _mouseClickListeners.Remove(context);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes mouse click listeners (both global and context-specific).
+    /// Detects clicks on all mouse buttons and passes button and position to callbacks.
+    /// </summary>
+    private void ProcessMouseClick()
+    {
+        _processedMouseClicks.Clear();
         var mousePosition = new Vector2D<int>((int)CurrentMouseState.Position.X, (int)CurrentMouseState.Position.Y);
-        
-        var hasMoved = mouseDelta.X != 0 || mouseDelta.Y != 0;
-        
-        if (!hasMoved)
-        {
-            return;
-        }
 
-        // Process global listeners (always active)
-        foreach (var listener in _globalMouseMovementListeners)
-        {
-            try
-            {
-                listener?.Invoke(mouseDelta, mousePosition);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Error executing global mouse movement callback");
-            }
-        }
+        // Check all possible mouse buttons
+        var buttons = new[] { MouseButton.Left, MouseButton.Right, MouseButton.Middle, MouseButton.XButton1, MouseButton.XButton2 };
 
-        // Process context-specific listeners (only if context matches)
-        if (!string.IsNullOrEmpty(_currentContext) && 
-            _mouseMovementListeners.TryGetValue(_currentContext, out var listeners))
+        foreach (var button in buttons)
         {
-            foreach (var listener in listeners)
+            if (!IsMouseButtonPressed(button) || !_processedMouseClicks.Add(button))
+            {
+                continue;
+            }
+
+            // Process global listeners (always active)
+            foreach (var listener in _globalMouseClickListeners)
             {
                 try
                 {
-                    listener?.Invoke(mouseDelta, mousePosition);
+                    listener?.Invoke(button, mousePosition);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex, "Error executing context-specific mouse movement callback");
+                    _logger.Error(ex, "Error executing global mouse click callback");
+                }
+            }
+
+            // Process context-specific listeners (only if context matches)
+            if (!string.IsNullOrEmpty(_currentContext) &&
+                _mouseClickListeners.TryGetValue(_currentContext, out var listeners))
+            {
+                foreach (var listener in listeners)
+                {
+                    try
+                    {
+                        listener?.Invoke(button, mousePosition);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error(ex, "Error executing context-specific mouse click callback");
+                    }
                 }
             }
         }

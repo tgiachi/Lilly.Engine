@@ -1,7 +1,10 @@
+using System.Globalization;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Types;
 using MoonSharp.Interpreter;
 using Silk.NET.Input;
+using Silk.NET.Maths;
 
 namespace Lilly.Engine.Modules;
 
@@ -266,4 +269,76 @@ public class InputManagerModule
             contextName
         );
     }
+
+    /// <summary>
+    /// Binds a callback to mouse click events globally (always active, regardless of context).
+    /// Passes the mouse button name (as string) and position (absolute coordinates).
+    /// </summary>
+    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
+    [ScriptFunction("bind_mouse_click", "Binds a callback to global mouse click events (always active).")]
+    public void BindMouseClick(Closure callback)
+    {
+        if (callback == null)
+        {
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
+        }
+
+        _inputManager.BindMouseClick(
+            (button, position) =>
+            {
+                try
+                {
+                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
+                    callback.Call(buttonName, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing global mouse click callback: {ex.Message}",
+                        ex
+                    );
+                }
+            }
+        );
+    }
+
+    /// <summary>
+    /// Binds a callback to mouse click events, only active in a specific context.
+    /// Passes the mouse button name (as string) and position (absolute coordinates).
+    /// </summary>
+    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
+    /// <param name="contextName">The context in which this callback is active.</param>
+    [ScriptFunction("bind_mouse_click_context", "Binds a callback to mouse click events for a specific context.")]
+    public void BindMouseClickContext(Closure callback, string contextName)
+    {
+        if (callback == null)
+        {
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
+        }
+
+        if (string.IsNullOrEmpty(contextName))
+        {
+            throw new ArgumentException("Context name cannot be null or empty", nameof(contextName));
+        }
+
+        _inputManager.BindMouseClick(
+            (button, position) =>
+            {
+                try
+                {
+                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
+                    callback.Call(buttonName, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing mouse click callback for context '{contextName}': {ex.Message}",
+                        ex
+                    );
+                }
+            },
+            contextName
+        );
+    }
+
 }

@@ -255,6 +255,34 @@ public interface IInputManagerService : IDisposable
     void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
 
     /// <summary>
+    /// Binds a callback to mouse click events globally (always active, regardless of context).
+    /// Callback receives the mouse button and mouse position when clicked.
+    /// </summary>
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Binds a callback to mouse click events, only active in a specific context.
+    /// Callback receives the mouse button and mouse position when clicked.
+    /// </summary>
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
+
+    /// <summary>
+    /// Unbinds a global mouse click callback.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Unbinds a mouse click callback for a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to remove.</param>
+    /// <param name="context">The context from which to remove the binding.</param>
+    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
+
+    /// <summary>
     ///  Gets or sets whether the mouse cursor is visible.
     /// </summary>
     bool IsMouseVisible { get; set; }
