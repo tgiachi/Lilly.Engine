@@ -1,8 +1,11 @@
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.GameObjects.UI.Controls;
+using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Rendering.Core.Extensions;
+using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.GameObjects;
 
@@ -13,6 +16,8 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
     public IContainer RegisterModule(IContainer container)
     {
+        container.RegisterInstance(UITheme.Default);
+
         return container
                .RegisterGameObject<ButtonGameObject>()
                .RegisterGameObject<CheckBoxGameObject>()
@@ -20,10 +25,15 @@ public class DefaultGameObjectPlugin : ILillyPlugin
                .RegisterGameObject<ListBoxGameObject>()
                .RegisterGameObject<MemoEditGameObject>()
                .RegisterGameObject<ProgressBarGameObject>()
-               .RegisterGameObject<TextEditGameObject>();
+               .RegisterGameObject<TextEditGameObject>()
+               .RegisterGameObject<NotificationHudGameObject>()
+            ;
     }
 
-    public void EngineInitialized(IContainer container)
+    public void EngineInitialized(IContainer container) { }
+
+    public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
+        yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
     }
 }

@@ -205,6 +205,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
             .RegisterService<ICamera3dService, Camera3dService>()
             .RegisterService<ISceneManager, SceneManager>()
+            .RegisterService<INotificationService, NotificationService>()
             ;
 
         _container
@@ -232,13 +233,15 @@ public class LillyBoostrap : ILillyBootstrap
             .AddScriptModule<ScenesModule>()
             .AddScriptModule<InputManagerModule>()
             .AddScriptModule<CameraModule>()
+            .AddScriptModule<NotificationsModule>()
             ;
-
     }
 
     private void InitializeRenderSystem()
     {
         var factory = _container.Resolve<IGameObjectFactory>();
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _container.RegisterInstance<IGameObjectManager>(_renderPipeline);
         _renderPipeline.Initialize();
@@ -265,6 +268,16 @@ public class LillyBoostrap : ILillyBootstrap
         _renderPipeline.AddGameObject(factory.CreateGameObject<CameraDebugger>());
 
         _renderPipeline.AddGameObject(factory.CreateGameObject<InputDebugger>());
+
+
+        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
+        {
+            foreach (var globalGameObject in plugin.GlobalGameObjects(factory))
+            {
+                _renderPipeline.AddGameObject(globalGameObject);
+            }
+        }
+
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()
@@ -418,6 +431,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
+
     }
 
     private void RendererOnRender(GameTime gameTime)

@@ -1,6 +1,5 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.GameObjects.UI.Rendering;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;

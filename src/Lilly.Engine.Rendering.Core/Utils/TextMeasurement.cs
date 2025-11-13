@@ -2,7 +2,7 @@ using FontStashSharp;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Silk.NET.Maths;
 
-namespace Lilly.Engine.GameObjects.UI.Rendering;
+namespace Lilly.Engine.Rendering.Core.Utils;
 
 /// <summary>
 /// Provides text measurement utilities for UI components.

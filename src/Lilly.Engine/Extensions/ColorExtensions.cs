@@ -43,6 +43,23 @@ public static class ColorExtensions
         => new(c.R, c.G, c.B, c.A);
 
     /// <summary>
+    ///  Applies an alpha multiplier to a Color4b.
+    /// </summary>
+    /// <param name="color"></param>
+    /// <param name="alpha"></param>
+    /// <returns></returns>
+
+    public static Color4b ApplyAlpha(this Color4b color, float alpha)
+    {
+        return new Color4b(
+            color.R,
+            color.G,
+            color.B,
+            (byte)(color.A * alpha)
+        );
+    }
+
+    /// <summary>
     /// Converts a Silk.NET Rectangle to a System.Drawing.Rectangle.
     /// </summary>
     /// <param name="r">The Silk.NET rectangle to convert.</param>

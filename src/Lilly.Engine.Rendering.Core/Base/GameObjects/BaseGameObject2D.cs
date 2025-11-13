@@ -3,6 +3,7 @@ using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
+using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Primitives;
@@ -15,7 +16,7 @@ namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 /// <summary>
 /// Base class for 2D game objects.
 /// </summary>
-public abstract class BaseGameObject2D : IGameObject2D
+public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
 {
     /// <summary>
     /// Gets or sets the parent game object.
@@ -141,6 +142,11 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
         {
             yield return RenderCommandHelpers.CreateDisableScissor();
         }
+    }
+
+    public virtual void Update(GameTime gameTime)
+    {
+
     }
 
     /// <summary>
