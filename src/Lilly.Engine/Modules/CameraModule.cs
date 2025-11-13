@@ -30,4 +30,10 @@ public class CameraModule
             _camera3dService.CurrentCamera = camera;
         }
     }
+
+    [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
+    public void DispatchMouse(float yaw, float pitch, float roll)
+    {
+        _camera3dService.CurrentCamera?.Rotate(yaw, pitch, roll);
+    }
 }

@@ -270,6 +270,27 @@ public class InputManagerModule
         );
     }
 
+    [ScriptFunction("convert_mouse_delta_to_pitch_yaw_roll", "Converts mouse delta to pitch, yaw, and roll values.")]
+    public Table ConvertMouseDeltaToPitchYawRoll(int deltaX, int deltaY, float roll = 0f, float sensitivity = 0.3f)
+    {
+        if (sensitivity == 0)
+        {
+            sensitivity = 0.3f;
+        }
+
+        float pitch = deltaY * sensitivity;
+        float yaw = deltaX * sensitivity;
+
+        var table = new Table(null)
+        {
+            ["pitch"] = pitch,
+            ["yaw"] = yaw,
+            ["roll"] = roll
+        };
+
+        return table;
+    }
+
     /// <summary>
     /// Binds a callback to mouse click events globally (always active, regardless of context).
     /// Passes the mouse button name (as string) and position (absolute coordinates).
