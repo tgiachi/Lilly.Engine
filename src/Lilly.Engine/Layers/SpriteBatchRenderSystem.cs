@@ -108,7 +108,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     {
         _scissorStack.Clear();
         _renderContext.GraphicsDevice.ScissorTestEnabled = false;
-        // _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        //_renderContext.GraphicsDevice.DepthState = DepthState.None;
         // _renderContext.GraphicsDevice.BlendingEnabled = true;
         // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         BeginSpriteBatch();
@@ -217,7 +217,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                 payload.Transform.Value.ToNumerics(),
                 payload.Source?.ToSystemDrawing(),
                 payload.Color.ToVector4(),
-                payload.Depth
+               payload.Depth
             );
 
             return;

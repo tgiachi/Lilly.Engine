@@ -35,6 +35,13 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
+
+
+        var text = gameObjectFactory.CreateGameObject<TextEditGameObject>();
+        text.Name = "Global Console";
+
+        yield return text;
+
         yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
 
     }
