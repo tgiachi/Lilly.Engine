@@ -23,6 +23,7 @@ public class NotificationHudGameObject : BaseGameObject2D
     private const float DefaultOpacityThreshold = 0.01f;
     private const float InitialYOffset = -50f;
     private const int DefaultFontSize = 18;
+    private const float MinNotificationWidth = 300.0f;
 
     private readonly List<NotificationMessage> _messages = [];
     private readonly IAssetManager _assetManager;
@@ -128,10 +129,11 @@ public class NotificationHudGameObject : BaseGameObject2D
             var contentHeight = MathF.Max(textSize.Y, hasIcon ? IconSize.Y : 0f);
 
             // Background rectangle
+            var calculatedWidth = textSize.X + iconWidth + iconSpacing + MessagePadding * 2f;
             var backgroundRect = new Rectangle<float>(
                 new Vector2D<float>(basePosition.X - MessagePadding, basePosition.Y - MessagePadding),
                 new Vector2D<float>(
-                    textSize.X + iconWidth + iconSpacing + MessagePadding * 2f,
+                    MathF.Max(calculatedWidth, MinNotificationWidth),
                     contentHeight + MessagePadding * 2f
                 )
             );
