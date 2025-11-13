@@ -1,5 +1,4 @@
 using Lilly.Engine.Core.Attributes.Scripts;
-using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using MoonSharp.Interpreter;
 using Silk.NET.Input;
@@ -30,7 +29,7 @@ public class InputManagerModule
     /// </summary>
     /// <param name="keyBinding">The key binding string (e.g., "Ctrl+A", "F1", "Shift+Escape").</param>
     /// <param name="callback">The JavaScript function to execute when the key is pressed.</param>
-    [ScriptFunction("bindKey", "Binds a key to a callback action.")]
+    [ScriptFunction("bind_key", "Binds a key to a callback action.")]
     public void BindKey(string keyBinding, Closure callback)
     {
         _inputManager.BindKey(
@@ -58,7 +57,7 @@ public class InputManagerModule
     /// <param name="keyBinding">The key binding string (e.g., "Ctrl+A", "F1", "Shift+Escape").</param>
     /// <param name="callback">The JavaScript function to execute when the key is pressed.</param>
     /// <param name="contextName">The input context name (any string, e.g., "main_menu", "gameplay", "pause").</param>
-    [ScriptFunction("bindKeyContext", "Binds a key to a callback action with a specific context.")]
+    [ScriptFunction("bind_key_context", "Binds a key to a callback action with a specific context.")]
     public void BindKeyWithContext(string keyBinding, Action callback, string contextName)
     {
         if (callback == null)
@@ -97,7 +96,7 @@ public class InputManagerModule
     /// <summary>
     /// Clears all key bindings.
     /// </summary>
-    [ScriptFunction("clearBindings", "Clears all key bindings.")]
+    [ScriptFunction("clear_bindings", "Clears all key bindings.")]
     public void ClearBindings()
     {
         _inputManager.ClearBindings();
@@ -107,7 +106,7 @@ public class InputManagerModule
     /// Gets the current input context name.
     /// </summary>
     /// <returns>The current context name as a string.</returns>
-    [ScriptFunction("getContext", "Gets the current input context.")]
+    [ScriptFunction("get_context", "Gets the current input context.")]
     public string GetContext()
         => _inputManager.CurrentContext;
 
@@ -116,7 +115,7 @@ public class InputManagerModule
     /// </summary>
     /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
     /// <returns>True if the key is down.</returns>
-    [ScriptFunction("isKeyDown", "Checks if a key is currently down.")]
+    [ScriptFunction("is_key_down", "Checks if a key is currently down.")]
     public bool IsKeyDown(string keyName)
         => Enum.TryParse<Key>(keyName, true, out var key) && _inputManager.IsKeyDown(key);
 
@@ -125,7 +124,7 @@ public class InputManagerModule
     /// </summary>
     /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
     /// <returns>True if the key was just pressed.</returns>
-    [ScriptFunction("isKeyPressed", "Checks if a key was just pressed.")]
+    [ScriptFunction("is_key_pressed", "Checks if a key was just pressed.")]
     public bool IsKeyPressed(string keyName)
         => Enum.TryParse<Key>(keyName, true, out var key) &&
            _inputManager.IsKeyPressed(key);
@@ -134,7 +133,7 @@ public class InputManagerModule
     /// Sets the current input context.
     /// </summary>
     /// <param name="contextName">The context name (any string, e.g., "main_menu", "gameplay", "pause").</param>
-    [ScriptFunction("setContext", "Sets the current input context.")]
+    [ScriptFunction("set_context", "Sets the current input context.")]
     public void SetContext(string contextName)
     {
         if (string.IsNullOrEmpty(contextName))
@@ -152,7 +151,7 @@ public class InputManagerModule
     /// Unbinds a key combination.
     /// </summary>
     /// <param name="keyBinding">The key binding string to unbind.</param>
-    [ScriptFunction("unbindKey", "Unbinds a key.")]
+    [ScriptFunction("unbind_key", "Unbinds a key.")]
     public void UnbindKey(string keyBinding)
     {
         _inputManager.UnbindKey(keyBinding);
