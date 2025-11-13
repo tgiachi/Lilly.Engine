@@ -14,14 +14,12 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 {
     private readonly ICamera3dService _camera3dService;
 
-    private readonly RenderContext _renderContext;
-    private readonly ILogger _logger = Log.ForContext<RenderLayerSystem3D>();
-
-
-    public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base("3d", RenderLayer.ThreeDimension)
+    public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base(
+        "3d",
+        RenderLayer.ThreeDimension
+    )
     {
         _camera3dService = camera3dService;
-        _renderContext = renderContext;
         _camera3dService.UpdateViewport(renderContext.GraphicsDevice.Viewport);
     }
 

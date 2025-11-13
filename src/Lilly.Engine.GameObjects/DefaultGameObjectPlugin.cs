@@ -1,6 +1,7 @@
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.GameObjects.UI.Controls;
+using Lilly.Engine.GameObjects.UI.Dialogs;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Rendering.Core.Extensions;
@@ -28,6 +29,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
                .RegisterGameObject<ProgressBarGameObject>()
                .RegisterGameObject<TextEditGameObject>()
                .RegisterGameObject<NotificationHudGameObject>()
+               .RegisterGameObject<ScriptErrorGameObject>()
             ;
     }
 
@@ -35,8 +37,6 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-
-
         var text = gameObjectFactory.CreateGameObject<TextEditGameObject>();
         text.Name = "Global Console";
 
@@ -44,5 +44,6 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
         yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
 
+        yield return gameObjectFactory.CreateGameObject<ScriptErrorGameObject>();
     }
 }
