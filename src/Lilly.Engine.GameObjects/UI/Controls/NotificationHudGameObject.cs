@@ -92,6 +92,7 @@ public class NotificationHudGameObject : BaseGameObject2D
         _assetManager = assetManager;
 
         FontFamily = theme.FontName;
+        Order = 9000; // High order to render on top of other UI elements
 
         notificationService.NotificationRaised += HandleNotificationRaised;
         notificationService.NotificationsCleared += HandleNotificationsCleared;
@@ -148,7 +149,7 @@ public class NotificationHudGameObject : BaseGameObject2D
             // Draw background
             if (finalBackground.A > 0)
             {
-                yield return DrawRectangle(backgroundRect, finalBackground, depth: 0.90f);
+                yield return DrawRectangle(backgroundRect, finalBackground, depth: NextDepth());
             }
 
             // Draw icon if present
@@ -168,7 +169,7 @@ public class NotificationHudGameObject : BaseGameObject2D
                     texture: message.IconTextureName!,
                     destination: iconRect,
                     color: iconColor,
-                    depth: 0.91f
+                    depth: NextDepth()
                 );
             }
 
@@ -179,7 +180,7 @@ public class NotificationHudGameObject : BaseGameObject2D
                 fontSize: FontSize,
                 position: textPosition,
                 color: finalText,
-                depth: 0.92f
+                depth: NextDepth()
             );
         }
     }

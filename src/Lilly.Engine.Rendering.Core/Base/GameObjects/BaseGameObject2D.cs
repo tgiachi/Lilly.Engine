@@ -18,6 +18,8 @@ namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 /// </summary>
 public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
 {
+    private int _depthCounter = 0;
+
     /// <summary>
     /// Gets or sets the parent game object.
     /// </summary>
@@ -116,6 +118,9 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
             yield break;
         }
 
+        // Auto-reset depth counter at the beginning of each render
+        ResetDepthCounter();
+
         var hasAutoScissor = TryGetAutoScissorRectangle(out var scissorRectangle);
 
         if (hasAutoScissor)
@@ -147,6 +152,32 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
     public virtual void Update(GameTime gameTime)
     {
 
+    }
+
+    /// <summary>
+    /// Resets the depth counter to 0. Called automatically at the beginning of Render().
+    /// </summary>
+    protected void ResetDepthCounter()
+    {
+        _depthCounter = 0;
+    }
+
+    /// <summary>
+    /// Calculates depth automatically based on Order + auto-incrementing counter.
+    /// Higher Order = closer to viewer (higher depth value).
+    /// Each call increments the counter to ensure proper rendering order within the GameObject.
+    /// </summary>
+    /// <returns>The calculated depth value (0.0 - 1.0)</returns>
+    protected float NextDepth()
+    {
+        // Order normalized (0-10000 → 0.0-1.0)
+        const float MaxOrder = 10000f;
+        float orderBase = Math.Min(Order / MaxOrder, 0.999f);
+
+        // Each element adds 0.000001 (space for ~1000 elements per GameObject)
+        float increment = _depthCounter++ * 0.000001f;
+
+        return orderBase + increment;
     }
 
     /// <summary>
