@@ -1,14 +1,15 @@
 using Lilly.Engine.Cameras;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Interfaces.Services;
+using Silk.NET.Maths;
 
 namespace Lilly.Engine.Modules;
 
 [ScriptModule("camera", "Provides functionality related to camera management.")]
 public class CameraModule
 {
-
     private readonly ICamera3dService _camera3dService;
+
     public CameraModule(ICamera3dService camera3dService)
     {
         _camera3dService = camera3dService;
@@ -25,6 +26,7 @@ public class CameraModule
     public void SetActiveCamera(string name)
     {
         var camera = _camera3dService.Cameras.FirstOrDefault(c => c.Name == name);
+
         if (camera != null)
         {
             _camera3dService.CurrentCamera = camera;
@@ -35,5 +37,11 @@ public class CameraModule
     public void DispatchMouse(float yaw, float pitch, float roll)
     {
         _camera3dService.CurrentCamera?.Rotate(yaw, pitch, roll);
+    }
+
+    [ScriptFunction("dispatch_keyboard", "Dispatches keyboard input to the current camera for movement.")]
+    public void DispatchKeyboard(float forward, float right, float up)
+    {
+        _camera3dService.CurrentCamera?.Move(new Vector3D<float>(forward, right, up));
     }
 }

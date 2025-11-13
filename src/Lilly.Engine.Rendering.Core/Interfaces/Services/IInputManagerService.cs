@@ -89,6 +89,38 @@ public interface IInputManagerService : IDisposable
     void BindKey(KeyBinding binding, Action action, string? context = null);
 
     /// <summary>
+    /// Binds a key combination to an action that executes every frame while held.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    void BindKeyHeld(string binding, Action action, string? context = null);
+
+    /// <summary>
+    /// Binds a key combination to an action that executes every frame while held.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    void BindKeyHeld(KeyBinding binding, Action action, string? context = null);
+
+    /// <summary>
+    /// Binds a key combination to an action that executes with key repeat (initial press + delay + interval).
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    void BindKeyRepeat(string binding, Action action, string? context = null);
+
+    /// <summary>
+    /// Binds a key combination to an action that executes with key repeat (initial press + delay + interval).
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    void BindKeyRepeat(KeyBinding binding, Action action, string? context = null);
+
+    /// <summary>
     /// Clears all key bindings.
     /// </summary>
     void ClearBindings();
@@ -208,6 +240,30 @@ public interface IInputManagerService : IDisposable
     /// </summary>
     /// <param name="binding">The key binding.</param>
     void UnbindKey(KeyBinding binding);
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    void UnbindKeyHeld(string binding);
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    void UnbindKeyHeld(KeyBinding binding);
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    void UnbindKeyRepeat(string binding);
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    void UnbindKeyRepeat(KeyBinding binding);
 
     /// <summary>
     /// Updates the input manager.

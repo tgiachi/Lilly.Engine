@@ -55,6 +55,60 @@ public class InputManagerModule
     }
 
     /// <summary>
+    /// Binds a key combination to a callback that executes every frame while the key is held down.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string (e.g., "W", "Shift+W").</param>
+    /// <param name="callback">The JavaScript function to execute every frame while held.</param>
+    [ScriptFunction("bind_key_held", "Binds a key to a callback that executes every frame while held.")]
+    public void BindKeyHeld(string keyBinding, Closure callback)
+    {
+        _inputManager.BindKeyHeld(
+            keyBinding,
+            () =>
+            {
+                try
+                {
+                    callback.Call();
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing held key binding callback for '{keyBinding}': {ex.Message}",
+                        ex
+                    );
+                }
+            }
+        );
+    }
+
+    /// <summary>
+    /// Binds a key combination to a callback that executes with key repeat (initial press, delay, then interval).
+    /// </summary>
+    /// <param name="keyBinding">The key binding string (e.g., "W", "Shift+W").</param>
+    /// <param name="callback">The JavaScript function to execute with key repeat timing.</param>
+    [ScriptFunction("bind_key_repeat", "Binds a key to a callback with key repeat (delay + interval).")]
+    public void BindKeyRepeat(string keyBinding, Closure callback)
+    {
+        _inputManager.BindKeyRepeat(
+            keyBinding,
+            () =>
+            {
+                try
+                {
+                    callback.Call();
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing repeat key binding callback for '{keyBinding}': {ex.Message}",
+                        ex
+                    );
+                }
+            }
+        );
+    }
+
+    /// <summary>
     /// Binds a key combination to a JavaScript callback function with a specific input context.
     /// </summary>
     /// <param name="keyBinding">The key binding string (e.g., "Ctrl+A", "F1", "Shift+Escape").</param>
@@ -158,6 +212,26 @@ public class InputManagerModule
     public void UnbindKey(string keyBinding)
     {
         _inputManager.UnbindKey(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string to unbind.</param>
+    [ScriptFunction("unbind_key_held", "Unbinds a held key.")]
+    public void UnbindKeyHeld(string keyBinding)
+    {
+        _inputManager.UnbindKeyHeld(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string to unbind.</param>
+    [ScriptFunction("unbind_key_repeat", "Unbinds a repeat key.")]
+    public void UnbindKeyRepeat(string keyBinding)
+    {
+        _inputManager.UnbindKeyRepeat(keyBinding);
     }
 
     [ScriptFunction("grab_mouse", "Grabs the mouse cursor and makes it invisible.")]

@@ -24,6 +24,8 @@ public class InputManagerService : IInputManagerService
     private readonly ILogger _logger = Log.ForContext<InputManagerService>();
     private readonly Stack<IInputReceiver> _focusStack = new();
     private readonly Dictionary<KeyBinding, (Action Action, string? Context)> _keyBindings = new();
+    private readonly Dictionary<KeyBinding, (Action Action, string? Context)> _keyHeldBindings = new();
+    private readonly Dictionary<KeyBinding, (Action Action, string? Context)> _keyRepeatBindings = new();
     private readonly HashSet<KeyBinding> _processedBindings = [];
     private readonly Dictionary<Key, float> _keyPressDuration = new();
     private readonly Dictionary<Key, float> _keyRepeatTimers = new();
@@ -148,11 +150,75 @@ public class InputManagerService : IInputManagerService
     }
 
     /// <summary>
+    /// Binds a key combination to an action that executes every frame while held.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    public void BindKeyHeld(string binding, Action action, string? context = null)
+    {
+        if (!KeyBinding.TryParse(binding, out var keyBinding))
+        {
+            _logger.Warning("Failed to parse key binding: {Binding}", binding);
+            return;
+        }
+
+        BindKeyHeld(keyBinding, action, context);
+    }
+
+    /// <summary>
+    /// Binds a key combination to an action that executes every frame while held.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    public void BindKeyHeld(KeyBinding binding, Action action, string? context = null)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        _keyHeldBindings[binding] = (action, context);
+        _logger.Debug("Bound key held {Binding} to action (context: {Context})", binding, context ?? "any");
+    }
+
+    /// <summary>
+    /// Binds a key combination to an action that executes with key repeat (initial press + delay + interval).
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    public void BindKeyRepeat(string binding, Action action, string? context = null)
+    {
+        if (!KeyBinding.TryParse(binding, out var keyBinding))
+        {
+            _logger.Warning("Failed to parse key binding: {Binding}", binding);
+            return;
+        }
+
+        BindKeyRepeat(keyBinding, action, context);
+    }
+
+    /// <summary>
+    /// Binds a key combination to an action that executes with key repeat (initial press + delay + interval).
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    /// <param name="action">The action to execute.</param>
+    /// <param name="context">Optional context to limit when this binding is active.</param>
+    public void BindKeyRepeat(KeyBinding binding, Action action, string? context = null)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        _keyRepeatBindings[binding] = (action, context);
+        _logger.Debug("Bound key repeat {Binding} to action (context: {Context})", binding, context ?? "any");
+    }
+
+    /// <summary>
     /// Clears all key bindings.
     /// </summary>
     public void ClearBindings()
     {
         _keyBindings.Clear();
+        _keyHeldBindings.Clear();
+        _keyRepeatBindings.Clear();
         _logger.Debug("Cleared all key bindings");
     }
 
@@ -171,6 +237,8 @@ public class InputManagerService : IInputManagerService
      {
          _focusStack.Clear();
          _keyBindings.Clear();
+         _keyHeldBindings.Clear();
+         _keyRepeatBindings.Clear();
          _processedBindings.Clear();
          _keyPressDuration.Clear();
          _keyRepeatTimers.Clear();
@@ -471,6 +539,60 @@ public class InputManagerService : IInputManagerService
     }
 
     /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    public void UnbindKeyHeld(string binding)
+    {
+        if (!KeyBinding.TryParse(binding, out var keyBinding))
+        {
+            _logger.Warning("Failed to parse key binding: {Binding}", binding);
+            return;
+        }
+
+        UnbindKeyHeld(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    public void UnbindKeyHeld(KeyBinding binding)
+    {
+        if (_keyHeldBindings.Remove(binding))
+        {
+            _logger.Debug("Unbound held key {Binding}", binding);
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="binding">The key binding string.</param>
+    public void UnbindKeyRepeat(string binding)
+    {
+        if (!KeyBinding.TryParse(binding, out var keyBinding))
+        {
+            _logger.Warning("Failed to parse key binding: {Binding}", binding);
+            return;
+        }
+
+        UnbindKeyRepeat(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    public void UnbindKeyRepeat(KeyBinding binding)
+    {
+        if (_keyRepeatBindings.Remove(binding))
+        {
+            _logger.Debug("Unbound repeat key {Binding}", binding);
+        }
+    }
+
+    /// <summary>
     /// Updates the input manager by sampling current keyboard and mouse states.
     /// Also processes key bindings and updates key press durations.
     /// </summary>
@@ -488,6 +610,8 @@ public class InputManagerService : IInputManagerService
 
          UpdateKeyPressDuration(gameTime);
          ProcessKeyBindings();
+         ProcessKeyHeldBindings();
+         ProcessKeyRepeatBindings();
          ProcessMouseMovement();
          ProcessMouseClick();
      }
@@ -551,6 +675,66 @@ public class InputManagerService : IInputManagerService
                     {
                         _logger.Error(ex, "Error executing key binding action for {Binding}", binding);
                     }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes all registered held key bindings and executes bound actions every frame while held.
+    /// </summary>
+    private void ProcessKeyHeldBindings()
+    {
+        foreach (var (binding, (action, context)) in _keyHeldBindings)
+        {
+            // Check if binding is in the correct context
+            if (context != null && context != CurrentContext)
+            {
+                continue;
+            }
+
+            // Check if the binding is currently pressed (held down)
+            if (binding.IsPressed(CurrentKeyboardState))
+            {
+                try
+                {
+                    action.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error executing held key binding action for {Binding}", binding);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes all registered repeat key bindings and executes bound actions with key repeat timing.
+    /// </summary>
+    private void ProcessKeyRepeatBindings()
+    {
+        foreach (var (binding, (action, context)) in _keyRepeatBindings)
+        {
+            // Check if binding is in the correct context
+            if (context != null && context != CurrentContext)
+            {
+                continue;
+            }
+
+            // Check if the binding should repeat (initial press + delay + interval)
+            // Check if the main key should repeat and all modifiers are pressed
+            var shouldRepeat = IsKeyRepeated(binding.Key) &&
+                               binding.IsPressed(CurrentKeyboardState);
+
+            if (shouldRepeat)
+            {
+                try
+                {
+                    action.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error executing repeat key binding action for {Binding}", binding);
                 }
             }
         }
