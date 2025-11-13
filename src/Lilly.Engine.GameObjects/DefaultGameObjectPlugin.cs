@@ -6,6 +6,7 @@ using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Silk.NET.Maths;
 
 namespace Lilly.Engine.GameObjects;
 
@@ -35,5 +36,6 @@ public class DefaultGameObjectPlugin : ILillyPlugin
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
         yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
+
     }
 }

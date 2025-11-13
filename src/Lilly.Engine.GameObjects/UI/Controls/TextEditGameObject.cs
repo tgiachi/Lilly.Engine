@@ -23,17 +23,17 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     private readonly IAssetManager _assetManager;
 
     private string _text = string.Empty;
-    private int _cursorPosition = 0;
-    private int _selectionStart = 0;
-    private int _selectionLength = 0;
+    private int _cursorPosition;
+    private int _selectionStart;
+    private int _selectionLength;
     private bool _cursorVisible = true;
-    private double _lastBlinkTime = 0;
-    private float _scrollOffset = 0;
-    private bool _isDragging = false;
-    private int _dragStartIndex = 0;
+    private double _lastBlinkTime;
+    private float _scrollOffset;
+    private bool _isDragging;
+    private int _dragStartIndex;
     private bool _hasFocus;
-    private int _width = 200;
-    private int _height = 32;
+    private int _width;
+    private int _height;
 
     private const double CursorBlinkInterval = 0.5; // 500ms
     private const int Padding = 4;
@@ -48,6 +48,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
+        _width = 200;
+        _height = 32;
         Theme = theme ?? throw new ArgumentNullException(nameof(theme));
         UpdateTransformSize();
     }
