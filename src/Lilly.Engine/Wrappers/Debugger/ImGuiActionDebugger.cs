@@ -5,7 +5,7 @@ using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 
-namespace Lilly.Engine.Wrappers;
+namespace Lilly.Engine.Wrappers.Debugger;
 
 public class ImGuiActionDebugger : IImGuiDebugger
 {

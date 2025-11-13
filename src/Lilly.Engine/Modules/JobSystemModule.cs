@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Wrappers;
+using Lilly.Engine.Wrappers.Jobs;
 using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Modules;

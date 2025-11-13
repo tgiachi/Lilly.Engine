@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Interfaces.Jobs;
 using MoonSharp.Interpreter;
 
-namespace Lilly.Engine.Wrappers;
+namespace Lilly.Engine.Wrappers.Jobs;
 
 /// <summary>
 /// Wraps a Lua closure to be executed as a job in the job system.

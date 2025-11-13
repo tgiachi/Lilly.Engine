@@ -24,10 +24,9 @@ using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
-using Lilly.Engine.Wrappers;
+using Lilly.Engine.Wrappers.Debugger;
 using Serilog;
 using Silk.NET.Maths;
-using TrippyGL;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -80,7 +79,7 @@ public class LillyBoostrap : ILillyBootstrap
         _logger.Debug("Checking for circular dependencies...");
         var circularDependencies = pluginRegistry.CheckForCircularDependencies(allPluginData);
 
-        if (circularDependencies.Any())
+        if (circularDependencies.Count != 0)
         {
             var cycle = string.Join(" -> ", circularDependencies);
             _logger.Fatal("Circular dependency detected: {Cycle}", cycle);
@@ -230,8 +229,11 @@ public class LillyBoostrap : ILillyBootstrap
             .AddScriptModule<AssetsModule>()
             .AddScriptModule<ImGuiModule>()
             .AddScriptModule<JobSystemModule>()
+            .AddScriptModule<ScenesModule>()
             .AddScriptModule<InputManagerModule>()
+            .AddScriptModule<CameraModule>()
             ;
+
     }
 
     private void InitializeRenderSystem()

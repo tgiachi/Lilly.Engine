@@ -20,7 +20,7 @@ public abstract class BaseScene : IScene
         Name = name.ToSnakeCase();
     }
 
-    public void AddGameObject(IGameObject gameObject)
+    protected void AddGameObject(IGameObject gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
 
@@ -33,7 +33,7 @@ public abstract class BaseScene : IScene
         SceneActivated?.Invoke(this);
     }
 
-    public void RemoveGameObject(IGameObject gameObject)
+    protected void RemoveGameObject(IGameObject gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
 
