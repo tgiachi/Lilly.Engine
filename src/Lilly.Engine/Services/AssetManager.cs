@@ -110,7 +110,11 @@ public class AssetManager : IAssetManager, IDisposable
     }
 
     public ILillyShader GetLillyShader(string shaderName)
-        => throw new NotImplementedException();
+    {
+        return _lillyShaders.TryGetValue(shaderName, out var lillyShader)
+                   ? lillyShader
+                   : throw new InvalidOperationException($"Lilly shader '{shaderName}' is not loaded.");
+    }
 
     /// <summary>
     /// Retrieves a previously loaded texture by name.
