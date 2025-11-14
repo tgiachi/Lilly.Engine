@@ -5,10 +5,10 @@ using Lilly.Engine.Scenes.Transitions.Base;
 
 namespace Lilly.Engine.Interfaces.Services;
 
-   /// <summary>
+/// <summary>
 /// Defines the contract for scene management services.
 /// </summary>
-public interface ISceneManager :  IUpdatable, IDisposable
+public interface ISceneManager : IUpdatable, IDisposable
 {
     /// <summary>
     /// Gets the currently active scene.
@@ -24,12 +24,6 @@ public interface ISceneManager :  IUpdatable, IDisposable
     /// Gets the current scene transition, if any.
     /// </summary>
     Transition? CurrentTransition { get; }
-
-    /// <summary>
-    /// Updates the scene manager and any active transitions.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    void Update(GameTime gameTime);
 
     /// <summary>
     /// Changes to a different scene immediately without a transition.
@@ -76,4 +70,10 @@ public interface ISceneManager :  IUpdatable, IDisposable
     /// <param name="sceneName">The name of the scene to unregister.</param>
     /// <returns>True if the scene was unregistered, false if not found.</returns>
     bool UnregisterScene(string sceneName);
+
+    /// <summary>
+    /// Updates the scene manager and any active transitions.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    void Update(GameTime gameTime);
 }

@@ -9,15 +9,14 @@ public class InputDebugger : BaseDebugger
     private readonly IInputManagerService _inputManagerService;
 
     public InputDebugger(IInputManagerService inputManagerService) : base("Input debugger")
-    {
-        _inputManagerService = inputManagerService;
-    }
+        => _inputManagerService = inputManagerService;
 
     public override void DrawImGui()
     {
-        if ((_inputManagerService.CurrentMouseState == null) && (_inputManagerService.CurrentKeyboardState == null))
+        if (_inputManagerService.CurrentMouseState == null && _inputManagerService.CurrentKeyboardState == null)
         {
             ImGui.Text("No input states available.");
+
             return;
         }
 
@@ -39,16 +38,11 @@ public class InputDebugger : BaseDebugger
             ImGui.BulletText($"Scroll: X: {scrollWheel.X}, Y: {scrollWheel.Y}");
         }
 
-
         ImGui.CollapsingHeader("Keyboard", ImGuiTreeNodeFlags.DefaultOpen);
+
         foreach (var pressedKey in _inputManagerService.PressedKeys)
         {
             ImGui.BulletText(pressedKey.ToString());
         }
-
-
-
-
-
     }
 }

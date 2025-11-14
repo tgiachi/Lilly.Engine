@@ -63,6 +63,15 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     }
 
     /// <summary>
+    /// Enqueues a render command to be processed in the next frame.
+    /// </summary>
+    /// <param name="command">The render command to enqueue.</param>
+    public void EnqueueRenderCommand(RenderCommand command)
+    {
+        _collectedCommands.Add(command);
+    }
+
+    /// <summary>
     /// Gets a specific render layer system by type.
     /// </summary>
     /// <typeparam name="TRenderSystem">The type of render system to retrieve.</typeparam>
@@ -131,6 +140,28 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     }
 
     /// <summary>
+    /// Updates all render layers.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    public void Update(GameTime gameTime)
+    {
+        _renderLayers.UpdateAll(gameTime);
+    }
+
+    /// <summary>
+    /// Notifies all render layers of a viewport resize.
+    /// </summary>
+    /// <param name="width">The new viewport width.</param>
+    /// <param name="height">The new viewport height.</param>
+    public void ViewportResize(int width, int height)
+    {
+        foreach (var layer in _renderLayers.GetLayersSpan())
+        {
+            layer.OnViewportResize(width, height);
+        }
+    }
+
+    /// <summary>
     /// Optimizes the collected render commands.
     /// Base implementation groups commands by type to minimize GPU state changes.
     /// Override in derived classes for more advanced optimization (texture sorting, depth sorting, etc.).
@@ -139,7 +170,9 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     protected virtual void OptimizeCommands(List<RenderCommand> commands)
     {
         if (commands.Count == 0)
+        {
             return;
+        }
 
         // Some command types (e.g., Scissor) depend on precise ordering relative to draw calls.
         // When such commands are present we must preserve the original sequence.
@@ -168,7 +201,9 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
                 var typeComparison = x.CommandType.CompareTo(y.CommandType);
 
                 if (typeComparison != 0)
+                {
                     return typeComparison;
+                }
 
                 // If same type, sort by depth to maintain proper layering
                 var xDepth = GetCommandDepth(x);
@@ -177,21 +212,6 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
                 return xDepth.CompareTo(yDepth);
             }
         );
-    }
-
-    /// <summary>
-    /// Extracts the depth value from a render command payload.
-    /// </summary>
-    /// <param name="command">The render command.</param>
-    /// <returns>The depth value, or 0 if the command type doesn't support depth.</returns>
-    private static float GetCommandDepth(RenderCommand command)
-    {
-        return command.CommandType switch
-        {
-            RenderCommandType.DrawTexture => command.GetPayload<DrawTexturePayload>().Depth,
-            RenderCommandType.DrawText    => command.GetPayload<DrawTextPayload>().Depth,
-            _                             => 0f
-        };
     }
 
     /// <summary>
@@ -230,33 +250,17 @@ public class GraphicRenderPipeline : IGraphicRenderPipeline
     }
 
     /// <summary>
-    /// Updates all render layers.
+    /// Extracts the depth value from a render command payload.
     /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    public void Update(GameTime gameTime)
+    /// <param name="command">The render command.</param>
+    /// <returns>The depth value, or 0 if the command type doesn't support depth.</returns>
+    private static float GetCommandDepth(RenderCommand command)
     {
-        _renderLayers.UpdateAll(gameTime);
-    }
-
-    /// <summary>
-    /// Notifies all render layers of a viewport resize.
-    /// </summary>
-    /// <param name="width">The new viewport width.</param>
-    /// <param name="height">The new viewport height.</param>
-    public void ViewportResize(int width, int height)
-    {
-        foreach (var layer in _renderLayers.GetLayersSpan())
+        return command.CommandType switch
         {
-            layer.OnViewportResize(width, height);
-        }
-    }
-
-    /// <summary>
-    /// Enqueues a render command to be processed in the next frame.
-    /// </summary>
-    /// <param name="command">The render command to enqueue.</param>
-    public void EnqueueRenderCommand(RenderCommand command)
-    {
-        _collectedCommands.Add(command);
+            RenderCommandType.DrawTexture => command.GetPayload<DrawTexturePayload>().Depth,
+            RenderCommandType.DrawText    => command.GetPayload<DrawTextPayload>().Depth,
+            _                             => 0f
+        };
     }
 }

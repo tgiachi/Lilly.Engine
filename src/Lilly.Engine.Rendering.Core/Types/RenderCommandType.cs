@@ -11,12 +11,12 @@ public enum RenderCommandType : byte
     Clear,
 
     /// <summary>
-    ///  Set window options
+    /// Set window options
     /// </summary>
     Window,
 
     /// <summary>
-    ///  Set scissor rectangle for rendering.
+    /// Set scissor rectangle for rendering.
     /// </summary>
     Scissor,
 
@@ -34,8 +34,9 @@ public enum RenderCommandType : byte
     /// Render ImGui debug interface.
     /// </summary>
     ImGui,
+
     /// <summary>
-    ///  No specific render command.
+    /// No specific render command.
     /// </summary>
     None
 }

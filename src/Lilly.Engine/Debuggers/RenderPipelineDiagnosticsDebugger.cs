@@ -6,7 +6,6 @@ using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 
 namespace Lilly.Engine.Debuggers;
@@ -60,9 +59,7 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// </summary>
     /// <param name="renderPipeline">The render pipeline to monitor.</param>
     public RenderPipelineDiagnosticsDebugger(IGraphicRenderPipeline renderPipeline)
-    {
-        _renderPipeline = renderPipeline;
-    }
+        => _renderPipeline = renderPipeline;
 
     /// <summary>
     /// Renders the game object (IGameObject implementation).
@@ -70,7 +67,7 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// <param name="gameTime">The current game time.</param>
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        yield return RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, Render));
+        yield return RenderCommandHelpers.ImGuiRender(new(Name, Render));
     }
 
     /// <summary>
@@ -88,8 +85,6 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
 
         var diagnostics = _renderPipeline.Diagnostics;
 
-
-
         // === Overall Statistics ===
         ImGui.SeparatorText("Overall Statistics");
 
@@ -106,11 +101,17 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
 
         // Color code based on performance
         if (currentCommands > avgCommands * 1.5)
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), $"{currentCommands:N0}"); // Red
+        {
+            ImGui.TextColored(new(1, 0, 0, 1), $"{currentCommands:N0}"); // Red
+        }
         else if (currentCommands > avgCommands * 1.2)
-            ImGui.TextColored(new System.Numerics.Vector4(1, 1, 0, 1), $"{currentCommands:N0}"); // Yellow
+        {
+            ImGui.TextColored(new(1, 1, 0, 1), $"{currentCommands:N0}"); // Yellow
+        }
         else
-            ImGui.TextColored(new System.Numerics.Vector4(0, 1, 0, 1), $"{currentCommands:N0}"); // Green
+        {
+            ImGui.TextColored(new(0, 1, 0, 1), $"{currentCommands:N0}"); // Green
+        }
 
         ImGui.Text($"Average Cmd/Frame:    {diagnostics.AverageCommandsPerFrame:F2}");
         ImGui.Text($"Peak Cmd/Frame:       {diagnostics.PeakCommandsPerFrame:N0}");
@@ -148,13 +149,13 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
                 ImGui.TableHeadersRow();
 
                 // Data rows
-                foreach (var (layerName, stats) in diagnostics.LayerStatistics.OrderByDescending(kvp => kvp.Value.LayerOrder))
+                foreach (var (layerName, stats) in
+                         diagnostics.LayerStatistics.OrderByDescending(kvp => kvp.Value.LayerOrder))
                 {
                     ImGui.TableNextRow();
 
                     ImGui.TableSetColumnIndex(0);
                     ImGui.Text(layerName);
-
 
                     ImGui.TableSetColumnIndex(1);
                     ImGui.Text($"{stats.CommandsThisFrame:N0}");
@@ -192,7 +193,7 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
                                      ? (float)diagnostics.TotalCommandsThisFrame / diagnostics.PeakCommandsPerFrame
                                      : 0f;
 
-            ImGui.ProgressBar(loadPercentage, new System.Numerics.Vector2(0, 0), $"{loadPercentage * 100:F1}%");
+            ImGui.ProgressBar(loadPercentage, new(0, 0), $"{loadPercentage * 100:F1}%");
         }
 
         // === Export ===
@@ -202,6 +203,5 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
         {
             ImGui.SetClipboardText(diagnostics.GetSummary());
         }
-
     }
 }

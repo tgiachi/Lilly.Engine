@@ -9,6 +9,55 @@ namespace Lilly.Engine.Plugins;
 public class PluginDependencyValidator
 {
     /// <summary>
+    /// Detects circular dependencies in a plugin graph.
+    /// </summary>
+    /// <param name="allPlugins">All plugins to check</param>
+    /// <returns>Empty list if no circular dependencies, otherwise list of plugin IDs in cycle</returns>
+    public List<string> DetectCircularDependencies(IReadOnlyList<LillyPluginData> allPlugins)
+    {
+        var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
+        var visited = new HashSet<string>();
+        var recursionStack = new HashSet<string>();
+
+        foreach (var plugin in allPlugins)
+        {
+            if (!visited.Contains(plugin.Id))
+            {
+                var cycle = DetectCycleDFS(plugin.Id, pluginMap, visited, recursionStack);
+
+                if (cycle.Count != 0)
+                {
+                    return cycle;
+                }
+            }
+        }
+
+        return new();
+    }
+
+    /// <summary>
+    /// Sorts plugins in dependency order (topological sort).
+    /// </summary>
+    /// <param name="allPlugins">All plugins to sort</param>
+    /// <returns>Sorted list where dependencies come before dependents</returns>
+    public IEnumerable<LillyPluginData> TopologicalSort(IReadOnlyList<LillyPluginData> allPlugins)
+    {
+        var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
+        var visited = new HashSet<string>();
+        var result = new List<LillyPluginData>();
+
+        foreach (var plugin in allPlugins)
+        {
+            if (!visited.Contains(plugin.Id))
+            {
+                TopologicalSortDFS(plugin.Id, pluginMap, visited, result);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Validates that all declared dependencies for a plugin are loaded.
     /// </summary>
     /// <param name="pluginData">The plugin to validate</param>
@@ -45,33 +94,6 @@ public class PluginDependencyValidator
         return true;
     }
 
-    /// <summary>
-    /// Detects circular dependencies in a plugin graph.
-    /// </summary>
-    /// <param name="allPlugins">All plugins to check</param>
-    /// <returns>Empty list if no circular dependencies, otherwise list of plugin IDs in cycle</returns>
-    public List<string> DetectCircularDependencies(IReadOnlyList<LillyPluginData> allPlugins)
-    {
-        var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
-        var visited = new HashSet<string>();
-        var recursionStack = new HashSet<string>();
-
-        foreach (var plugin in allPlugins)
-        {
-            if (!visited.Contains(plugin.Id))
-            {
-                var cycle = DetectCycleDFS(plugin.Id, pluginMap, visited, recursionStack);
-
-                if (cycle.Count != 0)
-                {
-                    return cycle;
-                }
-            }
-        }
-
-        return new List<string>();
-    }
-
     private List<string> DetectCycleDFS(
         string nodeId,
         Dictionary<string, LillyPluginData> pluginMap,
@@ -80,7 +102,7 @@ public class PluginDependencyValidator
         List<string> path = null
     )
     {
-        path ??= new List<string>();
+        path ??= new();
 
         visited.Add(nodeId);
         recursionStack.Add(nodeId);
@@ -91,14 +113,14 @@ public class PluginDependencyValidator
             recursionStack.Remove(nodeId);
             path.RemoveAt(path.Count - 1);
 
-            return new List<string>();
+            return new();
         }
 
         foreach (var dependency in plugin.Dependencies)
         {
             if (!visited.Contains(dependency))
             {
-                var cycle = DetectCycleDFS(dependency, pluginMap, visited, recursionStack, new List<string>(path));
+                var cycle = DetectCycleDFS(dependency, pluginMap, visited, recursionStack, new(path));
 
                 if (cycle.Count != 0)
                 {
@@ -118,28 +140,6 @@ public class PluginDependencyValidator
         path.RemoveAt(path.Count - 1);
 
         return [];
-    }
-
-    /// <summary>
-    /// Sorts plugins in dependency order (topological sort).
-    /// </summary>
-    /// <param name="allPlugins">All plugins to sort</param>
-    /// <returns>Sorted list where dependencies come before dependents</returns>
-    public IEnumerable<LillyPluginData> TopologicalSort(IReadOnlyList<LillyPluginData> allPlugins)
-    {
-        var pluginMap = allPlugins.ToDictionary(p => p.Id, p => p);
-        var visited = new HashSet<string>();
-        var result = new List<LillyPluginData>();
-
-        foreach (var plugin in allPlugins)
-        {
-            if (!visited.Contains(plugin.Id))
-            {
-                TopologicalSortDFS(plugin.Id, pluginMap, visited, result);
-            }
-        }
-
-        return result;
     }
 
     private void TopologicalSortDFS(

@@ -16,9 +16,7 @@ internal abstract class QueuedJob
     public string Name { get; }
 
     public Task ExecuteAsync(CancellationToken serviceToken)
-    {
-        return !_jobCancellationToken.CanBeCanceled ? ExecuteCoreAsync(serviceToken) : ExecuteWithLinkedTokenAsync(serviceToken);
-    }
+        => !_jobCancellationToken.CanBeCanceled ? ExecuteCoreAsync(serviceToken) : ExecuteWithLinkedTokenAsync(serviceToken);
 
     protected abstract Task ExecuteCoreAsync(CancellationToken cancellationToken);
 

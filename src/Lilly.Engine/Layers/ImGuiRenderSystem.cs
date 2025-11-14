@@ -35,29 +35,29 @@ public class ImGuiRenderSystem : BaseRenderLayerSystem<IImGuiDebugger>, IDisposa
     public ImGuiRenderSystem(RenderContext context) : base("ImGui", RenderLayer.Debug)
         => _context = context;
 
-/// <summary>
-/// Disposes the ImGui controller and releases resources.
-/// </summary>
-public void Dispose()
+    /// <summary>
+    /// Disposes the ImGui controller and releases resources.
+    /// </summary>
+    public void Dispose()
     {
         _imGuiController.Dispose();
         GC.SuppressFinalize(this);
     }
 
-/// <summary>
-/// Initializes the ImGui controller with the graphics context.
-/// </summary>
-public override void Initialize()
+    /// <summary>
+    /// Initializes the ImGui controller with the graphics context.
+    /// </summary>
+    public override void Initialize()
     {
         _imGuiController = new(_context.Gl, _context.Window, _context.InputContext);
         base.Initialize();
     }
 
-/// <summary>
-/// Processes render commands for ImGui debug windows and renders them.
-/// </summary>
-/// <param name="renderCommands">The list of render commands to process.</param>
-public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
+    /// <summary>
+    /// Processes render commands for ImGui debug windows and renders them.
+    /// </summary>
+    /// <param name="renderCommands">The list of render commands to process.</param>
+    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
         foreach (var command in renderCommands)
         {
@@ -70,11 +70,11 @@ public override void ProcessRenderCommands(ref List<RenderCommand> renderCommand
         _imGuiController.Render();
     }
 
-/// <summary>
-/// Updates the ImGui controller with the current frame timing.
-/// </summary>
-/// <param name="gameTime">The current game time information.</param>
-public override void Update(GameTime gameTime)
+    /// <summary>
+    /// Updates the ImGui controller with the current frame timing.
+    /// </summary>
+    /// <param name="gameTime">The current game time information.</param>
+    public override void Update(GameTime gameTime)
     {
         _imGuiController.Update((float)_context.GameTime.ElapsedGameTime);
     }

@@ -1,8 +1,6 @@
-using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Internal;
-using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
@@ -35,15 +33,6 @@ public class SceneManager : ISceneManager
     public uint Id { get; set; }
     public string Name { get; set; } = "SceneManager";
     public ushort Order { get; }
-
-    public IEnumerable<RenderCommand> Render(GameTime gameTime)
-    {
-
-        var viewPort = new Viewport();
-
-        // Scene manager does not render anything itself
-        yield break;
-    }
 
     public SceneManager(
         IInputManagerService inputManagerService,
@@ -227,6 +216,14 @@ public class SceneManager : ISceneManager
 
         _registeredScenes[scene.Name] = scene;
         _logger.Debug("Registered scene {Name}", scene.Name);
+    }
+
+    public IEnumerable<RenderCommand> Render(GameTime gameTime)
+    {
+        var viewPort = new Viewport();
+
+        // Scene manager does not render anything itself
+        yield break;
     }
 
     /// <summary>

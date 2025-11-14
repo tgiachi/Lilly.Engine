@@ -11,51 +11,25 @@ namespace Lilly.Engine.Modules;
 [ScriptModule("imGui", "Complete ImGui drawing and interaction library")]
 public class ImGuiModule
 {
+    [ScriptFunction("arrow_button")]
+    public bool ArrowButton(string id, int direction)
+        => ImGui.ArrowButton(id, (ImGuiDir)direction);
 
-    /// <summary>
-    /// Displays text using ImGui.
-    /// </summary>
-    /// <param name="message">The text to display.</param>
-    [ScriptFunction("text")]
-    public void Text(string message)
-        => ImGui.Text(message);
+    [ScriptFunction("begin_group")]
+    public void BeginGroup()
+        => ImGui.BeginGroup();
 
-    /// <summary>
-    /// Displays colored text using ImGui.
-    /// </summary>
-    /// <param name="r">Red component (0-1).</param>
-    /// <param name="g">Green component (0-1).</param>
-    /// <param name="b">Blue component (0-1).</param>
-    /// <param name="a">Alpha component (0-1).</param>
-    /// <param name="message">The text to display.</param>
-    [ScriptFunction("text_colored")]
-    public void TextColored(float r, float g, float b, float a, string message)
-        => ImGui.TextColored(new(r, g, b, a), message);
+    [ScriptFunction("begin_popup")]
+    public bool BeginPopup(string id, int flags = 0)
+        => ImGui.BeginPopup(id, (ImGuiWindowFlags)flags);
 
-    /// <summary>
-    /// Displays disabled text using ImGui.
-    /// </summary>
-    /// <param name="message">The text to display.</param>
-    [ScriptFunction("text_disabled")]
-    public void TextDisabled(string message)
-        => ImGui.TextDisabled(message);
+    [ScriptFunction("begin_popup_modal")]
+    public bool BeginPopupModal(string title, int flags = 0)
+        => ImGui.BeginPopupModal(title, (ImGuiWindowFlags)flags);
 
-    /// <summary>
-    /// Displays wrapped text using ImGui.
-    /// </summary>
-    /// <param name="message">The text to display.</param>
-    [ScriptFunction("text_wrapped")]
-    public void TextWrapped(string message)
-        => ImGui.TextWrapped(message);
-
-    /// <summary>
-    /// Displays a label with text using ImGui.
-    /// </summary>
-    /// <param name="label">The label.</param>
-    /// <param name="message">The text to display.</param>
-    [ScriptFunction("label_text")]
-    public void LabelText(string label, string message)
-        => ImGui.LabelText(label, message);
+    [ScriptFunction("begin_tooltip")]
+    public void BeginTooltip()
+        => ImGui.BeginTooltip();
 
     /// <summary>
     /// Displays a bullet point text using ImGui.
@@ -65,26 +39,19 @@ public class ImGuiModule
     public void BulletText(string message)
         => ImGui.BulletText(message);
 
-
-
-
     [ScriptFunction("button")]
     public bool Button(string label, float width = 0, float height = 0)
         => width > 0 || height > 0
                ? ImGui.Button(label, new(width, height))
                : ImGui.Button(label);
 
-    [ScriptFunction("small_button")]
-    public bool SmallButton(string label)
-        => ImGui.SmallButton(label);
+    [ScriptFunction("calc_text_size")]
+    public string CalcTextSize(string text)
+    {
+        var size = ImGui.CalcTextSize(text);
 
-    [ScriptFunction("invisible_button")]
-    public bool InvisibleButton(string id, float width, float height)
-        => ImGui.InvisibleButton(id, new(width, height));
-
-    [ScriptFunction("arrow_button")]
-    public bool ArrowButton(string id, int direction)
-        => ImGui.ArrowButton(id, (ImGuiDir)direction);
+        return $"{size.X},{size.Y}";
+    }
 
     [ScriptFunction("checkbox")]
     public bool Checkbox(string label, bool value)
@@ -95,39 +62,103 @@ public class ImGuiModule
         return v;
     }
 
-    [ScriptFunction("radio_button")]
-    public bool RadioButton(string label, int active, int buttonValue)
+    [ScriptFunction("close_current_popup")]
+    public void CloseCurrentPopup()
+        => ImGui.CloseCurrentPopup();
+
+    [ScriptFunction("collapsing_header")]
+    public bool CollapsingHeader(string label, int flags = 0)
+        => ImGui.CollapsingHeader(label, (ImGuiTreeNodeFlags)flags);
+
+    [ScriptFunction("color_picker3")]
+    public string ColorPicker3(string label, float r, float g, float b)
     {
-        var isActive = active == buttonValue;
+        Vector3 color = new(r, g, b);
+        ImGui.ColorPicker3(label, ref color);
 
-        if (ImGui.RadioButton(label, isActive))
-        {
-            return true;
-        }
-
-        return false;
+        return $"{color.X},{color.Y},{color.Z}";
     }
 
-
-
-
-    [ScriptFunction("input_text")]
-    public string InputText(string label, string text, uint maxLength = 256)
+    [ScriptFunction("color_picker4")]
+    public string ColorPicker4(string label, float r, float g, float b, float a)
     {
-        var value = text;
-        ImGui.InputText(label, ref value, maxLength);
+        Vector4 color = new(r, g, b, a);
+        ImGui.ColorPicker4(label, ref color);
 
-        return value;
+        return $"{color.X},{color.Y},{color.Z},{color.W}";
     }
 
-    [ScriptFunction("input_text_multiline")]
-    public string InputTextMultiline(string label, string text, float width, float height, uint maxLength = 1024)
-    {
-        var value = text;
-        ImGui.InputTextMultiline(label, ref value, maxLength, new(width, height));
+    [ScriptFunction("dummy")]
+    public void Dummy(float width, float height)
+        => ImGui.Dummy(new(width, height));
 
-        return value;
+    [ScriptFunction("end_group")]
+    public void EndGroup()
+        => ImGui.EndGroup();
+
+    [ScriptFunction("end_popup")]
+    public void EndPopup()
+        => ImGui.EndPopup();
+
+    [ScriptFunction("end_tooltip")]
+    public void EndTooltip()
+        => ImGui.EndTooltip();
+
+    [ScriptFunction("get_cursor_pos")]
+    public string GetCursorPos()
+    {
+        var pos = ImGui.GetCursorPos();
+
+        return $"{pos.X},{pos.Y}";
     }
+
+    [ScriptFunction("get_draw_data")]
+    public string GetDrawData()
+        => "DrawData retrieved";
+
+    [ScriptFunction("get_frame_height")]
+    public float GetFrameHeight()
+        => ImGui.GetFrameHeight();
+
+    [ScriptFunction("get_frame_height_with_spacing")]
+    public float GetFrameHeightWithSpacing()
+        => ImGui.GetFrameHeightWithSpacing();
+
+    [ScriptFunction("get_io")]
+    public string GetIO()
+    {
+        var io = ImGui.GetIO();
+
+        return $"FPS:{io.Framerate:F1} Mouse:({io.MousePos.X:F0},{io.MousePos.Y:F0}) Delta:{io.DeltaTime:F3}";
+    }
+
+    [ScriptFunction("get_mouse_pos")]
+    public string GetMousePos()
+    {
+        var pos = ImGui.GetMousePos();
+
+        return $"{pos.X},{pos.Y}";
+    }
+
+    [ScriptFunction("get_window_pos")]
+    public string GetWindowPos()
+    {
+        var pos = ImGui.GetWindowPos();
+
+        return $"{pos.X},{pos.Y}";
+    }
+
+    [ScriptFunction("get_window_size")]
+    public string GetWindowSize()
+    {
+        var size = ImGui.GetWindowSize();
+
+        return $"{size.X},{size.Y}";
+    }
+
+    [ScriptFunction("indent")]
+    public void Indent(float width = 0)
+        => ImGui.Indent(width);
 
     [ScriptFunction("input_float")]
     public float InputFloat(string label, float value, float step = 0.0f, float stepFast = 0.0f)
@@ -174,8 +205,135 @@ public class ImGuiModule
         return $"{values[0]},{values[1]}";
     }
 
+    [ScriptFunction("input_text")]
+    public string InputText(string label, string text, uint maxLength = 256)
+    {
+        var value = text;
+        ImGui.InputText(label, ref value, maxLength);
 
+        return value;
+    }
 
+    [ScriptFunction("input_text_multiline")]
+    public string InputTextMultiline(string label, string text, float width, float height, uint maxLength = 1024)
+    {
+        var value = text;
+        ImGui.InputTextMultiline(label, ref value, maxLength, new(width, height));
+
+        return value;
+    }
+
+    [ScriptFunction("invisible_button")]
+    public bool InvisibleButton(string id, float width, float height)
+        => ImGui.InvisibleButton(id, new(width, height));
+
+    [ScriptFunction("is_item_hovered")]
+    public bool IsItemHovered(int flags = 0)
+        => ImGui.IsItemHovered((ImGuiHoveredFlags)flags);
+
+    [ScriptFunction("is_key_down")]
+    public bool IsKeyDown(int key)
+        => ImGui.IsKeyDown((ImGuiKey)key);
+
+    [ScriptFunction("is_key_pressed")]
+    public bool IsKeyPressed(int key)
+        => ImGui.IsKeyPressed((ImGuiKey)key);
+
+    [ScriptFunction("is_mouse_clicked")]
+    public bool IsMouseClicked(int button)
+        => ImGui.IsMouseClicked((ImGuiMouseButton)button);
+
+    [ScriptFunction("is_mouse_down")]
+    public bool IsMouseDown(int button)
+        => ImGui.IsMouseDown((ImGuiMouseButton)button);
+
+    [ScriptFunction("is_popup_open")]
+    public bool IsPopupOpen(string id, int flags = 0)
+        => ImGui.IsPopupOpen(id, (ImGuiPopupFlags)flags);
+
+    /// <summary>
+    /// Displays a label with text using ImGui.
+    /// </summary>
+    /// <param name="label">The label.</param>
+    /// <param name="message">The text to display.</param>
+    [ScriptFunction("label_text")]
+    public void LabelText(string label, string message)
+        => ImGui.LabelText(label, message);
+
+    [ScriptFunction("new_line")]
+    public void NewLine()
+        => ImGui.NewLine();
+
+    [ScriptFunction("open_popup")]
+    public void OpenPopup(string id, int flags = 0)
+        => ImGui.OpenPopup(id, (ImGuiPopupFlags)flags);
+
+    [ScriptFunction("pop_style_color")]
+    public void PopStyleColor(int count = 1)
+        => ImGui.PopStyleColor(count);
+
+    [ScriptFunction("pop_style_var")]
+    public void PopStyleVar(int count = 1)
+        => ImGui.PopStyleVar(count);
+
+    [ScriptFunction("push_style_color")]
+    public void PushStyleColor(int idx, float r, float g, float b, float a)
+        => ImGui.PushStyleColor((ImGuiCol)idx, new Vector4(r, g, b, a));
+
+    [ScriptFunction("push_style_var_float")]
+    public void PushStyleVarFloat(int idx, float val)
+        => ImGui.PushStyleVar((ImGuiStyleVar)idx, val);
+
+    [ScriptFunction("push_style_var_vec2")]
+    public void PushStyleVarVec2(int idx, float x, float y)
+        => ImGui.PushStyleVar((ImGuiStyleVar)idx, new Vector2(x, y));
+
+    [ScriptFunction("radio_button")]
+    public bool RadioButton(string label, int active, int buttonValue)
+    {
+        var isActive = active == buttonValue;
+
+        if (ImGui.RadioButton(label, isActive))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    [ScriptFunction("same_line")]
+    public void SameLine(float offsetFromStart = 0, float spacing = -1)
+        => ImGui.SameLine(offsetFromStart, spacing);
+
+    [ScriptFunction("separator")]
+    public void Separator()
+        => ImGui.Separator();
+
+    [ScriptFunction("set_cursor_pos")]
+    public void SetCursorPos(float x, float y)
+        => ImGui.SetCursorPos(new(x, y));
+
+    [ScriptFunction("set_item_tooltip")]
+    public void SetItemTooltip(string tooltip)
+        => ImGui.SetItemTooltip(tooltip);
+
+    [ScriptFunction("set_next_item_open")]
+    public void SetNextItemOpen(bool open, int cond = 0)
+        => ImGui.SetNextItemOpen(open, (ImGuiCond)cond);
+
+    [ScriptFunction("show_demo_window")]
+    public void ShowDemoWindow()
+    {
+        var show = true;
+        ImGui.ShowDemoWindow(ref show);
+    }
+
+    [ScriptFunction("show_metrics_window")]
+    public void ShowMetricsWindow()
+    {
+        var show = true;
+        ImGui.ShowMetricsWindow(ref show);
+    }
 
     [ScriptFunction("slider_float")]
     public float SliderFloat(string label, float value, float min, float max)
@@ -222,6 +380,66 @@ public class ImGuiModule
         return $"{values[0]},{values[1]}";
     }
 
+    [ScriptFunction("small_button")]
+    public bool SmallButton(string label)
+        => ImGui.SmallButton(label);
+
+    [ScriptFunction("spacing")]
+    public void Spacing()
+        => ImGui.Spacing();
+
+    /// <summary>
+    /// Displays text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
+    [ScriptFunction("text")]
+    public void Text(string message)
+        => ImGui.Text(message);
+
+    /// <summary>
+    /// Displays colored text using ImGui.
+    /// </summary>
+    /// <param name="r">Red component (0-1).</param>
+    /// <param name="g">Green component (0-1).</param>
+    /// <param name="b">Blue component (0-1).</param>
+    /// <param name="a">Alpha component (0-1).</param>
+    /// <param name="message">The text to display.</param>
+    [ScriptFunction("text_colored")]
+    public void TextColored(float r, float g, float b, float a, string message)
+        => ImGui.TextColored(new(r, g, b, a), message);
+
+    /// <summary>
+    /// Displays disabled text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
+    [ScriptFunction("text_disabled")]
+    public void TextDisabled(string message)
+        => ImGui.TextDisabled(message);
+
+    /// <summary>
+    /// Displays wrapped text using ImGui.
+    /// </summary>
+    /// <param name="message">The text to display.</param>
+    [ScriptFunction("text_wrapped")]
+    public void TextWrapped(string message)
+        => ImGui.TextWrapped(message);
+
+    [ScriptFunction("tree_node")]
+    public bool TreeNode(string label)
+        => ImGui.TreeNode(label);
+
+    [ScriptFunction("tree_node_ex")]
+    public bool TreeNodeEx(string label, int flags = 0)
+        => ImGui.TreeNodeEx(label, (ImGuiTreeNodeFlags)flags);
+
+    [ScriptFunction("tree_pop")]
+    public void TreePop()
+        => ImGui.TreePop();
+
+    [ScriptFunction("unindent")]
+    public void Unindent(float width = 0)
+        => ImGui.Unindent(width);
+
     [ScriptFunction("vslider_float")]
     public float VSliderFloat(string label, float width, float height, float value, float min, float max)
     {
@@ -239,261 +457,4 @@ public class ImGuiModule
 
         return v;
     }
-
-
-
-
-    [ScriptFunction("color_picker3")]
-    public string ColorPicker3(string label, float r, float g, float b)
-    {
-        Vector3 color = new(r, g, b);
-        ImGui.ColorPicker3(label, ref color);
-
-        return $"{color.X},{color.Y},{color.Z}";
-    }
-
-    [ScriptFunction("color_picker4")]
-    public string ColorPicker4(string label, float r, float g, float b, float a)
-    {
-        Vector4 color = new(r, g, b, a);
-        ImGui.ColorPicker4(label, ref color);
-
-        return $"{color.X},{color.Y},{color.Z},{color.W}";
-    }
-
-
-
-
-    [ScriptFunction("separator")]
-    public void Separator()
-        => ImGui.Separator();
-
-    [ScriptFunction("spacing")]
-    public void Spacing()
-        => ImGui.Spacing();
-
-    [ScriptFunction("new_line")]
-    public void NewLine()
-        => ImGui.NewLine();
-
-    [ScriptFunction("same_line")]
-    public void SameLine(float offsetFromStart = 0, float spacing = -1)
-        => ImGui.SameLine(offsetFromStart, spacing);
-
-    [ScriptFunction("indent")]
-    public void Indent(float width = 0)
-        => ImGui.Indent(width);
-
-    [ScriptFunction("unindent")]
-    public void Unindent(float width = 0)
-        => ImGui.Unindent(width);
-
-    [ScriptFunction("dummy")]
-    public void Dummy(float width, float height)
-        => ImGui.Dummy(new(width, height));
-
-
-
-
-    [ScriptFunction("begin_group")]
-    public void BeginGroup()
-        => ImGui.BeginGroup();
-
-    [ScriptFunction("end_group")]
-    public void EndGroup()
-        => ImGui.EndGroup();
-
-    [ScriptFunction("collapsing_header")]
-    public bool CollapsingHeader(string label, int flags = 0)
-        => ImGui.CollapsingHeader(label, (ImGuiTreeNodeFlags)flags);
-
-    [ScriptFunction("tree_node")]
-    public bool TreeNode(string label)
-        => ImGui.TreeNode(label);
-
-    [ScriptFunction("tree_node_ex")]
-    public bool TreeNodeEx(string label, int flags = 0)
-        => ImGui.TreeNodeEx(label, (ImGuiTreeNodeFlags)flags);
-
-    [ScriptFunction("tree_pop")]
-    public void TreePop()
-        => ImGui.TreePop();
-
-    [ScriptFunction("set_next_item_open")]
-    public void SetNextItemOpen(bool open, int cond = 0)
-        => ImGui.SetNextItemOpen(open, (ImGuiCond)cond);
-
-
-
-
-    [ScriptFunction("is_item_hovered")]
-    public bool IsItemHovered(int flags = 0)
-        => ImGui.IsItemHovered((ImGuiHoveredFlags)flags);
-
-    [ScriptFunction("set_item_tooltip")]
-    public void SetItemTooltip(string tooltip)
-        => ImGui.SetItemTooltip(tooltip);
-
-    [ScriptFunction("begin_tooltip")]
-    public void BeginTooltip()
-        => ImGui.BeginTooltip();
-
-    [ScriptFunction("end_tooltip")]
-    public void EndTooltip()
-        => ImGui.EndTooltip();
-
-
-
-
-    [ScriptFunction("open_popup")]
-    public void OpenPopup(string id, int flags = 0)
-        => ImGui.OpenPopup(id, (ImGuiPopupFlags)flags);
-
-    [ScriptFunction("begin_popup")]
-    public bool BeginPopup(string id, int flags = 0)
-        => ImGui.BeginPopup(id, (ImGuiWindowFlags)flags);
-
-    [ScriptFunction("begin_popup_modal")]
-    public bool BeginPopupModal(string title, int flags = 0)
-        => ImGui.BeginPopupModal(title, (ImGuiWindowFlags)flags);
-
-    [ScriptFunction("end_popup")]
-    public void EndPopup()
-        => ImGui.EndPopup();
-
-    [ScriptFunction("close_current_popup")]
-    public void CloseCurrentPopup()
-        => ImGui.CloseCurrentPopup();
-
-    [ScriptFunction("is_popup_open")]
-    public bool IsPopupOpen(string id, int flags = 0)
-        => ImGui.IsPopupOpen(id, (ImGuiPopupFlags)flags);
-
-
-
-
-    [ScriptFunction("get_draw_data")]
-    public string GetDrawData()
-        => "DrawData retrieved";
-
-    [ScriptFunction("show_demo_window")]
-    public void ShowDemoWindow()
-    {
-        var show = true;
-        ImGui.ShowDemoWindow(ref show);
-    }
-
-    [ScriptFunction("show_metrics_window")]
-    public void ShowMetricsWindow()
-    {
-        var show = true;
-        ImGui.ShowMetricsWindow(ref show);
-    }
-
-
-
-
-    [ScriptFunction("push_style_color")]
-    public void PushStyleColor(int idx, float r, float g, float b, float a)
-        => ImGui.PushStyleColor((ImGuiCol)idx, new Vector4(r, g, b, a));
-
-    [ScriptFunction("pop_style_color")]
-    public void PopStyleColor(int count = 1)
-        => ImGui.PopStyleColor(count);
-
-    [ScriptFunction("push_style_var_float")]
-    public void PushStyleVarFloat(int idx, float val)
-        => ImGui.PushStyleVar((ImGuiStyleVar)idx, val);
-
-    [ScriptFunction("push_style_var_vec2")]
-    public void PushStyleVarVec2(int idx, float x, float y)
-        => ImGui.PushStyleVar((ImGuiStyleVar)idx, new Vector2(x, y));
-
-    [ScriptFunction("pop_style_var")]
-    public void PopStyleVar(int count = 1)
-        => ImGui.PopStyleVar(count);
-
-
-
-
-    [ScriptFunction("get_io")]
-    public string GetIO()
-    {
-        var io = ImGui.GetIO();
-
-        return $"FPS:{io.Framerate:F1} Mouse:({io.MousePos.X:F0},{io.MousePos.Y:F0}) Delta:{io.DeltaTime:F3}";
-    }
-
-    [ScriptFunction("is_mouse_down")]
-    public bool IsMouseDown(int button)
-        => ImGui.IsMouseDown((ImGuiMouseButton)button);
-
-    [ScriptFunction("is_mouse_clicked")]
-    public bool IsMouseClicked(int button)
-        => ImGui.IsMouseClicked((ImGuiMouseButton)button);
-
-    [ScriptFunction("get_mouse_pos")]
-    public string GetMousePos()
-    {
-        var pos = ImGui.GetMousePos();
-
-        return $"{pos.X},{pos.Y}";
-    }
-
-    [ScriptFunction("is_key_down")]
-    public bool IsKeyDown(int key)
-        => ImGui.IsKeyDown((ImGuiKey)key);
-
-    [ScriptFunction("is_key_pressed")]
-    public bool IsKeyPressed(int key)
-        => ImGui.IsKeyPressed((ImGuiKey)key);
-
-
-
-
-    [ScriptFunction("calc_text_size")]
-    public string CalcTextSize(string text)
-    {
-        var size = ImGui.CalcTextSize(text);
-
-        return $"{size.X},{size.Y}";
-    }
-
-    [ScriptFunction("get_cursor_pos")]
-    public string GetCursorPos()
-    {
-        var pos = ImGui.GetCursorPos();
-
-        return $"{pos.X},{pos.Y}";
-    }
-
-    [ScriptFunction("set_cursor_pos")]
-    public void SetCursorPos(float x, float y)
-        => ImGui.SetCursorPos(new(x, y));
-
-    [ScriptFunction("get_frame_height")]
-    public float GetFrameHeight()
-        => ImGui.GetFrameHeight();
-
-    [ScriptFunction("get_frame_height_with_spacing")]
-    public float GetFrameHeightWithSpacing()
-        => ImGui.GetFrameHeightWithSpacing();
-
-    [ScriptFunction("get_window_pos")]
-    public string GetWindowPos()
-    {
-        var pos = ImGui.GetWindowPos();
-
-        return $"{pos.X},{pos.Y}";
-    }
-
-    [ScriptFunction("get_window_size")]
-    public string GetWindowSize()
-    {
-        var size = ImGui.GetWindowSize();
-
-        return $"{size.X},{size.Y}";
-    }
-
-
 }

@@ -4,21 +4,14 @@ using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Scenes.Base;
 
-public class LuaScene  : BaseScene
+public class LuaScene : BaseScene
 {
-
     private readonly Table _table;
 
     public LuaScene(Table table, IGameObjectManager gameObjectManager, string name) : base(gameObjectManager, name)
     {
         _table = table;
         SceneActivated += OnSceneActivated;
-
-    }
-
-    private void OnSceneActivated(IScene scene)
-    {
-        _table.Get("on_activated")?.Function?.Call(this);
     }
 
     public override void Load()
@@ -27,4 +20,8 @@ public class LuaScene  : BaseScene
         base.Load();
     }
 
+    private void OnSceneActivated(IScene scene)
+    {
+        _table.Get("on_activated")?.Function?.Call(this);
+    }
 }

@@ -71,6 +71,29 @@ public class LogEntry
     }
 
     /// <summary>
+    /// Gets the display text with count badge if collapsed.
+    /// </summary>
+    public string GetDisplayText()
+        => IsCollapsed ? $"[{Count}x] {Message}" : Message;
+
+    /// <summary>
+    /// Gets a color associated with the log level.
+    /// </summary>
+    public (byte R, byte G, byte B, byte A) GetLevelColor()
+    {
+        return Level switch
+        {
+            LogEventLevel.Verbose     => (128, 128, 128, 255), // Gray
+            LogEventLevel.Debug       => (150, 150, 150, 255), // Light Gray
+            LogEventLevel.Information => (255, 255, 255, 255), // White
+            LogEventLevel.Warning     => (255, 255, 0, 255),   // Yellow
+            LogEventLevel.Error       => (255, 100, 100, 255), // Red
+            LogEventLevel.Fatal       => (255, 0, 0, 255),     // Bright Red
+            _                         => (255, 255, 255, 255)
+        };
+    }
+
+    /// <summary>
     /// Increments the occurrence count and updates the last occurrence timestamp.
     /// </summary>
     public void IncrementCount(DateTimeOffset timestamp)
@@ -85,31 +108,7 @@ public class LogEntry
     private static string GenerateId(string message, LogEventLevel level, string? sourceContext)
     {
         var hash = HashCode.Combine(message, level, sourceContext ?? string.Empty);
+
         return hash.ToString();
-    }
-
-    /// <summary>
-    /// Gets the display text with count badge if collapsed.
-    /// </summary>
-    public string GetDisplayText()
-    {
-        return IsCollapsed ? $"[{Count}x] {Message}" : Message;
-    }
-
-    /// <summary>
-    /// Gets a color associated with the log level.
-    /// </summary>
-    public (byte R, byte G, byte B, byte A) GetLevelColor()
-    {
-        return Level switch
-        {
-            LogEventLevel.Verbose => (128, 128, 128, 255),    // Gray
-            LogEventLevel.Debug => (150, 150, 150, 255),      // Light Gray
-            LogEventLevel.Information => (255, 255, 255, 255),// White
-            LogEventLevel.Warning => (255, 255, 0, 255),      // Yellow
-            LogEventLevel.Error => (255, 100, 100, 255),      // Red
-            LogEventLevel.Fatal => (255, 0, 0, 255),          // Bright Red
-            _ => (255, 255, 255, 255)
-        };
     }
 }

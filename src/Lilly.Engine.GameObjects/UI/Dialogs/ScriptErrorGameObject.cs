@@ -1,10 +1,9 @@
 using System.Numerics;
+using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Data.Scripts;
-using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.GameObjects.Utils;
-using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
@@ -50,7 +49,7 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     private float _stackTraceScrollOffset;
     private float _stackTraceMaxScroll;
 
-    private Viewport _viewportSize;
+    private readonly Viewport _viewportSize;
 
     /// <summary>
     /// Gets or sets the error information to display.
@@ -110,10 +109,15 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
         Transform.Position = Vector2D<float>.Zero;
     }
 
-    private void ScriptEngineServiceOnOnScriptError(object? sender, ScriptErrorInfo e)
-    {
-        ErrorInfo = e;
-    }
+    public bool IsFocusable => true;
+
+    public bool HasFocus { get; set; }
+
+    public Rectangle<int> Bounds
+        => new(
+            new((int)Transform.Position.X, (int)Transform.Position.Y),
+            new((int)Transform.Size.X, (int)Transform.Size.Y)
+        );
 
     /// <summary>
     /// Closes the dialog and fires the Closed event.
@@ -123,16 +127,6 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
         Closed?.Invoke(this, EventArgs.Empty);
         IsVisible = false;
     }
-
-    public bool IsFocusable => true;
-
-    public bool HasFocus { get; set; }
-
-    public Rectangle<int> Bounds
-        => new(
-            new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
-            new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
-        );
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
@@ -191,9 +185,7 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     }
 
     public bool IsMouseInBounds(Vector2 mousePosition)
-    {
-        return Bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
-    }
+        => Bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
 
     public override void Update(GameTime gameTime)
     {
@@ -257,7 +249,7 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
         }
 
         // Calculate and draw close button
-        _closeButtonBounds = new Rectangle<int>(
+        _closeButtonBounds = new(
             (int)(dialogBounds.Origin.X + dialogBounds.Size.X - ButtonWidth - DialogPadding),
             (int)(dialogBounds.Origin.Y + dialogBounds.Size.Y - ButtonHeight - DialogPadding),
             ButtonWidth,
@@ -308,13 +300,43 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     }
 
     /// <summary>
-    /// Draws the semi-transparent overlay.
+    /// Draws the close button.
     /// </summary>
-    private IEnumerable<RenderCommand> DrawOverlay(Viewport viewport)
+    private IEnumerable<RenderCommand> DrawCloseButton()
     {
-        var overlayBounds = new Rectangle<float>(0, 0, viewport.Width, viewport.Height);
+        var buttonColor = _isCloseButtonHovered ? new(90, 90, 90) : new Color4b(70, 70, 70);
+        var boundsFloat = new Rectangle<float>(
+            _closeButtonBounds.Origin.X,
+            _closeButtonBounds.Origin.Y,
+            _closeButtonBounds.Size.X,
+            _closeButtonBounds.Size.Y
+        );
 
-        yield return DrawRectangle(overlayBounds, _theme.ScriptErrorOverlayColor, depth: NextDepth());
+        // Draw button background
+        yield return DrawRectangle(boundsFloat, buttonColor, NextDepth());
+
+        // Draw button border
+        foreach (var cmd in DrawBorder(boundsFloat, new(100, 100, 100), 1f, NextDepth()))
+        {
+            yield return cmd;
+        }
+
+        // Draw button text
+        var text = "Close";
+        var textSize = TextMeasurement.MeasureString(_assetManager, text, _theme.FontName, ContentFontSize);
+        var textPosition = new Vector2D<float>(
+            _closeButtonBounds.Origin.X + (_closeButtonBounds.Size.X - textSize.X) / 2f,
+            _closeButtonBounds.Origin.Y + (_closeButtonBounds.Size.Y - textSize.Y) / 2f
+        );
+
+        yield return DrawTextCustom(
+            _theme.FontName,
+            text,
+            ContentFontSize,
+            textPosition,
+            color: Color4b.White,
+            depth: NextDepth()
+        );
     }
 
     /// <summary>
@@ -322,44 +344,13 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     /// </summary>
     private IEnumerable<RenderCommand> DrawDialogBackground(Rectangle<float> bounds)
     {
-        yield return DrawRectangle(bounds, _theme.ScriptErrorDialogBackgroundColor, depth: NextDepth());
+        yield return DrawRectangle(bounds, _theme.ScriptErrorDialogBackgroundColor, NextDepth());
 
         // Draw border
-        foreach (var cmd in DrawBorder(bounds, _theme.ScriptErrorCodeBorderColor, 2f, depth: NextDepth()))
+        foreach (var cmd in DrawBorder(bounds, _theme.ScriptErrorCodeBorderColor, 2f, NextDepth()))
         {
             yield return cmd;
         }
-    }
-
-    /// <summary>
-    /// Draws the title bar.
-    /// </summary>
-    private IEnumerable<RenderCommand> DrawTitleBar(Rectangle<float> dialogBounds)
-    {
-        var titleBarBounds = new Rectangle<float>(
-            dialogBounds.Origin.X,
-            dialogBounds.Origin.Y,
-            dialogBounds.Size.X,
-            TitleBarHeight
-        );
-
-        yield return DrawRectangle(titleBarBounds, _theme.ScriptErrorTitleBarColor, depth: NextDepth());
-
-        var title = "Script Error";
-        var titleSize = TextMeasurement.MeasureString(_assetManager, title, _theme.FontName, TitleFontSize);
-        var titlePosition = new Vector2D<float>(
-            titleBarBounds.Origin.X + DialogPadding,
-            titleBarBounds.Origin.Y + (TitleBarHeight - titleSize.Y) / 2f
-        );
-
-        yield return DrawTextCustom(
-            _theme.FontName,
-            title,
-            TitleFontSize,
-            titlePosition,
-            color: _theme.ScriptErrorTitleTextColor,
-            depth: NextDepth()
-        );
     }
 
     /// <summary>
@@ -478,6 +469,16 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     }
 
     /// <summary>
+    /// Draws the semi-transparent overlay.
+    /// </summary>
+    private IEnumerable<RenderCommand> DrawOverlay(Viewport viewport)
+    {
+        var overlayBounds = new Rectangle<float>(0, 0, viewport.Width, viewport.Height);
+
+        yield return DrawRectangle(overlayBounds, _theme.ScriptErrorOverlayColor, NextDepth());
+    }
+
+    /// <summary>
     /// Draws the stack trace box with scrolling support.
     /// </summary>
     private IEnumerable<RenderCommand> DrawStackTraceBox(Rectangle<int> bounds)
@@ -485,10 +486,10 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
         var boundsFloat = new Rectangle<float>(bounds.Origin.X, bounds.Origin.Y, bounds.Size.X, bounds.Size.Y);
 
         // Draw background
-        yield return DrawRectangle(boundsFloat, _theme.ScriptErrorCodeBackgroundColor, depth: NextDepth());
+        yield return DrawRectangle(boundsFloat, _theme.ScriptErrorCodeBackgroundColor, NextDepth());
 
         // Draw border
-        foreach (var cmd in DrawBorder(boundsFloat, _theme.ScriptErrorCodeBorderColor, 1f, depth: NextDepth()))
+        foreach (var cmd in DrawBorder(boundsFloat, _theme.ScriptErrorCodeBorderColor, 1f, NextDepth()))
         {
             yield return cmd;
         }
@@ -527,43 +528,39 @@ public class ScriptErrorGameObject : BaseGameObject2D, IInputReceiver
     }
 
     /// <summary>
-    /// Draws the close button.
+    /// Draws the title bar.
     /// </summary>
-    private IEnumerable<RenderCommand> DrawCloseButton()
+    private IEnumerable<RenderCommand> DrawTitleBar(Rectangle<float> dialogBounds)
     {
-        var buttonColor = _isCloseButtonHovered ? new Color4b(90, 90, 90) : new Color4b(70, 70, 70);
-        var boundsFloat = new Rectangle<float>(
-            _closeButtonBounds.Origin.X,
-            _closeButtonBounds.Origin.Y,
-            _closeButtonBounds.Size.X,
-            _closeButtonBounds.Size.Y
+        var titleBarBounds = new Rectangle<float>(
+            dialogBounds.Origin.X,
+            dialogBounds.Origin.Y,
+            dialogBounds.Size.X,
+            TitleBarHeight
         );
 
-        // Draw button background
-        yield return DrawRectangle(boundsFloat, buttonColor, depth: NextDepth());
+        yield return DrawRectangle(titleBarBounds, _theme.ScriptErrorTitleBarColor, NextDepth());
 
-        // Draw button border
-        foreach (var cmd in DrawBorder(boundsFloat, new Color4b(100, 100, 100), 1f, depth: NextDepth()))
-        {
-            yield return cmd;
-        }
-
-        // Draw button text
-        var text = "Close";
-        var textSize = TextMeasurement.MeasureString(_assetManager, text, _theme.FontName, ContentFontSize);
-        var textPosition = new Vector2D<float>(
-            _closeButtonBounds.Origin.X + (_closeButtonBounds.Size.X - textSize.X) / 2f,
-            _closeButtonBounds.Origin.Y + (_closeButtonBounds.Size.Y - textSize.Y) / 2f
+        var title = "Script Error";
+        var titleSize = TextMeasurement.MeasureString(_assetManager, title, _theme.FontName, TitleFontSize);
+        var titlePosition = new Vector2D<float>(
+            titleBarBounds.Origin.X + DialogPadding,
+            titleBarBounds.Origin.Y + (TitleBarHeight - titleSize.Y) / 2f
         );
 
         yield return DrawTextCustom(
             _theme.FontName,
-            text,
-            ContentFontSize,
-            textPosition,
-            color: Color4b.White,
+            title,
+            TitleFontSize,
+            titlePosition,
+            color: _theme.ScriptErrorTitleTextColor,
             depth: NextDepth()
         );
+    }
+
+    private void ScriptEngineServiceOnOnScriptError(object? sender, ScriptErrorInfo e)
+    {
+        ErrorInfo = e;
     }
 
     /// <summary>

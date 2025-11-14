@@ -24,7 +24,6 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
 
     private bool _isChecked;
     private string _label = string.Empty;
-    private bool _hasFocus;
     private bool _isMouseInBounds;
 
     private const int CheckBoxSize = 20;
@@ -142,16 +141,12 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
         Theme = theme ?? throw new ArgumentNullException(nameof(theme));
 
-        Transform.Size = new Vector2D<float>(200, 30);
+        Transform.Size = new(200, 30);
     }
 
     public bool IsFocusable => true;
 
-    public bool HasFocus
-    {
-        get => _hasFocus;
-        set => _hasFocus = value;
-    }
+    public bool HasFocus { get; set; }
 
     public Rectangle<int> Bounds
         => new(
@@ -167,8 +162,8 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
         }
 
         // Toggle on Space or Enter
-        if ((IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Space) ||
-             IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Enter)))
+        if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Space) ||
+            IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Enter))
         {
             IsChecked = !IsChecked;
         }
@@ -200,6 +195,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
     }
 
@@ -213,7 +209,7 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
         var bounds = Bounds;
         var checkBoxRect = new Rectangle<float>(
             Transform.Position,
-            new Vector2D<float>(CheckBoxSize, CheckBoxSize)
+            new(CheckBoxSize, CheckBoxSize)
         );
 
         // Determine colors
@@ -225,15 +221,16 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
                       BorderColor;
 
         // Draw checkbox background
-        yield return DrawRectangle(checkBoxRect, bgColor, depth: NextDepth());
+        yield return DrawRectangle(checkBoxRect, bgColor, NextDepth());
 
         // Draw checkbox border
         foreach (var cmd in DrawHollowRectangle(
-            Transform.Position,
-            new Vector2D<float>(CheckBoxSize, CheckBoxSize),
-            brColor,
-            BorderThickness,
-            depth: NextDepth()))
+                     Transform.Position,
+                     new(CheckBoxSize, CheckBoxSize),
+                     brColor,
+                     BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -265,12 +262,12 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
             var centerY = Transform.Position.Y + CheckBoxSize / 2;
 
             yield return DrawRectangle(
-                new Rectangle<float>(
-                    new Vector2D<float>(centerX - 4, centerY - 2),
-                    new Vector2D<float>(6, 4)
+                new(
+                    new(centerX - 4, centerY - 2),
+                    new(6, 4)
                 ),
                 CheckMarkColor,
-                depth: NextDepth()
+                NextDepth()
             );
         }
 
@@ -294,12 +291,8 @@ public class CheckBoxGameObject : BaseGameObject2D, IInputReceiver
     }
 
     private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
-    {
-        return current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
-    }
+        => current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
 
     private static bool RectContains(Rectangle<int> rect, Vector2 point)
-    {
-        return rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
-    }
+        => rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
 }

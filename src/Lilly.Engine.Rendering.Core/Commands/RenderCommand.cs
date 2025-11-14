@@ -42,5 +42,6 @@ public readonly struct RenderCommand
     /// Returns a string representation of the render command.
     /// </summary>
     /// <returns>A string describing the render command.</returns>
-    public override string ToString() => $"RenderCommand: {CommandType}";
+    public override string ToString()
+        => $"RenderCommand: {CommandType}";
 }

@@ -100,94 +100,6 @@ public class NotificationHudGameObject : BaseGameObject2D
     }
 
     /// <summary>
-    /// Renders the notification HUD by yielding render commands.
-    /// </summary>
-    /// <param name="gameTime">The game timing information.</param>
-    /// <returns>An enumerable collection of render commands.</returns>
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
-    {
-        if (_messages.Count == 0)
-        {
-            yield break;
-        }
-
-        for (var i = 0; i < _messages.Count; i++)
-        {
-            var message = _messages[i];
-
-            if (message.Alpha <= DefaultOpacityThreshold)
-            {
-                continue;
-            }
-
-            // Calculate positions and sizes
-            var basePosition = new Vector2D<float>(StartPosition.X, StartPosition.Y + message.YOffset);
-            var textSize = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
-            var hasIcon = !string.IsNullOrWhiteSpace(message.IconTextureName);
-            var iconWidth = hasIcon ? IconSize.X : 0f;
-            var iconSpacing = hasIcon ? IconSpacing : 0f;
-            var contentHeight = MathF.Max(textSize.Y, hasIcon ? IconSize.Y : 0f);
-
-            // Background rectangle
-            var calculatedWidth = textSize.X + iconWidth + iconSpacing + MessagePadding * 2f;
-            var backgroundRect = new Rectangle<float>(
-                new Vector2D<float>(basePosition.X - MessagePadding, basePosition.Y - MessagePadding),
-                new Vector2D<float>(
-                    MathF.Max(calculatedWidth, MinNotificationWidth),
-                    contentHeight + MessagePadding * 2f
-                )
-            );
-
-            // Text position (offset by icon if present)
-            var textPosition = new Vector2D<float>(
-                basePosition.X + iconWidth + iconSpacing,
-                basePosition.Y + (contentHeight - textSize.Y) / 2f
-            );
-
-            // Apply alpha to colors
-            var finalBackground = message.BackgroundColor.ApplyAlpha(message.Alpha);
-            var finalText = message.TextColor.ApplyAlpha(message.Alpha);
-
-            // Draw background
-            if (finalBackground.A > 0)
-            {
-                yield return DrawRectangle(backgroundRect, finalBackground, depth: NextDepth());
-            }
-
-            // Draw icon if present
-            if (hasIcon)
-            {
-                var iconRect = new Rectangle<float>(
-                    new Vector2D<float>(
-                        basePosition.X,
-                        basePosition.Y + (contentHeight - IconSize.Y) / 2f
-                    ),
-                    IconSize
-                );
-
-                var iconColor = new Color4b(255, 255, 255, 255).ApplyAlpha(message.Alpha);
-
-                yield return DrawTextureCustom(
-                    texture: message.IconTextureName!,
-                    destination: iconRect,
-                    color: iconColor,
-                    depth: NextDepth()
-                );
-            }
-
-            // Draw text
-            yield return DrawTextCustom(
-                fontFamily: FontFamily,
-                text: message.Text,
-                fontSize: FontSize,
-                position: textPosition,
-                color: finalText,
-                depth: NextDepth()
-            );
-        }
-    }
-
-    /// <summary>
     /// Updates the notification animations and lifecycle.
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
@@ -250,6 +162,94 @@ public class NotificationHudGameObject : BaseGameObject2D
         {
             _messages.RemoveAt(0);
             UpdateMessagePositions();
+        }
+    }
+
+    /// <summary>
+    /// Renders the notification HUD by yielding render commands.
+    /// </summary>
+    /// <param name="gameTime">The game timing information.</param>
+    /// <returns>An enumerable collection of render commands.</returns>
+    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    {
+        if (_messages.Count == 0)
+        {
+            yield break;
+        }
+
+        for (var i = 0; i < _messages.Count; i++)
+        {
+            var message = _messages[i];
+
+            if (message.Alpha <= DefaultOpacityThreshold)
+            {
+                continue;
+            }
+
+            // Calculate positions and sizes
+            var basePosition = new Vector2D<float>(StartPosition.X, StartPosition.Y + message.YOffset);
+            var textSize = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var hasIcon = !string.IsNullOrWhiteSpace(message.IconTextureName);
+            var iconWidth = hasIcon ? IconSize.X : 0f;
+            var iconSpacing = hasIcon ? IconSpacing : 0f;
+            var contentHeight = MathF.Max(textSize.Y, hasIcon ? IconSize.Y : 0f);
+
+            // Background rectangle
+            var calculatedWidth = textSize.X + iconWidth + iconSpacing + MessagePadding * 2f;
+            var backgroundRect = new Rectangle<float>(
+                new(basePosition.X - MessagePadding, basePosition.Y - MessagePadding),
+                new(
+                    MathF.Max(calculatedWidth, MinNotificationWidth),
+                    contentHeight + MessagePadding * 2f
+                )
+            );
+
+            // Text position (offset by icon if present)
+            var textPosition = new Vector2D<float>(
+                basePosition.X + iconWidth + iconSpacing,
+                basePosition.Y + (contentHeight - textSize.Y) / 2f
+            );
+
+            // Apply alpha to colors
+            var finalBackground = message.BackgroundColor.ApplyAlpha(message.Alpha);
+            var finalText = message.TextColor.ApplyAlpha(message.Alpha);
+
+            // Draw background
+            if (finalBackground.A > 0)
+            {
+                yield return DrawRectangle(backgroundRect, finalBackground, NextDepth());
+            }
+
+            // Draw icon if present
+            if (hasIcon)
+            {
+                var iconRect = new Rectangle<float>(
+                    new(
+                        basePosition.X,
+                        basePosition.Y + (contentHeight - IconSize.Y) / 2f
+                    ),
+                    IconSize
+                );
+
+                var iconColor = new Color4b(255, 255, 255).ApplyAlpha(message.Alpha);
+
+                yield return DrawTextureCustom(
+                    message.IconTextureName!,
+                    destination: iconRect,
+                    color: iconColor,
+                    depth: NextDepth()
+                );
+            }
+
+            // Draw text
+            yield return DrawTextCustom(
+                FontFamily,
+                message.Text,
+                FontSize,
+                textPosition,
+                color: finalText,
+                depth: NextDepth()
+            );
         }
     }
 

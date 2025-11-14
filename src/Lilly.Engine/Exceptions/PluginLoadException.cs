@@ -16,7 +16,8 @@ public class PluginLoadException : Exception
         string pluginId,
         LillyPluginData pluginData,
         IReadOnlyList<LillyPluginData> loadedPlugins,
-        Exception innerException = null)
+        Exception innerException = null
+    )
         : base(message, innerException)
     {
         PluginId = pluginId;
@@ -28,6 +29,7 @@ public class PluginLoadException : Exception
     {
         var baseString = base.ToString();
         var loadedPluginsStr = string.Join(", ", LoadedPlugins.Select(p => $"{p.Id}@{p.Version}"));
+
         return $"{baseString}\n\nPlugin: {PluginId} v{PluginData.Version}\n" +
                $"Already Loaded: [{loadedPluginsStr}]";
     }

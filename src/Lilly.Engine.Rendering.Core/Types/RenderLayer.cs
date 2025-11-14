@@ -11,7 +11,7 @@ public enum RenderLayer : byte
     Background,
 
     /// <summary>
-    ///  Input layer for handling user input elements.
+    /// Input layer for handling user input elements.
     /// </summary>
     Input,
 

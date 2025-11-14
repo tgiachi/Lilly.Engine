@@ -25,11 +25,6 @@ public readonly struct GameTime
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
-
-    public float GetTotalGameTimeSeconds() => (float)(TotalGameTime / 1000.0);
-
-    public float GetElapsedSeconds() => (float)(ElapsedGameTime / 1000.0);
-
     /// <summary>
     /// Initializes a new instance of the GameTime struct.
     /// </summary>
@@ -41,6 +36,19 @@ public readonly struct GameTime
         ElapsedGameTime = elapsedGameTime;
     }
 
+    public float GetElapsedSeconds()
+        => (float)(ElapsedGameTime / 1000.0);
+
+    public float GetTotalGameTimeSeconds()
+        => (float)(TotalGameTime / 1000.0);
+
+    /// <summary>
+    /// Returns a string representation of the game time.
+    /// </summary>
+    /// <returns>A string containing total and elapsed game time information.</returns>
+    public override string ToString()
+        => $"TotalGameTime: {TotalGameTime}ms, ElapsedGameTime: {ElapsedGameTime}ms";
+
     /// <summary>
     /// Creates a new GameTime with updated elapsed time.
     /// </summary>
@@ -49,13 +57,7 @@ public readonly struct GameTime
     public GameTime Update(double elapsedSeconds)
     {
         var elapsedMs = elapsedSeconds * 1000.0; // Convert to milliseconds
-        return new GameTime(TotalGameTime + elapsedMs, elapsedMs);
-    }
 
-    /// <summary>
-    /// Returns a string representation of the game time.
-    /// </summary>
-    /// <returns>A string containing total and elapsed game time information.</returns>
-    public override string ToString()
-        => $"TotalGameTime: {TotalGameTime}ms, ElapsedGameTime: {ElapsedGameTime}ms";
+        return new(TotalGameTime + elapsedMs, elapsedMs);
+    }
 }

@@ -11,7 +11,6 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
-using Lilly.Engine.Rendering.Core.Data;
 using Lilly.Engine.Rendering.Core.Data.Config;
 using Serilog;
 using Serilog.Events;
@@ -35,9 +34,7 @@ await ConsoleApp.RunAsync(
 
         container.RegisterInstance(directoriesConfig);
 
-
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
-
 
         container.RegisterPlugin(typeof(DefaultGameObjectPlugin).Assembly);
 
@@ -47,9 +44,8 @@ await ConsoleApp.RunAsync(
 
         if (PlatformUtils.IsRunningOnLinux())
         {
-            initialEngineOptions.TargetRenderVersion = new GraphicApiVersion(4, 5, 0, 0);
+            initialEngineOptions.TargetRenderVersion = new(4, 5, 0, 0);
         }
-
 
         ///https: //github.com/aemeny/Custom-OpenGL-GameEngine
 

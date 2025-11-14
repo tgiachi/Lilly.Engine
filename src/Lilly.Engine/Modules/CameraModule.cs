@@ -1,7 +1,6 @@
 using Lilly.Engine.Cameras;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Interfaces.Services;
-using Silk.NET.Maths;
 
 namespace Lilly.Engine.Modules;
 
@@ -11,8 +10,18 @@ public class CameraModule
     private readonly ICamera3dService _camera3dService;
 
     public CameraModule(ICamera3dService camera3dService)
+        => _camera3dService = camera3dService;
+
+    [ScriptFunction("dispatch_keyboard", "Dispatches keyboard input to the current camera for movement.")]
+    public void DispatchKeyboard(float forward, float right, float up)
     {
-        _camera3dService = camera3dService;
+        _camera3dService.CurrentCamera?.Move(new(forward, right, up));
+    }
+
+    [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
+    public void DispatchMouse(float yaw, float pitch, float roll)
+    {
+        _camera3dService.CurrentCamera?.Rotate(yaw, pitch, roll);
     }
 
     [ScriptFunction("register_fps", "Registers a first-person camera with the given name.")]
@@ -31,17 +40,5 @@ public class CameraModule
         {
             _camera3dService.CurrentCamera = camera;
         }
-    }
-
-    [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
-    public void DispatchMouse(float yaw, float pitch, float roll)
-    {
-        _camera3dService.CurrentCamera?.Rotate(yaw, pitch, roll);
-    }
-
-    [ScriptFunction("dispatch_keyboard", "Dispatches keyboard input to the current camera for movement.")]
-    public void DispatchKeyboard(float forward, float right, float up)
-    {
-        _camera3dService.CurrentCamera?.Move(new Vector3D<float>(forward, right, up));
     }
 }

@@ -11,9 +11,7 @@ public class CameraDebugger : BaseDebugger
     private readonly ICamera3dService _camera3dService;
 
     public CameraDebugger(ICamera3dService camera3dService) : base("Camera Debugger")
-    {
-        _camera3dService = camera3dService;
-    }
+        => _camera3dService = camera3dService;
 
     public override void DrawImGui()
     {
@@ -55,7 +53,7 @@ public class CameraDebugger : BaseDebugger
 
                 if (ImGui.InputFloat4("##Rotation", ref rotation))
                 {
-                    camera.Rotation = new Quaternion<float>(rotation.X, rotation.Y, rotation.Z, rotation.W);
+                    camera.Rotation = new(rotation.X, rotation.Y, rotation.Z, rotation.W);
                 }
             }
         }

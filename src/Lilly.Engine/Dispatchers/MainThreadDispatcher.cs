@@ -31,6 +31,10 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         _renderer.Update += Update;
     }
 
+    public int QueuedActionCount => _actionQueue.Count;
+
+    public int ConcurrentActionCount => 3;
+
     /// <summary>
     /// Disposes the MainThreadDispatcher and releases resources.
     /// </summary>
@@ -40,10 +44,6 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         _actionQueue.Clear();
         GC.SuppressFinalize(this);
     }
-
-    public int QueuedActionCount =>
-        _actionQueue.Count;
-    public int ConcurrentActionCount => 3;
 
     /// <summary>
     /// Enqueues an action to be executed on the main thread.

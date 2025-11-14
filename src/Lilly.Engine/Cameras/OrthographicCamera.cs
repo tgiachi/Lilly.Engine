@@ -1,3 +1,4 @@
+using System.Reflection;
 using Lilly.Engine.Cameras.Base;
 using Lilly.Engine.Core.Data.Privimitives;
 using Silk.NET.Maths;
@@ -21,7 +22,6 @@ public class OrthographicCamera : Base3dCamera
     private float _zoomSpeed = 5f;
     private float _movementSpeed = 10f;
 
-    private bool _hasBoundsConstraints;
     private Vector3D<float> _minBounds;
     private Vector3D<float> _maxBounds;
 
@@ -66,6 +66,7 @@ public class OrthographicCamera : Base3dCamera
         set
         {
             var newZoom = Math.Clamp(value, MinZoom, MaxZoom);
+
             if (MathF.Abs(_zoom - newZoom) > Epsilon)
             {
                 _zoom = newZoom;
@@ -126,11 +127,7 @@ public class OrthographicCamera : Base3dCamera
     /// <summary>
     /// Gets or sets whether to enable bounds constraints for camera movement.
     /// </summary>
-    public bool EnableBoundsConstraints
-    {
-        get => _hasBoundsConstraints;
-        set => _hasBoundsConstraints = value;
-    }
+    public bool EnableBoundsConstraints { get; set; }
 
     /// <summary>
     /// Initializes a new orthographic camera with default settings.
@@ -139,8 +136,64 @@ public class OrthographicCamera : Base3dCamera
     public OrthographicCamera(string name = "OrthographicCamera")
     {
         Name = name;
-        Position = new Vector3D<float>(0, 0, -10);
+        Position = new(0, 0, -10);
         Target = Vector3D<float>.Zero;
+    }
+
+    /// <summary>
+    /// Clears the bounds constraints, allowing unrestricted camera movement.
+    /// </summary>
+    public void ClearBounds()
+    {
+        EnableBoundsConstraints = false;
+    }
+
+    /// <summary>
+    /// Moves the camera in a 2D plane (useful for pan controls).
+    /// </summary>
+    /// <param name="deltaX">Horizontal movement in world units</param>
+    /// <param name="deltaY">Vertical movement in world units</param>
+    public void Pan(float deltaX, float deltaY)
+    {
+        var offset = new Vector3D<float>(deltaX, deltaY, 0);
+        Position += offset;
+        Target += offset;
+        ApplyBoundsConstraints();
+    }
+
+    /// <summary>
+    /// Converts a screen position to world coordinates.
+    /// </summary>
+    /// <param name="screenPoint">Screen position in pixels</param>
+    /// <param name="viewport">The viewport</param>
+    /// <returns>World position</returns>
+    public Vector3D<float> ScreenToWorld(Vector2D<int> screenPoint, Viewport viewport)
+    {
+        // Normalize screen coordinates to [-1, 1]
+        var x = 2.0f * screenPoint.X / viewport.Width - 1.0f;
+        var y = 1.0f - 2.0f * screenPoint.Y / viewport.Height;
+
+        // In orthographic projection, we can directly calculate the world position
+        var effectiveWidth = _orthoWidth / _zoom;
+        var effectiveHeight = _orthoHeight / _zoom;
+
+        var worldX = Position.X + x * effectiveWidth * 0.5f;
+        var worldY = Position.Y + y * effectiveHeight * 0.5f;
+
+        return new(worldX, worldY, Position.Z);
+    }
+
+    /// <summary>
+    /// Sets the bounds constraints for camera movement.
+    /// </summary>
+    /// <param name="min">Minimum position bounds</param>
+    /// <param name="max">Maximum position bounds</param>
+    public void SetBounds(Vector3D<float> min, Vector3D<float> max)
+    {
+        _minBounds = min;
+        _maxBounds = max;
+        EnableBoundsConstraints = true;
+        ApplyBoundsConstraints();
     }
 
     /// <summary>
@@ -153,45 +206,6 @@ public class OrthographicCamera : Base3dCamera
         _orthoWidth = Math.Max(width, 0.1f);
         _orthoHeight = Math.Max(height, 0.1f);
         MarkProjectionDirty();
-    }
-
-    /// <summary>
-    /// Sets the bounds constraints for camera movement.
-    /// </summary>
-    /// <param name="min">Minimum position bounds</param>
-    /// <param name="max">Maximum position bounds</param>
-    public void SetBounds(Vector3D<float> min, Vector3D<float> max)
-    {
-        _minBounds = min;
-        _maxBounds = max;
-        _hasBoundsConstraints = true;
-        ApplyBoundsConstraints();
-    }
-
-    /// <summary>
-    /// Clears the bounds constraints, allowing unrestricted camera movement.
-    /// </summary>
-    public void ClearBounds()
-    {
-        _hasBoundsConstraints = false;
-    }
-
-    /// <summary>
-    /// Zooms in by the specified amount.
-    /// </summary>
-    /// <param name="amount">Amount to zoom in (positive values zoom in)</param>
-    public void ZoomIn(float amount)
-    {
-        _targetZoom = Math.Clamp(_targetZoom + amount, MinZoom, MaxZoom);
-    }
-
-    /// <summary>
-    /// Zooms out by the specified amount.
-    /// </summary>
-    /// <param name="amount">Amount to zoom out (positive values zoom out)</param>
-    public void ZoomOut(float amount)
-    {
-        _targetZoom = Math.Clamp(_targetZoom - amount, MinZoom, MaxZoom);
     }
 
     /// <summary>
@@ -216,56 +230,14 @@ public class OrthographicCamera : Base3dCamera
     }
 
     /// <summary>
-    /// Zooms in or out centered at a specific screen point (useful for mouse wheel zoom).
+    /// Updates the camera, applying smooth zoom and other effects.
     /// </summary>
-    /// <param name="screenPoint">The screen position to zoom towards (in pixels)</param>
-    /// <param name="viewport">The viewport information</param>
-    /// <param name="zoomAmount">Amount to zoom (positive = zoom in, negative = zoom out)</param>
-    public void ZoomAtScreenPoint(Vector2D<int> screenPoint, Viewport viewport, float zoomAmount)
+    /// <param name="gameTime">Game timing information</param>
+    public override void Update(GameTime gameTime)
     {
-        // Get world position before zoom
-        var worldPosBefore = ScreenToWorld(screenPoint, viewport);
-
-        // Apply zoom
-        var newZoom = Math.Clamp(_zoom + zoomAmount, MinZoom, MaxZoom);
-        if (MathF.Abs(_zoom - newZoom) > Epsilon)
-        {
-            _zoom = newZoom;
-            _targetZoom = newZoom;
-            MarkProjectionDirty();
-
-            // Get world position after zoom
-            var worldPosAfter = ScreenToWorld(screenPoint, viewport);
-
-            // Offset camera to keep the same world point under the cursor
-            var offset = worldPosBefore - worldPosAfter;
-            Position += offset;
-            Target += offset;
-
-            ApplyBoundsConstraints();
-        }
-    }
-
-    /// <summary>
-    /// Converts a screen position to world coordinates.
-    /// </summary>
-    /// <param name="screenPoint">Screen position in pixels</param>
-    /// <param name="viewport">The viewport</param>
-    /// <returns>World position</returns>
-    public Vector3D<float> ScreenToWorld(Vector2D<int> screenPoint, Viewport viewport)
-    {
-        // Normalize screen coordinates to [-1, 1]
-        var x = (2.0f * screenPoint.X / viewport.Width) - 1.0f;
-        var y = 1.0f - (2.0f * screenPoint.Y / viewport.Height);
-
-        // In orthographic projection, we can directly calculate the world position
-        var effectiveWidth = _orthoWidth / _zoom;
-        var effectiveHeight = _orthoHeight / _zoom;
-
-        var worldX = Position.X + x * effectiveWidth * 0.5f;
-        var worldY = Position.Y + y * effectiveHeight * 0.5f;
-
-        return new Vector3D<float>(worldX, worldY, Position.Z);
+        var deltaTime = gameTime.GetElapsedSeconds();
+        SmoothZoom(deltaTime);
+        ApplyBoundsConstraints();
     }
 
     /// <summary>
@@ -285,31 +257,57 @@ public class OrthographicCamera : Base3dCamera
         var screenX = (int)((relativeX + 1.0f) * 0.5f * viewport.Width);
         var screenY = (int)((1.0f - relativeY) * 0.5f * viewport.Height);
 
-        return new Vector2D<int>(screenX, screenY);
+        return new(screenX, screenY);
     }
 
     /// <summary>
-    /// Moves the camera in a 2D plane (useful for pan controls).
+    /// Zooms in or out centered at a specific screen point (useful for mouse wheel zoom).
     /// </summary>
-    /// <param name="deltaX">Horizontal movement in world units</param>
-    /// <param name="deltaY">Vertical movement in world units</param>
-    public void Pan(float deltaX, float deltaY)
+    /// <param name="screenPoint">The screen position to zoom towards (in pixels)</param>
+    /// <param name="viewport">The viewport information</param>
+    /// <param name="zoomAmount">Amount to zoom (positive = zoom in, negative = zoom out)</param>
+    public void ZoomAtScreenPoint(Vector2D<int> screenPoint, Viewport viewport, float zoomAmount)
     {
-        var offset = new Vector3D<float>(deltaX, deltaY, 0);
-        Position += offset;
-        Target += offset;
-        ApplyBoundsConstraints();
+        // Get world position before zoom
+        var worldPosBefore = ScreenToWorld(screenPoint, viewport);
+
+        // Apply zoom
+        var newZoom = Math.Clamp(_zoom + zoomAmount, MinZoom, MaxZoom);
+
+        if (MathF.Abs(_zoom - newZoom) > Epsilon)
+        {
+            _zoom = newZoom;
+            _targetZoom = newZoom;
+            MarkProjectionDirty();
+
+            // Get world position after zoom
+            var worldPosAfter = ScreenToWorld(screenPoint, viewport);
+
+            // Offset camera to keep the same world point under the cursor
+            var offset = worldPosBefore - worldPosAfter;
+            Position += offset;
+            Target += offset;
+
+            ApplyBoundsConstraints();
+        }
     }
 
     /// <summary>
-    /// Updates the camera, applying smooth zoom and other effects.
+    /// Zooms in by the specified amount.
     /// </summary>
-    /// <param name="gameTime">Game timing information</param>
-    public override void Update(GameTime gameTime)
+    /// <param name="amount">Amount to zoom in (positive values zoom in)</param>
+    public void ZoomIn(float amount)
     {
-        var deltaTime = gameTime.GetElapsedSeconds();
-        SmoothZoom(deltaTime);
-        ApplyBoundsConstraints();
+        _targetZoom = Math.Clamp(_targetZoom + amount, MinZoom, MaxZoom);
+    }
+
+    /// <summary>
+    /// Zooms out by the specified amount.
+    /// </summary>
+    /// <param name="amount">Amount to zoom out (positive values zoom out)</param>
+    public void ZoomOut(float amount)
+    {
+        _targetZoom = Math.Clamp(_targetZoom - amount, MinZoom, MaxZoom);
     }
 
     /// <summary>
@@ -330,7 +328,7 @@ public class OrthographicCamera : Base3dCamera
         // Store in the base class field via reflection or expose a setter
         // Since _projection is private in base, we need to work around this
         typeof(Base3dCamera)
-            .GetField("_projection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetField("_projection", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(this, projection);
     }
 
@@ -339,8 +337,10 @@ public class OrthographicCamera : Base3dCamera
     /// </summary>
     private void ApplyBoundsConstraints()
     {
-        if (!_hasBoundsConstraints)
+        if (!EnableBoundsConstraints)
+        {
             return;
+        }
 
         var pos = Position;
         pos.X = Math.Clamp(pos.X, _minBounds.X, _maxBounds.X);
@@ -350,7 +350,7 @@ public class OrthographicCamera : Base3dCamera
         if (pos != Position)
         {
             Position = pos;
-            Target = new Vector3D<float>(pos.X, pos.Y, 0);
+            Target = new(pos.X, pos.Y, 0);
         }
     }
 
@@ -361,11 +361,11 @@ public class OrthographicCamera : Base3dCamera
     {
         // Set the dirty flag in the base class
         typeof(Base3dCamera)
-            .GetField("_projectionDirty", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .GetField("_projectionDirty", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(this, true);
     }
 
-    #region Static Factory Methods
+#region Static Factory Methods
 
     /// <summary>
     /// Creates an orthographic camera configured for 2D top-down view.
@@ -379,11 +379,12 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = width,
             OrthoHeight = height,
-            Position = new Vector3D<float>(0, 0, -10),
+            Position = new(0, 0, -10),
             Target = Vector3D<float>.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new Vector3D<float>(0, 1, 0));
+        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
+
         return camera;
     }
 
@@ -399,11 +400,12 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = width,
             OrthoHeight = height,
-            Position = new Vector3D<float>(0, 0, -10),
+            Position = new(0, 0, -10),
             Target = Vector3D<float>.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new Vector3D<float>(0, 1, 0));
+        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
+
         return camera;
     }
 
@@ -424,15 +426,15 @@ public class OrthographicCamera : Base3dCamera
 
         // Standard isometric angles: 45 degrees rotation, ~35.264 degrees pitch
         var distance = 20f;
-        var angle = MathF.PI / 4f; // 45 degrees
+        var angle = MathF.PI / 4f;                   // 45 degrees
         var pitch = MathF.Atan(1f / MathF.Sqrt(2f)); // ~35.264 degrees
 
         var x = distance * MathF.Sin(angle) * MathF.Cos(pitch);
         var y = distance * MathF.Sin(pitch);
         var z = distance * MathF.Cos(angle) * MathF.Cos(pitch);
 
-        camera.Position = new Vector3D<float>(x, y, z);
-        camera.LookAt(Vector3D<float>.Zero, new Vector3D<float>(0, 1, 0));
+        camera.Position = new(x, y, z);
+        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
 
         return camera;
     }
@@ -449,8 +451,8 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = screenWidth,
             OrthoHeight = screenHeight,
-            Position = new Vector3D<float>(screenWidth / 2f, screenHeight / 2f, -10),
-            Target = new Vector3D<float>(screenWidth / 2f, screenHeight / 2f, 0),
+            Position = new(screenWidth / 2f, screenHeight / 2f, -10),
+            Target = new(screenWidth / 2f, screenHeight / 2f, 0),
             NearPlane = 0.1f,
             FarPlane = 100f
         };
@@ -471,13 +473,14 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = worldWidth,
             OrthoHeight = worldHeight,
-            Position = new Vector3D<float>(0, height, 0),
+            Position = new(0, height, 0),
             Target = Vector3D<float>.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new Vector3D<float>(0, 0, 1));
+        camera.LookAt(Vector3D<float>.Zero, new(0, 0, 1));
+
         return camera;
     }
 
-    #endregion
+#endregion
 }

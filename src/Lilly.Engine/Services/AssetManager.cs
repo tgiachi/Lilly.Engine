@@ -1,7 +1,6 @@
 using FontStashSharp;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
-using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Utils;
@@ -45,6 +44,59 @@ public class AssetManager : IAssetManager
     }
 
     /// <summary>
+    /// Retrieves a font with the specified name and size.
+    /// </summary>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The size of the font.</param>
+    /// <typeparam name="TFont">The type of the font.</typeparam>
+    /// <returns>The font instance.</returns>
+    public TFont GetFont<TFont>(string fontName, int size) where TFont : class
+    {
+        var key = $"{fontName}_{size}";
+
+        if (_dynamicSpriteFonts.TryGetValue(key, out var font))
+        {
+            return font as TFont;
+        }
+
+        if (_fontSystems.TryGetValue(fontName, out var fontSystem))
+        {
+            var dynamicFont = fontSystem.GetFont(size);
+            _dynamicSpriteFonts[key] = dynamicFont;
+
+            return dynamicFont as TFont;
+        }
+
+        throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
+    }
+
+    /// <summary>
+    /// Retrieves a previously loaded shader program by name.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader program.</param>
+    /// <returns>The shader program.</returns>
+    public ShaderProgram GetShaderProgram(string shaderName)
+        => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
+               ? shaderProgram
+               : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+
+    /// <summary>
+    /// Retrieves a previously loaded texture by name.
+    /// </summary>
+    /// <param name="textureName">The name of the texture.</param>
+    /// <typeparam name="TTexture">The type of the texture.</typeparam>
+    /// <returns>The texture instance.</returns>
+    public TTexture GetTexture<TTexture>(string textureName) where TTexture : class
+    {
+        if (_texture2Ds.TryGetValue(textureName, out var texture))
+        {
+            return texture as TTexture;
+        }
+
+        throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
+    }
+
+    /// <summary>
     /// Gets a 1x1 white texture that can be used for drawing colored shapes or as a fallback.
     /// The texture is created once and cached for subsequent calls.
     /// </summary>
@@ -56,12 +108,12 @@ public class AssetManager : IAssetManager
         if (_whiteTexture == null)
         {
             // Create a 1x1 white texture
-            _whiteTexture = new Texture2D(_context.GraphicsDevice, 1, 1);
+            _whiteTexture = new(_context.GraphicsDevice, 1, 1);
 
             // Set the single pixel to white (RGBA: 255, 255, 255, 255)
-            var whitePixel = new Color4b(255, 255, 255, 255);
+            var whitePixel = new Color4b(255, 255, 255);
             ReadOnlySpan<Color4b> pixelData = [whitePixel];
-            _whiteTexture.SetData<Color4b>(pixelData, PixelFormat.Rgba);
+            _whiteTexture.SetData(pixelData, PixelFormat.Rgba);
 
             _logger.Debug("Created white texture (1x1)");
         }
@@ -109,32 +161,6 @@ public class AssetManager : IAssetManager
     }
 
     /// <summary>
-    /// Loads a texture from a file and registers it with the asset manager.
-    /// </summary>
-    /// <param name="textureName">The name to associate with the loaded texture.</param>
-    /// <param name="texturePath">The path to the texture file.</param>
-    public void LoadTextureFromFile(string textureName, string texturePath)
-    {
-        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
-
-        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
-
-        LoadTextureFromMemory(textureName, stream);
-    }
-
-    /// <summary>
-    /// Loads a texture from a stream and registers it with the asset manager.
-    /// </summary>
-    /// <param name="textureName">The name to associate with the loaded texture.</param>
-    /// <param name="stream">The stream containing the texture data.</param>
-    public void LoadTextureFromMemory(string textureName, Stream stream)
-    {
-        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
-        _texture2Ds[textureName] = texture;
-        _logger.Information("Loaded texture {TextureName}", textureName);
-    }
-
-    /// <summary>
     /// Loads a shader program from vertex and fragment files and registers it with the asset manager.
     /// </summary>
     /// <param name="shaderName">The name to associate with the loaded shader.</param>
@@ -175,61 +201,31 @@ public class AssetManager : IAssetManager
         _logger.Information("Loaded shader {ShaderName}", shaderName);
 
         _shaderPrograms[shaderName] = _program;
-
     }
 
     /// <summary>
-    /// Retrieves a previously loaded shader program by name.
+    /// Loads a texture from a file and registers it with the asset manager.
     /// </summary>
-    /// <param name="shaderName">The name of the shader program.</param>
-    /// <returns>The shader program.</returns>
-    public ShaderProgram GetShaderProgram(string shaderName)
+    /// <param name="textureName">The name to associate with the loaded texture.</param>
+    /// <param name="texturePath">The path to the texture file.</param>
+    public void LoadTextureFromFile(string textureName, string texturePath)
     {
-        return _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
-                   ? shaderProgram
-                   : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
+
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
+
+        LoadTextureFromMemory(textureName, stream);
     }
 
     /// <summary>
-    /// Retrieves a font with the specified name and size.
+    /// Loads a texture from a stream and registers it with the asset manager.
     /// </summary>
-    /// <param name="fontName">The name of the font.</param>
-    /// <param name="size">The size of the font.</param>
-    /// <typeparam name="TFont">The type of the font.</typeparam>
-    /// <returns>The font instance.</returns>
-    public TFont GetFont<TFont>(string fontName, int size) where TFont : class
+    /// <param name="textureName">The name to associate with the loaded texture.</param>
+    /// <param name="stream">The stream containing the texture data.</param>
+    public void LoadTextureFromMemory(string textureName, Stream stream)
     {
-        var key = $"{fontName}_{size}";
-
-        if (_dynamicSpriteFonts.TryGetValue(key, out var font))
-        {
-            return font as TFont;
-        }
-
-        if (_fontSystems.TryGetValue(fontName, out var fontSystem))
-        {
-            var dynamicFont = fontSystem.GetFont(size);
-            _dynamicSpriteFonts[key] = dynamicFont;
-
-            return dynamicFont as TFont;
-        }
-
-        throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
-    }
-
-    /// <summary>
-    /// Retrieves a previously loaded texture by name.
-    /// </summary>
-    /// <param name="textureName">The name of the texture.</param>
-    /// <typeparam name="TTexture">The type of the texture.</typeparam>
-    /// <returns>The texture instance.</returns>
-    public TTexture GetTexture<TTexture>(string textureName) where TTexture : class
-    {
-        if (_texture2Ds.TryGetValue(textureName, out var texture))
-        {
-            return texture as TTexture;
-        }
-
-        throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
+        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
+        _texture2Ds[textureName] = texture;
+        _logger.Information("Loaded texture {TextureName}", textureName);
     }
 }

@@ -2,7 +2,6 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Data.Diagnostics;
 using Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Renderers;
@@ -22,7 +21,7 @@ public interface IGraphicRenderPipeline : IGameObjectManager
     /// </summary>
     RenderPipelineDiagnostics Diagnostics { get; }
 
-
+    void EnqueueRenderCommand(RenderCommand command);
 
     /// <summary>
     /// Gets a specific render layer system by type.
@@ -35,7 +34,6 @@ public interface IGraphicRenderPipeline : IGameObjectManager
     /// Initializes the render pipeline and all registered render systems.
     /// </summary>
     void Initialize();
-
 
     /// <summary>
     /// Renders all layers for the current frame.
@@ -55,6 +53,4 @@ public interface IGraphicRenderPipeline : IGameObjectManager
     /// <param name="width">The new viewport width.</param>
     /// <param name="height">The new viewport height.</param>
     void ViewportResize(int width, int height);
-
-    void EnqueueRenderCommand(RenderCommand command);
 }

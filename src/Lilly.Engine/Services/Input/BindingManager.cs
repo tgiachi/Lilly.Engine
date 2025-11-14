@@ -13,9 +13,7 @@ internal class BindingManager
     private readonly KeyboardInputHandler _keyboardHandler;
 
     public BindingManager(KeyboardInputHandler keyboardHandler)
-    {
-        _keyboardHandler = keyboardHandler;
-    }
+        => _keyboardHandler = keyboardHandler;
 
     /// <summary>
     /// Binds a key combination to an action.
@@ -28,6 +26,7 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
@@ -45,6 +44,7 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
@@ -62,10 +62,19 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
         _keyboardHandler.BindKeyRepeat(keyBinding, action, context);
+    }
+
+    /// <summary>
+    /// Clears all key bindings.
+    /// </summary>
+    public void ClearBindings()
+    {
+        _keyboardHandler.ClearBindings();
     }
 
     /// <summary>
@@ -77,6 +86,7 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
@@ -92,6 +102,7 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
@@ -107,17 +118,10 @@ internal class BindingManager
         if (!KeyBinding.TryParse(binding, out var keyBinding))
         {
             _logger.Warning("Failed to parse key binding: {Binding}", binding);
+
             return;
         }
 
         _keyboardHandler.UnbindKeyRepeat(keyBinding);
-    }
-
-    /// <summary>
-    /// Clears all key bindings.
-    /// </summary>
-    public void ClearBindings()
-    {
-        _keyboardHandler.ClearBindings();
     }
 }

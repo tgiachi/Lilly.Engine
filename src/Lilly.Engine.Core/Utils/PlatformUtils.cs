@@ -4,22 +4,6 @@ namespace Lilly.Engine.Core.Utils;
 
 public static class PlatformUtils
 {
-    public static bool IsRunningOnMacOS()
-    {
-        return OperatingSystem.IsMacOS();
-    }
-
-    public static bool IsRunningOnWindows()
-    {
-        return OperatingSystem.IsWindows();
-    }
-
-    public static bool IsRunningOnLinux()
-    {
-        return OperatingSystem.IsLinux();
-    }
-
-
     public static PlatformType GetCurrentPlatform()
     {
         if (IsRunningOnWindows())
@@ -35,4 +19,12 @@ public static class PlatformUtils
         return IsRunningOnLinux() ? PlatformType.Linux : PlatformType.Unknown;
     }
 
+    public static bool IsRunningOnLinux()
+        => OperatingSystem.IsLinux();
+
+    public static bool IsRunningOnMacOS()
+        => OperatingSystem.IsMacOS();
+
+    public static bool IsRunningOnWindows()
+        => OperatingSystem.IsWindows();
 }

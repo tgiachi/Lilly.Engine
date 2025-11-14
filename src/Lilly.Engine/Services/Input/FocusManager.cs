@@ -30,6 +30,15 @@ internal class FocusManager
     }
 
     /// <summary>
+    /// Disposes of focus-related resources.
+    /// </summary>
+    public void Dispose()
+    {
+        _focusStack.Clear();
+        CurrentFocus = null;
+    }
+
+    /// <summary>
     /// Pops the top focus receiver from the stack.
     /// </summary>
     public void PopFocusStack()
@@ -98,14 +107,5 @@ internal class FocusManager
         {
             _logger.Debug("Input focus cleared");
         }
-    }
-
-    /// <summary>
-    /// Disposes of focus-related resources.
-    /// </summary>
-    public void Dispose()
-    {
-        _focusStack.Clear();
-        CurrentFocus = null;
     }
 }

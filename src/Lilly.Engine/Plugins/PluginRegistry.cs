@@ -14,31 +14,7 @@ public class PluginRegistry
     private readonly PluginDependencyValidator _dependencyValidator;
 
     public PluginRegistry(PluginDependencyValidator dependencyValidator = null)
-    {
-        _dependencyValidator = dependencyValidator ?? new PluginDependencyValidator();
-    }
-
-    /// <summary>
-    /// Gets all currently loaded plugins.
-    /// </summary>
-    public IReadOnlyList<ILillyPlugin> GetLoadedPlugins()
-        => _loadedPlugins.AsReadOnly();
-
-    /// <summary>
-    /// Gets metadata for all loaded plugins.
-    /// </summary>
-    public IReadOnlyList<LillyPluginData> GetLoadedPluginData()
-        => _loadedPluginData.AsReadOnly();
-
-    /// <summary>
-    /// Gets a specific plugin by ID.
-    /// </summary>
-    public ILillyPlugin GetPluginById(string pluginId)
-    {
-        var plugin = _loadedPlugins.FirstOrDefault(p => p.LillyData.Id == pluginId);
-
-        return plugin ?? throw new InvalidOperationException($"Plugin '{pluginId}' not found.");
-    }
+        => _dependencyValidator = dependencyValidator ?? new PluginDependencyValidator();
 
     /// <summary>
     /// Checks if a plugin can be loaded based on dependency requirements.
@@ -58,50 +34,11 @@ public class PluginRegistry
     }
 
     /// <summary>
-    /// Registers a plugin after validating its dependencies.
-    /// </summary>
-    /// <exception cref="PluginLoadException">If dependencies are missing or circular</exception>
-    public void RegisterPlugin(ILillyPlugin plugin)
-    {
-        ArgumentNullException.ThrowIfNull(plugin);
-
-        var pluginData = plugin.LillyData;
-
-        // Check if already loaded
-        if (_loadedPluginData.Any(p => p.Id == pluginData.Id))
-        {
-            throw new PluginLoadException(
-                $"Plugin '{pluginData.Id}' is already loaded.",
-                pluginData.Id,
-                pluginData,
-                GetLoadedPluginData()
-            );
-        }
-
-        // Validate dependencies
-        _dependencyValidator.ValidateDependencies(pluginData, GetLoadedPluginData());
-
-        // Register the plugin
-        _loadedPlugins.Add(plugin);
-        _loadedPluginData.Add(pluginData);
-    }
-
-    /// <summary>
     /// Checks for circular dependencies in a set of plugins.
     /// </summary>
     /// <returns>Empty list if no cycles detected, otherwise returns the cycle</returns>
     public List<string> CheckForCircularDependencies(IReadOnlyList<LillyPluginData> allPlugins)
-    {
-        return _dependencyValidator.DetectCircularDependencies(allPlugins);
-    }
-
-    /// <summary>
-    /// Sorts plugins in dependency order (topological sort).
-    /// </summary>
-    public IEnumerable<LillyPluginData> GetPluginsInDependencyOrder(IReadOnlyList<LillyPluginData> allPlugins)
-    {
-        return _dependencyValidator.TopologicalSort(allPlugins);
-    }
+        => _dependencyValidator.DetectCircularDependencies(allPlugins);
 
     /// <summary>
     /// Gets the dependency chain for a specific plugin.
@@ -132,5 +69,62 @@ public class PluginRegistry
                .Where(p => p.LillyData.Dependencies?.Contains(pluginId) ?? false)
                .ToList()
                .AsReadOnly();
+    }
+
+    /// <summary>
+    /// Gets metadata for all loaded plugins.
+    /// </summary>
+    public IReadOnlyList<LillyPluginData> GetLoadedPluginData()
+        => _loadedPluginData.AsReadOnly();
+
+    /// <summary>
+    /// Gets all currently loaded plugins.
+    /// </summary>
+    public IReadOnlyList<ILillyPlugin> GetLoadedPlugins()
+        => _loadedPlugins.AsReadOnly();
+
+    /// <summary>
+    /// Gets a specific plugin by ID.
+    /// </summary>
+    public ILillyPlugin GetPluginById(string pluginId)
+    {
+        var plugin = _loadedPlugins.FirstOrDefault(p => p.LillyData.Id == pluginId);
+
+        return plugin ?? throw new InvalidOperationException($"Plugin '{pluginId}' not found.");
+    }
+
+    /// <summary>
+    /// Sorts plugins in dependency order (topological sort).
+    /// </summary>
+    public IEnumerable<LillyPluginData> GetPluginsInDependencyOrder(IReadOnlyList<LillyPluginData> allPlugins)
+        => _dependencyValidator.TopologicalSort(allPlugins);
+
+    /// <summary>
+    /// Registers a plugin after validating its dependencies.
+    /// </summary>
+    /// <exception cref="PluginLoadException">If dependencies are missing or circular</exception>
+    public void RegisterPlugin(ILillyPlugin plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+
+        var pluginData = plugin.LillyData;
+
+        // Check if already loaded
+        if (_loadedPluginData.Any(p => p.Id == pluginData.Id))
+        {
+            throw new PluginLoadException(
+                $"Plugin '{pluginData.Id}' is already loaded.",
+                pluginData.Id,
+                pluginData,
+                GetLoadedPluginData()
+            );
+        }
+
+        // Validate dependencies
+        _dependencyValidator.ValidateDependencies(pluginData, GetLoadedPluginData());
+
+        // Register the plugin
+        _loadedPlugins.Add(plugin);
+        _loadedPluginData.Add(pluginData);
     }
 }

@@ -50,38 +50,6 @@ public class LogViewer : IDisposable
     public event EventHandler? OnLogsChanged;
 
     /// <summary>
-    /// Initializes the log viewer and subscribes to the EventSink.
-    /// </summary>
-    public void Initialize()
-    {
-        EventSink.OnLogReceived += OnLogReceived;
-    }
-
-    /// <summary>
-    /// Gets all log entries that match the current filters.
-    /// </summary>
-    public IReadOnlyList<LogEntry> GetFilteredLogs()
-    {
-        lock (_lockObject)
-        {
-            return _logEntriesOrdered
-                   .Where(entry => Settings.MatchesFilter(entry))
-                   .ToList();
-        }
-    }
-
-    /// <summary>
-    /// Gets all log entries (unfiltered).
-    /// </summary>
-    public IReadOnlyList<LogEntry> GetAllLogs()
-    {
-        lock (_lockObject)
-        {
-            return _logEntriesOrdered.ToList();
-        }
-    }
-
-    /// <summary>
     /// Clears all log entries.
     /// </summary>
     public void Clear()
@@ -100,16 +68,12 @@ public class LogViewer : IDisposable
     }
 
     /// <summary>
-    /// Gets log statistics grouped by level.
+    /// Disposes the log viewer and unsubscribes from EventSink.
     /// </summary>
-    public Dictionary<LogEventLevel, int> GetStatistics()
+    public void Dispose()
     {
-        lock (_lockObject)
-        {
-            return _logEntriesOrdered
-                   .GroupBy(e => e.Level)
-                   .ToDictionary(g => g.Key, g => g.Sum(e => e.Count));
-        }
+        EventSink.OnLogReceived -= OnLogReceived;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -133,6 +97,51 @@ public class LogViewer : IDisposable
 
             return string.Join(Environment.NewLine, lines);
         }
+    }
+
+    /// <summary>
+    /// Gets all log entries (unfiltered).
+    /// </summary>
+    public IReadOnlyList<LogEntry> GetAllLogs()
+    {
+        lock (_lockObject)
+        {
+            return _logEntriesOrdered.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Gets all log entries that match the current filters.
+    /// </summary>
+    public IReadOnlyList<LogEntry> GetFilteredLogs()
+    {
+        lock (_lockObject)
+        {
+            return _logEntriesOrdered
+                   .Where(entry => Settings.MatchesFilter(entry))
+                   .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Gets log statistics grouped by level.
+    /// </summary>
+    public Dictionary<LogEventLevel, int> GetStatistics()
+    {
+        lock (_lockObject)
+        {
+            return _logEntriesOrdered
+                   .GroupBy(e => e.Level)
+                   .ToDictionary(g => g.Key, g => g.Sum(e => e.Count));
+        }
+    }
+
+    /// <summary>
+    /// Initializes the log viewer and subscribes to the EventSink.
+    /// </summary>
+    public void Initialize()
+    {
+        EventSink.OnLogReceived += OnLogReceived;
     }
 
     /// <summary>
@@ -197,14 +206,5 @@ public class LogViewer : IDisposable
 
                 break;
         }
-    }
-
-    /// <summary>
-    /// Disposes the log viewer and unsubscribes from EventSink.
-    /// </summary>
-    public void Dispose()
-    {
-        EventSink.OnLogReceived -= OnLogReceived;
-        GC.SuppressFinalize(this);
     }
 }

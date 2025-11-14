@@ -23,7 +23,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         new HashSet<RenderCommandType>
         {
             RenderCommandType.Clear,
-            RenderCommandType.Window,
+            RenderCommandType.Window
         };
 
     public GpuCommandRenderSystem(RenderContext renderContext) : base("GpuCommandSystem", RenderLayer.Background)

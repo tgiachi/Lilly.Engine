@@ -34,7 +34,7 @@ public readonly struct ScissorPayload
     /// <summary>
     /// Default constructor initializing an empty scissor payload.
     /// </summary>
-    public ScissorPayload( )
+    public ScissorPayload()
     {
         IsEnabled = false;
         X = -1;
@@ -44,7 +44,5 @@ public readonly struct ScissorPayload
     }
 
     public override string ToString()
-    {
-        return $"ScissorPayload(X: {X}, Y: {Y}, Width: {Width}, Height: {Height})";
-    }
+        => $"ScissorPayload(X: {X}, Y: {Y}, Width: {Width}, Height: {Height})";
 }

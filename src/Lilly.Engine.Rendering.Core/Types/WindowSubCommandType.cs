@@ -26,7 +26,7 @@ public enum WindowSubCommandType : byte
     SetFullscreen,
 
     /// <summary>
-    ///  Sets the window refresh rate.
+    /// Sets the window refresh rate.
     /// </summary>
     SetRefreshRate
 }

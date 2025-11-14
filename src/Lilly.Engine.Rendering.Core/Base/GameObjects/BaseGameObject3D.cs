@@ -52,23 +52,12 @@ public abstract class BaseGameObject3D : IGameObject3D
     /// </summary>
     public int Layer { get; set; }
 
-
     /// <summary>
-    ///  Draws the game object using the provided camera and game time.
+    /// Draws the game object using the provided camera and game time.
     /// </summary>
     /// <param name="camera"></param>
     /// <param name="gameTime"></param>
-    public virtual void Draw(ICamera3D camera, GameTime gameTime)
-    {
-
-    }
-
-    /// <summary>
-    /// Draws the game object by returning render commands.
-    /// </summary>
-    /// <param name="gameTime">The game timing information.</param>
-    /// <returns>An enumerable collection of render commands for this object.</returns>
-    protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
+    public virtual void Draw(ICamera3D camera, GameTime gameTime) { }
 
     /// <summary>
     /// Renders the game object and its children by collecting all render commands.
@@ -97,4 +86,11 @@ public abstract class BaseGameObject3D : IGameObject3D
             }
         }
     }
+
+    /// <summary>
+    /// Draws the game object by returning render commands.
+    /// </summary>
+    /// <param name="gameTime">The game timing information.</param>
+    /// <returns>An enumerable collection of render commands for this object.</returns>
+    protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
 }

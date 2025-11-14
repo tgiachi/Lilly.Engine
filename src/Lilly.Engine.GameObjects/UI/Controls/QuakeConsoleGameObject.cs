@@ -8,7 +8,6 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Types;
 using Lilly.Engine.Rendering.Core.Utils;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
@@ -122,8 +121,8 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
     /// </summary>
     public Rectangle<int> Bounds
         => new(
-            new Vector2D<int>(0, (int)_currentY),
-            new Vector2D<int>(_viewportWidth, ConsoleHeight)
+            new(0, (int)_currentY),
+            new(_viewportWidth, ConsoleHeight)
         );
 
     /// <summary>
@@ -143,34 +142,6 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         _fontFamily = uiTheme.FontName;
         _fontSize = uiTheme.FontSize;
         Initialize((int)renderContext.GraphicsDevice.Viewport.Width, (int)renderContext.GraphicsDevice.Viewport.Height);
-    }
-
-    /// <summary>
-    /// Initializes the console resources.
-    /// </summary>
-    /// <param name="viewportWidth">The viewport width.</param>
-    /// <param name="viewportHeight">The viewport height.</param>
-    private void Initialize(int viewportWidth, int viewportHeight)
-    {
-        if (_isInitialized)
-        {
-            return;
-        }
-
-        _viewportWidth = viewportWidth;
-        _viewportHeight = viewportHeight;
-
-        _lineHeight = _fontSize + DefaultLineSpacing;
-
-        RecalculateLayout();
-
-        foreach (var line in WelcomeLines)
-        {
-            AddLine(line, new Color4b(144, 238, 144, 255));
-        }
-
-        IsVisible = false;
-        _isInitialized = true;
     }
 
     /// <summary>
@@ -205,60 +176,7 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
             _entries.RemoveAt(0);
         }
 
-        _entries.Add(new ConsoleEntry(text, foreground, background));
-    }
-
-    /// <summary>
-    /// Toggles the console visibility.
-    /// </summary>
-    public void ToggleConsole()
-    {
-        if (_isAnimating)
-        {
-            return;
-        }
-
-        if (_isOpen)
-        {
-            Hide();
-        }
-        else
-        {
-            Show();
-        }
-    }
-
-    /// <summary>
-    /// Shows the console.
-    /// </summary>
-    public void Show()
-    {
-        if (_isOpen || _isAnimating)
-        {
-            return;
-        }
-
-        CaptureFocus();
-        _targetY = 0f;
-        _isOpen = true;
-        _isAnimating = true;
-        IsVisible = true;
-    }
-
-    /// <summary>
-    /// Hides the console.
-    /// </summary>
-    public void Hide()
-    {
-        if (!_isOpen || _isAnimating)
-        {
-            return;
-        }
-
-        _targetY = -ConsoleHeight;
-        _isOpen = false;
-        _isAnimating = true;
-        ReleaseFocus();
+        _entries.Add(new(text, foreground, background));
     }
 
     /// <inheritdoc />
@@ -267,121 +185,6 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         ReleaseFocus();
         _entries.Clear();
         GC.SuppressFinalize(this);
-    }
-
-    /// <inheritdoc />
-    public override void Update(GameTime gameTime)
-    {
-        if (!_isInitialized)
-        {
-            return;
-        }
-
-        if (_isAnimating)
-        {
-            var delta = gameTime.GetElapsedSeconds();
-            var step = AnimationSpeed * delta;
-
-            if (_currentY < _targetY)
-            {
-                _currentY = Math.Min(_currentY + step, _targetY);
-            }
-            else if (_currentY > _targetY)
-            {
-                _currentY = Math.Max(_currentY - step, _targetY);
-            }
-
-            Transform.Position = new Vector2D<float>(0f, _currentY);
-
-            if (Math.Abs(_currentY - _targetY) < 0.5f)
-            {
-                _currentY = _targetY;
-                Transform.Position = new Vector2D<float>(0f, _currentY);
-                _isAnimating = false;
-
-                if (!_isOpen)
-                {
-                    IsVisible = false;
-                }
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
-    {
-        if (!_isInitialized || !IsVisible)
-        {
-            yield break;
-        }
-
-        // Background
-        var backgroundRect = new Rectangle<float>(
-            new Vector2D<float>(0, _currentY),
-            new Vector2D<float>(_viewportWidth, ConsoleHeight)
-        );
-
-        yield return DrawRectangle(backgroundRect, BackgroundColor, depth: NextDepth());
-
-        // Console entries
-        var lineY = _currentY + 10;
-
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            var entry = _entries[i];
-            var textPosition = new Vector2D<float>(10f, lineY);
-
-            if (entry.Background.HasValue)
-            {
-                var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, entry.Text, _fontFamily, _fontSize);
-                var rect = new Rectangle<float>(
-                    new Vector2D<float>(textPosition.X - 2, textPosition.Y - 2),
-                    new Vector2D<float>(textWidth + 4, _fontSize + 4)
-                );
-
-                yield return DrawRectangle(rect, entry.Background.Value, depth: NextDepth());
-            }
-
-            yield return DrawTextCustom(
-                _fontFamily,
-                entry.Text,
-                _fontSize,
-                textPosition,
-                color: entry.Foreground,
-                depth: NextDepth()
-            );
-
-            lineY += _lineHeight;
-        }
-
-        // Input line
-        var inputText = Prompt + _inputBuffer;
-        var inputPosition = new Vector2D<float>(10f, _currentY + ConsoleHeight - 25f);
-
-        yield return DrawTextCustom(
-            _fontFamily,
-            inputText,
-            _fontSize,
-            inputPosition,
-            color: ForegroundColor,
-            depth: NextDepth()
-        );
-
-        // Cursor
-        if (ShouldShowCaret(gameTime))
-        {
-            var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, inputText, _fontFamily, _fontSize);
-            var caretPosition = new Vector2D<float>(inputPosition.X + textWidth, inputPosition.Y);
-
-            yield return DrawTextCustom(
-                _fontFamily,
-                "_",
-                _fontSize,
-                caretPosition,
-                color: ForegroundColor,
-                depth: NextDepth()
-            );
-        }
     }
 
     /// <inheritdoc />
@@ -447,6 +250,22 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         // Not implemented
     }
 
+    /// <summary>
+    /// Hides the console.
+    /// </summary>
+    public void Hide()
+    {
+        if (!_isOpen || _isAnimating)
+        {
+            return;
+        }
+
+        _targetY = -ConsoleHeight;
+        _isOpen = false;
+        _isAnimating = true;
+        ReleaseFocus();
+    }
+
     /// <inheritdoc />
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
@@ -455,45 +274,156 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
     }
 
-    private void CaptureFocus()
+    /// <summary>
+    /// Shows the console.
+    /// </summary>
+    public void Show()
     {
-        if (!_hasFocus)
+        if (_isOpen || _isAnimating)
         {
-            _inputManager.SetFocus(this);
-            _hasFocus = true;
+            return;
+        }
+
+        CaptureFocus();
+        _targetY = 0f;
+        _isOpen = true;
+        _isAnimating = true;
+        IsVisible = true;
+    }
+
+    /// <summary>
+    /// Toggles the console visibility.
+    /// </summary>
+    public void ToggleConsole()
+    {
+        if (_isAnimating)
+        {
+            return;
+        }
+
+        if (_isOpen)
+        {
+            Hide();
+        }
+        else
+        {
+            Show();
         }
     }
 
-    private void ReleaseFocus()
+    /// <inheritdoc />
+    public override void Update(GameTime gameTime)
     {
-        if (_hasFocus)
+        if (!_isInitialized)
         {
-            _inputManager.ClearFocus();
-            _hasFocus = false;
+            return;
         }
-    }
 
-    private void SubmitCommand()
-    {
-        var command = _inputBuffer.Trim();
-        AddLine(Prompt + command, ForegroundColor);
-
-        if (!string.IsNullOrEmpty(command))
+        if (_isAnimating)
         {
-            AppendHistory(command);
-            CommandSubmitted?.Invoke(this, command);
+            var delta = gameTime.GetElapsedSeconds();
+            var step = AnimationSpeed * delta;
 
-            if (HandleInternalCommand(command))
+            if (_currentY < _targetY)
             {
-                _inputBuffer = string.Empty;
+                _currentY = Math.Min(_currentY + step, _targetY);
+            }
+            else if (_currentY > _targetY)
+            {
+                _currentY = Math.Max(_currentY - step, _targetY);
+            }
 
-                return;
+            Transform.Position = new(0f, _currentY);
+
+            if (Math.Abs(_currentY - _targetY) < 0.5f)
+            {
+                _currentY = _targetY;
+                Transform.Position = new(0f, _currentY);
+                _isAnimating = false;
+
+                if (!_isOpen)
+                {
+                    IsVisible = false;
+                }
             }
         }
+    }
 
-        _inputBuffer = string.Empty;
-        ResetHistoryNavigation();
-        ResetAutoComplete();
+    /// <inheritdoc />
+    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    {
+        if (!_isInitialized || !IsVisible)
+        {
+            yield break;
+        }
+
+        // Background
+        var backgroundRect = new Rectangle<float>(
+            new(0, _currentY),
+            new(_viewportWidth, ConsoleHeight)
+        );
+
+        yield return DrawRectangle(backgroundRect, BackgroundColor, NextDepth());
+
+        // Console entries
+        var lineY = _currentY + 10;
+
+        for (var i = 0; i < _entries.Count; i++)
+        {
+            var entry = _entries[i];
+            var textPosition = new Vector2D<float>(10f, lineY);
+
+            if (entry.Background.HasValue)
+            {
+                var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, entry.Text, _fontFamily, _fontSize);
+                var rect = new Rectangle<float>(
+                    new(textPosition.X - 2, textPosition.Y - 2),
+                    new(textWidth + 4, _fontSize + 4)
+                );
+
+                yield return DrawRectangle(rect, entry.Background.Value, NextDepth());
+            }
+
+            yield return DrawTextCustom(
+                _fontFamily,
+                entry.Text,
+                _fontSize,
+                textPosition,
+                color: entry.Foreground,
+                depth: NextDepth()
+            );
+
+            lineY += _lineHeight;
+        }
+
+        // Input line
+        var inputText = Prompt + _inputBuffer;
+        var inputPosition = new Vector2D<float>(10f, _currentY + ConsoleHeight - 25f);
+
+        yield return DrawTextCustom(
+            _fontFamily,
+            inputText,
+            _fontSize,
+            inputPosition,
+            color: ForegroundColor,
+            depth: NextDepth()
+        );
+
+        // Cursor
+        if (ShouldShowCaret(gameTime))
+        {
+            var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, inputText, _fontFamily, _fontSize);
+            var caretPosition = new Vector2D<float>(inputPosition.X + textWidth, inputPosition.Y);
+
+            yield return DrawTextCustom(
+                _fontFamily,
+                "_",
+                _fontSize,
+                caretPosition,
+                color: ForegroundColor,
+                depth: NextDepth()
+            );
+        }
     }
 
     private void AppendHistory(string command)
@@ -507,55 +437,36 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         }
     }
 
-    private void TraverseHistory(bool up)
+    private void CaptureFocus()
     {
-        if (_history.Count == 0)
+        if (!_hasFocus)
         {
-            return;
+            _inputManager.SetFocus(this);
+            _hasFocus = true;
+        }
+    }
+
+    private static List<Key> GetJustPressedKeys(KeyboardState current, KeyboardState? previous)
+    {
+        if (previous == null)
+        {
+            return [];
         }
 
-        if (_historyIndex == -1)
-        {
-            _historyOriginal = _inputBuffer;
-        }
+        var pressed = current.GetPressedKeys();
+        var list = new List<Key>(pressed.Length);
 
-        if (up)
+        for (var i = 0; i < pressed.Length; i++)
         {
-            _historyIndex = _historyIndex <= 0 ? _history.Count - 1 : _historyIndex - 1;
-        }
-        else if (_historyIndex == -1)
-        {
-            return;
-        }
-        else
-        {
-            _historyIndex++;
+            var key = pressed[i];
 
-            if (_historyIndex >= _history.Count)
+            if (!previous.IsKeyPressed(key))
             {
-                _historyIndex = -1;
-                _inputBuffer = _historyOriginal;
-
-                return;
+                list.Add(key);
             }
         }
 
-        if (_historyIndex >= 0 && _historyIndex < _history.Count)
-        {
-            _inputBuffer = _history[_historyIndex];
-        }
-    }
-
-    private void ResetHistoryNavigation()
-    {
-        _historyIndex = -1;
-        _historyOriginal = string.Empty;
-    }
-
-    private void ResetAutoComplete()
-    {
-        _autoCompleteIndex = -1;
-        _autoCompleteSuggestions.Clear();
+        return list;
     }
 
     private void HandleAutoComplete()
@@ -643,65 +554,61 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         return handled;
     }
 
-    private void ShowHelp()
+    /// <summary>
+    /// Initializes the console resources.
+    /// </summary>
+    /// <param name="viewportWidth">The viewport width.</param>
+    /// <param name="viewportHeight">The viewport height.</param>
+    private void Initialize(int viewportWidth, int viewportHeight)
     {
-        AddLine("Available commands:", new Color4b(0, 255, 255, 255));
-        AddLine("  help      - Show this help message", ForegroundColor);
-        AddLine("  clear     - Clear console output", ForegroundColor);
-        AddLine("  history   - Show recent commands", ForegroundColor);
-        AddLine("  echo text - Echo text to the console", ForegroundColor);
-        AddLine("  show      - Open the console", ForegroundColor);
-        AddLine("  hide      - Close the console", ForegroundColor);
-        AddLine("  exit      - Close the console", ForegroundColor);
-    }
-
-    private void ShowHistory()
-    {
-        if (_history.Count == 0)
+        if (_isInitialized)
         {
-            AddLine("No history entries yet.", new Color4b(128, 128, 128, 255));
-
             return;
         }
 
-        AddLine("Recent commands:", new Color4b(0, 255, 255, 255));
-        var count = Math.Min(10, _history.Count);
+        _viewportWidth = viewportWidth;
+        _viewportHeight = viewportHeight;
 
-        for (var i = _history.Count - count; i < _history.Count; i++)
+        _lineHeight = _fontSize + DefaultLineSpacing;
+
+        RecalculateLayout();
+
+        foreach (var line in WelcomeLines)
         {
-            AddLine($"  {_history[i]}", ForegroundColor);
+            AddLine(line, new(144, 238, 144));
         }
+
+        IsVisible = false;
+        _isInitialized = true;
     }
 
     private void RecalculateLayout()
     {
-        Transform.Size = new Vector2D<float>(_viewportWidth, ConsoleHeight);
-        Transform.Position = new Vector2D<float>(0f, _currentY);
+        Transform.Size = new(_viewportWidth, ConsoleHeight);
+        Transform.Position = new(0f, _currentY);
         _maxLines = (int)Math.Max(1, (ConsoleHeight - 40f) / _lineHeight);
         _entries.Clear();
     }
 
-    private static List<Key> GetJustPressedKeys(KeyboardState current, KeyboardState? previous)
+    private void ReleaseFocus()
     {
-        if (previous == null)
+        if (_hasFocus)
         {
-            return [];
+            _inputManager.ClearFocus();
+            _hasFocus = false;
         }
+    }
 
-        var pressed = current.GetPressedKeys();
-        var list = new List<Key>(pressed.Length);
+    private void ResetAutoComplete()
+    {
+        _autoCompleteIndex = -1;
+        _autoCompleteSuggestions.Clear();
+    }
 
-        for (var i = 0; i < pressed.Length; i++)
-        {
-            var key = pressed[i];
-
-            if (!previous.IsKeyPressed(key))
-            {
-                list.Add(key);
-            }
-        }
-
-        return list;
+    private void ResetHistoryNavigation()
+    {
+        _historyIndex = -1;
+        _historyOriginal = string.Empty;
     }
 
     private bool ShouldShowCaret(GameTime gameTime)
@@ -721,5 +628,97 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         }
 
         return _cursorVisible;
+    }
+
+    private void ShowHelp()
+    {
+        AddLine("Available commands:", new(0, 255, 255));
+        AddLine("  help      - Show this help message", ForegroundColor);
+        AddLine("  clear     - Clear console output", ForegroundColor);
+        AddLine("  history   - Show recent commands", ForegroundColor);
+        AddLine("  echo text - Echo text to the console", ForegroundColor);
+        AddLine("  show      - Open the console", ForegroundColor);
+        AddLine("  hide      - Close the console", ForegroundColor);
+        AddLine("  exit      - Close the console", ForegroundColor);
+    }
+
+    private void ShowHistory()
+    {
+        if (_history.Count == 0)
+        {
+            AddLine("No history entries yet.", new(128, 128, 128));
+
+            return;
+        }
+
+        AddLine("Recent commands:", new(0, 255, 255));
+        var count = Math.Min(10, _history.Count);
+
+        for (var i = _history.Count - count; i < _history.Count; i++)
+        {
+            AddLine($"  {_history[i]}", ForegroundColor);
+        }
+    }
+
+    private void SubmitCommand()
+    {
+        var command = _inputBuffer.Trim();
+        AddLine(Prompt + command, ForegroundColor);
+
+        if (!string.IsNullOrEmpty(command))
+        {
+            AppendHistory(command);
+            CommandSubmitted?.Invoke(this, command);
+
+            if (HandleInternalCommand(command))
+            {
+                _inputBuffer = string.Empty;
+
+                return;
+            }
+        }
+
+        _inputBuffer = string.Empty;
+        ResetHistoryNavigation();
+        ResetAutoComplete();
+    }
+
+    private void TraverseHistory(bool up)
+    {
+        if (_history.Count == 0)
+        {
+            return;
+        }
+
+        if (_historyIndex == -1)
+        {
+            _historyOriginal = _inputBuffer;
+        }
+
+        if (up)
+        {
+            _historyIndex = _historyIndex <= 0 ? _history.Count - 1 : _historyIndex - 1;
+        }
+        else if (_historyIndex == -1)
+        {
+            return;
+        }
+        else
+        {
+            _historyIndex++;
+
+            if (_historyIndex >= _history.Count)
+            {
+                _historyIndex = -1;
+                _inputBuffer = _historyOriginal;
+
+                return;
+            }
+        }
+
+        if (_historyIndex >= 0 && _historyIndex < _history.Count)
+        {
+            _inputBuffer = _history[_historyIndex];
+        }
     }
 }

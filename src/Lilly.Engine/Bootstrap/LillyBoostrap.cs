@@ -62,6 +62,45 @@ public class LillyBoostrap : ILillyBootstrap
         RegisterDefaults();
     }
 
+    /// <summary>
+    /// Initializes the engine asynchronously with the provided options.
+    /// </summary>
+    /// <param name="options">The initial engine configuration options.</param>
+    /// <returns>A task representing the initialization operation.</returns>
+    public Task InitializeAsync(InitialEngineOptions options)
+    {
+        Renderer.Initialize(options);
+
+        Renderer.Update += RendererOnUpdate;
+        Renderer.Render += RendererOnRender;
+        Renderer.Resize += RendererOnResize;
+
+        _container.RegisterInstance(Renderer.Context);
+
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
+        {
+            plugin.EngineInitialized(_container);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Runs the engine's main loop asynchronously.
+    /// </summary>
+    /// <returns>A task representing the run operation.</returns>
+    public async Task RunAsync()
+        => Renderer.Run();
+
+    /// <summary>
+    /// Shuts down the engine asynchronously.
+    /// </summary>
+    /// <returns>A task representing the shutdown operation.</returns>
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
     private void InitializePlugins()
     {
         var pluginRegistry = _container.Resolve<PluginRegistry>();
@@ -146,98 +185,6 @@ public class LillyBoostrap : ILillyBootstrap
         }
     }
 
-    /// <summary>
-    /// Initializes the engine asynchronously with the provided options.
-    /// </summary>
-    /// <param name="options">The initial engine configuration options.</param>
-    /// <returns>A task representing the initialization operation.</returns>
-    public Task InitializeAsync(InitialEngineOptions options)
-    {
-        Renderer.Initialize(options);
-
-        Renderer.Update += RendererOnUpdate;
-        Renderer.Render += RendererOnRender;
-        Renderer.Resize += RendererOnResize;
-
-        _container.RegisterInstance(Renderer.Context);
-
-        var pluginRegistry = _container.Resolve<PluginRegistry>();
-
-        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
-        {
-            plugin.EngineInitialized(_container);
-        }
-
-        return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Runs the engine's main loop asynchronously.
-    /// </summary>
-    /// <returns>A task representing the run operation.</returns>
-    public async Task RunAsync()
-        => Renderer.Run();
-
-    /// <summary>
-    /// Shuts down the engine asynchronously.
-    /// </summary>
-    /// <returns>A task representing the shutdown operation.</returns>
-    public Task ShutdownAsync()
-        => Task.CompletedTask;
-
-    private void RegisterDefaults()
-    {
-        _container
-            .Register<PluginRegistry>(Reuse.Singleton);
-
-        _container
-            .Register<PluginDependencyValidator>(Reuse.Singleton);
-
-        _container
-            .RegisterService<IScriptEngineService, LuaScriptEngineService>()
-            .RegisterService<IVersionService, VersionService>()
-            .RegisterService<IInputManagerService, InputManagerService>()
-            .RegisterService<ITimerService, TimerService>()
-            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
-            .RegisterService<IJobSystemService, JobSystemService>()
-            .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
-            .RegisterService<IGameObjectFactory, GameObjectFactory>()
-            .RegisterService<IAssetManager, AssetManager>()
-            .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
-            .RegisterService<ICamera3dService, Camera3dService>()
-            .RegisterService<ISceneManager, SceneManager>()
-            .RegisterService<INotificationService, NotificationService>()
-            ;
-
-        _container
-            .RegisterRenderSystem<GpuCommandRenderSystem>()
-            .RegisterRenderSystem<ImGuiRenderSystem>()
-            .RegisterRenderSystem<SpriteBatchRenderSystem>()
-            .RegisterRenderSystem<UpdatableRenderSystem>()
-            .RegisterRenderSystem<InputRenderSystem>()
-            .RegisterRenderSystem<RenderLayerSystem3D>()
-            ;
-
-        _container
-            .RegisterGameObject<ImGuiActionDebugger>()
-            .RegisterGameObject<CameraDebugger>()
-            .RegisterGameObject<InputDebugger>()
-            ;
-
-        _container.AddLuaUserData<Vector2D<int>>();
-        _container
-            .AddScriptModule<ConsoleModule>()
-            .AddScriptModule<WindowModule>()
-            .AddScriptModule<AssetsModule>()
-            .AddScriptModule<ImGuiModule>()
-            .AddScriptModule<JobSystemModule>()
-            .AddScriptModule<ScenesModule>()
-            .AddScriptModule<InputManagerModule>()
-            .AddScriptModule<CameraModule>()
-            .AddScriptModule<NotificationsModule>()
-            ;
-    }
-
     private void InitializeRenderSystem()
     {
         var factory = _container.Resolve<IGameObjectFactory>();
@@ -270,7 +217,6 @@ public class LillyBoostrap : ILillyBootstrap
 
         _renderPipeline.AddGameObject(factory.CreateGameObject<InputDebugger>());
 
-
         foreach (var plugin in pluginRegistry.GetLoadedPlugins())
         {
             foreach (var globalGameObject in plugin.GlobalGameObjects(factory))
@@ -278,7 +224,6 @@ public class LillyBoostrap : ILillyBootstrap
                 _renderPipeline.AddGameObject(globalGameObject);
             }
         }
-
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()
@@ -430,9 +375,61 @@ public class LillyBoostrap : ILillyBootstrap
         //
         // _renderPipeline.AddGameObject(checkBox);
 
-        _renderPipeline.AddGameObject(new LogViewerDebugger(new LogViewer()));
+        _renderPipeline.AddGameObject(new LogViewerDebugger(new()));
         _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
+    }
 
+    private void RegisterDefaults()
+    {
+        _container
+            .Register<PluginRegistry>(Reuse.Singleton);
+
+        _container
+            .Register<PluginDependencyValidator>(Reuse.Singleton);
+
+        _container
+            .RegisterService<IScriptEngineService, LuaScriptEngineService>()
+            .RegisterService<IVersionService, VersionService>()
+            .RegisterService<IInputManagerService, InputManagerService>()
+            .RegisterService<ITimerService, TimerService>()
+            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
+            .RegisterService<IJobSystemService, JobSystemService>()
+            .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
+            .RegisterService<IGameObjectFactory, GameObjectFactory>()
+            .RegisterService<IAssetManager, AssetManager>()
+            .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
+            .RegisterService<ICamera3dService, Camera3dService>()
+            .RegisterService<ISceneManager, SceneManager>()
+            .RegisterService<INotificationService, NotificationService>()
+            ;
+
+        _container
+            .RegisterRenderSystem<GpuCommandRenderSystem>()
+            .RegisterRenderSystem<ImGuiRenderSystem>()
+            .RegisterRenderSystem<SpriteBatchRenderSystem>()
+            .RegisterRenderSystem<UpdatableRenderSystem>()
+            .RegisterRenderSystem<InputRenderSystem>()
+            .RegisterRenderSystem<RenderLayerSystem3D>()
+            ;
+
+        _container
+            .RegisterGameObject<ImGuiActionDebugger>()
+            .RegisterGameObject<CameraDebugger>()
+            .RegisterGameObject<InputDebugger>()
+            ;
+
+        _container.AddLuaUserData<Vector2D<int>>();
+        _container
+            .AddScriptModule<ConsoleModule>()
+            .AddScriptModule<WindowModule>()
+            .AddScriptModule<AssetsModule>()
+            .AddScriptModule<ImGuiModule>()
+            .AddScriptModule<JobSystemModule>()
+            .AddScriptModule<ScenesModule>()
+            .AddScriptModule<InputManagerModule>()
+            .AddScriptModule<CameraModule>()
+            .AddScriptModule<NotificationsModule>()
+            ;
     }
 
     private void RendererOnRender(GameTime gameTime)

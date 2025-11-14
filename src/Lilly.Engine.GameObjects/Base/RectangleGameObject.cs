@@ -48,9 +48,7 @@ public class RectangleGameObject : BaseGameObject2D
     public string? CustomWhitePixelTexture { get; set; } = null;
 
     public RectangleGameObject()
-    {
-        Transform.Size = _size;
-    }
+        => Transform.Size = _size;
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
@@ -72,7 +70,7 @@ public class RectangleGameObject : BaseGameObject2D
         {
             // Draw filled rectangle - uses Order for depth
             yield return DrawRectangle(
-                new Rectangle<float>(Transform.Position, Size),
+                new(Transform.Position, Size),
                 Color,
                 whitePixelTexture: CustomWhitePixelTexture
             );

@@ -38,9 +38,7 @@ public class FreeCamera : Base3dCamera
     }
 
     public FreeCamera(string name = "FreeCamera")
-    {
-        Name = name;
-    }
+        => Name = name;
 
     /// <summary>
     /// Rotates the camera using pitch (X), yaw (Y), and roll (Z) angles.

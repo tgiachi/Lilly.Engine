@@ -66,8 +66,8 @@ public class FPSCamera : Base3dCamera
         CurrentYaw += yawDelta;
 
         // Apply rotation as quaternion
-        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(new Vector3D<float>(1, 0, 0), CurrentPitch);
-        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new Vector3D<float>(0, 1, 0), CurrentYaw);
+        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(new(1, 0, 0), CurrentPitch);
+        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), CurrentYaw);
 
         Rotation = pitchRotation * yawRotation;
 

@@ -44,7 +44,6 @@ public class Camera3dService : ICamera3dService
         }
     }
 
-
     /// <summary>
     /// Event raised whenever the active camera changes.
     /// </summary>
@@ -104,6 +103,18 @@ public class Camera3dService : ICamera3dService
     }
 
     /// <summary>
+    /// Updates all registered cameras.
+    /// </summary>
+    /// <param name="gameTime">Provides a snapshot of timing values.</param>
+    public void Update(GameTime gameTime)
+    {
+        foreach (var camera in _cameras)
+        {
+            camera.Update(gameTime);
+        }
+    }
+
+    /// <summary>
     /// Updates the cached viewport and notifies cameras when resolution changes.
     /// </summary>
     /// <param name="viewport">The new viewport dimensions.</param>
@@ -116,18 +127,6 @@ public class Camera3dService : ICamera3dService
         foreach (var camera in _cameras)
         {
             camera.AspectRatio = aspectRatio;
-        }
-    }
-
-    /// <summary>
-    /// Updates all registered cameras.
-    /// </summary>
-    /// <param name="gameTime">Provides a snapshot of timing values.</param>
-    public void Update(GameTime gameTime)
-    {
-        foreach (var camera in _cameras)
-        {
-            camera.Update(gameTime);
         }
     }
 }

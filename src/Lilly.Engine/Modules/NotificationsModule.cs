@@ -5,6 +5,7 @@ using Lilly.Engine.Interfaces.Services;
 namespace Lilly.Engine.Modules;
 
 [ScriptModule("notifications", "Notification utilities and functions")]
+
 /// <summary>
 /// Provides scripting access to notification services for displaying messages.
 /// </summary>

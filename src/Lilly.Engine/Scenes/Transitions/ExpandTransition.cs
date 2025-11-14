@@ -1,7 +1,6 @@
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
@@ -65,8 +64,8 @@ public class ExpandTransition : TransitionGameObject
             var destination = new Rectangle<float>(x, y, width, height);
 
             var command = RenderCommandHelpers.CreateDrawTexture(
-                new DrawTexturePayload(
-                    texture: DefaultTextures.WhiteTextureKey,
+                new(
+                    DefaultTextures.WhiteTextureKey,
                     destination: destination,
                     color: Color,
                     depth: 0.9f

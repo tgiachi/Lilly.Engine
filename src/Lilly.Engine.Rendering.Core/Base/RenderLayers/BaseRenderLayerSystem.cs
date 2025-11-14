@@ -136,14 +136,14 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     /// <summary>
     /// Initializes the render layer system.
     /// </summary>
-    public virtual void Initialize() {     }
+    public virtual void Initialize() { }
 
     /// <summary>
     /// Handles viewport resize events.
     /// </summary>
     /// <param name="width">The new viewport width.</param>
     /// <param name="height">The new viewport height.</param>
-    public virtual void OnViewportResize(int width, int height) {     }
+    public virtual void OnViewportResize(int width, int height) { }
 
     /// <summary>
     /// Processes the provided render commands.

@@ -18,7 +18,6 @@ namespace Lilly.Engine.GameObjects.UI.Base;
 /// </summary>
 public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
 {
-    private readonly IInputManagerService _inputManager;
     private bool _hasFocus;
 
     /// <summary>
@@ -26,9 +25,7 @@ public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
     /// </summary>
     /// <param name="inputManager">The input manager service.</param>
     protected BaseUIGameObject(IInputManagerService inputManager)
-    {
-        _inputManager = inputManager;
-    }
+        => InputManager = inputManager;
 
     /// <summary>
     /// Gets or sets the unique identifier for this game object.
@@ -103,6 +100,24 @@ public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
     public abstract Rectangle<int> Bounds { get; }
 
     /// <summary>
+    /// Gets the input manager service.
+    /// </summary>
+    protected IInputManagerService InputManager { get; }
+
+    /// <summary>
+    /// Disposes of this UI element and releases all resources.
+    /// </summary>
+    public virtual void Dispose()
+    {
+        if (HasFocus)
+        {
+            ReleaseFocus();
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
     /// Handles keyboard input when the UI element has focus.
     /// </summary>
     /// <param name="keyboardState">Current keyboard state.</param>
@@ -140,20 +155,7 @@ public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
     /// <param name="mousePosition">The mouse position to check.</param>
     /// <returns>True if mouse is within bounds, false otherwise.</returns>
     public virtual bool IsMouseInBounds(Vector2 mousePosition)
-    {
-        return Bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
-    }
-
-    /// <summary>
-    /// Requests focus for this UI element.
-    /// </summary>
-    public void RequestFocus()
-    {
-        if (IsFocusable)
-        {
-            _inputManager.SetFocus(this);
-        }
-    }
+        => Bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
 
     /// <summary>
     /// Releases focus from this UI element.
@@ -162,18 +164,8 @@ public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
     {
         if (HasFocus)
         {
-            _inputManager.ClearFocus();
+            InputManager.ClearFocus();
         }
-    }
-
-    /// <summary>
-    /// Called when the focus state changes.
-    /// Override this to respond to focus changes.
-    /// </summary>
-    /// <param name="hasFocus">True if the element gained focus, false if it lost focus.</param>
-    protected virtual void OnFocusChanged(bool hasFocus)
-    {
-        // Base implementation does nothing - override in derived classes
     }
 
     /// <summary>
@@ -185,23 +177,23 @@ public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
     public abstract IEnumerable<RenderCommand> Render(GameTime gameTime);
 
     /// <summary>
-    /// Gets the input manager service.
+    /// Requests focus for this UI element.
     /// </summary>
-    protected IInputManagerService InputManager => _inputManager;
-
-
-
+    public void RequestFocus()
+    {
+        if (IsFocusable)
+        {
+            InputManager.SetFocus(this);
+        }
+    }
 
     /// <summary>
-    /// Disposes of this UI element and releases all resources.
+    /// Called when the focus state changes.
+    /// Override this to respond to focus changes.
     /// </summary>
-    public virtual void Dispose()
+    /// <param name="hasFocus">True if the element gained focus, false if it lost focus.</param>
+    protected virtual void OnFocusChanged(bool hasFocus)
     {
-        if (HasFocus)
-        {
-            ReleaseFocus();
-        }
-
-        GC.SuppressFinalize(this);
+        // Base implementation does nothing - override in derived classes
     }
 }

@@ -6,6 +6,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using MoonSharp.Interpreter;
 using Serilog;
+using Serilog.Events;
 
 namespace Lilly.Engine.Services;
 
@@ -39,8 +40,6 @@ public class GameObjectFactory : IGameObjectFactory
 
         BuildDynamicScriptModule();
     }
-
-
 
     /// <summary>
     /// Creates a new instance of the specified game object type.
@@ -86,20 +85,20 @@ public class GameObjectFactory : IGameObjectFactory
     }
 
     /// <summary>
-    /// Generates a unique object ID in a thread-safe manner.
+    /// Determines whether a game object type is registered in the factory.
     /// </summary>
-    private uint GenerateObjectId()
-    {
-        return (uint)Interlocked.Increment(ref _nextObjectId);
-    }
+    /// <typeparam name="TGameObject">The game object type to check.</typeparam>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    public bool IsRegistered<TGameObject>() where TGameObject : class, IGameObject
+        => _container.IsRegistered<TGameObject>();
 
     /// <summary>
-    /// Generates a unique name for a game object based on its type and ID.
+    /// Determines whether a game object type is registered in the factory.
     /// </summary>
-    private static string GenerateGameObjectName(Type type, uint id)
-    {
-        return ($"{type.Name}_{id}").ToSnakeCase();
-    }
+    /// <param name="type">The game object type to check.</param>
+    /// <returns>True if the game object type is registered; otherwise, false.</returns>
+    public bool IsRegistered(Type type)
+        => type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
 
     private void BuildDynamicScriptModule()
     {
@@ -117,7 +116,7 @@ public class GameObjectFactory : IGameObjectFactory
 
             var functionName = $"new_{_scriptEngineService.ToScriptEngineFunctionName(baseName)}";
 
-            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            if (_logger.IsEnabled(LogEventLevel.Debug))
             {
                 _logger.Debug(
                     "Registering script function {FunctionName} for GameObject type {GameObjectType}",
@@ -137,22 +136,14 @@ public class GameObjectFactory : IGameObjectFactory
     }
 
     /// <summary>
-    /// Determines whether a game object type is registered in the factory.
+    /// Generates a unique name for a game object based on its type and ID.
     /// </summary>
-    /// <typeparam name="TGameObject">The game object type to check.</typeparam>
-    /// <returns>True if the game object type is registered; otherwise, false.</returns>
-    public bool IsRegistered<TGameObject>() where TGameObject : class, IGameObject
-    {
-        return _container.IsRegistered<TGameObject>();
-    }
+    private static string GenerateGameObjectName(Type type, uint id)
+        => $"{type.Name}_{id}".ToSnakeCase();
 
     /// <summary>
-    /// Determines whether a game object type is registered in the factory.
+    /// Generates a unique object ID in a thread-safe manner.
     /// </summary>
-    /// <param name="type">The game object type to check.</param>
-    /// <returns>True if the game object type is registered; otherwise, false.</returns>
-    public bool IsRegistered(Type type)
-    {
-        return type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
-    }
+    private uint GenerateObjectId()
+        => (uint)Interlocked.Increment(ref _nextObjectId);
 }

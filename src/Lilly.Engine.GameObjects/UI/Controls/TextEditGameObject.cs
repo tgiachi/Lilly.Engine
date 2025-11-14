@@ -1,5 +1,4 @@
 using System.Numerics;
-using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.GameObjects.Utils;
@@ -35,8 +34,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     private bool _isDragging;
     private int _dragStartIndex;
     private bool _hasFocus;
-    private int _width;
-    private int _height;
+    private readonly int _width;
+    private readonly int _height;
 
     private const double CursorBlinkInterval = 0.5; // 500ms
     private const int Padding = 4;
@@ -257,8 +256,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         // );
 
         var bounds = new Rectangle<float>(
-            new Vector2D<float>(Transform.Position.X, Transform.Position.Y),
-            new Vector2D<float>(Transform.Size.X, Transform.Size.Y)
+            new(Transform.Position.X, Transform.Position.Y),
+            new(Transform.Size.X, Transform.Size.Y)
         );
 
         // yield return RenderCommandHelpers.CreateScissor(scissorBounds);
@@ -266,17 +265,17 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         // Background
         var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
 
-        yield return DrawRectangle(bounds, bgColor, depth: NextDepth());
+        yield return DrawRectangle(bounds, bgColor, NextDepth());
 
         // Border
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
 
         foreach (var cmd in DrawHollowRectangle(
                      Transform.Position,
-                     new Vector2D<float>(Transform.Size.X, Transform.Size.Y),
+                     new(Transform.Size.X, Transform.Size.Y),
                      borderColor,
                      Theme.BorderThickness,
-                     depth: NextDepth()
+                     NextDepth()
                  ))
         {
             yield return cmd;
@@ -293,7 +292,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 128
             );
 
-            yield return DrawRectangle(selectionRect, selectionColor, depth: NextDepth());
+            yield return DrawRectangle(selectionRect, selectionColor, NextDepth());
         }
 
         // Text content or placeholder
@@ -341,15 +340,65 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             {
                 var cursorRect = GetCursorRectangle();
 
-                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, depth: NextDepth());
+                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, NextDepth());
             }
         }
-
     }
 
-    private void UpdateTransformSize()
+    private void ClearSelection()
     {
-        Transform.Size = new Vector2D<float>(_width, _height);
+        _selectionStart = 0;
+        _selectionLength = 0;
+    }
+
+    private void DeleteSelection()
+    {
+        if (_selectionLength == 0)
+        {
+            return;
+        }
+
+        _text = _text.Remove(_selectionStart, _selectionLength);
+        _cursorPosition = _selectionStart;
+        ClearSelection();
+        TextChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private Rectangle<float> GetCursorRectangle()
+    {
+        var displayText = GetDisplayText();
+        var textBeforeCursor = _cursorPosition > 0 ? displayText[.._cursorPosition] : string.Empty;
+        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, Theme.FontName, Theme.FontSize);
+
+        return new(
+            new(Transform.Position.X + Padding + cursorX - _scrollOffset, Transform.Position.Y + 4),
+            new(2, Transform.Size.Y - 8)
+        );
+    }
+
+    private string GetDisplayText()
+    {
+        if (IsPassword && !string.IsNullOrEmpty(_text))
+        {
+            return new('•', _text.Length);
+        }
+
+        return _text;
+    }
+
+    private Rectangle<float> GetSelectionRectangle()
+    {
+        var displayText = GetDisplayText();
+        var textBeforeSelection = displayText[.._selectionStart];
+        var selectedText = displayText.Substring(_selectionStart, _selectionLength);
+
+        var startX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeSelection, Theme.FontName, Theme.FontSize);
+        var width = TextMeasurement.MeasureStringWidth(_assetManager, selectedText, Theme.FontName, Theme.FontSize);
+
+        return new(
+            new(Transform.Position.X + Padding + startX - _scrollOffset, Transform.Position.Y + 2),
+            new(width, Transform.Size.Y - 4)
+        );
     }
 
     private void HandleBackspace()
@@ -366,6 +415,25 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
+    private void HandleCharacterInput(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
+    {
+        var shift = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+
+        foreach (var key in keyboardState.GetPressedKeys())
+        {
+            if (!previousKeyboardState.IsKeyPressed(key))
+            {
+                var character = KeyboardInputUtils.KeyToChar(key, shift);
+
+                if (character != null)
+                {
+                    InsertCharacter(character.Value);
+                    ResetCursorBlink(gameTime);
+                }
+            }
+        }
+    }
+
     private void HandleDelete()
     {
         if (_selectionLength > 0)
@@ -377,6 +445,52 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             _text = _text.Remove(_cursorPosition, 1);
             TextChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private void HandleEnd(KeyboardState keyboardState)
+    {
+        var isShiftDown = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+
+        if (isShiftDown)
+        {
+            if (_selectionLength == 0)
+            {
+                _selectionStart = _cursorPosition;
+            }
+
+            _selectionLength = _text.Length - _selectionStart;
+        }
+        else
+        {
+            ClearSelection();
+        }
+
+        _cursorPosition = _text.Length;
+    }
+
+    private void HandleHome(KeyboardState keyboardState)
+    {
+        var isShiftDown = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+
+        if (isShiftDown)
+        {
+            if (_selectionLength == 0)
+            {
+                _selectionStart = 0;
+                _selectionLength = _cursorPosition;
+            }
+            else
+            {
+                _selectionLength = _selectionStart + _selectionLength;
+                _selectionStart = 0;
+            }
+        }
+        else
+        {
+            ClearSelection();
+        }
+
+        _cursorPosition = 0;
     }
 
     private void HandleLeftArrow(KeyboardState keyboardState)
@@ -450,71 +564,6 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
-    private void HandleHome(KeyboardState keyboardState)
-    {
-        var isShiftDown = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
-
-        if (isShiftDown)
-        {
-            if (_selectionLength == 0)
-            {
-                _selectionStart = 0;
-                _selectionLength = _cursorPosition;
-            }
-            else
-            {
-                _selectionLength = _selectionStart + _selectionLength;
-                _selectionStart = 0;
-            }
-        }
-        else
-        {
-            ClearSelection();
-        }
-
-        _cursorPosition = 0;
-    }
-
-    private void HandleEnd(KeyboardState keyboardState)
-    {
-        var isShiftDown = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
-
-        if (isShiftDown)
-        {
-            if (_selectionLength == 0)
-            {
-                _selectionStart = _cursorPosition;
-            }
-
-            _selectionLength = _text.Length - _selectionStart;
-        }
-        else
-        {
-            ClearSelection();
-        }
-
-        _cursorPosition = _text.Length;
-    }
-
-    private void HandleCharacterInput(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
-    {
-        var shift = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
-
-        foreach (var key in keyboardState.GetPressedKeys())
-        {
-            if (!previousKeyboardState.IsKeyPressed(key))
-            {
-                var character = KeyboardInputUtils.KeyToChar(key, shift);
-
-                if (character != null)
-                {
-                    InsertCharacter(character.Value);
-                    ResetCursorBlink(gameTime);
-                }
-            }
-        }
-    }
-
     private void InsertCharacter(char character)
     {
         if (_selectionLength > 0)
@@ -532,17 +581,16 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         TextChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void DeleteSelection()
-    {
-        if (_selectionLength == 0)
-        {
-            return;
-        }
+    private static bool IsControlDown(KeyboardState keyboardState)
+        => keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
 
-        _text = _text.Remove(_selectionStart, _selectionLength);
-        _cursorPosition = _selectionStart;
-        ClearSelection();
-        TextChanged?.Invoke(this, EventArgs.Empty);
+    private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
+        => current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
+
+    private void ResetCursorBlink(GameTime gameTime)
+    {
+        _cursorVisible = true;
+        _lastBlinkTime = gameTime.GetTotalGameTimeSeconds();
     }
 
     private void SelectAll()
@@ -552,47 +600,16 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         _cursorPosition = _text.Length;
     }
 
-    private void ClearSelection()
+    private void UpdateCursorBlink(GameTime gameTime)
     {
-        _selectionStart = 0;
-        _selectionLength = 0;
-    }
+        var currentTime = gameTime.GetTotalGameTimeSeconds();
+        var elapsed = currentTime - _lastBlinkTime;
 
-    private string GetDisplayText()
-    {
-        if (IsPassword && !string.IsNullOrEmpty(_text))
+        if (elapsed >= CursorBlinkInterval)
         {
-            return new string('•', _text.Length);
+            _cursorVisible = !_cursorVisible;
+            _lastBlinkTime = currentTime;
         }
-
-        return _text;
-    }
-
-    private Rectangle<float> GetSelectionRectangle()
-    {
-        var displayText = GetDisplayText();
-        var textBeforeSelection = displayText[.._selectionStart];
-        var selectedText = displayText.Substring(_selectionStart, _selectionLength);
-
-        var startX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeSelection, Theme.FontName, Theme.FontSize);
-        var width = TextMeasurement.MeasureStringWidth(_assetManager, selectedText, Theme.FontName, Theme.FontSize);
-
-        return new Rectangle<float>(
-            new Vector2D<float>(Transform.Position.X + Padding + startX - _scrollOffset, Transform.Position.Y + 2),
-            new Vector2D<float>(width, Transform.Size.Y - 4)
-        );
-    }
-
-    private Rectangle<float> GetCursorRectangle()
-    {
-        var displayText = GetDisplayText();
-        var textBeforeCursor = _cursorPosition > 0 ? displayText[.._cursorPosition] : string.Empty;
-        var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, Theme.FontName, Theme.FontSize);
-
-        return new Rectangle<float>(
-            new Vector2D<float>(Transform.Position.X + Padding + cursorX - _scrollOffset, Transform.Position.Y + 4),
-            new Vector2D<float>(2, Transform.Size.Y - 8)
-        );
     }
 
     private void UpdateScrollOffset()
@@ -618,31 +635,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
-    private void UpdateCursorBlink(GameTime gameTime)
+    private void UpdateTransformSize()
     {
-        var currentTime = gameTime.GetTotalGameTimeSeconds();
-        var elapsed = currentTime - _lastBlinkTime;
-
-        if (elapsed >= CursorBlinkInterval)
-        {
-            _cursorVisible = !_cursorVisible;
-            _lastBlinkTime = currentTime;
-        }
-    }
-
-    private void ResetCursorBlink(GameTime gameTime)
-    {
-        _cursorVisible = true;
-        _lastBlinkTime = gameTime.GetTotalGameTimeSeconds();
-    }
-
-    private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
-    {
-        return current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
-    }
-
-    private static bool IsControlDown(KeyboardState keyboardState)
-    {
-        return keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+        Transform.Size = new(_width, _height);
     }
 }

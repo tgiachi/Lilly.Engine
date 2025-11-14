@@ -124,47 +124,6 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         UpdateTransformSize();
     }
 
-    /// <summary>
-    /// Adds an item to the combo box.
-    /// </summary>
-    /// <param name="item">The item text to add.</param>
-    public void AddItem(string item)
-    {
-        Items.Add(item ?? string.Empty);
-    }
-
-    /// <summary>
-    /// Clears all items from the combo box.
-    /// </summary>
-    public void ClearItems()
-    {
-        Items.Clear();
-        _selectedIndex = -1;
-        IsOpen = false;
-    }
-
-    /// <summary>
-    /// Removes an item from the combo box by index.
-    /// </summary>
-    /// <param name="index">The index of the item to remove.</param>
-    public bool RemoveItem(int index)
-    {
-        if (index < 0 || index >= Items.Count)
-        {
-            return false;
-        }
-
-        Items.RemoveAt(index);
-
-        // Adjust selected index if needed
-        if (_selectedIndex >= Items.Count)
-        {
-            _selectedIndex = Items.Count > 0 ? Items.Count - 1 : -1;
-        }
-
-        return true;
-    }
-
     public bool IsFocusable => true;
 
     public bool HasFocus
@@ -189,6 +148,25 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
             new((int)Transform.Position.X, (int)Transform.Position.Y),
             new(_width, _height)
         );
+
+    /// <summary>
+    /// Adds an item to the combo box.
+    /// </summary>
+    /// <param name="item">The item text to add.</param>
+    public void AddItem(string item)
+    {
+        Items.Add(item ?? string.Empty);
+    }
+
+    /// <summary>
+    /// Clears all items from the combo box.
+    /// </summary>
+    public void ClearItems()
+    {
+        Items.Clear();
+        _selectedIndex = -1;
+        IsOpen = false;
+    }
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
@@ -240,6 +218,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         {
             IsOpen = true;
         }
+
         // Check if clicking on dropdown item
         else if (_inputManager.IsMouseButtonPressed(MouseButton.Left) && IsOpen)
         {
@@ -272,7 +251,30 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+    }
+
+    /// <summary>
+    /// Removes an item from the combo box by index.
+    /// </summary>
+    /// <param name="index">The index of the item to remove.</param>
+    public bool RemoveItem(int index)
+    {
+        if (index < 0 || index >= Items.Count)
+        {
+            return false;
+        }
+
+        Items.RemoveAt(index);
+
+        // Adjust selected index if needed
+        if (_selectedIndex >= Items.Count)
+        {
+            _selectedIndex = Items.Count > 0 ? Items.Count - 1 : -1;
+        }
+
+        return true;
     }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
@@ -288,18 +290,19 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
 
         // Draw closed combo box background
         yield return DrawRectangle(
-            new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
+            new(Transform.Position, new(_width, _height)),
             bgColor,
-            depth: NextDepth()
+            NextDepth()
         );
 
         // Draw border
         foreach (var cmd in DrawHollowRectangle(
-            Transform.Position,
-            new Vector2D<float>(_width, _height),
-            brColor,
-            Theme.BorderThickness,
-            depth: NextDepth()))
+                     Transform.Position,
+                     new(_width, _height),
+                     brColor,
+                     Theme.BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -338,67 +341,6 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
-    private void UpdateHoverState(Vector2 mousePos)
-    {
-        if (IsOpen && Items.Count > 0)
-        {
-            var dropdownBounds = GetDropdownBounds();
-
-            for (var i = 0; i < Items.Count; i++)
-            {
-                var itemY = dropdownBounds.Origin.Y + i * ItemHeight;
-                var itemRect = new Rectangle<int>(
-                    new(dropdownBounds.Origin.X, itemY),
-                    new(dropdownBounds.Size.X, ItemHeight)
-                );
-
-                if (itemRect.Contains(new Vector2D<int>((int)mousePos.X, (int)mousePos.Y)))
-                {
-                    _hoveredIndex = i;
-                    return;
-                }
-            }
-            _hoveredIndex = -1;
-        }
-    }
-
-    private IEnumerable<RenderCommand> DrawDropdownArrow()
-    {
-        var bounds = Bounds;
-        var arrowSize = 8;
-        var arrowX = bounds.Origin.X + bounds.Size.X - Padding - arrowSize;
-        var arrowY = bounds.Origin.Y + (bounds.Size.Y - arrowSize) / 2;
-
-        if (IsOpen)
-        {
-            // Up arrow: ▲
-            yield return DrawRectangle(
-                new Rectangle<float>(new Vector2D<float>(arrowX, arrowY), new Vector2D<float>(arrowSize, 1)),
-                Theme.TextColor,
-                depth: NextDepth()
-            );
-            yield return DrawRectangle(
-                new Rectangle<float>(new Vector2D<float>(arrowX + arrowSize / 2f, arrowY), new Vector2D<float>(1, arrowSize)),
-                Theme.TextColor,
-                depth: NextDepth()
-            );
-        }
-        else
-        {
-            // Down arrow: ▼
-            yield return DrawRectangle(
-                new Rectangle<float>(new Vector2D<float>(arrowX, arrowY), new Vector2D<float>(arrowSize, 1)),
-                Theme.TextColor,
-                depth: NextDepth()
-            );
-            yield return DrawRectangle(
-                new Rectangle<float>(new Vector2D<float>(arrowX + arrowSize / 2f, arrowY), new Vector2D<float>(1, arrowSize)),
-                Theme.TextColor,
-                depth: NextDepth()
-            );
-        }
-    }
-
     private IEnumerable<RenderCommand> DrawDropdown(Color4b borderColor)
     {
         if (Items.Count == 0)
@@ -410,21 +352,22 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
 
         // Draw dropdown background
         yield return DrawRectangle(
-            new Rectangle<float>(
-                new Vector2D<float>(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
-                new Vector2D<float>(dropdownBounds.Size.X, dropdownBounds.Size.Y)
+            new(
+                new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
+                new(dropdownBounds.Size.X, dropdownBounds.Size.Y)
             ),
             Theme.BackgroundColor,
-            depth: NextDepth()
+            NextDepth()
         );
 
         // Draw border
         foreach (var cmd in DrawHollowRectangle(
-            new Vector2D<float>(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
-            new Vector2D<float>(dropdownBounds.Size.X, dropdownBounds.Size.Y),
-            borderColor,
-            Theme.BorderThickness,
-            depth: NextDepth()))
+                     new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
+                     new(dropdownBounds.Size.X, dropdownBounds.Size.Y),
+                     borderColor,
+                     Theme.BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -433,8 +376,8 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         for (var i = 0; i < Items.Count && i * ItemHeight < dropdownBounds.Size.Y; i++)
         {
             var itemBounds = new Rectangle<float>(
-                new Vector2D<float>(dropdownBounds.Origin.X, dropdownBounds.Origin.Y + i * ItemHeight),
-                new Vector2D<float>(dropdownBounds.Size.X, ItemHeight)
+                new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y + i * ItemHeight),
+                new(dropdownBounds.Size.X, ItemHeight)
             );
 
             // Draw item background
@@ -442,7 +385,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                               i == _hoveredIndex ? Theme.ItemHoveredColor :
                               Theme.BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, depth: NextDepth());
+            yield return DrawRectangle(itemBounds, itemBgColor, NextDepth());
 
             // Draw item text
             var textPos = new Vector2D<float>(
@@ -457,6 +400,43 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                 textPos,
                 color: Theme.TextColor,
                 depth: NextDepth()
+            );
+        }
+    }
+
+    private IEnumerable<RenderCommand> DrawDropdownArrow()
+    {
+        var bounds = Bounds;
+        var arrowSize = 8;
+        var arrowX = bounds.Origin.X + bounds.Size.X - Padding - arrowSize;
+        var arrowY = bounds.Origin.Y + (bounds.Size.Y - arrowSize) / 2;
+
+        if (IsOpen)
+        {
+            // Up arrow: ▲
+            yield return DrawRectangle(
+                new(new(arrowX, arrowY), new(arrowSize, 1)),
+                Theme.TextColor,
+                NextDepth()
+            );
+            yield return DrawRectangle(
+                new(new(arrowX + arrowSize / 2f, arrowY), new(1, arrowSize)),
+                Theme.TextColor,
+                NextDepth()
+            );
+        }
+        else
+        {
+            // Down arrow: ▼
+            yield return DrawRectangle(
+                new(new(arrowX, arrowY), new(arrowSize, 1)),
+                Theme.TextColor,
+                NextDepth()
+            );
+            yield return DrawRectangle(
+                new(new(arrowX + arrowSize / 2f, arrowY), new(1, arrowSize)),
+                Theme.TextColor,
+                NextDepth()
             );
         }
     }
@@ -481,18 +461,39 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         );
     }
 
-    private void UpdateTransformSize()
-    {
-        Transform.Size = new Vector2D<float>(_width, _height);
-    }
-
     private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
-    {
-        return current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
-    }
+        => current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
 
     private static bool RectContains(Rectangle<int> rect, Vector2 point)
+        => rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
+
+    private void UpdateHoverState(Vector2 mousePos)
     {
-        return rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
+        if (IsOpen && Items.Count > 0)
+        {
+            var dropdownBounds = GetDropdownBounds();
+
+            for (var i = 0; i < Items.Count; i++)
+            {
+                var itemY = dropdownBounds.Origin.Y + i * ItemHeight;
+                var itemRect = new Rectangle<int>(
+                    new(dropdownBounds.Origin.X, itemY),
+                    new(dropdownBounds.Size.X, ItemHeight)
+                );
+
+                if (itemRect.Contains(new Vector2D<int>((int)mousePos.X, (int)mousePos.Y)))
+                {
+                    _hoveredIndex = i;
+
+                    return;
+                }
+            }
+            _hoveredIndex = -1;
+        }
+    }
+
+    private void UpdateTransformSize()
+    {
+        Transform.Size = new(_width, _height);
     }
 }

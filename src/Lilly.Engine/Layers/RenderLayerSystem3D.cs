@@ -6,7 +6,6 @@ using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Types;
-using Serilog;
 
 namespace Lilly.Engine.Layers;
 
@@ -21,14 +20,6 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     {
         _camera3dService = camera3dService;
         _camera3dService.UpdateViewport(renderContext.GraphicsDevice.Viewport);
-    }
-
-    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
-
-    public override void Update(GameTime gameTime)
-    {
-        _camera3dService.Update(gameTime);
-        base.Update(gameTime);
     }
 
     public override List<RenderCommand> CollectRenderCommands(GameTime gameTime)
@@ -72,5 +63,13 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         var estimatedRadius = maxScale * 2f;
 
         return camera.Frustum.Intersects(position, estimatedRadius);
+    }
+
+    public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands) { }
+
+    public override void Update(GameTime gameTime)
+    {
+        _camera3dService.Update(gameTime);
+        base.Update(gameTime);
     }
 }

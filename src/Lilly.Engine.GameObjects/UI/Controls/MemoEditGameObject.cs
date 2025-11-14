@@ -10,7 +10,6 @@ using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 using Silk.NET.Maths;
-using TrippyGL;
 using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
@@ -79,7 +78,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             {
                 var oldText = _text;
                 SetTextInternal(newText);
-                TextChanged?.Invoke(this, new TextChangedEventArgs(oldText, _text));
+                TextChanged?.Invoke(this, new(oldText, _text));
             }
         }
     }
@@ -134,8 +133,8 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
     /// </summary>
     public string SelectedText
         => HasSelection
-            ? GetTextInRange(_selectionStartLine, _selectionStartColumn, _selectionEndLine, _selectionEndColumn)
-            : string.Empty;
+               ? GetTextInRange(_selectionStartLine, _selectionStartColumn, _selectionEndLine, _selectionEndColumn)
+               : string.Empty;
 
     /// <summary>
     /// Gets the line count.
@@ -229,6 +228,39 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         UpdateMeasurements();
     }
 
+    public bool IsFocusable => true;
+
+    public bool HasFocus
+    {
+        get => _hasFocus;
+        set
+        {
+            if (_hasFocus != value)
+            {
+                _hasFocus = value;
+
+                if (_hasFocus)
+                {
+                    _cursorBlinkTimer = 0;
+                    _cursorVisible = true;
+                    GotFocus?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    _cursorVisible = false;
+                    _isSelectingWithMouse = false;
+                    LostFocus?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+    }
+
+    public Rectangle<int> Bounds
+        => new(
+            new((int)Transform.Position.X, (int)Transform.Position.Y),
+            new(_width, _height)
+        );
+
     /// <summary>
     /// Clears the current selection.
     /// </summary>
@@ -244,18 +276,88 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         _selectionStartColumn = _selectionEndColumn = _cursorColumn;
     }
 
-    /// <summary>
-    /// Selects all text.
-    /// </summary>
-    public void SelectAll()
+    public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
-        _selectionStartLine = 0;
-        _selectionStartColumn = 0;
-        _selectionEndLine = _lines.Count - 1;
-        _selectionEndColumn = _lines[^1].Length;
-        HasSelection = true;
-        SetCursorPosition(_selectionEndLine, _selectionEndColumn);
-        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        if (!HasFocus || IsReadOnly)
+        {
+            return;
+        }
+
+        var isControlPressed = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
+
+        // Define keys that should NOT repeat
+        var noRepeatKeys = new HashSet<Key> { Key.Enter };
+
+        // Add Ctrl+A to no-repeat (only if Ctrl is pressed)
+        if (isControlPressed && _inputManager.IsKeyPressed(Key.A))
+        {
+            ProcessKey(Key.A, keyboardState);
+
+            return;
+        }
+
+        var pressedKeys = keyboardState.GetPressedKeys();
+
+        foreach (var key in pressedKeys)
+        {
+            // Skip Ctrl, Shift, Alt keys themselves
+            if (key == Key.ControlLeft ||
+                key == Key.ControlRight ||
+                key == Key.ShiftLeft ||
+                key == Key.ShiftRight ||
+                key == Key.AltLeft ||
+                key == Key.AltRight)
+            {
+                continue;
+            }
+
+            // For keys that should not repeat, only process on initial press
+            if (noRepeatKeys.Contains(key))
+            {
+                if (!previousKeyboardState.IsKeyPressed(key))
+                {
+                    ProcessKey(key, keyboardState);
+                }
+            }
+
+            // For all other keys, use repeat logic
+            else if (_inputManager.IsKeyRepeated(key))
+            {
+                ProcessKey(key, keyboardState);
+            }
+        }
+    }
+
+    public void HandleMouse(MouseState mouseState, GameTime gameTime)
+    {
+        var mousePos = new Vector2(mouseState.Position.X, mouseState.Position.Y);
+        var wasInBounds = _isMouseInBounds;
+        _isMouseInBounds = IsMouseInBounds(mousePos);
+
+        if (_inputManager.IsMouseButtonPressed(MouseButton.Left) && _isMouseInBounds)
+        {
+            if (!HasFocus)
+            {
+                HasFocus = true;
+            }
+
+            BeginMouseSelection(mousePos);
+        }
+        else if (_inputManager.IsMouseButtonPressed(MouseButton.Left) && !_isMouseInBounds && HasFocus)
+        {
+            HasFocus = false;
+            ClearSelection();
+        }
+
+        if (_isSelectingWithMouse && _inputManager.IsMouseButtonDown(MouseButton.Left))
+        {
+            UpdateMouseSelection(mousePos);
+        }
+    }
+
+    public void HandleMouseWheel(MouseState mouseState, MouseState previousMouseState, GameTime gameTime)
+    {
+        // Not implemented for memo
     }
 
     /// <summary>
@@ -314,122 +416,25 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         UpdateTextFromLines();
     }
 
-    public bool IsFocusable => true;
-
-    public bool HasFocus
-    {
-        get => _hasFocus;
-        set
-        {
-            if (_hasFocus != value)
-            {
-                _hasFocus = value;
-
-                if (_hasFocus)
-                {
-                    _cursorBlinkTimer = 0;
-                    _cursorVisible = true;
-                    GotFocus?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    _cursorVisible = false;
-                    _isSelectingWithMouse = false;
-                    LostFocus?.Invoke(this, EventArgs.Empty);
-                }
-            }
-        }
-    }
-
-    public Rectangle<int> Bounds
-        => new(
-            new((int)Transform.Position.X, (int)Transform.Position.Y),
-            new(_width, _height)
-        );
-
-    public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
-    {
-        if (!HasFocus || IsReadOnly)
-        {
-            return;
-        }
-
-        var isControlPressed = keyboardState.IsKeyPressed(Key.ControlLeft) || keyboardState.IsKeyPressed(Key.ControlRight);
-
-        // Define keys that should NOT repeat
-        var noRepeatKeys = new HashSet<Key> { Key.Enter };
-
-        // Add Ctrl+A to no-repeat (only if Ctrl is pressed)
-        if (isControlPressed && _inputManager.IsKeyPressed(Key.A))
-        {
-            ProcessKey(Key.A, keyboardState);
-            return;
-        }
-
-        var pressedKeys = keyboardState.GetPressedKeys();
-
-        foreach (var key in pressedKeys)
-        {
-            // Skip Ctrl, Shift, Alt keys themselves
-            if (key == Key.ControlLeft || key == Key.ControlRight ||
-                key == Key.ShiftLeft || key == Key.ShiftRight ||
-                key == Key.AltLeft || key == Key.AltRight)
-            {
-                continue;
-            }
-
-            // For keys that should not repeat, only process on initial press
-            if (noRepeatKeys.Contains(key))
-            {
-                if (!previousKeyboardState.IsKeyPressed(key))
-                {
-                    ProcessKey(key, keyboardState);
-                }
-            }
-            // For all other keys, use repeat logic
-            else if (_inputManager.IsKeyRepeated(key))
-            {
-                ProcessKey(key, keyboardState);
-            }
-        }
-    }
-
-    public void HandleMouse(MouseState mouseState, GameTime gameTime)
-    {
-        var mousePos = new Vector2(mouseState.Position.X, mouseState.Position.Y);
-        var wasInBounds = _isMouseInBounds;
-        _isMouseInBounds = IsMouseInBounds(mousePos);
-
-        if (_inputManager.IsMouseButtonPressed(MouseButton.Left) && _isMouseInBounds)
-        {
-            if (!HasFocus)
-            {
-                HasFocus = true;
-            }
-
-            BeginMouseSelection(mousePos);
-        }
-        else if (_inputManager.IsMouseButtonPressed(MouseButton.Left) && !_isMouseInBounds && HasFocus)
-        {
-            HasFocus = false;
-            ClearSelection();
-        }
-
-        if (_isSelectingWithMouse && _inputManager.IsMouseButtonDown(MouseButton.Left))
-        {
-            UpdateMouseSelection(mousePos);
-        }
-    }
-
-    public void HandleMouseWheel(MouseState mouseState, MouseState previousMouseState, GameTime gameTime)
-    {
-        // Not implemented for memo
-    }
-
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+    }
+
+    /// <summary>
+    /// Selects all text.
+    /// </summary>
+    public void SelectAll()
+    {
+        _selectionStartLine = 0;
+        _selectionStartColumn = 0;
+        _selectionEndLine = _lines.Count - 1;
+        _selectionEndColumn = _lines[^1].Length;
+        HasSelection = true;
+        SetCursorPosition(_selectionEndLine, _selectionEndColumn);
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
@@ -443,6 +448,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
 
         // Cursor blinks every few frames (simplified without gameTime)
         _cursorBlinkTimer += 0.016; // ~60fps delta time
+
         if (_cursorBlinkTimer >= CursorBlinkInterval)
         {
             _cursorBlinkTimer = 0;
@@ -451,19 +457,21 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
 
         // Draw background
         yield return DrawRectangle(
-            new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
+            new(Transform.Position, new(_width, _height)),
             Theme.BackgroundColor,
-            depth: NextDepth()
+            NextDepth()
         );
 
         // Draw border
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
+
         foreach (var cmd in DrawHollowRectangle(
-            Transform.Position,
-            new Vector2D<float>(_width, _height),
-            borderColor,
-            BorderThickness,
-            depth: NextDepth()))
+                     Transform.Position,
+                     new(_width, _height),
+                     borderColor,
+                     BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -518,16 +526,18 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             var cursorX = contentArea.Origin.X + (_cursorColumn - _scrollOffsetX) * _charWidth;
             var cursorY = contentArea.Origin.Y + (_cursorLine - _scrollOffsetY) * _lineHeight;
 
-            if (cursorX >= contentArea.Origin.X && cursorX <= contentArea.Origin.X + contentArea.Size.X &&
-                cursorY >= contentArea.Origin.Y && cursorY <= contentArea.Origin.Y + contentArea.Size.Y)
+            if (cursorX >= contentArea.Origin.X &&
+                cursorX <= contentArea.Origin.X + contentArea.Size.X &&
+                cursorY >= contentArea.Origin.Y &&
+                cursorY <= contentArea.Origin.Y + contentArea.Size.Y)
             {
                 yield return DrawRectangle(
-                    new Rectangle<float>(
-                        new Vector2D<float>(cursorX, cursorY),
-                        new Vector2D<float>(2, _lineHeight)
+                    new(
+                        new(cursorX, cursorY),
+                        new(2, _lineHeight)
                     ),
                     Theme.TextColor,
-                    depth: NextDepth()
+                    NextDepth()
                 );
             }
         }
@@ -538,6 +548,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         if (HasSelection)
         {
             DeleteSelection();
+
             return;
         }
 
@@ -571,6 +582,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         if (HasSelection)
         {
             DeleteSelection();
+
             return;
         }
 
@@ -650,12 +662,12 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             if (selectionWidth > 0)
             {
                 yield return DrawRectangle(
-                    new Rectangle<float>(
-                        new Vector2D<float>(selectionStartX, lineY),
-                        new Vector2D<float>(selectionWidth, _lineHeight)
+                    new(
+                        new(selectionStartX, lineY),
+                        new(selectionWidth, _lineHeight)
                     ),
-                    new Color4b(0, 120, 215, 100),
-                    depth: NextDepth()
+                    new(0, 120, 215, 100),
+                    NextDepth()
                 );
             }
         }
@@ -674,7 +686,18 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
             width -= ScrollbarWidth;
         }
 
-        return new(new Vector2D<float>(x, y), new Vector2D<float>(Math.Max(0, width), Math.Max(0, height)));
+        return new(new(x, y), new(Math.Max(0, width), Math.Max(0, height)));
+    }
+
+    private (int startLine, int startColumn, int endLine, int endColumn) GetNormalizedSelection()
+    {
+        if (_selectionStartLine < _selectionEndLine ||
+            _selectionStartLine == _selectionEndLine && _selectionStartColumn <= _selectionEndColumn)
+        {
+            return (_selectionStartLine, _selectionStartColumn, _selectionEndLine, _selectionEndColumn);
+        }
+
+        return (_selectionEndLine, _selectionEndColumn, _selectionStartLine, _selectionStartColumn);
     }
 
     private (int line, int column) GetPositionFromMouse(Vector2 mousePosition)
@@ -716,17 +739,6 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
     private int GetTotalTextLength()
     {
         return _lines.Sum(line => line.Length) + Math.Max(0, _lines.Count - 1);
-    }
-
-    private (int startLine, int startColumn, int endLine, int endColumn) GetNormalizedSelection()
-    {
-        if (_selectionStartLine < _selectionEndLine ||
-            (_selectionStartLine == _selectionEndLine && _selectionStartColumn <= _selectionEndColumn))
-        {
-            return (_selectionStartLine, _selectionStartColumn, _selectionEndLine, _selectionEndColumn);
-        }
-
-        return (_selectionEndLine, _selectionEndColumn, _selectionStartLine, _selectionStartColumn);
     }
 
     private void InsertNewLine()
@@ -809,15 +821,19 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         {
             case Key.Left:
                 MoveCursor(-1, 0, isShiftPressed);
+
                 break;
             case Key.Right:
                 MoveCursor(1, 0, isShiftPressed);
+
                 break;
             case Key.Up:
                 MoveCursor(0, -1, isShiftPressed);
+
                 break;
             case Key.Down:
                 MoveCursor(0, 1, isShiftPressed);
+
                 break;
             case Key.Home:
                 if (isControlPressed)
@@ -853,35 +869,49 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
                 break;
             case Key.PageUp:
                 MoveCursor(0, -_maxVisibleLines, isShiftPressed);
+
                 break;
             case Key.PageDown:
                 MoveCursor(0, _maxVisibleLines, isShiftPressed);
+
                 break;
             case Key.Enter:
                 InsertNewLine();
+
                 break;
             case Key.Backspace:
                 Backspace();
+
                 break;
             case Key.Delete:
                 Delete();
+
                 break;
             case Key.Tab:
                 InsertText(new(' ', TabSize));
+
                 break;
             case Key.A when isControlPressed:
                 SelectAll();
+
                 break;
             default:
                 // Handle regular character input
                 var shift = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
                 var character = KeyboardInputUtils.KeyToChar(key, shift);
+
                 if (character.HasValue)
                 {
                     InsertText(character.Value.ToString());
                 }
+
                 break;
         }
+    }
+
+    private void RecalculateLongestLine()
+    {
+        _longestLineLength = _lines.Count == 0 ? 0 : _lines.Max(line => line.Length);
     }
 
     private void SetCursorPosition(int line, int column)
@@ -940,11 +970,6 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         HasSelection = false;
     }
 
-    private void RecalculateLongestLine()
-    {
-        _longestLineLength = _lines.Count == 0 ? 0 : _lines.Max(line => line.Length);
-    }
-
     private void UpdateMeasurements()
     {
         // Simple measurements - in real implementation would use font metrics
@@ -952,6 +977,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         _charWidth = Math.Max(1f, Theme.FontSize * 0.6f); // Approximate char width
 
         var contentArea = GetContentArea();
+
         if (contentArea.Size.X > 0 && contentArea.Size.Y > 0)
         {
             _maxVisibleLines = Math.Max(1, (int)(contentArea.Size.Y / _lineHeight));
@@ -1015,12 +1041,12 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
         _text = string.Join("\n", _lines);
         RecalculateLongestLine();
         UpdateMeasurements();
-        TextChanged?.Invoke(this, new TextChangedEventArgs(oldText, _text));
+        TextChanged?.Invoke(this, new(oldText, _text));
     }
 
     private void UpdateTransformSize()
     {
-        Transform.Size = new Vector2D<float>(_width, _height);
+        Transform.Size = new(_width, _height);
     }
 }
 

@@ -20,12 +20,9 @@ internal class KeyboardInputHandler
     private readonly Dictionary<Key, float> _keyRepeatTimers = new();
 
     private readonly IKeyboard _keyboard;
-    private IReadOnlyList<Key> _pressedKeys = Array.Empty<Key>();
 
     public KeyboardInputHandler(IKeyboard keyboard)
-    {
-        _keyboard = keyboard;
-    }
+        => _keyboard = keyboard;
 
     /// <summary>
     /// Gets or sets the delay in seconds before key repeat starts.
@@ -52,7 +49,7 @@ internal class KeyboardInputHandler
     /// <summary>
     /// Gets a read-only list of currently pressed keys.
     /// </summary>
-    public IReadOnlyList<Key> PressedKeys => _pressedKeys;
+    public IReadOnlyList<Key> PressedKeys { get; private set; } = Array.Empty<Key>();
 
     /// <summary>
     /// Binds a key combination to an action.
@@ -108,39 +105,16 @@ internal class KeyboardInputHandler
     }
 
     /// <summary>
-    /// Unbinds a key combination.
+    /// Disposes of keyboard-related resources.
     /// </summary>
-    /// <param name="binding">The key binding.</param>
-    public void UnbindKey(KeyBinding binding)
+    public void Dispose()
     {
-        if (_keyBindings.Remove(binding))
-        {
-            _logger.Debug("Unbound key {Binding}", binding);
-        }
-    }
-
-    /// <summary>
-    /// Unbinds a held key combination.
-    /// </summary>
-    /// <param name="binding">The key binding.</param>
-    public void UnbindKeyHeld(KeyBinding binding)
-    {
-        if (_keyHeldBindings.Remove(binding))
-        {
-            _logger.Debug("Unbound held key {Binding}", binding);
-        }
-    }
-
-    /// <summary>
-    /// Unbinds a repeat key combination.
-    /// </summary>
-    /// <param name="binding">The key binding.</param>
-    public void UnbindKeyRepeat(KeyBinding binding)
-    {
-        if (_keyRepeatBindings.Remove(binding))
-        {
-            _logger.Debug("Unbound repeat key {Binding}", binding);
-        }
+        _keyBindings.Clear();
+        _keyHeldBindings.Clear();
+        _keyRepeatBindings.Clear();
+        _processedBindings.Clear();
+        _keyPressDuration.Clear();
+        _keyRepeatTimers.Clear();
     }
 
     /// <summary>
@@ -232,6 +206,61 @@ internal class KeyboardInputHandler
 
         // Check if it's time for another repeat
         return timeSinceLastRepeat >= KeyRepeatInterval;
+    }
+
+    /// <summary>
+    /// Unbinds a key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    public void UnbindKey(KeyBinding binding)
+    {
+        if (_keyBindings.Remove(binding))
+        {
+            _logger.Debug("Unbound key {Binding}", binding);
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    public void UnbindKeyHeld(KeyBinding binding)
+    {
+        if (_keyHeldBindings.Remove(binding))
+        {
+            _logger.Debug("Unbound held key {Binding}", binding);
+        }
+    }
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="binding">The key binding.</param>
+    public void UnbindKeyRepeat(KeyBinding binding)
+    {
+        if (_keyRepeatBindings.Remove(binding))
+        {
+            _logger.Debug("Unbound repeat key {Binding}", binding);
+        }
+    }
+
+    /// <summary>
+    /// Updates the keyboard state and processes bindings.
+    /// </summary>
+    /// <param name="gameTime">Game timing information.</param>
+    /// <param name="currentContext">The current input context.</param>
+    public void Update(GameTime gameTime, string currentContext)
+    {
+        PreviousKeyboardState = CurrentKeyboardState;
+        CurrentKeyboardState = _keyboard.CaptureState();
+
+        // Update pressed keys list
+        PressedKeys = CurrentKeyboardState.GetPressedKeys().ToArray();
+
+        UpdateKeyPressDuration(gameTime);
+        ProcessKeyBindings(currentContext);
+        ProcessKeyHeldBindings(currentContext);
+        ProcessKeyRepeatBindings(currentContext);
     }
 
     /// <summary>
@@ -377,56 +406,24 @@ internal class KeyboardInputHandler
 
         // Update repeat timers for keys that should repeat
         foreach (var key in pressedKeys)
-         {
-             if (_keyRepeatTimers.ContainsKey(key))
-             {
-                 var pressDuration = _keyPressDuration[key];
-                 var lastRepeatTime = _keyRepeatTimers[key];
+        {
+            if (_keyRepeatTimers.ContainsKey(key))
+            {
+                var pressDuration = _keyPressDuration[key];
+                var lastRepeatTime = _keyRepeatTimers[key];
 
-                 // If we've passed the initial delay and it's time to repeat
-                 if (pressDuration >= KeyRepeatDelay)
-                 {
-                     var timeSinceLastRepeat = pressDuration - lastRepeatTime;
+                // If we've passed the initial delay and it's time to repeat
+                if (pressDuration >= KeyRepeatDelay)
+                {
+                    var timeSinceLastRepeat = pressDuration - lastRepeatTime;
 
-                     if (timeSinceLastRepeat >= KeyRepeatInterval)
-                     {
-                         // Update the timer to mark that a repeat occurred
-                         _keyRepeatTimers[key] = pressDuration;
-                     }
-                 }
-             }
-         }
-    }
-
-    /// <summary>
-    /// Updates the keyboard state and processes bindings.
-    /// </summary>
-    /// <param name="gameTime">Game timing information.</param>
-    /// <param name="currentContext">The current input context.</param>
-    public void Update(GameTime gameTime, string currentContext)
-    {
-        PreviousKeyboardState = CurrentKeyboardState;
-        CurrentKeyboardState = _keyboard.CaptureState();
-
-        // Update pressed keys list
-        _pressedKeys = CurrentKeyboardState.GetPressedKeys().ToArray();
-
-        UpdateKeyPressDuration(gameTime);
-        ProcessKeyBindings(currentContext);
-        ProcessKeyHeldBindings(currentContext);
-        ProcessKeyRepeatBindings(currentContext);
-    }
-
-    /// <summary>
-    /// Disposes of keyboard-related resources.
-    /// </summary>
-    public void Dispose()
-    {
-        _keyBindings.Clear();
-        _keyHeldBindings.Clear();
-        _keyRepeatBindings.Clear();
-        _processedBindings.Clear();
-        _keyPressDuration.Clear();
-        _keyRepeatTimers.Clear();
+                    if (timeSinceLastRepeat >= KeyRepeatInterval)
+                    {
+                        // Update the timer to mark that a repeat occurred
+                        _keyRepeatTimers[key] = pressDuration;
+                    }
+                }
+            }
+        }
     }
 }

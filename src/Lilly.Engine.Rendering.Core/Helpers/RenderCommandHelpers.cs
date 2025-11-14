@@ -19,6 +19,13 @@ public static class RenderCommandHelpers
         => new(RenderCommandType.Clear, payload);
 
     /// <summary>
+    /// Creates a render command for disabling the scissor test.
+    /// </summary>
+    /// <returns></returns>
+    public static RenderCommand CreateDisableScissor()
+        => new(RenderCommandType.Scissor, new ScissorPayload());
+
+    /// <summary>
     /// Creates a render command for drawing text.
     /// </summary>
     /// <param name="payload">The draw text payload containing text rendering details.</param>
@@ -35,12 +42,12 @@ public static class RenderCommandHelpers
         => new(RenderCommandType.DrawTexture, payload);
 
     /// <summary>
-    /// Creates a render command for ImGui rendering.
+    /// Creates a render command for setting the scissor rectangle.
     /// </summary>
-    /// <param name="payload">The ImGui data payload containing UI rendering details.</param>
-    /// <returns>A render command configured for ImGui operations.</returns>
-    public static RenderCommand ImGuiRender(ImGuiDataPayload payload)
-        => new(RenderCommandType.ImGui, payload);
+    /// <param name="rectangle"></param>
+    /// <returns></returns>
+    public static RenderCommand CreateScissor(Rectangle<int> rectangle)
+        => new(RenderCommandType.Scissor, new ScissorPayload(rectangle));
 
     /// <summary>
     /// Creates a render command for window operations.
@@ -51,18 +58,12 @@ public static class RenderCommandHelpers
         => new(RenderCommandType.Window, payload);
 
     /// <summary>
-    /// Creates a window command to set the window title.
+    /// Creates a render command for ImGui rendering.
     /// </summary>
-    /// <param name="title">The new window title.</param>
-    /// <returns>A render command to set the window title.</returns>
-    public static RenderCommand SetWindowTitle(string title)
-        => CreateWindow(
-            new WindowPayload
-            {
-                SubCommandType = WindowSubCommandType.SetTitle,
-                Data = title
-            }
-        );
+    /// <param name="payload">The ImGui data payload containing UI rendering details.</param>
+    /// <returns>A render command configured for ImGui operations.</returns>
+    public static RenderCommand ImGuiRender(ImGuiDataPayload payload)
+        => new(RenderCommandType.ImGui, payload);
 
     /// <summary>
     /// Creates a window command to set the refresh rate.
@@ -71,10 +72,24 @@ public static class RenderCommandHelpers
     /// <returns>A render command to set the refresh rate.</returns>
     public static RenderCommand SetRefreshRate(int refreshRate)
         => CreateWindow(
-            new WindowPayload
+            new()
             {
                 SubCommandType = WindowSubCommandType.SetRefreshRate,
                 Data = refreshRate
+            }
+        );
+
+    /// <summary>
+    /// Creates a window command to set fullscreen mode.
+    /// </summary>
+    /// <param name="enabled">True to enable fullscreen, false to disable.</param>
+    /// <returns>A render command to set fullscreen state.</returns>
+    public static RenderCommand SetWindowFullscreen(bool enabled)
+        => CreateWindow(
+            new()
+            {
+                SubCommandType = WindowSubCommandType.SetFullscreen,
+                Data = enabled
             }
         );
 
@@ -86,10 +101,24 @@ public static class RenderCommandHelpers
     /// <returns>A render command to set the window size.</returns>
     public static RenderCommand SetWindowSize(int width, int height)
         => CreateWindow(
-            new WindowPayload
+            new()
             {
                 SubCommandType = WindowSubCommandType.SetSize,
                 Data = (width, height)
+            }
+        );
+
+    /// <summary>
+    /// Creates a window command to set the window title.
+    /// </summary>
+    /// <param name="title">The new window title.</param>
+    /// <returns>A render command to set the window title.</returns>
+    public static RenderCommand SetWindowTitle(string title)
+        => CreateWindow(
+            new()
+            {
+                SubCommandType = WindowSubCommandType.SetTitle,
+                Data = title
             }
         );
 
@@ -100,39 +129,10 @@ public static class RenderCommandHelpers
     /// <returns>A render command to set VSync state.</returns>
     public static RenderCommand SetWindowVSync(bool enabled)
         => CreateWindow(
-            new WindowPayload
+            new()
             {
                 SubCommandType = WindowSubCommandType.SetVSync,
                 Data = enabled
             }
         );
-
-    /// <summary>
-    /// Creates a window command to set fullscreen mode.
-    /// </summary>
-    /// <param name="enabled">True to enable fullscreen, false to disable.</param>
-    /// <returns>A render command to set fullscreen state.</returns>
-    public static RenderCommand SetWindowFullscreen(bool enabled)
-        => CreateWindow(
-            new WindowPayload
-            {
-                SubCommandType = WindowSubCommandType.SetFullscreen,
-                Data = enabled
-            }
-        );
-
-    /// <summary>
-    ///  Creates a render command for setting the scissor rectangle.
-    /// </summary>
-    /// <param name="rectangle"></param>
-    /// <returns></returns>
-    public static RenderCommand CreateScissor(Rectangle<int> rectangle)
-        => new(RenderCommandType.Scissor, new ScissorPayload(rectangle));
-
-    /// <summary>
-    ///  Creates a render command for disabling the scissor test.
-    /// </summary>
-    /// <returns></returns>
-    public static RenderCommand CreateDisableScissor()
-        => new(RenderCommandType.Scissor, new ScissorPayload());
 }

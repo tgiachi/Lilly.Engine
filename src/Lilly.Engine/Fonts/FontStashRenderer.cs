@@ -1,8 +1,8 @@
+using System.Drawing;
 using System.Numerics;
 using FontStashSharp;
 using FontStashSharp.Interfaces;
 using Lilly.Engine.Extensions;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Engine.Fonts;
@@ -32,18 +32,7 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     /// </summary>
     /// <param name="graphicsDevice">The graphics device to use for rendering operations.</param>
     public FontStashRenderer(GraphicsDevice graphicsDevice)
-    {
-        _textureManager = new(graphicsDevice);
-    }
-
-    /// <summary>
-    /// Sets the shader program to use for rendering and updates the projection matrix.
-    /// </summary>
-    /// <param name="shaderProgram">The shader program to use.</param>
-    public void SetShaderProgram(SimpleShaderProgram shaderProgram)
-    {
-        _shaderProgram = shaderProgram;
-    }
+        => _textureManager = new(graphicsDevice);
 
     /// <summary>
     /// Begins a new batch rendering session.
@@ -71,7 +60,7 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     public void Draw(
         object texture,
         Vector2 pos,
-        System.Drawing.Rectangle? src,
+        Rectangle? src,
         FSColor color,
         float rotation,
         Vector2 scale,
@@ -96,4 +85,13 @@ public class FontStashRenderer : IFontStashRenderer, IDisposable
     /// Ends the current batch rendering session and flushes all queued draw calls.
     /// </summary>
     public void End() { }
+
+    /// <summary>
+    /// Sets the shader program to use for rendering and updates the projection matrix.
+    /// </summary>
+    /// <param name="shaderProgram">The shader program to use.</param>
+    public void SetShaderProgram(SimpleShaderProgram shaderProgram)
+    {
+        _shaderProgram = shaderProgram;
+    }
 }

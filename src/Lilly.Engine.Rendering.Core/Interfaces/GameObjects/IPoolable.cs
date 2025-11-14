@@ -11,7 +11,8 @@ public interface IPoolable
     /// This method is called by the pooling system to prepare the object for reuse.
     /// </summary>
     /// <remarks>
-    /// Derived classes should override this method to reset any custom state or properties that might have been modified during gameplay.
+    /// Derived classes should override this method to reset any custom state or properties that might have been modified during
+    /// gameplay.
     /// The base implementation handles clearing parent and children references.
     /// </remarks>
     void ResetForPooling();

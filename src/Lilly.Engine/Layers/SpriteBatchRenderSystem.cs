@@ -80,7 +80,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         );
 
         _spriteBatcher.SetShaderProgram(_shaderProgram);
-        _fontRenderer = new FontStashRenderer(_renderContext.GraphicsDevice);
+        _fontRenderer = new(_renderContext.GraphicsDevice);
 
         _fontRenderer.SpriteBatcher = _spriteBatcher;
         _fontRenderer.SetShaderProgram(_shaderProgram);
@@ -137,21 +137,33 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         base.ProcessRenderCommands(ref renderCommands);
     }
 
-    private void ProcessScissorCommand(ScissorPayload payload)
+    private void ApplyScissor(Rectangle<int> rectangle)
     {
-        if (payload.IsEnabled)
+        var width = Math.Max(0, rectangle.Size.X);
+        var height = Math.Max(0, rectangle.Size.Y);
+
+        var viewportHeight = _renderContext.GraphicsDevice.Viewport.Height;
+        var flippedY = (int)viewportHeight - rectangle.Origin.Y - height;
+
+        _renderContext.GraphicsDevice.ScissorRectangle = new(
+            rectangle.Origin.X,
+            flippedY,
+            (uint)width,
+            (uint)height
+        );
+
+        _renderContext.GraphicsDevice.ScissorTestEnabled = true;
+    }
+
+    private void BeginSpriteBatch()
+    {
+        if (_isBatchActive)
         {
-            var rectangle = new Rectangle<int>(
-                new(payload.X, payload.Y),
-                new Vector2D<int>(payload.Width, payload.Height)
-            );
-
-            ApplyScissor(rectangle);
-
             return;
         }
 
-        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
+        _spriteBatcher.Begin();
+        _isBatchActive = true;
     }
 
     private void DrawText(DrawTextPayload textPayload)
@@ -173,7 +185,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
             textPayload.Rotation,
             textPayload.Origin.ToNumerics(),
             textPayload.Scale.ToNumerics(),
-            layerDepth: textPayload.Depth
+            textPayload.Depth
         );
     }
 
@@ -249,17 +261,6 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         );
     }
 
-    private void BeginSpriteBatch()
-    {
-        if (_isBatchActive)
-        {
-            return;
-        }
-
-        _spriteBatcher.Begin();
-        _isBatchActive = true;
-    }
-
     private void EndSpriteBatch()
     {
         if (!_isBatchActive)
@@ -282,21 +283,20 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         _spriteBatcher.Begin();
     }
 
-    private void ApplyScissor(Rectangle<int> rectangle)
+    private void ProcessScissorCommand(ScissorPayload payload)
     {
-        var width = Math.Max(0, rectangle.Size.X);
-        var height = Math.Max(0, rectangle.Size.Y);
+        if (payload.IsEnabled)
+        {
+            var rectangle = new Rectangle<int>(
+                new(payload.X, payload.Y),
+                new(payload.Width, payload.Height)
+            );
 
-        var viewportHeight = _renderContext.GraphicsDevice.Viewport.Height;
-        var flippedY = (int)viewportHeight - rectangle.Origin.Y - height;
+            ApplyScissor(rectangle);
 
-        _renderContext.GraphicsDevice.ScissorRectangle = new Viewport(
-            rectangle.Origin.X,
-            flippedY,
-            (uint)width,
-            (uint)height
-        );
+            return;
+        }
 
-        _renderContext.GraphicsDevice.ScissorTestEnabled = true;
+        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
     }
 }

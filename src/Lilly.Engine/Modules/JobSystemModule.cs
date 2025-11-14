@@ -1,13 +1,13 @@
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Wrappers;
 using Lilly.Engine.Wrappers.Jobs;
 using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Modules;
 
 [ScriptModule("job_system")]
+
 /// <summary>
 /// Provides scripting access to the job system for scheduling tasks and running code on the main thread.
 /// </summary>
@@ -29,6 +29,7 @@ public class JobSystemModule
     }
 
     [ScriptFunction("run_in_main_thread", "Schedules a closure to be executed in the main thread.")]
+
     /// <summary>
     /// Schedules a Lua closure to be executed in the main thread.
     /// </summary>
@@ -39,6 +40,7 @@ public class JobSystemModule
     }
 
     [ScriptFunction("schedule", "Schedules a job to be executed by the job system.")]
+
     /// <summary>
     /// Schedules a job to be executed by the job system.
     /// </summary>

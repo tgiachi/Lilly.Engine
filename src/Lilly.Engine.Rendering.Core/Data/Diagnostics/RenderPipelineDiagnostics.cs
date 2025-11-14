@@ -42,6 +42,16 @@ public class RenderPipelineDiagnostics
     public IReadOnlyDictionary<string, LayerStatistics> LayerStatistics => _layerStats;
 
     /// <summary>
+    /// Statistics for a single frame.
+    /// </summary>
+    private struct FrameStatistics
+    {
+        public long FrameNumber;
+        public int TotalCommands;
+        public double DeltaTimeMs;
+    }
+
+    /// <summary>
     /// Records the start of a new frame.
     /// </summary>
     public void BeginFrame()
@@ -51,27 +61,6 @@ public class RenderPipelineDiagnostics
         foreach (var stat in _layerStats.Values)
         {
             stat.CommandsThisFrame = 0;
-        }
-    }
-
-    /// <summary>
-    /// Records commands processed by a specific layer.
-    /// </summary>
-    /// <param name="layerName">The name of the render layer.</param>
-    /// <param name="commandCount">The number of commands processed.</param>
-    public void RecordLayerCommands(string layerName, int layerOrder, int commandCount)
-    {
-        TotalCommandsThisFrame += commandCount;
-
-        var stat = _layerStats.GetOrAdd(layerName, _ => new LayerStatistics(layerName));
-        stat.CommandsThisFrame = commandCount;
-        stat.TotalCommandsProcessed += commandCount;
-        stat.TotalFrames++;
-        stat.LayerOrder = layerOrder;
-
-        if (commandCount > stat.PeakCommands)
-        {
-            stat.PeakCommands = commandCount;
         }
     }
 
@@ -92,12 +81,14 @@ public class RenderPipelineDiagnostics
             }
 
             // Add to history
-            _frameHistory.Enqueue(new FrameStatistics
-            {
-                FrameNumber = TotalFrames,
-                TotalCommands = TotalCommandsThisFrame,
-                DeltaTimeMs = deltaTimeMs
-            });
+            _frameHistory.Enqueue(
+                new()
+                {
+                    FrameNumber = TotalFrames,
+                    TotalCommands = TotalCommandsThisFrame,
+                    DeltaTimeMs = deltaTimeMs
+                }
+            );
 
             // Keep only last 120 frames
             if (_frameHistory.Count > 120)
@@ -112,6 +103,7 @@ public class RenderPipelineDiagnostics
 
                 // Calculate FPS as average over frame history for smoother display
                 var avgDeltaTimeMs = _frameHistory.Average(f => f.DeltaTimeMs);
+
                 if (avgDeltaTimeMs > 0)
                 {
                     CurrentFPS = 1000.0 / avgDeltaTimeMs;
@@ -126,6 +118,57 @@ public class RenderPipelineDiagnostics
                     stat.AverageCommandsPerFrame = (double)stat.TotalCommandsProcessed / stat.TotalFrames;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Gets a summary of the current statistics as a formatted string.
+    /// </summary>
+    /// <returns>A formatted string containing diagnostic information.</returns>
+    public string GetSummary()
+    {
+        lock (_lockObject)
+        {
+            var summary = "=== Render Pipeline Diagnostics ===\n";
+            summary += $"Total Frames: {TotalFrames:N0}\n";
+            summary += $"Current FPS: {CurrentFPS:F2}\n";
+            summary += $"Commands This Frame: {TotalCommandsThisFrame:N0}\n";
+            summary += $"Average Commands/Frame: {AverageCommandsPerFrame:F2}\n";
+            summary += $"Peak Commands/Frame: {PeakCommandsPerFrame:N0}\n\n";
+
+            summary += "=== Layer Statistics ===\n";
+
+            foreach (var (layerName, stat) in _layerStats.OrderBy(kvp => kvp.Key))
+            {
+                summary += $"[{layerName}]\n";
+                summary += $"  Current: {stat.CommandsThisFrame:N0} | ";
+                summary += $"Avg: {stat.AverageCommandsPerFrame:F2} | ";
+                summary += $"Peak: {stat.PeakCommands:N0} | ";
+                summary += $"Total: {stat.TotalCommandsProcessed:N0}\n";
+            }
+
+            return summary;
+        }
+    }
+
+    /// <summary>
+    /// Records commands processed by a specific layer.
+    /// </summary>
+    /// <param name="layerName">The name of the render layer.</param>
+    /// <param name="commandCount">The number of commands processed.</param>
+    public void RecordLayerCommands(string layerName, int layerOrder, int commandCount)
+    {
+        TotalCommandsThisFrame += commandCount;
+
+        var stat = _layerStats.GetOrAdd(layerName, _ => new(layerName));
+        stat.CommandsThisFrame = commandCount;
+        stat.TotalCommandsProcessed += commandCount;
+        stat.TotalFrames++;
+        stat.LayerOrder = layerOrder;
+
+        if (commandCount > stat.PeakCommands)
+        {
+            stat.PeakCommands = commandCount;
         }
     }
 
@@ -145,45 +188,6 @@ public class RenderPipelineDiagnostics
             _frameHistory.Clear();
         }
     }
-
-    /// <summary>
-    /// Gets a summary of the current statistics as a formatted string.
-    /// </summary>
-    /// <returns>A formatted string containing diagnostic information.</returns>
-    public string GetSummary()
-    {
-        lock (_lockObject)
-        {
-            var summary = $"=== Render Pipeline Diagnostics ===\n";
-            summary += $"Total Frames: {TotalFrames:N0}\n";
-            summary += $"Current FPS: {CurrentFPS:F2}\n";
-            summary += $"Commands This Frame: {TotalCommandsThisFrame:N0}\n";
-            summary += $"Average Commands/Frame: {AverageCommandsPerFrame:F2}\n";
-            summary += $"Peak Commands/Frame: {PeakCommandsPerFrame:N0}\n\n";
-
-            summary += "=== Layer Statistics ===\n";
-            foreach (var (layerName, stat) in _layerStats.OrderBy(kvp => kvp.Key))
-            {
-                summary += $"[{layerName}]\n";
-                summary += $"  Current: {stat.CommandsThisFrame:N0} | ";
-                summary += $"Avg: {stat.AverageCommandsPerFrame:F2} | ";
-                summary += $"Peak: {stat.PeakCommands:N0} | ";
-                summary += $"Total: {stat.TotalCommandsProcessed:N0}\n";
-            }
-
-            return summary;
-        }
-    }
-
-    /// <summary>
-    /// Statistics for a single frame.
-    /// </summary>
-    private struct FrameStatistics
-    {
-        public long FrameNumber;
-        public int TotalCommands;
-        public double DeltaTimeMs;
-    }
 }
 
 /// <summary>
@@ -196,9 +200,7 @@ public class LayerStatistics
     /// </summary>
     /// <param name="layerName">The name of the render layer.</param>
     public LayerStatistics(string layerName)
-    {
-        LayerName = layerName;
-    }
+        => LayerName = layerName;
 
     /// <summary>
     /// Gets the name of the render layer.
@@ -206,7 +208,7 @@ public class LayerStatistics
     public string LayerName { get; }
 
     /// <summary>
-    ///  Gets or sets the order of the layer in the render pipeline.
+    /// Gets or sets the order of the layer in the render pipeline.
     /// </summary>
     public int LayerOrder { get; set; }
 

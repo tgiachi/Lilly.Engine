@@ -34,9 +34,7 @@ public struct Ray
     /// <param name="distance">Distance from the origin.</param>
     /// <returns>A point along the ray.</returns>
     public readonly Vector3D<float> GetPoint(float distance)
-    {
-        return Origin + Direction * distance;
-    }
+        => Origin + Direction * distance;
 
     /// <summary>
     /// Checks if this ray intersects with a plane.
@@ -53,6 +51,7 @@ public struct Ray
         if (Math.Abs(denominator) < float.Epsilon)
         {
             distance = 0;
+
             return false;
         }
 
@@ -67,7 +66,5 @@ public struct Ray
     /// </summary>
     /// <returns>A string describing the ray.</returns>
     public override readonly string ToString()
-    {
-        return $"Ray(Origin: {Origin}, Direction: {Direction})";
-    }
+        => $"Ray(Origin: {Origin}, Direction: {Direction})";
 }

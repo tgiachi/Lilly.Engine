@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;

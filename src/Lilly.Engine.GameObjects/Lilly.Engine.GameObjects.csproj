@@ -7,21 +7,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj" />
-      <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj" />
-      <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj" />
+        <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="UI\Theme\" />
+        <Folder Include="UI\Theme\"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1"/>
-      <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-      </PackageReference>
+        <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
 </Project>

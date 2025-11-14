@@ -25,7 +25,7 @@ public class OpenGlRenderer : IGraphicRenderer
     public string Name => "OpenGL";
 
     /// <summary>
-    ///  Gets or sets the target frames per second for rendering.
+    /// Gets or sets the target frames per second for rendering.
     /// </summary>
     public double TargetFramesPerSecond { get; set; } = 60.0;
 
@@ -147,7 +147,7 @@ public class OpenGlRenderer : IGraphicRenderer
 
         if (remainingTicks > 0)
         {
-            var sleepMs = (int)((remainingTicks * 1000) / Stopwatch.Frequency) - 1;
+            var sleepMs = (int)(remainingTicks * 1000 / Stopwatch.Frequency) - 1;
 
             if (sleepMs > 0)
             {

@@ -25,9 +25,7 @@ public class GameObjectPooledPolicy : IPooledObjectPolicy<IGameObject>
     /// </summary>
     /// <returns>A new game object instance.</returns>
     public IGameObject Create()
-    {
-        return (IGameObject)_container.Resolve(_type);
-    }
+        => (IGameObject)_container.Resolve(_type);
 
     /// <summary>
     /// Resets the game object state before returning to the pool.

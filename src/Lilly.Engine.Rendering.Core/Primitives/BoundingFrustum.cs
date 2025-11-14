@@ -50,15 +50,6 @@ public class BoundingFrustum
     }
 
     /// <summary>
-    /// Updates the frustum planes from a new view-projection matrix.
-    /// </summary>
-    /// <param name="viewProjectionMatrix">The combined view-projection matrix.</param>
-    public void Update(Matrix4X4<float> viewProjectionMatrix)
-    {
-        ExtractPlanes(viewProjectionMatrix);
-    }
-
-    /// <summary>
     /// Checks if a point is inside the frustum.
     /// </summary>
     /// <param name="point">The point to test.</param>
@@ -87,6 +78,7 @@ public class BoundingFrustum
         foreach (var plane in _planes)
         {
             var distance = Plane.DotCoordinate(plane, center);
+
             if (distance < -radius)
             {
                 return false;
@@ -122,72 +114,92 @@ public class BoundingFrustum
         return true;
     }
 
-    private void ExtractPlanes(Matrix4X4<float> matrix)
-    {
-        // Left plane
-        _planes[2] = NormalizePlane(new Plane<float>(
-            matrix.M14 + matrix.M11,
-            matrix.M24 + matrix.M21,
-            matrix.M34 + matrix.M31,
-            matrix.M44 + matrix.M41
-        ));
-
-        // Right plane
-        _planes[3] = NormalizePlane(new Plane<float>(
-            matrix.M14 - matrix.M11,
-            matrix.M24 - matrix.M21,
-            matrix.M34 - matrix.M31,
-            matrix.M44 - matrix.M41
-        ));
-
-        // Bottom plane
-        _planes[5] = NormalizePlane(new Plane<float>(
-            matrix.M14 + matrix.M12,
-            matrix.M24 + matrix.M22,
-            matrix.M34 + matrix.M32,
-            matrix.M44 + matrix.M42
-        ));
-
-        // Top plane
-        _planes[4] = NormalizePlane(new Plane<float>(
-            matrix.M14 - matrix.M12,
-            matrix.M24 - matrix.M22,
-            matrix.M34 - matrix.M32,
-            matrix.M44 - matrix.M42
-        ));
-
-        // Near plane
-        _planes[0] = NormalizePlane(new Plane<float>(
-            matrix.M14 + matrix.M13,
-            matrix.M24 + matrix.M23,
-            matrix.M34 + matrix.M33,
-            matrix.M44 + matrix.M43
-        ));
-
-        // Far plane
-        _planes[1] = NormalizePlane(new Plane<float>(
-            matrix.M14 - matrix.M13,
-            matrix.M24 - matrix.M23,
-            matrix.M34 - matrix.M33,
-            matrix.M44 - matrix.M43
-        ));
-    }
-
-    private static Plane<float> NormalizePlane(Plane<float> plane)
-    {
-        var length = plane.Normal.Length;
-        return new Plane<float>(
-            plane.Normal / length,
-            plane.Distance / length
-        );
-    }
-
     /// <summary>
     /// Returns a string representation of the frustum.
     /// </summary>
     /// <returns>A string describing the frustum.</returns>
     public override string ToString()
+        => $"BoundingFrustum(Near: {Near}, Far: {Far}, Left: {Left}, Right: {Right}, Top: {Top}, Bottom: {Bottom})";
+
+    /// <summary>
+    /// Updates the frustum planes from a new view-projection matrix.
+    /// </summary>
+    /// <param name="viewProjectionMatrix">The combined view-projection matrix.</param>
+    public void Update(Matrix4X4<float> viewProjectionMatrix)
     {
-        return $"BoundingFrustum(Near: {Near}, Far: {Far}, Left: {Left}, Right: {Right}, Top: {Top}, Bottom: {Bottom})";
+        ExtractPlanes(viewProjectionMatrix);
+    }
+
+    private void ExtractPlanes(Matrix4X4<float> matrix)
+    {
+        // Left plane
+        _planes[2] = NormalizePlane(
+            new(
+                matrix.M14 + matrix.M11,
+                matrix.M24 + matrix.M21,
+                matrix.M34 + matrix.M31,
+                matrix.M44 + matrix.M41
+            )
+        );
+
+        // Right plane
+        _planes[3] = NormalizePlane(
+            new(
+                matrix.M14 - matrix.M11,
+                matrix.M24 - matrix.M21,
+                matrix.M34 - matrix.M31,
+                matrix.M44 - matrix.M41
+            )
+        );
+
+        // Bottom plane
+        _planes[5] = NormalizePlane(
+            new(
+                matrix.M14 + matrix.M12,
+                matrix.M24 + matrix.M22,
+                matrix.M34 + matrix.M32,
+                matrix.M44 + matrix.M42
+            )
+        );
+
+        // Top plane
+        _planes[4] = NormalizePlane(
+            new(
+                matrix.M14 - matrix.M12,
+                matrix.M24 - matrix.M22,
+                matrix.M34 - matrix.M32,
+                matrix.M44 - matrix.M42
+            )
+        );
+
+        // Near plane
+        _planes[0] = NormalizePlane(
+            new(
+                matrix.M14 + matrix.M13,
+                matrix.M24 + matrix.M23,
+                matrix.M34 + matrix.M33,
+                matrix.M44 + matrix.M43
+            )
+        );
+
+        // Far plane
+        _planes[1] = NormalizePlane(
+            new(
+                matrix.M14 - matrix.M13,
+                matrix.M24 - matrix.M23,
+                matrix.M34 - matrix.M33,
+                matrix.M44 - matrix.M43
+            )
+        );
+    }
+
+    private static Plane<float> NormalizePlane(Plane<float> plane)
+    {
+        var length = plane.Normal.Length;
+
+        return new(
+            plane.Normal / length,
+            plane.Distance / length
+        );
     }
 }

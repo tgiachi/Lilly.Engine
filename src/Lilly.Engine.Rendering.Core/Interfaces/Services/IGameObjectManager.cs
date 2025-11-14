@@ -8,7 +8,6 @@ namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
 /// </summary>
 public interface IGameObjectManager
 {
-
     /// <summary>
     /// Adds a game object to the appropriate rendering layers based on its type.
     /// </summary>

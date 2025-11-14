@@ -20,6 +20,14 @@ public class PerformanceDebugger : IImGuiDebugger
     public string Name { get; set; } = "Performance Debugger";
     public ushort Order { get; } = 1000;
 
+    private readonly IPerformanceProfilerService _profilerService;
+
+    public bool IsVisible { get; set; } = true;
+    public string WindowTitle { get; set; } = "Performance Debugger";
+
+    public PerformanceDebugger(IPerformanceProfilerService profilerService)
+        => _profilerService = profilerService ?? throw new ArgumentNullException(nameof(profilerService));
+
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
         DrawMainMetrics();
@@ -49,14 +57,6 @@ public class PerformanceDebugger : IImGuiDebugger
 
         yield break;
     }
-
-    private readonly IPerformanceProfilerService _profilerService;
-
-    public bool IsVisible { get; set; } = true;
-    public string WindowTitle { get; set; } = "Performance Debugger";
-
-    public PerformanceDebugger(IPerformanceProfilerService profilerService)
-        => _profilerService = profilerService ?? throw new ArgumentNullException(nameof(profilerService));
 
     private void DrawDetailedMetrics()
     {

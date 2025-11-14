@@ -44,7 +44,6 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
 
     private string _text = string.Empty;
     private bool _isEnabled = true;
-    private ButtonState _currentState = ButtonState.Normal;
     private bool _isMouseDown;
     private bool _isMouseInBounds;
     private bool _hasFocus;
@@ -178,7 +177,7 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
     /// <summary>
     /// Gets the current visual state of the button.
     /// </summary>
-    public ButtonState CurrentState => _currentState;
+    public ButtonState CurrentState { get; private set; } = ButtonState.Normal;
 
     /// <summary>
     /// Event raised when the button is clicked.
@@ -295,6 +294,7 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
     }
 
@@ -305,16 +305,22 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
             yield break;
         }
 
-        var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y));
+        var bounds = new Rectangle<float>(Transform.Position, new(Transform.Size.X, Transform.Size.Y));
 
         // Get colors based on current state
         var (bgColor, borderColor, textColor) = GetStateColors();
 
         // Background
-        yield return DrawRectangle(bounds, bgColor, depth: NextDepth());
+        yield return DrawRectangle(bounds, bgColor, NextDepth());
 
         // Border
-        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness, depth: NextDepth()))
+        foreach (var cmd in DrawHollowRectangle(
+                     Transform.Position,
+                     new(Transform.Size.X, Transform.Size.Y),
+                     borderColor,
+                     Theme.BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -348,30 +354,19 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, _text, Theme.FontSize, textPos, color: textColor, depth: NextDepth());
+            yield return DrawTextCustom(
+                Theme.FontName,
+                _text,
+                Theme.FontSize,
+                textPos,
+                color: textColor,
+                depth: NextDepth()
+            );
         }
     }
 
-    private void UpdateTransformSize()
-    {
-        Transform.Size = new Vector2D<float>(_width, _height);
-    }
-
-    private void UpdateAutoSize()
-    {
-        if (_sizeMode != ButtonSizeMode.Auto)
-        {
-            return;
-        }
-
-        var contentWidth = CalculateContentWidth();
-        var contentHeight = CalculateContentHeight();
-
-        _width = (int)(contentWidth + Padding * 2);
-        _height = (int)(contentHeight + Padding * 2);
-
-        UpdateTransformSize();
-    }
+    private float CalculateContentHeight()
+        => Theme.FontSize;
 
     private float CalculateContentWidth()
     {
@@ -397,56 +392,85 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
         return width;
     }
 
-    private float CalculateContentHeight()
-    {
-        return Theme.FontSize;
-    }
-
-    private void UpdateState()
-    {
-        var previousState = _currentState;
-
-        if (!_isEnabled)
-        {
-            _currentState = ButtonState.Disabled;
-        }
-        else if (_isMouseDown && _isMouseInBounds)
-        {
-            _currentState = ButtonState.Pressed;
-        }
-        else if (_isMouseInBounds)
-        {
-            _currentState = ButtonState.Hover;
-        }
-        else
-        {
-            _currentState = ButtonState.Normal;
-        }
-
-        if (_currentState != previousState)
-        {
-            StateChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
     private (Color4b bgColor, Color4b borderColor, Color4b textColor) GetStateColors()
     {
-        return _currentState switch
+        return CurrentState switch
         {
-            ButtonState.Normal => (Theme.BackgroundColor, Theme.BorderColor, Theme.TextColor),
-            ButtonState.Hover => (Theme.ItemHoveredColor, Theme.BorderColorFocused, Theme.TextColor),
+            ButtonState.Normal  => (Theme.BackgroundColor, Theme.BorderColor, Theme.TextColor),
+            ButtonState.Hover   => (Theme.ItemHoveredColor, Theme.BorderColorFocused, Theme.TextColor),
             ButtonState.Pressed => (Theme.ItemSelectedColor, Theme.BorderColorFocused, Theme.TextColor),
             ButtonState.Disabled => (
-                new Color4b((byte)(Theme.BackgroundColor.R * 0.5f), (byte)(Theme.BackgroundColor.G * 0.5f), (byte)(Theme.BackgroundColor.B * 0.5f), Theme.BackgroundColor.A),
-                new Color4b((byte)(Theme.BorderColor.R * 0.5f), (byte)(Theme.BorderColor.G * 0.5f), (byte)(Theme.BorderColor.B * 0.5f), Theme.BorderColor.A),
-                new Color4b((byte)(Theme.TextColor.R * 0.5f), (byte)(Theme.TextColor.G * 0.5f), (byte)(Theme.TextColor.B * 0.5f), Theme.TextColor.A)
-            ),
+                                        new Color4b(
+                                            (byte)(Theme.BackgroundColor.R * 0.5f),
+                                            (byte)(Theme.BackgroundColor.G * 0.5f),
+                                            (byte)(Theme.BackgroundColor.B * 0.5f),
+                                            Theme.BackgroundColor.A
+                                        ),
+                                        new Color4b(
+                                            (byte)(Theme.BorderColor.R * 0.5f),
+                                            (byte)(Theme.BorderColor.G * 0.5f),
+                                            (byte)(Theme.BorderColor.B * 0.5f),
+                                            Theme.BorderColor.A
+                                        ),
+                                        new Color4b(
+                                            (byte)(Theme.TextColor.R * 0.5f),
+                                            (byte)(Theme.TextColor.G * 0.5f),
+                                            (byte)(Theme.TextColor.B * 0.5f),
+                                            Theme.TextColor.A
+                                        )
+                                    ),
             _ => (Theme.BackgroundColor, Theme.BorderColor, Theme.TextColor)
         };
     }
 
     private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
+        => current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
+
+    private void UpdateAutoSize()
     {
-        return current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
+        if (_sizeMode != ButtonSizeMode.Auto)
+        {
+            return;
+        }
+
+        var contentWidth = CalculateContentWidth();
+        var contentHeight = CalculateContentHeight();
+
+        _width = (int)(contentWidth + Padding * 2);
+        _height = (int)(contentHeight + Padding * 2);
+
+        UpdateTransformSize();
+    }
+
+    private void UpdateState()
+    {
+        var previousState = CurrentState;
+
+        if (!_isEnabled)
+        {
+            CurrentState = ButtonState.Disabled;
+        }
+        else if (_isMouseDown && _isMouseInBounds)
+        {
+            CurrentState = ButtonState.Pressed;
+        }
+        else if (_isMouseInBounds)
+        {
+            CurrentState = ButtonState.Hover;
+        }
+        else
+        {
+            CurrentState = ButtonState.Normal;
+        }
+
+        if (CurrentState != previousState)
+        {
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void UpdateTransformSize()
+    {
+        Transform.Size = new(_width, _height);
     }
 }

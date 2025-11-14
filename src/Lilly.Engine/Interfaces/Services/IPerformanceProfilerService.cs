@@ -64,7 +64,6 @@ public interface IPerformanceProfilerService : IUpdatable
     /// </summary>
     long TotalFrames { get; }
 
-
     /// <summary>
     /// Gets performance history for graphing
     /// </summary>
@@ -97,6 +96,12 @@ public interface IPerformanceProfilerService : IUpdatable
     void ResetMetrics();
 
     /// <summary>
+    /// Sets the graphics device for collecting graphics metrics
+    /// </summary>
+    /// <param name="graphicsDevice">The graphics device to monitor</param>
+    void SetGraphicsDevice(GraphicsDevice graphicsDevice);
+
+    /// <summary>
     /// Updates draw timing metrics
     /// </summary>
     /// <param name="drawTime">Draw time in milliseconds</param>
@@ -113,10 +118,4 @@ public interface IPerformanceProfilerService : IUpdatable
     /// </summary>
     /// <param name="updateTime">Update time in milliseconds</param>
     void UpdateUpdateTime(GameTime gameTime);
-
-    /// <summary>
-    /// Sets the graphics device for collecting graphics metrics
-    /// </summary>
-    /// <param name="graphicsDevice">The graphics device to monitor</param>
-    void SetGraphicsDevice(GraphicsDevice graphicsDevice);
 }

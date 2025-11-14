@@ -15,7 +15,6 @@ public class DpiManager
 
     private readonly ILogger _logger = Log.ForContext<DpiManager>();
 
-
     private bool _isInitialized;
 
     public DpiManager(IWindow window, GL gl, GraphicsDevice graphicsDevice)
@@ -28,13 +27,31 @@ public class DpiManager
         _window.FramebufferResize += WindowOnFramebufferResize;
     }
 
-    public void UpdateSizes()
-    {
-        UpdateDPIInfo();
-        _logger.Debug("DPI Updated: Window Size: {WindowSize}, Framebuffer Size: {FramebufferSize}, DPI Scale: {DPIScale}", WindowSize, FramebufferSize, DPIScale);
+    /// <summary>
+    /// Window Size
+    /// </summary>
+    public Vector2D<int> WindowSize { get; private set; }
 
-        _gl.Viewport(0, 0, (uint)FramebufferSize.X, (uint)FramebufferSize.Y);
-        _graphicsDevice.SetViewport(0, 0, (uint)FramebufferSize.X, (uint)FramebufferSize.Y);
+    /// <summary>
+    /// Framebuffer Size
+    /// </summary>
+    public Vector2D<int> FramebufferSize { get; private set; }
+
+    /// <summary>
+    /// Dpi Scale
+    /// </summary>
+    public float DPIScale => (float)FramebufferSize.X / WindowSize.X;
+
+    public Matrix4x4 GetProjectionMatrix()
+    {
+        var aspect = (float)FramebufferSize.X / FramebufferSize.Y;
+
+        return Matrix4x4.CreatePerspectiveFieldOfView(
+            MathF.PI / 4f,
+            aspect,
+            0.1f,
+            100f
+        );
     }
 
     public void Initialize()
@@ -48,29 +65,28 @@ public class DpiManager
         _isInitialized = true;
     }
 
-    private void WindowOnFramebufferResize(Vector2D<int> obj)
-    {
-        UpdateSizes();
+    public float ScaleDimension(float logicalSize)
+        => logicalSize * DPIScale;
 
+    public Vector2 ScaleMouseCoordinates(Vector2 mousePos)
+        => mousePos * DPIScale;
+
+    public void UpdateSizes()
+    {
+        UpdateDPIInfo();
+        _logger.Debug(
+            "DPI Updated: Window Size: {WindowSize}, Framebuffer Size: {FramebufferSize}, DPI Scale: {DPIScale}",
+            WindowSize,
+            FramebufferSize,
+            DPIScale
+        );
+
+        _gl.Viewport(0, 0, (uint)FramebufferSize.X, (uint)FramebufferSize.Y);
+        _graphicsDevice.SetViewport(0, 0, (uint)FramebufferSize.X, (uint)FramebufferSize.Y);
     }
 
     /// <summary>
-    ///  Window Size
-    /// </summary>
-    public Vector2D<int> WindowSize { get; private set; }
-
-    /// <summary>
-    ///  Framebuffer Size
-    /// </summary>
-    public Vector2D<int> FramebufferSize { get; private set; }
-
-    /// <summary>
-    /// Dpi Scale
-    /// </summary>
-    public float DPIScale => (float)FramebufferSize.X / WindowSize.X;
-
-    /// <summary>
-    ///  Updates DPI information when the window is resized.
+    /// Updates DPI information when the window is resized.
     /// </summary>
     private void UpdateDPIInfo()
     {
@@ -78,25 +94,8 @@ public class DpiManager
         FramebufferSize = _window.FramebufferSize;
     }
 
-    public Matrix4x4 GetProjectionMatrix()
+    private void WindowOnFramebufferResize(Vector2D<int> obj)
     {
-        float aspect = (float)FramebufferSize.X / FramebufferSize.Y;
-
-        return Matrix4x4.CreatePerspectiveFieldOfView(
-            MathF.PI / 4f,
-            aspect,
-            0.1f,
-            100f
-        );
-    }
-
-    public Vector2 ScaleMouseCoordinates(Vector2 mousePos)
-    {
-        return mousePos * DPIScale;
-    }
-
-    public float ScaleDimension(float logicalSize)
-    {
-        return logicalSize * DPIScale;
+        UpdateSizes();
     }
 }

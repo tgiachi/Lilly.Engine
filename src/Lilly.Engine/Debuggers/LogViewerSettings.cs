@@ -11,7 +11,7 @@ public class LogViewerSettings
     /// <summary>
     /// Gets or sets whether Verbose logs are shown.
     /// </summary>
-    public bool ShowVerbose { get; set; } = false;
+    public bool ShowVerbose { get; set; }
 
     /// <summary>
     /// Gets or sets whether Debug logs are shown.
@@ -65,13 +65,13 @@ public class LogViewerSettings
     {
         return level switch
         {
-            LogEventLevel.Verbose => ShowVerbose,
-            LogEventLevel.Debug => ShowDebug,
+            LogEventLevel.Verbose     => ShowVerbose,
+            LogEventLevel.Debug       => ShowDebug,
             LogEventLevel.Information => ShowInformation,
-            LogEventLevel.Warning => ShowWarning,
-            LogEventLevel.Error => ShowError,
-            LogEventLevel.Fatal => ShowFatal,
-            _ => true
+            LogEventLevel.Warning     => ShowWarning,
+            LogEventLevel.Error       => ShowError,
+            LogEventLevel.Fatal       => ShowFatal,
+            _                         => true
         };
     }
 

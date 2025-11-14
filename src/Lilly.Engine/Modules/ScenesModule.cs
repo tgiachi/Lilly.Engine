@@ -47,6 +47,6 @@ public class ScenesModule
         }
         var viewport = _renderContext.GraphicsDevice.Viewport;
 
-        _sceneManager.ChangeScene(scene, new FadeTransition((int)viewport.Width, (int)viewport.Height, Color4b.Black, 1.0f));
+        _sceneManager.ChangeScene(scene, new FadeTransition((int)viewport.Width, (int)viewport.Height, Color4b.Black));
     }
 }

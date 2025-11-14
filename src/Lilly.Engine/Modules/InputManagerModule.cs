@@ -1,10 +1,8 @@
 using System.Globalization;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Types;
 using MoonSharp.Interpreter;
 using Silk.NET.Input;
-using Silk.NET.Maths;
 
 namespace Lilly.Engine.Modules;
 
@@ -151,128 +149,74 @@ public class InputManagerModule
     }
 
     /// <summary>
-    /// Clears all key bindings.
+    /// Binds a callback to mouse click events globally (always active, regardless of context).
+    /// Passes the mouse button name (as string) and position (absolute coordinates).
     /// </summary>
-    [ScriptFunction("clear_bindings", "Clears all key bindings.")]
-    public void ClearBindings()
+    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
+    [ScriptFunction("bind_mouse_click", "Binds a callback to global mouse click events (always active).")]
+    public void BindMouseClick(Closure callback)
     {
-        _inputManager.ClearBindings();
-    }
-
-    /// <summary>
-    /// Gets the current input context name.
-    /// </summary>
-    /// <returns>The current context name as a string.</returns>
-    [ScriptFunction("get_context", "Gets the current input context.")]
-    public string GetContext()
-        => _inputManager.CurrentContext;
-
-    /// <summary>
-    /// Checks if a key is currently down.
-    /// </summary>
-    /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
-    /// <returns>True if the key is down.</returns>
-    [ScriptFunction("is_key_down", "Checks if a key is currently down.")]
-    public bool IsKeyDown(string keyName)
-        => Enum.TryParse<Key>(keyName, true, out var key) && _inputManager.IsKeyDown(key);
-
-    /// <summary>
-    /// Checks if a key was just pressed this frame.
-    /// </summary>
-    /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
-    /// <returns>True if the key was just pressed.</returns>
-    [ScriptFunction("is_key_pressed", "Checks if a key was just pressed.")]
-    public bool IsKeyPressed(string keyName)
-        => Enum.TryParse<Key>(keyName, true, out var key) &&
-           _inputManager.IsKeyPressed(key);
-
-    /// <summary>
-    /// Sets the current input context.
-    /// </summary>
-    /// <param name="contextName">The context name (any string, e.g., "main_menu", "gameplay", "pause").</param>
-    [ScriptFunction("set_context", "Sets the current input context.")]
-    public void SetContext(string contextName)
-    {
-        if (string.IsNullOrEmpty(contextName))
+        if (callback == null)
         {
-            throw new ArgumentException(
-                "Context name cannot be null or empty",
-                nameof(contextName)
-            );
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
         }
 
-        _inputManager.CurrentContext = contextName;
+        _inputManager.BindMouseClick(
+            (button, position) =>
+            {
+                try
+                {
+                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
+                    callback.Call(buttonName, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing global mouse click callback: {ex.Message}",
+                        ex
+                    );
+                }
+            }
+        );
     }
 
     /// <summary>
-    /// Unbinds a key combination.
+    /// Binds a callback to mouse click events, only active in a specific context.
+    /// Passes the mouse button name (as string) and position (absolute coordinates).
     /// </summary>
-    /// <param name="keyBinding">The key binding string to unbind.</param>
-    [ScriptFunction("unbind_key", "Unbinds a key.")]
-    public void UnbindKey(string keyBinding)
+    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
+    /// <param name="contextName">The context in which this callback is active.</param>
+    [ScriptFunction("bind_mouse_click_context", "Binds a callback to mouse click events for a specific context.")]
+    public void BindMouseClickContext(Closure callback, string contextName)
     {
-        _inputManager.UnbindKey(keyBinding);
-    }
-
-    /// <summary>
-    /// Unbinds a held key combination.
-    /// </summary>
-    /// <param name="keyBinding">The key binding string to unbind.</param>
-    [ScriptFunction("unbind_key_held", "Unbinds a held key.")]
-    public void UnbindKeyHeld(string keyBinding)
-    {
-        _inputManager.UnbindKeyHeld(keyBinding);
-    }
-
-    /// <summary>
-    /// Unbinds a repeat key combination.
-    /// </summary>
-    /// <param name="keyBinding">The key binding string to unbind.</param>
-    [ScriptFunction("unbind_key_repeat", "Unbinds a repeat key.")]
-    public void UnbindKeyRepeat(string keyBinding)
-    {
-        _inputManager.UnbindKeyRepeat(keyBinding);
-    }
-
-    [ScriptFunction("grab_mouse", "Grabs the mouse cursor and makes it invisible.")]
-    public void GrabMouse()
-    {
-        _inputManager.IsMouseVisible = false;
-    }
-
-    [ScriptFunction("show_mouse", "Shows the mouse cursor.")]
-    public void ShowMouse()
-    {
-        _inputManager.IsMouseVisible = true;
-    }
-
-    [ScriptFunction("is_mouse_visible", "Checks if the mouse cursor is visible.")]
-    public bool IsMouseVisible()
-    {
-        return _inputManager.IsMouseVisible;
-    }
-
-    [ScriptFunction("toggle_mouse", "Sets the mouse cursor visibility.")]
-    public void ToggleMouseVisibility()
-    {
-        _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
-    }
-
-    /// <summary>
-    /// Gets the mouse delta (movement since last frame).
-    /// </summary>
-    /// <returns>A table with 'x' and 'y' keys representing the mouse delta.</returns>
-    [ScriptFunction("get_mouse_delta", "Gets the mouse delta (movement since last frame).")]
-    public DynValue GetMouseDelta()
-    {
-        var delta = _inputManager.GetMouseDelta();
-        var table = new Table(null)
+        if (callback == null)
         {
-            ["x"] = delta.X,
-            ["y"] = delta.Y
-        };
+            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
+        }
 
-        return DynValue.NewTable(table);
+        if (string.IsNullOrEmpty(contextName))
+        {
+            throw new ArgumentException("Context name cannot be null or empty", nameof(contextName));
+        }
+
+        _inputManager.BindMouseClick(
+            (button, position) =>
+            {
+                try
+                {
+                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
+                    callback.Call(buttonName, position.X, position.Y);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error executing mouse click callback for context '{contextName}': {ex.Message}",
+                        ex
+                    );
+                }
+            },
+            contextName
+        );
     }
 
     /// <summary>
@@ -344,6 +288,15 @@ public class InputManagerModule
         );
     }
 
+    /// <summary>
+    /// Clears all key bindings.
+    /// </summary>
+    [ScriptFunction("clear_bindings", "Clears all key bindings.")]
+    public void ClearBindings()
+    {
+        _inputManager.ClearBindings();
+    }
+
     [ScriptFunction("convert_mouse_delta_to_pitch_yaw_roll", "Converts mouse delta to pitch, yaw, and roll values.")]
     public Table ConvertMouseDeltaToPitchYawRoll(int deltaX, int deltaY, float roll = 0f, float sensitivity = 0.3f)
     {
@@ -352,8 +305,8 @@ public class InputManagerModule
             sensitivity = 0.3f;
         }
 
-        float pitch = deltaY * sensitivity;
-        float yaw = deltaX * sensitivity;
+        var pitch = deltaY * sensitivity;
+        var yaw = deltaX * sensitivity;
 
         var table = new Table(null)
         {
@@ -366,73 +319,116 @@ public class InputManagerModule
     }
 
     /// <summary>
-    /// Binds a callback to mouse click events globally (always active, regardless of context).
-    /// Passes the mouse button name (as string) and position (absolute coordinates).
+    /// Gets the current input context name.
     /// </summary>
-    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
-    [ScriptFunction("bind_mouse_click", "Binds a callback to global mouse click events (always active).")]
-    public void BindMouseClick(Closure callback)
-    {
-        if (callback == null)
-        {
-            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
-        }
+    /// <returns>The current context name as a string.</returns>
+    [ScriptFunction("get_context", "Gets the current input context.")]
+    public string GetContext()
+        => _inputManager.CurrentContext;
 
-        _inputManager.BindMouseClick(
-            (button, position) =>
-            {
-                try
-                {
-                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
-                    callback.Call(buttonName, position.X, position.Y);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Error executing global mouse click callback: {ex.Message}",
-                        ex
-                    );
-                }
-            }
-        );
+    /// <summary>
+    /// Gets the mouse delta (movement since last frame).
+    /// </summary>
+    /// <returns>A table with 'x' and 'y' keys representing the mouse delta.</returns>
+    [ScriptFunction("get_mouse_delta", "Gets the mouse delta (movement since last frame).")]
+    public DynValue GetMouseDelta()
+    {
+        var delta = _inputManager.GetMouseDelta();
+        var table = new Table(null)
+        {
+            ["x"] = delta.X,
+            ["y"] = delta.Y
+        };
+
+        return DynValue.NewTable(table);
+    }
+
+    [ScriptFunction("grab_mouse", "Grabs the mouse cursor and makes it invisible.")]
+    public void GrabMouse()
+    {
+        _inputManager.IsMouseVisible = false;
     }
 
     /// <summary>
-    /// Binds a callback to mouse click events, only active in a specific context.
-    /// Passes the mouse button name (as string) and position (absolute coordinates).
+    /// Checks if a key is currently down.
     /// </summary>
-    /// <param name="callback">The callback function to execute when mouse button is clicked.</param>
-    /// <param name="contextName">The context in which this callback is active.</param>
-    [ScriptFunction("bind_mouse_click_context", "Binds a callback to mouse click events for a specific context.")]
-    public void BindMouseClickContext(Closure callback, string contextName)
-    {
-        if (callback == null)
-        {
-            throw new ArgumentNullException(nameof(callback), "Callback must be a function");
-        }
+    /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
+    /// <returns>True if the key is down.</returns>
+    [ScriptFunction("is_key_down", "Checks if a key is currently down.")]
+    public bool IsKeyDown(string keyName)
+        => Enum.TryParse<Key>(keyName, true, out var key) && _inputManager.IsKeyDown(key);
 
+    /// <summary>
+    /// Checks if a key was just pressed this frame.
+    /// </summary>
+    /// <param name="keyName">The key name (e.g., "A", "Space", "Escape").</param>
+    /// <returns>True if the key was just pressed.</returns>
+    [ScriptFunction("is_key_pressed", "Checks if a key was just pressed.")]
+    public bool IsKeyPressed(string keyName)
+        => Enum.TryParse<Key>(keyName, true, out var key) &&
+           _inputManager.IsKeyPressed(key);
+
+    [ScriptFunction("is_mouse_visible", "Checks if the mouse cursor is visible.")]
+    public bool IsMouseVisible()
+        => _inputManager.IsMouseVisible;
+
+    /// <summary>
+    /// Sets the current input context.
+    /// </summary>
+    /// <param name="contextName">The context name (any string, e.g., "main_menu", "gameplay", "pause").</param>
+    [ScriptFunction("set_context", "Sets the current input context.")]
+    public void SetContext(string contextName)
+    {
         if (string.IsNullOrEmpty(contextName))
         {
-            throw new ArgumentException("Context name cannot be null or empty", nameof(contextName));
+            throw new ArgumentException(
+                "Context name cannot be null or empty",
+                nameof(contextName)
+            );
         }
 
-        _inputManager.BindMouseClick(
-            (button, position) =>
-            {
-                try
-                {
-                    var buttonName = button.ToString().ToLower(CultureInfo.InvariantCulture);
-                    callback.Call(buttonName, position.X, position.Y);
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Error executing mouse click callback for context '{contextName}': {ex.Message}",
-                        ex
-                    );
-                }
-            },
-            contextName
-        );
+        _inputManager.CurrentContext = contextName;
+    }
+
+    [ScriptFunction("show_mouse", "Shows the mouse cursor.")]
+    public void ShowMouse()
+    {
+        _inputManager.IsMouseVisible = true;
+    }
+
+    [ScriptFunction("toggle_mouse", "Sets the mouse cursor visibility.")]
+    public void ToggleMouseVisibility()
+    {
+        _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
+    }
+
+    /// <summary>
+    /// Unbinds a key combination.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string to unbind.</param>
+    [ScriptFunction("unbind_key", "Unbinds a key.")]
+    public void UnbindKey(string keyBinding)
+    {
+        _inputManager.UnbindKey(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a held key combination.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string to unbind.</param>
+    [ScriptFunction("unbind_key_held", "Unbinds a held key.")]
+    public void UnbindKeyHeld(string keyBinding)
+    {
+        _inputManager.UnbindKeyHeld(keyBinding);
+    }
+
+    /// <summary>
+    /// Unbinds a repeat key combination.
+    /// </summary>
+    /// <param name="keyBinding">The key binding string to unbind.</param>
+    [ScriptFunction("unbind_key_repeat", "Unbinds a repeat key.")]
+    public void UnbindKeyRepeat(string keyBinding)
+    {
+        _inputManager.UnbindKeyRepeat(keyBinding);
     }
 }

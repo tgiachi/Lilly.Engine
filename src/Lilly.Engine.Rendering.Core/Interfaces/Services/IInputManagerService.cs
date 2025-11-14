@@ -73,6 +73,11 @@ public interface IInputManagerService : IDisposable
     event EventHandler<InputContextChangedEventArgs>? ContextChanged;
 
     /// <summary>
+    /// Gets or sets whether the mouse cursor is visible.
+    /// </summary>
+    bool IsMouseVisible { get; set; }
+
+    /// <summary>
     /// Binds a key combination to an action.
     /// </summary>
     /// <param name="binding">The key binding string (e.g., "Ctrl+A", "Shift+F1").</param>
@@ -121,6 +126,34 @@ public interface IInputManagerService : IDisposable
     void BindKeyRepeat(KeyBinding binding, Action action, string? context = null);
 
     /// <summary>
+    /// Binds a callback to mouse click events globally (always active, regardless of context).
+    /// Callback receives the mouse button and mouse position when clicked.
+    /// </summary>
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Binds a callback to mouse click events, only active in a specific context.
+    /// Callback receives the mouse button and mouse position when clicked.
+    /// </summary>
+    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
+
+    /// <summary>
+    /// Binds a callback to mouse movement globally (always active, regardless of context).
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback);
+
+    /// <summary>
+    /// Binds a callback to mouse movement, only active in a specific context.
+    /// </summary>
+    /// <param name="callback">The callback to execute every frame mouse moves.</param>
+    /// <param name="context">The context in which this callback is active.</param>
+    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
+
+    /// <summary>
     /// Clears all key bindings.
     /// </summary>
     void ClearBindings();
@@ -143,6 +176,12 @@ public interface IInputManagerService : IDisposable
     /// <param name="key">The key to check.</param>
     /// <returns>Duration in seconds that the key has been pressed.</returns>
     float GetKeyPressDuration(Key key);
+
+    /// <summary>
+    /// Gets the mouse delta (movement since last frame).
+    /// </summary>
+    /// <returns>The mouse delta as a Vector2D with X and Y components.</returns>
+    Vector2D<int> GetMouseDelta();
 
     /// <summary>
     /// Checks if a key is currently down.
@@ -266,36 +305,17 @@ public interface IInputManagerService : IDisposable
     void UnbindKeyRepeat(KeyBinding binding);
 
     /// <summary>
-    /// Updates the input manager.
-    /// Samples input states and processes key bindings.
+    /// Unbinds a global mouse click callback.
     /// </summary>
-    /// <param name="gameTime">Game timing information.</param>
-    void Update(GameTime gameTime);
+    /// <param name="callback">The callback to remove.</param>
+    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback);
 
     /// <summary>
-    /// Checks for clicks on focusable elements and automatically sets focus.
+    /// Unbinds a mouse click callback for a specific context.
     /// </summary>
-    /// <param name="receivers">All input receivers to check for mouse clicks.</param>
-    void UpdateFocusFromMouse(IEnumerable<IInputReceiver> receivers);
-
-    /// <summary>
-    /// Gets the mouse delta (movement since last frame).
-    /// </summary>
-    /// <returns>The mouse delta as a Vector2D with X and Y components.</returns>
-    Vector2D<int> GetMouseDelta();
-
-    /// <summary>
-    /// Binds a callback to mouse movement globally (always active, regardless of context).
-    /// </summary>
-    /// <param name="callback">The callback to execute every frame mouse moves.</param>
-    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback);
-
-    /// <summary>
-    /// Binds a callback to mouse movement, only active in a specific context.
-    /// </summary>
-    /// <param name="callback">The callback to execute every frame mouse moves.</param>
-    /// <param name="context">The context in which this callback is active.</param>
-    void BindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
+    /// <param name="callback">The callback to remove.</param>
+    /// <param name="context">The context from which to remove the binding.</param>
+    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
 
     /// <summary>
     /// Unbinds a global mouse movement callback.
@@ -311,35 +331,15 @@ public interface IInputManagerService : IDisposable
     void UnbindMouseMovement(Action<Vector2D<int>, Vector2D<int>> callback, string context);
 
     /// <summary>
-    /// Binds a callback to mouse click events globally (always active, regardless of context).
-    /// Callback receives the mouse button and mouse position when clicked.
+    /// Updates the input manager.
+    /// Samples input states and processes key bindings.
     /// </summary>
-    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
-    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback);
+    /// <param name="gameTime">Game timing information.</param>
+    void Update(GameTime gameTime);
 
     /// <summary>
-    /// Binds a callback to mouse click events, only active in a specific context.
-    /// Callback receives the mouse button and mouse position when clicked.
+    /// Checks for clicks on focusable elements and automatically sets focus.
     /// </summary>
-    /// <param name="callback">The callback to execute when a mouse button is clicked.</param>
-    /// <param name="context">The context in which this callback is active.</param>
-    void BindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
-
-    /// <summary>
-    /// Unbinds a global mouse click callback.
-    /// </summary>
-    /// <param name="callback">The callback to remove.</param>
-    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback);
-
-    /// <summary>
-    /// Unbinds a mouse click callback for a specific context.
-    /// </summary>
-    /// <param name="callback">The callback to remove.</param>
-    /// <param name="context">The context from which to remove the binding.</param>
-    void UnbindMouseClick(Action<MouseButton, Vector2D<int>> callback, string context);
-
-    /// <summary>
-    ///  Gets or sets whether the mouse cursor is visible.
-    /// </summary>
-    bool IsMouseVisible { get; set; }
+    /// <param name="receivers">All input receivers to check for mouse clicks.</param>
+    void UpdateFocusFromMouse(IEnumerable<IInputReceiver> receivers);
 }

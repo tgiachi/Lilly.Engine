@@ -4,7 +4,6 @@ using Lilly.Engine.Interfaces.Debuggers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Payloads;
 
 namespace Lilly.Engine.Debuggers.Base;
 
@@ -17,14 +16,12 @@ public abstract class BaseDebugger : IImGuiDebugger
     public ushort Order { get; }
 
     protected BaseDebugger(string name)
-    {
-        Name = name;
-    }
+        => Name = name;
+
+    public abstract void DrawImGui();
 
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        yield return RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, DrawImGui));
+        yield return RenderCommandHelpers.ImGuiRender(new(Name, DrawImGui));
     }
-
-    public abstract void DrawImGui();
 }

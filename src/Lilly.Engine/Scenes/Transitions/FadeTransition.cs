@@ -1,7 +1,6 @@
 using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
@@ -62,8 +61,8 @@ public class FadeTransition : TransitionGameObject
             var destination = new Rectangle<float>(0, 0, _viewportWidth, _viewportHeight);
 
             var command = RenderCommandHelpers.CreateDrawTexture(
-                new DrawTexturePayload(
-                    texture: DefaultTextures.WhiteTextureKey,
+                new(
+                    DefaultTextures.WhiteTextureKey,
                     destination: destination,
                     color: colorWithAlpha,
                     depth: 0.9f

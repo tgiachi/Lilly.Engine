@@ -54,6 +54,6 @@ internal class Texture2DManager : ITexture2DManager
     {
         var xnaTexture = (Texture2D)texture;
 
-        xnaTexture.SetData<byte>(data, bounds.X, bounds.Y, (uint)bounds.Width, (uint)bounds.Height, PixelFormat.Rgba);
+        xnaTexture.SetData(data, bounds.X, bounds.Y, (uint)bounds.Width, (uint)bounds.Height, PixelFormat.Rgba);
     }
 }

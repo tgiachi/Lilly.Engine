@@ -37,9 +37,8 @@ public class RenderContext
     /// </summary>
     public IInputContext InputContext { get; set; }
 
-
     /// <summary>
-    ///  Gets or sets the graphic renderer in use.
+    /// Gets or sets the graphic renderer in use.
     /// </summary>
     public IGraphicRenderer Renderer { get; set; }
 }

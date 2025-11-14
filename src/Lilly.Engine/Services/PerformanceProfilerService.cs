@@ -185,27 +185,11 @@ public class PerformanceProfilerService : BaseGameObject2D, IPerformanceProfiler
                 ["Current Draw Time"] = Math.Round(CurrentDrawTime, 2),
                 ["Average Draw Time"] = Math.Round(AverageDrawTime, 2),
                 ["Memory Usage (MB)"] = Math.Round(MemoryUsageMb, 2),
-                ["Total Frames"] = TotalFrames,
+                ["Total Frames"] = TotalFrames
             };
 
             return metrics;
         }
-    }
-
-    /// <summary>
-    /// Sets the graphics device for collecting graphics metrics
-    /// </summary>
-    /// <param name="graphicsDevice">The graphics device to monitor</param>
-    public void SetGraphicsDevice(GraphicsDevice graphicsDevice)
-    {
-        _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
-    }
-
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
-    {
-        UpdateDrawTime(_lastUpdateTime);
-
-        yield break;
     }
 
     /// <summary>
@@ -230,6 +214,15 @@ public class PerformanceProfilerService : BaseGameObject2D, IPerformanceProfiler
             _minFrameTime = double.MaxValue;
             MaxFrameTime = 0.0;
         }
+    }
+
+    /// <summary>
+    /// Sets the graphics device for collecting graphics metrics
+    /// </summary>
+    /// <param name="graphicsDevice">The graphics device to monitor</param>
+    public void SetGraphicsDevice(GraphicsDevice graphicsDevice)
+    {
+        _graphicsDevice = graphicsDevice ?? throw new ArgumentNullException(nameof(graphicsDevice));
     }
 
     public void Update(GameTime gameTime)
@@ -348,5 +341,12 @@ public class PerformanceProfilerService : BaseGameObject2D, IPerformanceProfiler
                 _updateTimeWindow.Dequeue();
             }
         }
+    }
+
+    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    {
+        UpdateDrawTime(_lastUpdateTime);
+
+        yield break;
     }
 }

@@ -34,9 +34,8 @@ public interface IGraphicRenderer
     /// </summary>
     string Name { get; }
 
-
     /// <summary>
-    ///  Gets or sets the target frames per second for rendering.
+    /// Gets or sets the target frames per second for rendering.
     /// </summary>
     double TargetFramesPerSecond { get; set; }
 
@@ -66,7 +65,7 @@ public interface IGraphicRenderer
     event ResizeHandler Resize;
 
     /// <summary>
-    ///  Event raised after the rendering of each frame is completed.
+    /// Event raised after the rendering of each frame is completed.
     /// </summary>
     event RenderHandler PostRender;
 

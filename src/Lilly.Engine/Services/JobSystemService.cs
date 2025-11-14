@@ -18,8 +18,6 @@ public class JobSystemService : IJobSystemService, IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _queueSignal = new(0);
 
-
-
     /// <summary>
     /// Releases resources used by the job system service.
     /// </summary>

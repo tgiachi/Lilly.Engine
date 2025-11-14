@@ -1,7 +1,9 @@
+using System.Drawing;
 using System.Numerics;
 using FontStashSharp;
 using Silk.NET.Maths;
 using TrippyGL;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace Lilly.Engine.Extensions;
 
@@ -11,19 +13,41 @@ namespace Lilly.Engine.Extensions;
 public static class ColorExtensions
 {
     /// <summary>
+    /// Applies an alpha multiplier to a Color4b.
+    /// </summary>
+    /// <param name="color"></param>
+    /// <param name="alpha"></param>
+    /// <returns></returns>
+    public static Color4b ApplyAlpha(this Color4b color, float alpha)
+        => new(
+            color.R,
+            color.G,
+            color.B,
+            (byte)(color.A * alpha)
+        );
+
+    /// <summary>
     /// Converts a TrippyGL Viewport to a System.Drawing.Rectangle.
     /// </summary>
     /// <param name="r">The viewport to convert.</param>
     /// <returns>A Rectangle with the dimensions of the viewport.</returns>
-    public static System.Drawing.Rectangle ToSystemDrawing(this Viewport r)
+    public static Rectangle ToSystemDrawing(this Viewport r)
         => new(r.X, r.Y, (int)r.Width, (int)r.Height);
+
+    /// <summary>
+    /// Converts a Silk.NET Rectangle to a System.Drawing.Rectangle.
+    /// </summary>
+    /// <param name="r">The Silk.NET rectangle to convert.</param>
+    /// <returns>A System.Drawing.Rectangle with the dimensions of the source rectangle.</returns>
+    public static Rectangle ToSystemDrawing(this Rectangle<float> r)
+        => new((int)r.Origin.X, (int)r.Origin.Y, (int)r.Size.X, (int)r.Size.Y);
 
     /// <summary>
     /// Converts a System.Drawing.Point to a System.Numerics.Vector2.
     /// </summary>
     /// <param name="p">The point to convert.</param>
     /// <returns>A Vector2 with the X and Y coordinates of the point.</returns>
-    public static Vector2 ToSystemNumeric(System.Drawing.Point p)
+    public static Vector2 ToSystemNumeric(Point p)
         => new(p.X, p.Y);
 
     /// <summary>
@@ -31,7 +55,7 @@ public static class ColorExtensions
     /// </summary>
     /// <param name="r">The rectangle to convert.</param>
     /// <returns>A Viewport with the dimensions of the rectangle.</returns>
-    public static Viewport ToTrippy(this System.Drawing.Rectangle r)
+    public static Viewport ToTrippy(this Rectangle r)
         => new(r);
 
     /// <summary>
@@ -41,28 +65,4 @@ public static class ColorExtensions
     /// <returns>A Color4b with the RGBA components of the source color.</returns>
     public static Color4b ToTrippy(this FSColor c)
         => new(c.R, c.G, c.B, c.A);
-
-    /// <summary>
-    ///  Applies an alpha multiplier to a Color4b.
-    /// </summary>
-    /// <param name="color"></param>
-    /// <param name="alpha"></param>
-    /// <returns></returns>
-    public static Color4b ApplyAlpha(this Color4b color, float alpha)
-    {
-        return new Color4b(
-            color.R,
-            color.G,
-            color.B,
-            (byte)(color.A * alpha)
-        );
-    }
-
-    /// <summary>
-    /// Converts a Silk.NET Rectangle to a System.Drawing.Rectangle.
-    /// </summary>
-    /// <param name="r">The Silk.NET rectangle to convert.</param>
-    /// <returns>A System.Drawing.Rectangle with the dimensions of the source rectangle.</returns>
-    public static System.Drawing.Rectangle ToSystemDrawing(this Rectangle<float> r)
-        => new((int)r.Origin.X, (int)r.Origin.Y, (int)r.Size.X, (int)r.Size.Y);
 }

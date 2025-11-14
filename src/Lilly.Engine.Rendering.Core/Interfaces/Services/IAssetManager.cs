@@ -8,6 +8,30 @@ namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
 public interface IAssetManager
 {
     /// <summary>
+    /// Gets the font by name and size.
+    /// </summary>
+    /// <typeparam name="TFont">The font type.</typeparam>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The size of the font.</param>
+    /// <returns>The font.</returns>
+    TFont GetFont<TFont>(string fontName, int size) where TFont : class;
+
+    /// <summary>
+    /// Gets the shader program by name.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader.</param>
+    /// <returns>The shader program.</returns>
+    ShaderProgram GetShaderProgram(string shaderName);
+
+    /// <summary>
+    /// Gets the texture by name.
+    /// </summary>
+    /// <typeparam name="TTexture">The texture type.</typeparam>
+    /// <param name="textureName">The name of the texture.</param>
+    /// <returns>The texture.</returns>
+    TTexture GetTexture<TTexture>(string textureName) where TTexture : class;
+
+    /// <summary>
     /// Gets the white texture.
     /// </summary>
     TTexture GetWhiteTexture<TTexture>() where TTexture : class;
@@ -18,25 +42,13 @@ public interface IAssetManager
     /// <param name="fontName">The name of the font.</param>
     /// <param name="fontPath">The path to the font file.</param>
     void LoadFontFromFile(string fontName, string fontPath);
+
     /// <summary>
     /// Loads a font from memory.
     /// </summary>
     /// <param name="fontName">The name of the font.</param>
     /// <param name="stream">The stream containing the font data.</param>
     void LoadFontFromMemory(string fontName, Stream stream);
-
-    /// <summary>
-    /// Loads a texture from a file.
-    /// </summary>
-    /// <param name="textureName">The name of the texture.</param>
-    /// <param name="texturePath">The path to the texture file.</param>
-    void LoadTextureFromFile(string textureName, string texturePath);
-    /// <summary>
-    /// Loads a texture from memory.
-    /// </summary>
-    /// <param name="textureName">The name of the texture.</param>
-    /// <param name="stream">The stream containing the texture data.</param>
-    void LoadTextureFromMemory(string textureName, Stream stream);
 
     /// <summary>
     /// Loads a shader from files.
@@ -60,25 +72,16 @@ public interface IAssetManager
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
-    /// Gets the shader program by name.
+    /// Loads a texture from a file.
     /// </summary>
-    /// <param name="shaderName">The name of the shader.</param>
-    /// <returns>The shader program.</returns>
-    ShaderProgram GetShaderProgram(string shaderName);
+    /// <param name="textureName">The name of the texture.</param>
+    /// <param name="texturePath">The path to the texture file.</param>
+    void LoadTextureFromFile(string textureName, string texturePath);
 
     /// <summary>
-    /// Gets the font by name and size.
+    /// Loads a texture from memory.
     /// </summary>
-    /// <typeparam name="TFont">The font type.</typeparam>
-    /// <param name="fontName">The name of the font.</param>
-    /// <param name="size">The size of the font.</param>
-    /// <returns>The font.</returns>
-    TFont GetFont<TFont>(string fontName, int size) where TFont : class;
-    /// <summary>
-    /// Gets the texture by name.
-    /// </summary>
-    /// <typeparam name="TTexture">The texture type.</typeparam>
     /// <param name="textureName">The name of the texture.</param>
-    /// <returns>The texture.</returns>
-    TTexture GetTexture<TTexture>(string textureName) where TTexture : class;
+    /// <param name="stream">The stream containing the texture data.</param>
+    void LoadTextureFromMemory(string textureName, Stream stream);
 }

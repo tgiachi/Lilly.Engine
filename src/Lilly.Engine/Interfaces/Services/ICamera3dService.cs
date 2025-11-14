@@ -11,7 +11,6 @@ public interface ICamera3dService
 {
     ICamera3D? CurrentCamera { get; set; }
 
-
     /// <summary>
     /// Event raised whenever the active camera changes.
     /// </summary>
@@ -40,16 +39,14 @@ public interface ICamera3dService
     void UnregisterCamera(ICamera3D camera);
 
     /// <summary>
-    /// Updates the cached viewport and notifies cameras when resolution changes.
-    /// </summary>
-    /// <param name="viewport">The new viewport dimensions.</param>
-    void UpdateViewport(Viewport viewport);
-
-
-    /// <summary>
-    ///  Updates the camera service with the current game time.
+    /// Updates the camera service with the current game time.
     /// </summary>
     /// <param name="gameTime"></param>
     void Update(GameTime gameTime);
 
+    /// <summary>
+    /// Updates the cached viewport and notifies cameras when resolution changes.
+    /// </summary>
+    /// <param name="viewport">The new viewport dimensions.</param>
+    void UpdateViewport(Viewport viewport);
 }

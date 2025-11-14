@@ -25,7 +25,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     private readonly HashSet<int> _selectedIndices = new();
     private int _hoveredIndex = -1;
     private int _scrollOffset; // For scrolling when items exceed visible area
-    private bool _hasFocus;
     private bool _isMouseInBounds;
     private int _width = 200;
     private int _height = 200;
@@ -153,6 +152,16 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         UpdateTransformSize();
     }
 
+    public bool IsFocusable => true;
+
+    public bool HasFocus { get; set; }
+
+    public Rectangle<int> Bounds
+        => new(
+            new((int)Transform.Position.X, (int)Transform.Position.Y),
+            new(_width, _height)
+        );
+
     /// <summary>
     /// Adds an item to the list box.
     /// </summary>
@@ -195,67 +204,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
             OnSelectionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-
-    /// <summary>
-    /// Removes an item from the list box by index.
-    /// </summary>
-    /// <param name="index">The index of the item to remove.</param>
-    public bool RemoveItem(int index)
-    {
-        if (index < 0 || index >= Items.Count)
-        {
-            return false;
-        }
-
-        Items.RemoveAt(index);
-        _selectedIndices.Remove(index);
-
-        // Adjust selected indices for items after the removed one
-        var toRemove = _selectedIndices.Where(i => i > index).ToList();
-
-        foreach (var i in toRemove)
-        {
-            _selectedIndices.Remove(i);
-            _selectedIndices.Add(i - 1);
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Selects an item by index.
-    /// </summary>
-    /// <param name="index">The index to select.</param>
-    /// <param name="addToSelection">If true and MultiSelect is enabled, adds to selection. Otherwise replaces.</param>
-    public void SelectItem(int index, bool addToSelection = false)
-    {
-        if (index < 0 || index >= Items.Count)
-        {
-            return;
-        }
-
-        if (!MultiSelect || !addToSelection)
-        {
-            _selectedIndices.Clear();
-        }
-
-        _selectedIndices.Add(index);
-        OnSelectionChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public bool IsFocusable => true;
-
-    public bool HasFocus
-    {
-        get => _hasFocus;
-        set => _hasFocus = value;
-    }
-
-    public Rectangle<int> Bounds
-        => new(
-            new((int)Transform.Position.X, (int)Transform.Position.Y),
-            new(_width, _height)
-        );
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
@@ -316,7 +264,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
             {
                 // Multi-select is handled via keyboard (Ctrl+click would require keyboard context)
                 // For now, single select on click, multi-select via arrow keys + Shift
-                SelectItem(_hoveredIndex, false);
+                SelectItem(_hoveredIndex);
             }
         }
 
@@ -331,7 +279,55 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+    }
+
+    /// <summary>
+    /// Removes an item from the list box by index.
+    /// </summary>
+    /// <param name="index">The index of the item to remove.</param>
+    public bool RemoveItem(int index)
+    {
+        if (index < 0 || index >= Items.Count)
+        {
+            return false;
+        }
+
+        Items.RemoveAt(index);
+        _selectedIndices.Remove(index);
+
+        // Adjust selected indices for items after the removed one
+        var toRemove = _selectedIndices.Where(i => i > index).ToList();
+
+        foreach (var i in toRemove)
+        {
+            _selectedIndices.Remove(i);
+            _selectedIndices.Add(i - 1);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Selects an item by index.
+    /// </summary>
+    /// <param name="index">The index to select.</param>
+    /// <param name="addToSelection">If true and MultiSelect is enabled, adds to selection. Otherwise replaces.</param>
+    public void SelectItem(int index, bool addToSelection = false)
+    {
+        if (index < 0 || index >= Items.Count)
+        {
+            return;
+        }
+
+        if (!MultiSelect || !addToSelection)
+        {
+            _selectedIndices.Clear();
+        }
+
+        _selectedIndices.Add(index);
+        OnSelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
@@ -347,18 +343,19 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
 
         // Draw background
         yield return DrawRectangle(
-            new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height)),
+            new(Transform.Position, new(_width, _height)),
             bgColor,
-            depth: NextDepth()
+            NextDepth()
         );
 
         // Draw border
         foreach (var cmd in DrawHollowRectangle(
-            Transform.Position,
-            new Vector2D<float>(_width, _height),
-            brColor,
-            BorderThickness,
-            depth: NextDepth()))
+                     Transform.Position,
+                     new(_width, _height),
+                     brColor,
+                     BorderThickness,
+                     NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -370,11 +367,11 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         {
             var itemIndex = _scrollOffset + i;
             var itemBounds = new Rectangle<float>(
-                new Vector2D<float>(
+                new(
                     bounds.Origin.X + BorderThickness,
                     bounds.Origin.Y + BorderThickness + i * ItemHeight
                 ),
-                new Vector2D<float>(bounds.Size.X - BorderThickness * 2, ItemHeight)
+                new(bounds.Size.X - BorderThickness * 2, ItemHeight)
             );
 
             // Draw item background
@@ -382,7 +379,7 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
                               itemIndex == _hoveredIndex ? ItemHoveredColor :
                               BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, depth: NextDepth());
+            yield return DrawRectangle(itemBounds, itemBgColor, NextDepth());
 
             // Draw item text
             var textPos = new Vector2D<float>(
@@ -424,8 +421,15 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     private int GetVisibleItemCount()
     {
         var contentHeight = _height - BorderThickness * 2;
+
         return Math.Max(1, contentHeight / ItemHeight);
     }
+
+    private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
+        => current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
+
+    private static bool RectContains(Rectangle<int> rect, Vector2 point)
+        => rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
 
     private void UpdateHoverState(Vector2 mousePos)
     {
@@ -451,16 +455,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
 
     private void UpdateTransformSize()
     {
-        Transform.Size = new Vector2D<float>(_width, _height);
-    }
-
-    private static bool IsKeyJustPressed(KeyboardState current, KeyboardState previous, Key key)
-    {
-        return current.IsKeyPressed(key) && !previous.IsKeyPressed(key);
-    }
-
-    private static bool RectContains(Rectangle<int> rect, Vector2 point)
-    {
-        return rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
+        Transform.Size = new(_width, _height);
     }
 }

@@ -19,7 +19,7 @@ public abstract class Base3dCamera : ICamera3D
     private Vector3D<float> _position = Vector3D<float>.Zero;
     private Quaternion<float> _rotation = Quaternion<float>.Identity;
     private Vector3D<float> _target = new(0, 0, 1); // Forward
-    private float _fieldOfView = MathF.PI / 4f; // 45 degrees
+    private float _fieldOfView = MathF.PI / 4f;     // 45 degrees
     private float _aspectRatio;
     private float _nearPlane = 0.1f;
     private float _farPlane = 1000f;
@@ -86,7 +86,8 @@ public abstract class Base3dCamera : ICamera3D
     {
         get
         {
-            var forward = Vector3D.Transform(new Vector3D<float>(0, 0, 1), _rotation);
+            var forward = Vector3D.Transform(new(0, 0, 1), _rotation);
+
             return Vector3D.Normalize(forward);
         }
     }
@@ -95,7 +96,8 @@ public abstract class Base3dCamera : ICamera3D
     {
         get
         {
-            var right = Vector3D.Transform(new Vector3D<float>(1, 0, 0), _rotation);
+            var right = Vector3D.Transform(new(1, 0, 0), _rotation);
+
             return Vector3D.Normalize(right);
         }
     }
@@ -187,76 +189,18 @@ public abstract class Base3dCamera : ICamera3D
             if (_frustum == null || _viewDirty || _projectionDirty)
             {
                 var viewProjection = View * Projection;
-                _frustum = new BoundingFrustum(viewProjection);
+                _frustum = new(viewProjection);
             }
 
             return _frustum;
         }
     }
 
-    protected virtual void UpdateViewMatrix()
-    {
-        _view = Matrix4X4.CreateLookAt(_position, _target, Up);
-    }
-
-    protected virtual void UpdateProjectionMatrix()
-    {
-        _projection = Matrix4X4.CreatePerspectiveFieldOfView(
-            _fieldOfView,
-            _aspectRatio,
-            _nearPlane,
-            _farPlane
-        );
-    }
-
-    public virtual void LookAt(Vector3D<float> target, Vector3D<float> up)
-    {
-        Target = target;
-        Up = up;
-        _viewDirty = true;
-    }
-
-    public void LookAt(IGameObject3D targetObject)
-    {
-        LookAt(targetObject.Transform.Position, new Vector3D<float>(0, 1, 0));
-    }
-
-    public virtual void Move(Vector3D<float> offset)
-    {
-        Position += offset;
-    }
-
-    public virtual void Rotate(float pitch, float yaw, float roll)
-    {
-        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(Right, pitch);
-        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new Vector3D<float>(0, 1, 0), yaw);
-        var rollRotation = Quaternion<float>.CreateFromAxisAngle(Forward, roll);
-
-        Rotation = rollRotation * yawRotation * pitchRotation * Rotation;
-    }
-
-    public abstract void Update(GameTime gameTime);
-
-    public virtual void MoveForward(float distance)
-    {
-        Move(Forward * distance);
-    }
-
-    public virtual void MoveRight(float distance)
-    {
-        Move(Right * distance);
-    }
-
-    public virtual void MoveUp(float distance)
-    {
-        Move(new Vector3D<float>(0, 1, 0) * distance);
-    }
-
     public virtual Ray GetPickRay(Vector2D<int> screenPosition, Viewport viewport)
     {
         // Convert screen position to NDC (Normalized Device Coordinates)
-        var x = (2.0f * screenPosition.X / viewport.Width) - 1.0f;
-        var y = 1.0f - (2.0f * screenPosition.Y / viewport.Height);
+        var x = 2.0f * screenPosition.X / viewport.Width - 1.0f;
+        var y = 1.0f - 2.0f * screenPosition.Y / viewport.Height;
 
         // Create points in NDC space
         var nearPointNDC = new Vector3D<float>(x, y, 0);
@@ -273,14 +217,70 @@ public abstract class Base3dCamera : ICamera3D
         var direction = farPoint - nearPoint;
         direction = Vector3D.Normalize(direction);
 
-        return new Ray(nearPoint, direction);
+        return new(nearPoint, direction);
+    }
+
+    public virtual void LookAt(Vector3D<float> target, Vector3D<float> up)
+    {
+        Target = target;
+        Up = up;
+        _viewDirty = true;
+    }
+
+    public void LookAt(IGameObject3D targetObject)
+    {
+        LookAt(targetObject.Transform.Position, new(0, 1, 0));
+    }
+
+    public virtual void Move(Vector3D<float> offset)
+    {
+        Position += offset;
+    }
+
+    public virtual void MoveForward(float distance)
+    {
+        Move(Forward * distance);
+    }
+
+    public virtual void MoveRight(float distance)
+    {
+        Move(Right * distance);
+    }
+
+    public virtual void MoveUp(float distance)
+    {
+        Move(new Vector3D<float>(0, 1, 0) * distance);
     }
 
     /// <summary>
     /// Cameras don't render anything themselves, they define the view for rendering.
     /// </summary>
     public virtual IEnumerable<RenderCommand> Render(GameTime gameTime)
+        => [];
+
+    public virtual void Rotate(float pitch, float yaw, float roll)
     {
-        return [];
+        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(Right, pitch);
+        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), yaw);
+        var rollRotation = Quaternion<float>.CreateFromAxisAngle(Forward, roll);
+
+        Rotation = rollRotation * yawRotation * pitchRotation * Rotation;
+    }
+
+    public abstract void Update(GameTime gameTime);
+
+    protected virtual void UpdateProjectionMatrix()
+    {
+        _projection = Matrix4X4.CreatePerspectiveFieldOfView(
+            _fieldOfView,
+            _aspectRatio,
+            _nearPlane,
+            _farPlane
+        );
+    }
+
+    protected virtual void UpdateViewMatrix()
+    {
+        _view = Matrix4X4.CreateLookAt(_position, _target, Up);
     }
 }

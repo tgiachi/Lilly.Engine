@@ -6,7 +6,8 @@ using Lilly.Engine.Rendering.Core.Types;
 namespace Lilly.Engine.Rendering.Core.Interfaces.EngineLayers;
 
 /// <summary>
-/// Defines a system for managing a specific render layer, including adding/removing game objects, collecting and processing render commands.
+/// Defines a system for managing a specific render layer, including adding/removing game objects, collecting and processing
+/// render commands.
 /// </summary>
 public interface IRenderLayerSystem
 {

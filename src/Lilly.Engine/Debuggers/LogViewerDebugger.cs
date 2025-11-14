@@ -7,7 +7,6 @@ using Lilly.Engine.Interfaces.Debuggers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog.Events;
 
@@ -21,7 +20,7 @@ public class LogViewerDebugger : IImGuiDebugger
 {
     private readonly LogViewer _logViewer;
     private string _searchBuffer = string.Empty;
-    private bool _shouldScrollToBottom = false;
+    private bool _shouldScrollToBottom;
     private int _selectedLogIndex = -1;
 
     /// <summary>
@@ -72,12 +71,21 @@ public class LogViewerDebugger : IImGuiDebugger
     }
 
     /// <summary>
+    /// Disposes the debugger and cleans up resources.
+    /// </summary>
+    public void Dispose()
+    {
+        _logViewer.OnLogsChanged -= OnLogsChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
     /// Renders the game object (IGameObject implementation).
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        yield return RenderCommandHelpers.ImGuiRender(new ImGuiDataPayload(Name, Render));
+        yield return RenderCommandHelpers.ImGuiRender(new(Name, Render));
     }
 
     /// <summary>
@@ -95,80 +103,29 @@ public class LogViewerDebugger : IImGuiDebugger
         RenderFooter();
     }
 
-    private void RenderToolbar()
+    private void OnLogsChanged(object? sender, EventArgs e)
     {
-        // Search bar
-        ImGui.SetNextItemWidth(250);
-        if (ImGui.InputText("##search", ref _searchBuffer, 256))
+        if (_logViewer.Settings.AutoScroll)
         {
-            _logViewer.Settings.SearchFilter = _searchBuffer;
+            _shouldScrollToBottom = true;
         }
+    }
 
-        ImGui.SameLine();
-
-        // Level filters with count badges
-        var showVerbose = _logViewer.Settings.ShowVerbose;
-        RenderLevelToggle("Verbose", LogEventLevel.Verbose, ref showVerbose, new Vector4(0.5f, 0.5f, 0.5f, 1f));
-        _logViewer.Settings.ShowVerbose = showVerbose;
-        ImGui.SameLine();
-
-        var showDebug = _logViewer.Settings.ShowDebug;
-        RenderLevelToggle("Debug", LogEventLevel.Debug, ref showDebug, new Vector4(0.6f, 0.6f, 0.6f, 1f));
-        _logViewer.Settings.ShowDebug = showDebug;
-        ImGui.SameLine();
-
-        var showInfo = _logViewer.Settings.ShowInformation;
-        RenderLevelToggle("Info", LogEventLevel.Information, ref showInfo, new Vector4(1f, 1f, 1f, 1f));
-        _logViewer.Settings.ShowInformation = showInfo;
-        ImGui.SameLine();
-
-        var showWarning = _logViewer.Settings.ShowWarning;
-        RenderLevelToggle("Warning", LogEventLevel.Warning, ref showWarning, new Vector4(1f, 1f, 0f, 1f));
-        _logViewer.Settings.ShowWarning = showWarning;
-        ImGui.SameLine();
-
-        var showError = _logViewer.Settings.ShowError;
-        RenderLevelToggle("Error", LogEventLevel.Error, ref showError, new Vector4(1f, 0.4f, 0.4f, 1f));
-        _logViewer.Settings.ShowError = showError;
-
-        ImGui.SameLine();
-        ImGui.Spacing();
-        ImGui.SameLine();
-
-        // Clear button
-        if (ImGui.Button("Clear"))
-        {
-            _logViewer.Clear();
-            _selectedLogIndex = -1;
-        }
-
-        ImGui.SameLine();
-
-        // Options
-        var autoScroll = _logViewer.Settings.AutoScroll;
-        if (ImGui.Checkbox("Auto Scroll", ref autoScroll))
-        {
-            _logViewer.Settings.AutoScroll = autoScroll;
-        }
-
-        ImGui.SameLine();
-
-        var showCollapsed = _logViewer.Settings.ShowCollapsed;
-        if (ImGui.Checkbox("Collapse", ref showCollapsed))
-        {
-            _logViewer.Settings.ShowCollapsed = showCollapsed;
-        }
-
-        ImGui.SameLine();
-
-        // Export button
-        if (ImGui.Button("Copy to Clipboard"))
-        {
-            var text = _logViewer.ExportToText();
-            ImGui.SetClipboardText(text);
-        }
-
+    private void RenderFooter()
+    {
         ImGui.Separator();
+
+        // Statistics bar
+        ImGui.Text($"Total: {_logViewer.TotalLogCount} | Unique: {_logViewer.UniqueLogCount} | ");
+        ImGui.SameLine();
+
+        ImGui.TextColored(new(1f, 1f, 1f, 1f), $"Info: {_logViewer.InfoCount}");
+        ImGui.SameLine();
+
+        ImGui.TextColored(new(1f, 1f, 0f, 1f), $"Warnings: {_logViewer.WarningCount}");
+        ImGui.SameLine();
+
+        ImGui.TextColored(new(1f, 0.4f, 0.4f, 1f), $"Errors: {_logViewer.ErrorCount}");
     }
 
     private void RenderLevelToggle(string label, LogEventLevel level, ref bool isEnabled, Vector4 color)
@@ -193,30 +150,6 @@ public class LogViewerDebugger : IImGuiDebugger
         }
 
         ImGui.PopStyleColor(2);
-    }
-
-    private void RenderLogList()
-    {
-        var filteredLogs = _logViewer.GetFilteredLogs();
-
-        ImGui.Text($"Showing {filteredLogs.Count} of {_logViewer.UniqueLogCount} logs");
-        ImGui.Separator();
-
-        ImGui.BeginChild("ScrollingRegion", new Vector2(0, -30), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
-
-        for (int i = 0; i < filteredLogs.Count; i++)
-        {
-            RenderLogEntry(filteredLogs[i], i);
-        }
-
-        // Auto-scroll to bottom
-        if (_shouldScrollToBottom && _logViewer.Settings.AutoScroll)
-        {
-            ImGui.SetScrollHereY(1.0f);
-            _shouldScrollToBottom = false;
-        }
-
-        ImGui.EndChild();
     }
 
     private void RenderLogEntry(LogEntry entry, int index)
@@ -250,6 +183,7 @@ public class LogViewerDebugger : IImGuiDebugger
             ImGui.Indent();
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 0.5f, 0.5f, 1f));
             ImGui.TextWrapped($"Exception: {entry.Exception.Message}");
+
             if (!string.IsNullOrEmpty(entry.Exception.StackTrace))
             {
                 ImGui.TextWrapped(entry.Exception.StackTrace);
@@ -280,37 +214,106 @@ public class LogViewerDebugger : IImGuiDebugger
         }
     }
 
-    private void RenderFooter()
+    private void RenderLogList()
     {
+        var filteredLogs = _logViewer.GetFilteredLogs();
+
+        ImGui.Text($"Showing {filteredLogs.Count} of {_logViewer.UniqueLogCount} logs");
         ImGui.Separator();
 
-        // Statistics bar
-        ImGui.Text($"Total: {_logViewer.TotalLogCount} | Unique: {_logViewer.UniqueLogCount} | ");
-        ImGui.SameLine();
+        ImGui.BeginChild("ScrollingRegion", new(0, -30), ImGuiChildFlags.Borders, ImGuiWindowFlags.HorizontalScrollbar);
 
-        ImGui.TextColored(new Vector4(1f, 1f, 1f, 1f), $"Info: {_logViewer.InfoCount}");
-        ImGui.SameLine();
-
-        ImGui.TextColored(new Vector4(1f, 1f, 0f, 1f), $"Warnings: {_logViewer.WarningCount}");
-        ImGui.SameLine();
-
-        ImGui.TextColored(new Vector4(1f, 0.4f, 0.4f, 1f), $"Errors: {_logViewer.ErrorCount}");
-    }
-
-    private void OnLogsChanged(object? sender, EventArgs e)
-    {
-        if (_logViewer.Settings.AutoScroll)
+        for (var i = 0; i < filteredLogs.Count; i++)
         {
-            _shouldScrollToBottom = true;
+            RenderLogEntry(filteredLogs[i], i);
         }
+
+        // Auto-scroll to bottom
+        if (_shouldScrollToBottom && _logViewer.Settings.AutoScroll)
+        {
+            ImGui.SetScrollHereY(1.0f);
+            _shouldScrollToBottom = false;
+        }
+
+        ImGui.EndChild();
     }
 
-    /// <summary>
-    /// Disposes the debugger and cleans up resources.
-    /// </summary>
-    public void Dispose()
+    private void RenderToolbar()
     {
-        _logViewer.OnLogsChanged -= OnLogsChanged;
-        GC.SuppressFinalize(this);
+        // Search bar
+        ImGui.SetNextItemWidth(250);
+
+        if (ImGui.InputText("##search", ref _searchBuffer, 256))
+        {
+            _logViewer.Settings.SearchFilter = _searchBuffer;
+        }
+
+        ImGui.SameLine();
+
+        // Level filters with count badges
+        var showVerbose = _logViewer.Settings.ShowVerbose;
+        RenderLevelToggle("Verbose", LogEventLevel.Verbose, ref showVerbose, new(0.5f, 0.5f, 0.5f, 1f));
+        _logViewer.Settings.ShowVerbose = showVerbose;
+        ImGui.SameLine();
+
+        var showDebug = _logViewer.Settings.ShowDebug;
+        RenderLevelToggle("Debug", LogEventLevel.Debug, ref showDebug, new(0.6f, 0.6f, 0.6f, 1f));
+        _logViewer.Settings.ShowDebug = showDebug;
+        ImGui.SameLine();
+
+        var showInfo = _logViewer.Settings.ShowInformation;
+        RenderLevelToggle("Info", LogEventLevel.Information, ref showInfo, new(1f, 1f, 1f, 1f));
+        _logViewer.Settings.ShowInformation = showInfo;
+        ImGui.SameLine();
+
+        var showWarning = _logViewer.Settings.ShowWarning;
+        RenderLevelToggle("Warning", LogEventLevel.Warning, ref showWarning, new(1f, 1f, 0f, 1f));
+        _logViewer.Settings.ShowWarning = showWarning;
+        ImGui.SameLine();
+
+        var showError = _logViewer.Settings.ShowError;
+        RenderLevelToggle("Error", LogEventLevel.Error, ref showError, new(1f, 0.4f, 0.4f, 1f));
+        _logViewer.Settings.ShowError = showError;
+
+        ImGui.SameLine();
+        ImGui.Spacing();
+        ImGui.SameLine();
+
+        // Clear button
+        if (ImGui.Button("Clear"))
+        {
+            _logViewer.Clear();
+            _selectedLogIndex = -1;
+        }
+
+        ImGui.SameLine();
+
+        // Options
+        var autoScroll = _logViewer.Settings.AutoScroll;
+
+        if (ImGui.Checkbox("Auto Scroll", ref autoScroll))
+        {
+            _logViewer.Settings.AutoScroll = autoScroll;
+        }
+
+        ImGui.SameLine();
+
+        var showCollapsed = _logViewer.Settings.ShowCollapsed;
+
+        if (ImGui.Checkbox("Collapse", ref showCollapsed))
+        {
+            _logViewer.Settings.ShowCollapsed = showCollapsed;
+        }
+
+        ImGui.SameLine();
+
+        // Export button
+        if (ImGui.Button("Copy to Clipboard"))
+        {
+            var text = _logViewer.ExportToText();
+            ImGui.SetClipboardText(text);
+        }
+
+        ImGui.Separator();
     }
 }

@@ -1,4 +1,3 @@
-using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
@@ -118,28 +117,30 @@ public class ProgressBarGameObject : BaseGameObject2D
             yield break;
         }
 
-        var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(_width, _height));
+        var bounds = new Rectangle<float>(Transform.Position, new(_width, _height));
 
         // Draw background
-        yield return DrawRectangle(bounds, BackgroundColor, depth: NextDepth());
+        yield return DrawRectangle(bounds, BackgroundColor, NextDepth());
 
         // Draw filled portion
         var filledWidth = _width * _progress;
         var filledBounds = new Rectangle<float>(
             Transform.Position,
-            new Vector2D<float>(filledWidth, _height)
+            new(filledWidth, _height)
         );
-        yield return DrawRectangle(filledBounds, BarColor, depth: NextDepth());
+
+        yield return DrawRectangle(filledBounds, BarColor, NextDepth());
 
         // Draw border
         if (ShowBorder)
         {
             foreach (var cmd in DrawHollowRectangle(
-                Transform.Position,
-                new Vector2D<float>(_width, _height),
-                BorderColor,
-                BorderThickness,
-                depth: NextDepth()))
+                         Transform.Position,
+                         new(_width, _height),
+                         BorderColor,
+                         BorderThickness,
+                         NextDepth()
+                     ))
             {
                 yield return cmd;
             }
@@ -150,7 +151,7 @@ public class ProgressBarGameObject : BaseGameObject2D
         {
             var percentText = $"{_progress * 100:F0}%";
             var textPos = new Vector2D<float>(
-                Transform.Position.X + _width / 2f - (percentText.Length * Theme.FontSize) / 4f,
+                Transform.Position.X + _width / 2f - percentText.Length * Theme.FontSize / 4f,
                 Transform.Position.Y + (_height - Theme.FontSize) / 2f
             );
 
@@ -167,6 +168,6 @@ public class ProgressBarGameObject : BaseGameObject2D
 
     private void UpdateTransformSize()
     {
-        Transform.Size = new Vector2D<float>(_width, _height);
+        Transform.Size = new(_width, _height);
     }
 }
