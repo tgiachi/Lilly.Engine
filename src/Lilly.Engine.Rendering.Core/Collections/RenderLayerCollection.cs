@@ -89,8 +89,8 @@ public sealed class RenderLayerCollection
         }
 
         _logger.Debug(
-            "Adding GameObject of type {GameObjectType} to layers {LayersEnum}",
-            gameObject.GetType().Name,
+            "Adding GameObject of {Name} to layers {LayersEnum}",
+            gameObject.Name,
             string.Join(", ", addedLayers)
         );
     }

@@ -1,4 +1,5 @@
 using DryIoc;
+using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Data.Internal;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
@@ -39,6 +40,8 @@ public class GameObjectFactory : IGameObjectFactory
         BuildDynamicScriptModule();
     }
 
+
+
     /// <summary>
     /// Creates a new instance of the specified game object type.
     /// </summary>
@@ -53,21 +56,7 @@ public class GameObjectFactory : IGameObjectFactory
             throw new InvalidOperationException($"Game object of type {type.FullName} is not registered.");
         }
 
-        var instance = _container.Resolve<TGameObject>();
-        var objectId = GenerateObjectId();
-        instance.Id = objectId;
-        instance.Name = GenerateGameObjectName(type, objectId);
-
-        if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-        {
-            _logger.Debug(
-                "Created game object of type {GameObjectType} with ID {GameObjectId}",
-                type.Name,
-                objectId
-            );
-        }
-
-        return instance;
+        return (TGameObject)CreateGameObject(typeof(TGameObject));
     }
 
     /// <summary>
@@ -87,14 +76,11 @@ public class GameObjectFactory : IGameObjectFactory
         instance.Id = objectId;
         instance.Name = GenerateGameObjectName(type, objectId);
 
-        if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-        {
-            _logger.Debug(
-                "Created game object of type {GameObjectType} with ID {GameObjectId}",
-                type.FullName,
-                objectId
-            );
-        }
+        _logger.Debug(
+            "Created game object of type {GameObjectType} with ID {GameObjectId}",
+            type.FullName,
+            objectId
+        );
 
         return instance;
     }
@@ -112,7 +98,7 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     private static string GenerateGameObjectName(Type type, uint id)
     {
-        return $"{type.Name}_{id}";
+        return ($"{type.Name}_{id}").ToSnakeCase();
     }
 
     private void BuildDynamicScriptModule()
