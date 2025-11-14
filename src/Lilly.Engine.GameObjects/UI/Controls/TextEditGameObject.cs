@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.GameObjects.Utils;
@@ -14,6 +15,7 @@ using TrippyGL;
 using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
+
 /// <summary>
 /// A text input control that supports editing, selection, cursor positioning, and basic text operations.
 /// Similar to a standard text box or input field.
@@ -56,8 +58,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     }
 
     public int MaxLength { get; set; } = 256;
-    public bool IsReadOnly { get; set; } = false;
-    public bool IsPassword { get; set; } = false;
+    public bool IsReadOnly { get; set; }
+    public bool IsPassword { get; set; }
     public string PlaceholderText { get; set; } = string.Empty;
 
     public UITheme Theme { get; }
@@ -155,6 +157,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             HandleEnd(keyboardState);
             ResetCursorBlink(gameTime);
         }
+
         // Keys that should NOT repeat
         else if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Enter))
         {
@@ -180,13 +183,20 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (!IsMouseInBounds(mousePos))
         {
             _isDragging = false;
+
             return;
         }
 
         if (_inputManager.IsMouseButtonPressed(MouseButton.Left))
         {
             var localX = mousePos.X - Transform.Position.X - Padding + _scrollOffset;
-            _cursorPosition = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, Theme.FontName, Theme.FontSize);
+            _cursorPosition = TextMeasurement.GetCharacterIndexAtPosition(
+                _assetManager,
+                GetDisplayText(),
+                localX,
+                Theme.FontName,
+                Theme.FontSize
+            );
             _dragStartIndex = _cursorPosition;
             _isDragging = true;
             ClearSelection();
@@ -196,7 +206,13 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (_isDragging && _inputManager.IsMouseButtonDown(MouseButton.Left))
         {
             var localX = mousePos.X - Transform.Position.X - Padding + _scrollOffset;
-            var currentIndex = TextMeasurement.GetCharacterIndexAtPosition(_assetManager, GetDisplayText(), localX, Theme.FontName, Theme.FontSize);
+            var currentIndex = TextMeasurement.GetCharacterIndexAtPosition(
+                _assetManager,
+                GetDisplayText(),
+                localX,
+                Theme.FontName,
+                Theme.FontSize
+            );
 
             if (currentIndex != _dragStartIndex)
             {
@@ -224,6 +240,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
         var bounds = Bounds;
+
         return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
     }
 
@@ -234,15 +251,33 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             yield break;
         }
 
-        var bounds = new Rectangle<float>(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y));
+        var scissorBounds = new Rectangle<int>(
+            new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
+            new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
+        );
+
+        var bounds = new Rectangle<float>(
+            new Vector2D<float>(Transform.Position.X, Transform.Position.Y),
+            new Vector2D<float>(Transform.Size.X, Transform.Size.Y)
+        );
+
+        yield return RenderCommandHelpers.CreateScissor(scissorBounds);
 
         // Background
         var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
+
         yield return DrawRectangle(bounds, bgColor, depth: NextDepth());
 
         // Border
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
-        foreach (var cmd in DrawHollowRectangle(Transform.Position, new Vector2D<float>(Transform.Size.X, Transform.Size.Y), borderColor, Theme.BorderThickness, depth: NextDepth()))
+
+        foreach (var cmd in DrawHollowRectangle(
+                     Transform.Position,
+                     new Vector2D<float>(Transform.Size.X, Transform.Size.Y),
+                     borderColor,
+                     Theme.BorderThickness,
+                     depth: NextDepth()
+                 ))
         {
             yield return cmd;
         }
@@ -251,7 +286,13 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         if (_selectionLength > 0 && HasFocus)
         {
             var selectionRect = GetSelectionRectangle();
-            var selectionColor = new Color4b(Theme.ItemSelectedColor.R, Theme.ItemSelectedColor.G, Theme.ItemSelectedColor.B, 128);
+            var selectionColor = new Color4b(
+                Theme.ItemSelectedColor.R,
+                Theme.ItemSelectedColor.G,
+                Theme.ItemSelectedColor.B,
+                128
+            );
+
             yield return DrawRectangle(selectionRect, selectionColor, depth: NextDepth());
         }
 
@@ -265,7 +306,14 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, displayText, Theme.FontSize, textPos, color: Theme.TextColor, depth: NextDepth());
+            yield return DrawTextCustom(
+                Theme.FontName,
+                displayText,
+                Theme.FontSize,
+                textPos,
+                color: Theme.TextColor,
+                depth: NextDepth()
+            );
         }
         else if (!HasFocus && !string.IsNullOrEmpty(PlaceholderText))
         {
@@ -274,7 +322,14 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(Theme.FontName, PlaceholderText, Theme.FontSize, textPos, color: Theme.PlaceholderTextColor, depth: NextDepth());
+            yield return DrawTextCustom(
+                Theme.FontName,
+                PlaceholderText,
+                Theme.FontSize,
+                textPos,
+                color: Theme.PlaceholderTextColor,
+                depth: NextDepth()
+            );
         }
 
         // Cursor
@@ -285,9 +340,12 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             if (_cursorVisible)
             {
                 var cursorRect = GetCursorRectangle();
+
                 yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, depth: NextDepth());
             }
         }
+
+        yield return RenderCommandHelpers.CreateDisableScissor();
     }
 
     private void UpdateTransformSize()

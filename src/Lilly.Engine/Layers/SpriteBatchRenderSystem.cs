@@ -26,7 +26,6 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     private FontStashRenderer _fontRenderer;
 
     private readonly IAssetManager _assetManager;
-    private readonly Stack<Rectangle<int>> _scissorStack = new();
     private bool _isBatchActive;
 
     /// <summary>
@@ -106,8 +105,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        _scissorStack.Clear();
-        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
+
         //_renderContext.GraphicsDevice.DepthState = DepthState.None;
         // _renderContext.GraphicsDevice.BlendingEnabled = true;
         // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
@@ -128,7 +126,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                     break;
 
                 case RenderCommandType.Scissor:
-                    FlushSpriteBatch();
+                    // FlushSpriteBatch();
                     var scissorPayload = command.GetPayload<ScissorPayload>();
                     ProcessScissorCommand(scissorPayload);
 
@@ -137,8 +135,6 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         }
 
         EndSpriteBatch();
-        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
-        _scissorStack.Clear();
         base.ProcessRenderCommands(ref renderCommands);
     }
 
@@ -151,30 +147,12 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                 new Vector2D<int>(payload.Width, payload.Height)
             );
 
-            if (_scissorStack.TryPeek(out var parentRect))
-            {
-                rectangle = IntersectRectangles(parentRect, rectangle);
-            }
-
-            _scissorStack.Push(rectangle);
             ApplyScissor(rectangle);
 
             return;
         }
 
-        if (_scissorStack.Count > 0)
-        {
-            _scissorStack.Pop();
-        }
-
-        if (_scissorStack.Count > 0)
-        {
-            ApplyScissor(_scissorStack.Peek());
-        }
-        else
-        {
-            _renderContext.GraphicsDevice.ScissorTestEnabled = false;
-        }
+        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
     }
 
     private void DrawText(DrawTextPayload textPayload)
@@ -217,7 +195,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                 payload.Transform.Value.ToNumerics(),
                 payload.Source?.ToSystemDrawing(),
                 payload.Color.ToVector4(),
-               payload.Depth
+                payload.Depth
             );
 
             return;
@@ -318,18 +296,5 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         );
 
         _renderContext.GraphicsDevice.ScissorTestEnabled = true;
-    }
-
-    private static Rectangle<int> IntersectRectangles(Rectangle<int> first, Rectangle<int> second)
-    {
-        var left = Math.Max(first.Origin.X, second.Origin.X);
-        var top = Math.Max(first.Origin.Y, second.Origin.Y);
-        var right = Math.Min(first.Origin.X + first.Size.X, second.Origin.X + second.Size.X);
-        var bottom = Math.Min(first.Origin.Y + first.Size.Y, second.Origin.Y + second.Size.Y);
-
-        var width = Math.Max(0, right - left);
-        var height = Math.Max(0, bottom - top);
-
-        return new Rectangle<int>(new Vector2D<int>(left, top), new Vector2D<int>(width, height));
     }
 }
