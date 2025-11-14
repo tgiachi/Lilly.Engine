@@ -14,7 +14,7 @@ using TrippyGL.ImageSharp;
 
 namespace Lilly.Engine.Services;
 
-public class AssetManager : IAssetManager
+public class AssetManager : IAssetManager, IDisposable
 {
     private readonly int[] defaultSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64, 72, 96, 128, 144, 192, 256];
 
@@ -259,5 +259,17 @@ public class AssetManager : IAssetManager
         var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
         _texture2Ds[textureName] = texture;
         _logger.Information("Loaded texture {TextureName}", textureName);
+    }
+
+    public void Dispose()
+    {
+        _whiteTexture?.Dispose();
+
+        foreach (var shaderProgram in _shaderPrograms.Values)
+        {
+            shaderProgram.Dispose();
+        }
+
+        GC.SuppressFinalize(this);
     }
 }

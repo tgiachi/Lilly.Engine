@@ -220,7 +220,6 @@ public class SceneManager : ISceneManager
 
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
-        var viewPort = new Viewport();
 
         // Scene manager does not render anything itself
         yield break;

@@ -89,7 +89,7 @@ public abstract class Transition : IDisposable
 
                 break;
             default:
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(" Invalid transition state");
         }
     }
 }

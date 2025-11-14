@@ -8,7 +8,7 @@ namespace Lilly.Engine.Fonts;
 /// <summary>
 /// Manages 2D textures for font rendering operations.
 /// </summary>
-internal class Texture2DManager : ITexture2DManager
+internal sealed class Texture2DManager : ITexture2DManager
 {
     /// <summary>
     /// Gets the graphics device used for texture operations.

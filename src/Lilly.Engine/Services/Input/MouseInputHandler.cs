@@ -9,7 +9,7 @@ namespace Lilly.Engine.Services.Input;
 /// <summary>
 /// Handles mouse input states, listeners, and click/movement logic.
 /// </summary>
-internal class MouseInputHandler
+internal sealed class MouseInputHandler
 {
     private readonly ILogger _logger = Log.ForContext<MouseInputHandler>();
     private readonly List<Action<Vector2D<int>, Vector2D<int>>> _globalMouseMovementListeners = [];

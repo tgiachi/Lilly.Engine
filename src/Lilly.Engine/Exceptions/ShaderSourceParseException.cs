@@ -30,8 +30,8 @@ public class ShaderSourceParseException : Exception
     {
         var baseString = base.ToString();
         var sourcePreview = ShaderSource.Length > 200
-            ? ShaderSource.Substring(0, 200) + "..."
-            : ShaderSource;
+                                ? string.Concat(ShaderSource.AsSpan(0, 200), "...")
+                                : ShaderSource;
 
         return $"{baseString}\n\nReason: {Reason}\n" +
                $"Source Preview:\n{sourcePreview}";

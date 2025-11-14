@@ -55,7 +55,7 @@ public class JobSystemService : IJobSystemService, IDisposable
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        var queuedJob = new AsyncJobWrapper(job, cancellationToken, true);
+        var queuedJob = new AsyncJobWrapper(job, true, cancellationToken);
         EnqueueJob(queuedJob);
 
         return queuedJob.CompletionTask;
@@ -102,7 +102,7 @@ public class JobSystemService : IJobSystemService, IDisposable
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        EnqueueJob(new AsyncJobWrapper(job, CancellationToken.None, false));
+        EnqueueJob(new AsyncJobWrapper(job, false, CancellationToken.None));
     }
 
     /// <inheritdoc />

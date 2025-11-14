@@ -9,7 +9,7 @@ namespace Lilly.Engine.Services.Input;
 /// <summary>
 /// Handles keyboard input states, key bindings, and key press logic.
 /// </summary>
-internal class KeyboardInputHandler
+internal sealed class KeyboardInputHandler
 {
     private readonly ILogger _logger = Log.ForContext<KeyboardInputHandler>();
     private readonly Dictionary<KeyBinding, (Action Action, string? Context)> _keyBindings = new();
@@ -407,10 +407,9 @@ internal class KeyboardInputHandler
         // Update repeat timers for keys that should repeat
         foreach (var key in pressedKeys)
         {
-            if (_keyRepeatTimers.ContainsKey(key))
+            if (_keyRepeatTimers.TryGetValue(key, out float lastRepeatTime))
             {
                 var pressDuration = _keyPressDuration[key];
-                var lastRepeatTime = _keyRepeatTimers[key];
 
                 // If we've passed the initial delay and it's time to repeat
                 if (pressDuration >= KeyRepeatDelay)

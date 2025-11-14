@@ -6,7 +6,7 @@ namespace Lilly.Engine.Services.Input;
 /// <summary>
 /// Handles key binding parsing and management.
 /// </summary>
-internal class BindingManager
+internal sealed class BindingManager
 {
     private readonly ILogger _logger = Log.ForContext<BindingManager>();
 

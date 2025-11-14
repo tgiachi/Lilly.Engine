@@ -26,7 +26,7 @@ public class LogViewerDebugger : IImGuiDebugger
     /// <summary>
     /// Gets or sets the unique identifier for this debugger.
     /// </summary>
-    public uint Id { get; set; } = 0;
+    public uint Id { get; set; }
 
     /// <summary>
     /// Gets or sets the name of this debugger.
@@ -76,7 +76,6 @@ public class LogViewerDebugger : IImGuiDebugger
     public void Dispose()
     {
         _logViewer.OnLogsChanged -= OnLogsChanged;
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>

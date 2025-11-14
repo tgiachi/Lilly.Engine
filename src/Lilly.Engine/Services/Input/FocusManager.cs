@@ -6,7 +6,7 @@ namespace Lilly.Engine.Services.Input;
 /// <summary>
 /// Handles input focus management and focus stack operations.
 /// </summary>
-internal class FocusManager
+internal sealed class FocusManager
 {
     private readonly ILogger _logger = Log.ForContext<FocusManager>();
     private readonly Stack<IInputReceiver> _focusStack = new();
