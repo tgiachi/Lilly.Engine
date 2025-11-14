@@ -45,6 +45,14 @@ public interface IAssetManager
     /// <returns></returns>
     ILillyShader GetLillyShader(string shaderName);
 
+
+    /// <summary>
+    ///  Gets the Lilly shader by handle.
+    /// </summary>
+    /// <param name="handle"></param>
+    /// <returns></returns>
+    ILillyShader GetLillyShaderFromHandle(uint handle);
+
     /// <summary>
     /// Gets the texture by name.
     /// </summary>
@@ -52,6 +60,14 @@ public interface IAssetManager
     /// <param name="textureName">The name of the texture.</param>
     /// <returns>The texture.</returns>
     TTexture GetTexture<TTexture>(string textureName) where TTexture : class;
+
+
+    /// <summary>
+    ///  Gets the texture handle by name.
+    /// </summary>
+    /// <param name="textureName"></param>
+    /// <returns></returns>
+    uint GetTextureHandle(string textureName);
 
     /// <summary>
     /// Gets the white texture.

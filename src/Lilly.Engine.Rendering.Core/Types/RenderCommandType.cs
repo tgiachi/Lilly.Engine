@@ -31,6 +31,11 @@ public enum RenderCommandType : byte
     DrawTexture,
 
     /// <summary>
+    ///  Use a specific shader program.
+    /// </summary>
+    UseShader,
+
+    /// <summary>
     /// Render ImGui debug interface.
     /// </summary>
     ImGui,

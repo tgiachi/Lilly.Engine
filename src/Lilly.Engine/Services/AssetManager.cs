@@ -29,6 +29,7 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
 
     private readonly Dictionary<string, ILillyShader> _lillyShaders = new();
+    private readonly Dictionary<uint, ILillyShader> _lillyShadersByHandle = new();
 
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
@@ -104,8 +105,7 @@ public class AssetManager : IAssetManager, IDisposable
         lillyShader.CompileAndLink(streamContent);
 
         _lillyShaders[name] = lillyShader;
-
-        var endStopWatch = Stopwatch.GetTimestamp();
+        _lillyShadersByHandle[lillyShader.Handle] = lillyShader;
         _logger.Information("Loaded Lilly shader {ShaderName} in {ElapsedTime}", name, Stopwatch.GetElapsedTime(stopWatch));
     }
 
@@ -114,6 +114,13 @@ public class AssetManager : IAssetManager, IDisposable
         return _lillyShaders.TryGetValue(shaderName, out var lillyShader)
                    ? lillyShader
                    : throw new InvalidOperationException($"Lilly shader '{shaderName}' is not loaded.");
+    }
+
+    public ILillyShader GetLillyShaderFromHandle(uint handle)
+    {
+        return _lillyShadersByHandle.TryGetValue(handle, out var lillyShader)
+                   ? lillyShader
+                   : throw new InvalidOperationException($"Lilly shader with handle '{handle}' is not loaded.");
     }
 
     /// <summary>
@@ -130,6 +137,13 @@ public class AssetManager : IAssetManager, IDisposable
         }
 
         throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
+    }
+
+    public uint GetTextureHandle(string textureName)
+    {
+        return _texture2Ds.TryGetValue(textureName, out var texture)
+                   ? texture.Handle
+                   : throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
     }
 
     /// <summary>

@@ -4,8 +4,12 @@ using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Payloads;
+using Lilly.Engine.Rendering.Core.Payloads.Shaders;
 using Lilly.Engine.Rendering.Core.Types;
+using Lilly.Engine.Shaders;
+using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using TrippyGL;
 
@@ -14,6 +18,8 @@ namespace Lilly.Engine.Layers;
 public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 {
     private readonly RenderContext _renderContext;
+
+    private readonly IAssetManager _assetManager;
 
     public Color4b ClearColor { get; set; } = Color4b.BlanchedAlmond;
 
@@ -24,11 +30,15 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         new HashSet<RenderCommandType>
         {
             RenderCommandType.Clear,
-            RenderCommandType.Window
+            RenderCommandType.Window,
+            RenderCommandType.UseShader
         };
 
-    public GpuCommandRenderSystem(RenderContext renderContext) : base("GpuCommandSystem", RenderLayer.Background)
-        => _renderContext = renderContext;
+    public GpuCommandRenderSystem(RenderContext renderContext, IAssetManager assetManager) : base("GpuCommandSystem", RenderLayer.Background)
+    {
+        _renderContext = renderContext;
+        _assetManager = assetManager;
+    }
 
     /// <summary>
     /// Collects render commands for clearing the screen and handling window operations.
@@ -70,9 +80,105 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                     ProcessWindowCommand(windowPayload);
 
                     break;
+
+                case RenderCommandType.UseShader:
+                    var useShaderPayload = cmd.GetPayload<UseShaderPayload>();
+                    ProcessShaderCommand(useShaderPayload);
+
+                    break;
             }
         }
         base.ProcessRenderCommands(ref renderCommands);
+    }
+
+    private void ProcessShaderCommand(UseShaderPayload payload)
+    {
+        if (payload.ShaderHandle != 0)
+        {
+            var shaderProgram = _assetManager.GetLillyShaderFromHandle(payload.ShaderHandle);
+            shaderProgram.Use();
+
+            foreach (var uniform in payload.Uniforms.Values)
+            {
+                SetUniformBasedOnType((OpenGlLillyShader)shaderProgram, uniform);
+            }
+        }
+        else
+        {
+            _renderContext.GraphicsDevice.ShaderProgram = null;
+        }
+    }
+
+    private void SetUniformBasedOnType(OpenGlLillyShader shaderProgram, Rendering.Core.Payloads.Shaders.ShaderUniform uniform)
+    {
+        switch (uniform.Type)
+        {
+            case ShaderUniformType.Float:
+                if (uniform.Value is float floatValue)
+                {
+                    shaderProgram.SetUniform(uniform.Name, floatValue);
+                }
+
+                break;
+            case ShaderUniformType.Int:
+                if (uniform.Value is int intValue)
+                {
+                    shaderProgram.SetUniform(uniform.Name, intValue);
+                }
+
+                break;
+            case ShaderUniformType.Vec2:
+                if (uniform.Value is Vector2D<float> vec2Value)
+                {
+                    shaderProgram.SetUniform(uniform.Name, vec2Value);
+                }
+
+                break;
+            case ShaderUniformType.Vec3:
+                if (uniform.Value is Vector3D<float> vec3Value)
+                {
+                    shaderProgram.SetUniform(uniform.Name, vec3Value);
+                }
+
+                break;
+            case ShaderUniformType.Vec4:
+                if (uniform.Value is Vector4D<float> vec4Value)
+                {
+                    shaderProgram.SetUniform(uniform.Name, vec4Value);
+                }
+
+                break;
+            case ShaderUniformType.Mat3:
+                if (uniform.Value is Matrix3X2<float> mat3Value)
+                {
+                    shaderProgram.SetUniform(uniform.Name, mat3Value);
+                }
+
+                break;
+            case ShaderUniformType.Mat4:
+                if (uniform.Value is Matrix4X4<float> mat4Value)
+                {
+                    shaderProgram.SetUniform(uniform.Name, mat4Value);
+                }
+
+                break;
+            case ShaderUniformType.Texture2D:
+                if (uniform.Value is uint textureHandle)
+                {
+                    shaderProgram.SetUniform(uniform.Name, textureHandle, uniform.Unit);
+                }
+
+                break;
+            case ShaderUniformType.Sampler2D:
+                if (uniform.Value is uint samplerHandle)
+                {
+                    shaderProgram.SetUniform(uniform.Name, samplerHandle, uniform.Unit);
+                }
+
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 
     private void ProcessWindowCommand(WindowPayload payload)

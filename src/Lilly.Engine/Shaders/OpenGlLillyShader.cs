@@ -124,6 +124,13 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
         CheckGLError($"SetUniform({name}, float)");
     }
 
+    public void SetUniform(string name, Vector2D<float> value)
+    {
+        int location = GetUniformLocation(name);
+        _gl.Uniform2(location, value.X, value.Y);
+        CheckGLError($"SetUniform({name}, Vector2D)");
+    }
+
     public void SetUniform(string name, Vector3D<float> value)
     {
         int location = GetUniformLocation(name);
@@ -136,6 +143,13 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
         int location = GetUniformLocation(name);
         _gl.Uniform4(location, value.X, value.Y, value.Z, value.W);
         CheckGLError($"SetUniform({name}, Vector4D)");
+    }
+
+    public unsafe void SetUniform(string name, Matrix3X2<float> value)
+    {
+        int location = GetUniformLocation(name);
+        _gl.UniformMatrix3(location, 1, false, (float*)&value);
+        CheckGLError($"SetUniform({name}, Matrix3X2)");
     }
 
     public unsafe void SetUniform(string name, Matrix4X4<float> value)
