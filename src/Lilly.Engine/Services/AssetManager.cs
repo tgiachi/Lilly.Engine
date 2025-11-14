@@ -47,6 +47,8 @@ public class AssetManager : IAssetManager, IDisposable
         _context = context;
         GetWhiteTexture<Texture2D>();
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
+
+
     }
 
     /// <summary>

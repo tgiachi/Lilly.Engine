@@ -10,6 +10,7 @@ using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Exceptions;
+using Lilly.Engine.GameObjects;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
@@ -187,6 +188,7 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void InitializeRenderSystem()
     {
+        _container.RegisterGameObject<SimpleCubeGameObject>();
         var factory = _container.Resolve<IGameObjectFactory>();
         var pluginRegistry = _container.Resolve<PluginRegistry>();
 
@@ -224,6 +226,12 @@ public class LillyBoostrap : ILillyBootstrap
                 _renderPipeline.AddGameObject(globalGameObject);
             }
         }
+
+
+
+        var cube = factory.CreateGameObject<SimpleCubeGameObject>();
+
+        _renderPipeline.AddGameObject(cube);
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()

@@ -11,7 +11,7 @@ namespace Lilly.Engine.Cameras;
 public class FPSCamera : Base3dCamera
 {
     private const float Epsilon = 1e-6f;
-    private float _movementSpeed = 10f;
+    private float _movementSpeed = 5f;
     private float _mouseSensitivity = 0.003f;
 
     public float MovementSpeed
@@ -58,18 +58,30 @@ public class FPSCamera : Base3dCamera
     /// <param name="yawDelta">Change in yaw in radians (positive = look right)</param>
     public void Look(float pitchDelta, float yawDelta)
     {
-        // Update pitch with clamping
-        CurrentPitch += pitchDelta;
-        CurrentPitch = Math.Clamp(CurrentPitch, -MaxPitchAngle, MaxPitchAngle);
+        // Update yaw first (rotate around world Y axis)
+        if (MathF.Abs(yawDelta) > Epsilon)
+        {
+            var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), yawDelta);
+            Rotation = yawRotation * Rotation;
+            CurrentYaw += yawDelta;
+        }
 
-        // Update yaw (no clamping, allows full 360 rotation)
-        CurrentYaw += yawDelta;
+        // Then update pitch (rotate around camera's Right axis)
+        if (MathF.Abs(pitchDelta) > Epsilon)
+        {
+            // Calculate new pitch and clamp
+            var newPitch = CurrentPitch + pitchDelta;
+            newPitch = Math.Clamp(newPitch, -MaxPitchAngle, MaxPitchAngle);
 
-        // Apply rotation as quaternion
-        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(new(1, 0, 0), CurrentPitch);
-        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), CurrentYaw);
-
-        Rotation = pitchRotation * yawRotation;
+            // Only apply if within bounds
+            var actualPitchDelta = newPitch - CurrentPitch;
+            if (MathF.Abs(actualPitchDelta) > Epsilon)
+            {
+                var pitchRotation = Quaternion<float>.CreateFromAxisAngle(Right, actualPitchDelta);
+                Rotation = pitchRotation * Rotation;
+                CurrentPitch = newPitch;
+            }
+        }
 
         // Update target to be in front of the camera
         Target = Position + Forward;

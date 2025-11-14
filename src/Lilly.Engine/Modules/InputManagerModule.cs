@@ -302,7 +302,7 @@ public class InputManagerModule
     {
         if (sensitivity == 0)
         {
-            sensitivity = 0.3f;
+            sensitivity = 0.003f;
         }
 
         var pitch = deltaY * sensitivity;
@@ -400,6 +400,17 @@ public class InputManagerModule
     public void ToggleMouseVisibility()
     {
         _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
+    }
+
+    [ScriptFunction("test_key_name", "Tests if a key name is valid and returns debug info.")]
+    public string TestKeyName(string keyName)
+    {
+        if (Enum.TryParse<Key>(keyName, true, out var key))
+        {
+            return $"Valid key: {key} (enum value: {(int)key})";
+        }
+
+        return $"Invalid key name: '{keyName}'. Try: Space, ShiftLeft, ControlLeft, etc.";
     }
 
     /// <summary>

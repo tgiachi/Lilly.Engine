@@ -88,4 +88,62 @@ public interface ILillyShader
     /// Useful for troubleshooting and verifying shader state.
     /// </summary>
     void DebugUniforms();
+
+    /// <summary>
+    /// Configures and enables a vertex attribute.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute.</param>
+    /// <param name="size">The number of components per vertex attribute (1, 2, 3, or 4).</param>
+    /// <param name="type">The data type of each component.</param>
+    /// <param name="stride">The byte offset between consecutive vertex attributes.</param>
+    /// <param name="offset">The offset of the first component of the first vertex attribute.</param>
+    /// <param name="normalized">Whether fixed-point data values should be normalized.</param>
+    void SetVertexAttrib(string name, int size, Silk.NET.OpenGL.VertexAttribPointerType type,
+                        uint stride, int offset, bool normalized = false);
+
+    /// <summary>
+    /// Disables a vertex attribute array.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute to disable.</param>
+    void DisableVertexAttrib(string name);
+
+    /// <summary>
+    /// Outputs debug information about all active vertex attributes in this shader program.
+    /// Useful for troubleshooting and verifying shader state.
+    /// </summary>
+    void DebugAttributes();
+
+
+
+    /// <summary>
+    /// Configures a single float vertex attribute with automatic type detection.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute.</param>
+    /// <param name="stride">The byte offset between consecutive vertex attributes.</param>
+    /// <param name="offset">The offset of the first component.</param>
+    void SetVertexAttribFloat(string name, uint stride, int offset);
+
+    /// <summary>
+    /// Configures a Vector2D&lt;float&gt; vertex attribute with automatic type detection.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute.</param>
+    /// <param name="stride">The byte offset between consecutive vertex attributes.</param>
+    /// <param name="offset">The offset of the first component.</param>
+    void SetVertexAttribVector2(string name, uint stride, int offset);
+
+    /// <summary>
+    /// Configures a Vector3D&lt;float&gt; vertex attribute with automatic type detection.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute.</param>
+    /// <param name="stride">The byte offset between consecutive vertex attributes.</param>
+    /// <param name="offset">The offset of the first component.</param>
+    void SetVertexAttribVector3(string name, uint stride, int offset);
+
+    /// <summary>
+    /// Configures a Vector4D&lt;float&gt; vertex attribute with automatic type detection.
+    /// </summary>
+    /// <param name="name">The name of the vertex attribute.</param>
+    /// <param name="stride">The byte offset between consecutive vertex attributes.</param>
+    /// <param name="offset">The offset of the first component.</param>
+    void SetVertexAttribVector4(string name, uint stride, int offset);
 }

@@ -12,6 +12,7 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
     private readonly GL _gl;
     private readonly ILogger _logger = Log.ForContext<OpenGlLillyShader>();
     private readonly Dictionary<string, int> _uniformLocations = new();
+    private readonly Dictionary<string, int> _attribLocations = new();
     private bool _disposed;
     private readonly string _name;
 
@@ -69,6 +70,9 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
 
         // Cache all uniform locations
         CacheUniforms();
+
+        // Cache all attribute locations
+        CacheAttributes();
     }
 
     public void Use()
@@ -103,10 +107,19 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
 
     public int GetAttribLocation(string attribName)
     {
-        var result = _gl.GetAttribLocation(Handle, attribName);
-        CheckGLError($"GetAttribLocation({attribName})");
+        if (!_attribLocations.TryGetValue(attribName, out int value))
+        {
+            value = _gl.GetAttribLocation(Handle, attribName);
 
-        return result;
+            if (value != -1) // Solo cache se trovato
+            {
+                _attribLocations.Add(attribName, value);
+            }
+
+            CheckGLError($"GetAttribLocation({attribName})");
+        }
+
+        return value;
     }
 
     public void SetUniform(string name, int value)
@@ -316,6 +329,87 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
         }
     }
 
+    public void SetVertexAttrib(
+        string name,
+        int size,
+        VertexAttribPointerType type,
+        uint stride,
+        int offset,
+        bool normalized = false
+    )
+    {
+        int location = GetAttribLocation(name);
+
+        if (location == -1)
+        {
+            _logger.Warning("Vertex attribute '{Name}' not found in shader {ShaderName}", name, _name);
+
+            return;
+        }
+
+        unsafe
+        {
+            _gl.VertexAttribPointer((uint)location, size, type, normalized, stride, (void*)offset);
+            _gl.EnableVertexAttribArray((uint)location);
+        }
+
+        CheckGLError($"SetVertexAttrib({name})");
+    }
+
+    public void DisableVertexAttrib(string name)
+    {
+        int location = GetAttribLocation(name);
+
+        if (location == -1)
+        {
+            _logger.Warning("Vertex attribute '{Name}' not found in shader {ShaderName}", name, _name);
+
+            return;
+        }
+
+        _gl.DisableVertexAttribArray((uint)location);
+        CheckGLError($"DisableVertexAttrib({name})");
+    }
+
+    public void DebugAttributes()
+    {
+        _gl.GetProgram(Handle, GLEnum.ActiveAttributes, out var attribCount);
+        _logger.Information("Active attributes: {Count}", attribCount);
+
+        for (uint i = 0; i < attribCount; i++)
+        {
+            string name = _gl.GetActiveAttrib(Handle, i, out var size, out var type);
+            int location = _gl.GetAttribLocation(Handle, name);
+            _logger.Information(
+                "Attribute '{Name}' at location {Location} (size: {Size}, type: {Type})",
+                name,
+                location,
+                size,
+                type
+            );
+        }
+    }
+
+    public void SetVertexAttribFloat(string name, uint stride, int offset)
+    {
+        SetVertexAttrib(name, 1, VertexAttribPointerType.Float, stride, offset, false);
+    }
+
+    public void SetVertexAttribVector2(string name, uint stride, int offset)
+    {
+        SetVertexAttrib(name, 2, VertexAttribPointerType.Float, stride, offset, false);
+    }
+
+    public void SetVertexAttribVector3(string name, uint stride, int offset)
+    {
+        SetVertexAttrib(name, 3, VertexAttribPointerType.Float, stride, offset, false);
+    }
+
+    public void SetVertexAttribVector4(string name, uint stride, int offset)
+    {
+        SetVertexAttrib(name, 4, VertexAttribPointerType.Float, stride, offset, false);
+    }
+
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
         var shaders = new Dictionary<ShaderType, string>();
@@ -383,6 +477,28 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
 
             var location = _gl.GetUniformLocation(Handle, key);
             _uniformLocations.Add(key, location);
+        }
+    }
+
+    private void CacheAttributes()
+    {
+        _gl.GetProgram(Handle, GLEnum.ActiveAttributes, out var attribCount);
+        _logger.Debug("Shader {Handle} - {Name} - Active attributes: {Count}", Handle, _name, attribCount);
+
+        for (uint i = 0; i < attribCount; i++)
+        {
+            var key = _gl.GetActiveAttrib(Handle, i, out var size, out var type);
+            _logger.Debug(
+                "Shader {Handle} - {ShaderName} - Attribute: {Name} (size: {Size}, type: {Type})",
+                Handle,
+                _name,
+                key,
+                size,
+                type
+            );
+
+            var location = _gl.GetAttribLocation(Handle, key);
+            _attribLocations.Add(key, location);
         }
     }
 

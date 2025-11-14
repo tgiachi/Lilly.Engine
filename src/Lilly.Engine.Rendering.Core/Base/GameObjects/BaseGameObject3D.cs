@@ -4,6 +4,7 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Primitives;
+using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 
@@ -52,12 +53,21 @@ public abstract class BaseGameObject3D : IGameObject3D
     /// </summary>
     public int Layer { get; set; }
 
+    protected GraphicsDevice GraphicsDevice { get; }
+
     /// <summary>
     /// Draws the game object using the provided camera and game time.
     /// </summary>
     /// <param name="camera"></param>
     /// <param name="gameTime"></param>
     public virtual void Draw(ICamera3D camera, GameTime gameTime) { }
+
+    public virtual void Initialize() { }
+
+    public BaseGameObject3D(GraphicsDevice graphicsDevice)
+    {
+        GraphicsDevice = graphicsDevice;
+    }
 
     /// <summary>
     /// Renders the game object and its children by collecting all render commands.

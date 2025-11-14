@@ -39,7 +39,7 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     /// Adds a game object to the layer if it matches the entity type.
     /// </summary>
     /// <param name="gameObject">The game object to add.</param>
-    public void Add(IGameObject gameObject)
+    public virtual void Add(IGameObject gameObject)
     {
         lock (_collectionLock)
         {

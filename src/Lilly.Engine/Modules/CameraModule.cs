@@ -18,10 +18,34 @@ public class CameraModule
         _camera3dService.CurrentCamera?.Move(new(forward, right, up));
     }
 
+    [ScriptFunction("dispatch_keyboard_fps", "Dispatches keyboard input for FPS camera movement relative to camera orientation.")]
+    public void DispatchKeyboardFps(float forward, float right, float up)
+    {
+        if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
+        {
+            var moveVector = fpsCamera.Forward * forward + fpsCamera.Right * right + new Silk.NET.Maths.Vector3D<float>(0, 1, 0) * up;
+
+            if (moveVector.LengthSquared > 0.0001f)
+            {
+                moveVector = Silk.NET.Maths.Vector3D.Normalize(moveVector);
+                fpsCamera.Move(moveVector * 0.5f);  // 0.5 units per call
+            }
+        }
+    }
+
     [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
     public void DispatchMouse(float yaw, float pitch, float roll)
     {
-        _camera3dService.CurrentCamera?.Rotate(yaw, pitch, roll);
+        _camera3dService.CurrentCamera?.Rotate(pitch,yaw, roll);
+    }
+
+    [ScriptFunction("dispatch_mouse_fps", "Dispatches mouse delta directly for FPS camera using Look method.")]
+    public void DispatchMouseFps(float pitchDelta, float yawDelta)
+    {
+        if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
+        {
+            fpsCamera.Look(pitchDelta, yawDelta);
+        }
     }
 
     [ScriptFunction("register_fps", "Registers a first-person camera with the given name.")]
