@@ -18,4 +18,12 @@ public class AssetsModule
 
         return fontName;
     }
+
+    [ScriptFunction("load_lilly_shader", "Loads a Lilly shader from the specified file path and returns its name.")]
+    public string LoadLillyShader(string shaderName, string shaderPath)
+    {
+        _assetManager.LoadLillyShaderFromFile(shaderName, shaderPath);
+
+        return shaderName;
+    }
 }

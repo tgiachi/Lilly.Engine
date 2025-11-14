@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using FontStashSharp;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Interfaces.Shaders;
 using Lilly.Engine.Rendering.Core.Utils;
+using Lilly.Engine.Shaders;
 using Serilog;
 using Silk.NET.OpenGL;
 using TrippyGL;
@@ -24,6 +27,8 @@ public class AssetManager : IAssetManager
 
     private readonly Dictionary<string, Texture2D> _texture2Ds = new();
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
+
+    private readonly Dictionary<string, ILillyShader> _lillyShaders = new();
 
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
@@ -79,6 +84,33 @@ public class AssetManager : IAssetManager
         => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
                ? shaderProgram
                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+
+    public void LoadLillyShaderFromFile(string name, string fileName)
+    {
+        var fullFilePath = Path.Combine(_directoriesConfig[DirectoryType.Assets], fileName);
+
+        using var stream = new FileStream(fullFilePath, FileMode.Open, FileAccess.Read);
+
+        LoadLillyShaderFromStream(name, stream);
+    }
+
+    public void LoadLillyShaderFromStream(string name, Stream stream)
+    {
+        var stopWatch = Stopwatch.GetTimestamp();
+        var streamContent = new StreamReader(stream).ReadToEnd();
+
+        var lillyShader = new OpenGlLillyShader(_context.GraphicsDevice.GL);
+
+        lillyShader.CompileAndLink(streamContent);
+
+        _lillyShaders[name] = lillyShader;
+
+        var endStopWatch = Stopwatch.GetTimestamp();
+        _logger.Information("Loaded Lilly shader {ShaderName} in {ElapsedTime}", name, Stopwatch.GetElapsedTime(stopWatch));
+    }
+
+    public ILillyShader GetLillyShader(string shaderName)
+        => throw new NotImplementedException();
 
     /// <summary>
     /// Retrieves a previously loaded texture by name.

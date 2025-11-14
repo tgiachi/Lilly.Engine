@@ -62,10 +62,23 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     /// </summary>
     public string SelectedItem => _selectedIndex >= 0 && _selectedIndex < Items.Count ? Items[_selectedIndex] : string.Empty;
 
+    private bool _isOpen;
+
     /// <summary>
     /// Gets or sets whether the dropdown is open.
     /// </summary>
-    public bool IsOpen { get; set; }
+    public bool IsOpen
+    {
+        get => _isOpen;
+        set
+        {
+            if (_isOpen != value)
+            {
+                _isOpen = value;
+                UpdateTransformSize();
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets the combo box width.
@@ -494,6 +507,17 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
 
     private void UpdateTransformSize()
     {
-        Transform.Size = new(_width, _height);
+        if (_isOpen && Items.Count > 0)
+        {
+            // When open, include dropdown height in the transform size
+            var dropdownBounds = GetDropdownBounds();
+            var totalHeight = _height + dropdownBounds.Size.Y;
+            Transform.Size = new(_width, totalHeight);
+        }
+        else
+        {
+            // When closed, use normal size
+            Transform.Size = new(_width, _height);
+        }
     }
 }

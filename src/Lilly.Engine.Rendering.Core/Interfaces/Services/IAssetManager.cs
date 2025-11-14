@@ -1,3 +1,4 @@
+using Lilly.Engine.Rendering.Core.Interfaces.Shaders;
 using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
@@ -22,6 +23,27 @@ public interface IAssetManager
     /// <param name="shaderName">The name of the shader.</param>
     /// <returns>The shader program.</returns>
     ShaderProgram GetShaderProgram(string shaderName);
+
+    /// <summary>
+    ///  Loads a Lilly shader from a file.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="fileName"></param>
+    void LoadLillyShaderFromFile(string name, string fileName);
+
+    /// <summary>
+    ///  Loads a Lilly shader from a stream.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="stream"></param>
+    void LoadLillyShaderFromStream(string name, Stream stream);
+
+    /// <summary>
+    ///  Gets the Lilly shader by name.
+    /// </summary>
+    /// <param name="shaderName"></param>
+    /// <returns></returns>
+    ILillyShader GetLillyShader(string shaderName);
 
     /// <summary>
     /// Gets the texture by name.

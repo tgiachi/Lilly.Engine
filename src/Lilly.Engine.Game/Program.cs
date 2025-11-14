@@ -30,7 +30,7 @@ await ConsoleApp.RunAsync(
         rootDirectory ??= Environment.GetEnvironmentVariable("LILLY_ENGINE_ROOT") ??
                           Path.Combine(AppContext.BaseDirectory, "lilly");
 
-        var directoriesConfig = new DirectoriesConfig(rootDirectory, Enum.GetNames<AssetType>());
+        var directoriesConfig = new DirectoriesConfig(rootDirectory, Enum.GetNames<DirectoryType>());
 
         container.RegisterInstance(directoriesConfig);
 
