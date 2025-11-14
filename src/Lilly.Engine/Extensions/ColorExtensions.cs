@@ -48,7 +48,6 @@ public static class ColorExtensions
     /// <param name="color"></param>
     /// <param name="alpha"></param>
     /// <returns></returns>
-
     public static Color4b ApplyAlpha(this Color4b color, float alpha)
     {
         return new Color4b(

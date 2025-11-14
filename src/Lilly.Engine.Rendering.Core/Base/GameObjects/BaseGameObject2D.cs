@@ -18,7 +18,7 @@ namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 /// </summary>
 public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
 {
-    private int _depthCounter = 0;
+    private int _depthCounter;
 
     /// <summary>
     /// Gets or sets the parent game object.
@@ -60,51 +60,14 @@ public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
     /// </summary>
     public int Layer { get; set; }
 
-    /// <summary>
-    /// Gets a value indicating whether automatic scissoring should be applied based on the transform.
-    /// Override to customize opt-in/out behavior.
-    /// </summary>
-    protected virtual bool EnableAutoScissor
-        => false;
+
 
     /// <summary>
-    /// Tries to build the scissor rectangle for this object using its transform.
-    /// Override to supply custom bounds (e.g., padding or parent-relative coordinates).
+    /// Draws the game object by returning render commands.
     /// </summary>
-    /// <param name="rectangle">The rectangle to use for clipping.</param>
-    /// <returns>True if a rectangle is available; otherwise, false.</returns>
-    protected virtual bool TryGetAutoScissorRectangle(out Rectangle<int> rectangle)
-    {
-        if (!EnableAutoScissor)
-        {
-            rectangle = default;
-            return false;
-        }
-
-        var scaledWidth = Transform.Size.X * Transform.Scale.X;
-        var scaledHeight = Transform.Size.Y * Transform.Scale.Y;
-
-        if (scaledWidth <= 0f || scaledHeight <= 0f)
-        {
-            rectangle = default;
-            return false;
-        }
-
-        var x = (int)MathF.Round(Transform.Position.X);
-        var y = (int)MathF.Round(Transform.Position.Y);
-        var width = Math.Max(1, (int)MathF.Ceiling(MathF.Abs(scaledWidth)));
-        var height = Math.Max(1, (int)MathF.Ceiling(MathF.Abs(scaledHeight)));
-
-        rectangle = new Rectangle<int>(new Vector2D<int>(x, y), new Vector2D<int>(width, height));
-        return true;
-    }
-
-/// <summary>
-/// Draws the game object by returning render commands.
-/// </summary>
-/// <param name="gameTime">The game timing information.</param>
-/// <returns>An enumerable collection of render commands for this object.</returns>
-protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
+    /// <param name="gameTime">The game timing information.</param>
+    /// <returns>An enumerable collection of render commands for this object.</returns>
+    protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
 
     /// <summary>
     /// Renders the game object and its children by collecting all render commands.
@@ -118,15 +81,14 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
             yield break;
         }
 
+
+        var viewPort = new Viewport();
+
+
+
         // Auto-reset depth counter at the beginning of each render
         ResetDepthCounter();
 
-        var hasAutoScissor = TryGetAutoScissorRectangle(out var scissorRectangle);
-
-        if (hasAutoScissor)
-        {
-            yield return RenderCommandHelpers.CreateScissor(scissorRectangle);
-        }
 
         // Yield commands from this object
         foreach (var command in Draw(gameTime))
@@ -143,16 +105,10 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
             }
         }
 
-        if (hasAutoScissor)
-        {
-            yield return RenderCommandHelpers.CreateDisableScissor();
-        }
-    }
-
-    public virtual void Update(GameTime gameTime)
-    {
 
     }
+
+    public virtual void Update(GameTime gameTime) { }
 
     /// <summary>
     /// Resets the depth counter to 0. Called automatically at the beginning of Render().
@@ -437,6 +393,7 @@ protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
     )
     {
         var bounds = new Rectangle<float>(position, size);
+
         return DrawBorder(bounds, color, thickness, depth, whitePixelTexture);
     }
 }

@@ -2,6 +2,7 @@ using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Internal;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
@@ -37,6 +38,9 @@ public class SceneManager : ISceneManager
 
     public IEnumerable<RenderCommand> Render(GameTime gameTime)
     {
+
+        var viewPort = new Viewport();
+
         // Scene manager does not render anything itself
         yield break;
     }

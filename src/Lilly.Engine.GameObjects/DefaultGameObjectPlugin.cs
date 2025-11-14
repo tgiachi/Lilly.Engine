@@ -23,6 +23,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
         container.RegisterInstance(UITheme.Default);
 
         _container = container;
+
         return container
                .RegisterGameObject<ButtonGameObject>()
                .RegisterGameObject<CheckBoxGameObject>()
@@ -37,15 +38,12 @@ public class DefaultGameObjectPlugin : ILillyPlugin
             ;
     }
 
-    public void EngineInitialized(IContainer container)
-    {
-
-    }
+    public void EngineInitialized(IContainer container) { }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
         var text = gameObjectFactory.CreateGameObject<TextEditGameObject>();
-        text.Name = "Global Console";
+        text.Transform.Position = new Vector2D<float>(200, 200);
 
         yield return text;
 
