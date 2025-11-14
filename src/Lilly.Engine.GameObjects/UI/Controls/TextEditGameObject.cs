@@ -345,7 +345,6 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             }
         }
 
-        // yield return RenderCommandHelpers.CreateDisableScissor();
     }
 
     private void UpdateTransformSize()
