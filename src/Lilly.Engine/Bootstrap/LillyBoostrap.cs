@@ -27,6 +27,7 @@ using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Services.Input;
 using Lilly.Engine.Wrappers.Debugger;
+using MoonSharp.Interpreter;
 using Serilog;
 using Silk.NET.Maths;
 
@@ -428,6 +429,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _container.AddLuaUserData<Vector2D<int>>();
         _container
+            .AddScriptModule<EngineModule>()
             .AddScriptModule<ConsoleModule>()
             .AddScriptModule<WindowModule>()
             .AddScriptModule<AssetsModule>()
@@ -438,6 +440,8 @@ public class LillyBoostrap : ILillyBootstrap
             .AddScriptModule<CameraModule>()
             .AddScriptModule<NotificationsModule>()
             ;
+
+        UserData.RegisterType<GameTime>();
     }
 
     private void RendererOnRender(GameTime gameTime)

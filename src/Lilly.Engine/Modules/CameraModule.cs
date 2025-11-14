@@ -33,6 +33,7 @@ public class CameraModule
         }
     }
 
+
     [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
     public void DispatchMouse(float yaw, float pitch, float roll)
     {

@@ -349,6 +349,12 @@ public class InputManagerModule
         _inputManager.IsMouseVisible = false;
     }
 
+    [ScriptFunction("release_mouse", "Releases the mouse cursor and makes it visible.")]
+    public void ReleaseMouse()
+    {
+        _inputManager.IsMouseVisible = true;
+    }
+
     /// <summary>
     /// Checks if a key is currently down.
     /// </summary>
