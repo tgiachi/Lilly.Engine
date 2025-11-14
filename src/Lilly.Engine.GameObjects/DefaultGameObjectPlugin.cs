@@ -13,6 +13,8 @@ namespace Lilly.Engine.GameObjects;
 
 public class DefaultGameObjectPlugin : ILillyPlugin
 {
+    private IContainer _container;
+
     public LillyPluginData LillyData
         => new LillyPluginData("squid.lilly.defaultgameobjects", "Lilly Default Game Objects", "1.0.0", "SquidDev", []);
 
@@ -20,6 +22,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
     {
         container.RegisterInstance(UITheme.Default);
 
+        _container = container;
         return container
                .RegisterGameObject<ButtonGameObject>()
                .RegisterGameObject<CheckBoxGameObject>()
@@ -29,11 +32,15 @@ public class DefaultGameObjectPlugin : ILillyPlugin
                .RegisterGameObject<ProgressBarGameObject>()
                .RegisterGameObject<TextEditGameObject>()
                .RegisterGameObject<NotificationHudGameObject>()
+               .RegisterGameObject<QuakeConsoleGameObject>()
                .RegisterGameObject<ScriptErrorGameObject>()
             ;
     }
 
-    public void EngineInitialized(IContainer container) { }
+    public void EngineInitialized(IContainer container)
+    {
+
+    }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
@@ -43,6 +50,22 @@ public class DefaultGameObjectPlugin : ILillyPlugin
         yield return text;
 
         yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
+
+        var quakeConsole = gameObjectFactory.CreateGameObject<QuakeConsoleGameObject>();
+
+        quakeConsole.Name = "Global Quake Console";
+
+        var inputManager = _container.Resolve<IInputManagerService>();
+
+        inputManager.BindKey(
+            "F3",
+            () =>
+            {
+                quakeConsole.ToggleConsole();
+            }
+        );
+
+        yield return quakeConsole;
 
         yield return gameObjectFactory.CreateGameObject<ScriptErrorGameObject>();
     }

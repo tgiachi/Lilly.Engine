@@ -1,6 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
+using Lilly.Engine.GameObjects.Utils;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
@@ -440,11 +441,13 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 
     private void HandleCharacterInput(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
+        var shift = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
+
         foreach (var key in keyboardState.GetPressedKeys())
         {
             if (!previousKeyboardState.IsKeyPressed(key))
             {
-                var character = KeyToChar(key, keyboardState);
+                var character = KeyboardInputUtils.KeyToChar(key, shift);
 
                 if (character != null)
                 {
@@ -453,62 +456,6 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
                 }
             }
         }
-    }
-
-    private char? KeyToChar(Key key, KeyboardState keyboardState)
-    {
-        var isShiftDown = keyboardState.IsKeyPressed(Key.ShiftLeft) || keyboardState.IsKeyPressed(Key.ShiftRight);
-
-        if (key >= Key.A && key <= Key.Z)
-        {
-            var offset = key - Key.A;
-            return isShiftDown ? (char)('A' + offset) : (char)('a' + offset);
-        }
-
-        if (key >= Key.Number0 && key <= Key.Number9)
-        {
-            if (isShiftDown)
-            {
-                return key switch
-                {
-                    Key.Number1 => '!',
-                    Key.Number2 => '@',
-                    Key.Number3 => '#',
-                    Key.Number4 => '$',
-                    Key.Number5 => '%',
-                    Key.Number6 => '^',
-                    Key.Number7 => '&',
-                    Key.Number8 => '*',
-                    Key.Number9 => '(',
-                    Key.Number0 => ')',
-                    _ => null
-                };
-            }
-
-            var offset = key - Key.Number0;
-            return (char)('0' + offset);
-        }
-
-        if (key == Key.Space)
-        {
-            return ' ';
-        }
-
-        return key switch
-        {
-            Key.Minus => isShiftDown ? '_' : '-',
-            Key.Equal => isShiftDown ? '+' : '=',
-            Key.LeftBracket => isShiftDown ? '{' : '[',
-            Key.RightBracket => isShiftDown ? '}' : ']',
-            Key.Semicolon => isShiftDown ? ':' : ';',
-            Key.Apostrophe => isShiftDown ? '"' : '\'',
-            Key.Comma => isShiftDown ? '<' : ',',
-            Key.Period => isShiftDown ? '>' : '.',
-            Key.Slash => isShiftDown ? '?' : '/',
-            Key.BackSlash => isShiftDown ? '|' : '\\',
-            Key.GraveAccent => isShiftDown ? '~' : '`',
-            _ => null
-        };
     }
 
     private void InsertCharacter(char character)

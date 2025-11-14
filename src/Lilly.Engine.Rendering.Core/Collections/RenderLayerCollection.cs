@@ -76,20 +76,23 @@ public sealed class RenderLayerCollection
         ArgumentNullException.ThrowIfNull(gameObject);
         EnsureSorted();
 
+        List<RenderLayer> addedLayers = [];
+
         foreach (var layer in _layers)
         {
             if (layer.CanAddOrRemove(gameObject))
             {
-                _logger.Debug(
-                    "Adding GameObject of type {GameObjectType} to Layer {LayerName} ({LayerEnum})",
-                    gameObject.GetType().Name,
-                    layer.Name,
-                    layer.Layer
-                );
+                addedLayers.Add(layer.Layer);
 
                 layer.Add(gameObject);
             }
         }
+
+        _logger.Debug(
+            "Adding GameObject of type {GameObjectType} to layers {LayersEnum}",
+            gameObject.GetType().Name,
+            string.Join(", ", addedLayers)
+        );
     }
 
     /// <summary>
