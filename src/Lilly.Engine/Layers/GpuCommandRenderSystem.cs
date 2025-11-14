@@ -6,6 +6,7 @@ using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
+using Silk.NET.OpenGL;
 using TrippyGL;
 
 namespace Lilly.Engine.Layers;
@@ -50,6 +51,8 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     {
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+        _renderContext.Gl.Enable(GLEnum.Multisample);
+
 
         foreach (var cmd in renderCommands)
         {

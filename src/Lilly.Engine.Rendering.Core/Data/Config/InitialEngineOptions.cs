@@ -18,5 +18,5 @@ public class InitialEngineOptions
     /// <summary>
     /// Gets or sets the target graphics API version to use.
     /// </summary>
-    public GraphicApiVersion TargetRenderVersion { get; set; } = new(3, 3, 0, 0);
+    public GraphicApiVersion TargetRenderVersion { get; set; } = new(4, 1, 0, 0);
 }

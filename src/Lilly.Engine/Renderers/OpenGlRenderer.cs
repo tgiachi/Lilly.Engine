@@ -70,6 +70,7 @@ public class OpenGlRenderer : IGraphicRenderer
 
         var windowOptions = WindowOptions.Default;
         windowOptions.Title = options.WindowTitle;
+        windowOptions.Samples = 4;
         windowOptions.API = new(
             ContextAPI.OpenGL,
             ContextProfile.Core,
@@ -84,6 +85,7 @@ public class OpenGlRenderer : IGraphicRenderer
         );
 
         _logger.Information("OS: {OS}", PlatformUtils.GetCurrentPlatform());
+
 
         Context.Window = Window.Create(windowOptions);
 
@@ -125,7 +127,8 @@ public class OpenGlRenderer : IGraphicRenderer
         Context.InputContext = Context.Window.CreateInput();
 
         _dpiManager = new(Context.Window, Context.Gl, Context.GraphicsDevice);
-
+        _logger.Information("Vendor: {Vendor}", Context.GraphicsDevice.GLVendor);
+        _logger.Information("Renderer: {Vendor}", Context.GraphicsDevice.GLRenderer);
         _logger.Information("Window Loaded");
     }
 

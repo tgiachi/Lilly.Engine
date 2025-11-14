@@ -60,6 +60,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
                .RegisterGameObject<ListBoxGameObject>()
                .RegisterGameObject<MemoEditGameObject>()
                .RegisterGameObject<ProgressBarGameObject>()
+               .RegisterGameObject<StackPanelGameObject>()
                .RegisterGameObject<TextEditGameObject>()
                .RegisterGameObject<NotificationHudGameObject>()
                .RegisterGameObject<QuakeConsoleGameObject>()
