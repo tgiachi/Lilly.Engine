@@ -13,12 +13,14 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
     private readonly ILogger _logger = Log.ForContext<OpenGlLillyShader>();
     private readonly Dictionary<string, int> _uniformLocations = new();
     private bool _disposed;
+    private readonly string _name;
 
     public uint Handle { get; private set; }
 
-    public OpenGlLillyShader(GL gl)
+    public OpenGlLillyShader(GL gl, string name)
     {
         _gl = gl ?? throw new ArgumentNullException(nameof(gl));
+        _name = name;
     }
 
     public void CompileAndLink(string source)
@@ -358,12 +360,12 @@ public class OpenGlLillyShader : ILillyShader, IDisposable
     private void CacheUniforms()
     {
         _gl.GetProgram(Handle, GLEnum.ActiveUniforms, out var uniformCount);
-        _logger.Debug("Shader {Handle} - Active uniforms: {Count}", Handle, uniformCount);
+        _logger.Debug("Shader {Handle} - {Name} - Active uniforms: {Count}", Handle, _name, uniformCount);
 
         for (uint i = 0; i < uniformCount; i++)
         {
             var key = _gl.GetActiveUniform(Handle, i, out _, out _);
-            _logger.Debug("Shader {Handle} - Uniform name: {Name}", Handle, key);
+            _logger.Debug("Shader {Handle}  - {ShaderName} - Uniform name: {Name}", Handle, _name, key);
 
             var location = _gl.GetUniformLocation(Handle, key);
             _uniformLocations.Add(key, location);

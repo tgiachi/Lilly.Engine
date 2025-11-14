@@ -99,7 +99,7 @@ public class AssetManager : IAssetManager, IDisposable
         var stopWatch = Stopwatch.GetTimestamp();
         var streamContent = new StreamReader(stream).ReadToEnd();
 
-        var lillyShader = new OpenGlLillyShader(_context.GraphicsDevice.GL);
+        var lillyShader = new OpenGlLillyShader(_context.GraphicsDevice.GL, name);
 
         lillyShader.CompileAndLink(streamContent);
 
