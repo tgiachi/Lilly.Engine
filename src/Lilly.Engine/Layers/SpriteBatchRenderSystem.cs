@@ -105,7 +105,6 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-
         //_renderContext.GraphicsDevice.DepthState = DepthState.None;
         // _renderContext.GraphicsDevice.BlendingEnabled = true;
         // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
@@ -126,7 +125,7 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
                     break;
 
                 case RenderCommandType.Scissor:
-                    // FlushSpriteBatch();
+                    FlushSpriteBatch();
                     var scissorPayload = command.GetPayload<ScissorPayload>();
                     ProcessScissorCommand(scissorPayload);
 
@@ -288,9 +287,12 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
         var width = Math.Max(0, rectangle.Size.X);
         var height = Math.Max(0, rectangle.Size.Y);
 
+        var viewportHeight = _renderContext.GraphicsDevice.Viewport.Height;
+        var flippedY = (int)viewportHeight - rectangle.Origin.Y - height;
+
         _renderContext.GraphicsDevice.ScissorRectangle = new Viewport(
             rectangle.Origin.X,
-            rectangle.Origin.Y,
+            flippedY,
             (uint)width,
             (uint)height
         );

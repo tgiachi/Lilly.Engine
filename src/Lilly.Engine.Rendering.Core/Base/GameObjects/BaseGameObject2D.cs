@@ -82,13 +82,10 @@ public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
         }
 
 
-        var viewPort = new Viewport();
-
-
-
-        // Auto-reset depth counter at the beginning of each render
         ResetDepthCounter();
 
+
+        yield return RenderCommandHelpers.CreateScissor(GetScissorBounds());
 
         // Yield commands from this object
         foreach (var command in Draw(gameTime))
@@ -105,7 +102,15 @@ public abstract class BaseGameObject2D : IGameObject2D, IUpdatable
             }
         }
 
+        yield return RenderCommandHelpers.CreateDisableScissor();
+    }
 
+    protected Rectangle<int> GetScissorBounds()
+    {
+        return new Rectangle<int>(
+            new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
+            new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
+        );
     }
 
     public virtual void Update(GameTime gameTime) { }

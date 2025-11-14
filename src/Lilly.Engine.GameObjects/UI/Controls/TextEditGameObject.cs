@@ -251,17 +251,17 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             yield break;
         }
 
-        var scissorBounds = new Rectangle<int>(
-            new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
-            new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
-        );
+        // var scissorBounds = new Rectangle<int>(
+        //     new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
+        //     new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
+        // );
 
         var bounds = new Rectangle<float>(
             new Vector2D<float>(Transform.Position.X, Transform.Position.Y),
             new Vector2D<float>(Transform.Size.X, Transform.Size.Y)
         );
 
-        yield return RenderCommandHelpers.CreateScissor(scissorBounds);
+        // yield return RenderCommandHelpers.CreateScissor(scissorBounds);
 
         // Background
         var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
@@ -345,7 +345,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
             }
         }
 
-        yield return RenderCommandHelpers.CreateDisableScissor();
+        // yield return RenderCommandHelpers.CreateDisableScissor();
     }
 
     private void UpdateTransformSize()
