@@ -55,6 +55,8 @@ public class SimpleCubeGameObject : BaseGameObject3D
         );
     }
 
+
+
     public override void Draw(ICamera3D camera, GameTime gameTime)
     {
         shaderProgram.Projection = camera.Projection.ToSystem();
