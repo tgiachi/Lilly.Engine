@@ -8,7 +8,8 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
-using TrippyGL;
+using Silk.NET.OpenGL;
+using PrimitiveType = TrippyGL.PrimitiveType;
 
 namespace Lilly.Engine.Layers;
 
@@ -19,6 +20,13 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     private readonly RenderContext _renderContext;
 
     private readonly ILogger _logger = Log.ForContext<RenderLayerSystem3D>();
+
+
+    public HashSet<IGameObject3D> ObjectInFrustum { get; } = [];
+
+    public HashSet<IGameObject3D> ObjectOutOfFrustum { get; } = [];
+
+    public bool IsWireframeMode { get; set; }
 
 
     public override IReadOnlySet<RenderCommandType> SupportedCommandTypes
@@ -50,6 +58,8 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
             return [];
         }
 
+        ObjectInFrustum.Clear();
+        ObjectOutOfFrustum.Clear();
         foreach (var gameObject in GetAllTypedGameObjects())
         {
             if (!gameObject.IsVisible)
@@ -61,6 +71,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
             {
                 gameObject.Draw(camera, gameTime);
                 RenderCommands.AddRange(gameObject.Render(gameTime));
+                ObjectInFrustum.Add(gameObject);
             }
             else
             {
@@ -68,6 +79,8 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                     "Culled game object {GameObjectName} from rendering because it is outside the camera frustum.",
                     gameObject.Name
                 );
+
+                ObjectOutOfFrustum.Add(gameObject);
             }
         }
 
@@ -100,9 +113,9 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     private void ProcessDrawArrayCommand(DrawArrayPayload payload)
     {
+        _renderContext.Gl.PolygonMode(TriangleFace.FrontAndBack, IsWireframeMode ? PolygonMode.Line : PolygonMode.Fill);
         _renderContext.GraphicsDevice.ShaderProgram = payload.ShaderProgram;
         _renderContext.GraphicsDevice.VertexArray = payload.VertexArray;
-
         _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.TriangleStrip, 0, payload.VertexCount);
     }
 
