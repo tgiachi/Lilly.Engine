@@ -11,6 +11,11 @@ public enum RenderCommandType : byte
     Clear,
 
     /// <summary>
+    ///  Execute a low-level GPU command.
+    /// </summary>
+    GpuCommand,
+
+    /// <summary>
     /// Set window options
     /// </summary>
     Window,

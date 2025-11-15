@@ -3,12 +3,12 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Engine.Rendering.Core.Helpers;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
-using Silk.NET.OpenGL;
 using PrimitiveType = TrippyGL.PrimitiveType;
 
 namespace Lilly.Engine.Layers;
@@ -21,13 +21,11 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     private readonly ILogger _logger = Log.ForContext<RenderLayerSystem3D>();
 
-
     public HashSet<IGameObject3D> ObjectInFrustum { get; } = [];
 
     public HashSet<IGameObject3D> ObjectOutOfFrustum { get; } = [];
 
     public bool IsWireframeMode { get; set; }
-
 
     public override IReadOnlySet<RenderCommandType> SupportedCommandTypes
         => new HashSet<RenderCommandType>()
@@ -45,7 +43,6 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         _camera3dService.UpdateViewport(renderContext.GraphicsDevice.Viewport);
     }
 
-
     public override List<RenderCommand> CollectRenderCommands(GameTime gameTime)
     {
         RenderCommands.Clear();
@@ -58,8 +55,11 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
             return [];
         }
 
+        RenderCommands.Add(RenderCommandHelpers.SetWireframeMode(IsWireframeMode));
+
         ObjectInFrustum.Clear();
         ObjectOutOfFrustum.Clear();
+
         foreach (var gameObject in GetAllTypedGameObjects())
         {
             if (!gameObject.IsVisible)
@@ -113,7 +113,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     private void ProcessDrawArrayCommand(DrawArrayPayload payload)
     {
-        _renderContext.Gl.PolygonMode(TriangleFace.FrontAndBack, IsWireframeMode ? PolygonMode.Line : PolygonMode.Fill);
+
         _renderContext.GraphicsDevice.ShaderProgram = payload.ShaderProgram;
         _renderContext.GraphicsDevice.VertexArray = payload.VertexArray;
         _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.TriangleStrip, 0, payload.VertexCount);

@@ -1,9 +1,10 @@
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Payloads;
+using Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
 using Lilly.Engine.Rendering.Core.Types;
 using Silk.NET.Maths;
 
-namespace Lilly.Engine.Commands;
+namespace Lilly.Engine.Rendering.Core.Helpers;
 
 /// <summary>
 /// Provides helper methods for creating render commands.
@@ -64,6 +65,27 @@ public static class RenderCommandHelpers
     /// <returns>A render command configured for ImGui operations.</returns>
     public static RenderCommand ImGuiRender(ImGuiDataPayload payload)
         => new(RenderCommandType.ImGui, payload);
+
+    /// <summary>
+    /// Creates a render command for GPU operations.
+    /// </summary>
+    /// <param name="payload">The GPU command payload containing GPU operation details.</param>
+    /// <returns>A render command configured for GPU operations.</returns>
+    public static RenderCommand CreateGpuCommand(GpuCommandPayload payload)
+        => new(RenderCommandType.GpuCommand, payload);
+
+    /// <summary>
+    /// Creates a GPU command to set wireframe rendering mode.
+    /// </summary>
+    /// <param name="enabled">True to enable wireframe mode, false to disable.</param>
+    /// <returns>A render command to set wireframe mode.</returns>
+    public static RenderCommand SetWireframeMode(bool enabled)
+        => CreateGpuCommand(
+            new GpuCommandPayload(
+                GpuSubCommandType.SetWireframeMode,
+                new SetWireframeMode(enabled)
+            )
+        );
 
     /// <summary>
     /// Creates a window command to set the refresh rate.

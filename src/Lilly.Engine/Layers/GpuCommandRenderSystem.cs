@@ -1,10 +1,11 @@
-using Lilly.Engine.Commands;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Engine.Rendering.Core.Helpers;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
+using Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
 using Lilly.Engine.Rendering.Core.Types;
 using Silk.NET.OpenGL;
 using TrippyGL;
@@ -25,6 +26,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
         {
             RenderCommandType.Clear,
             RenderCommandType.Window,
+            RenderCommandType.GpuCommand
         };
 
     public GpuCommandRenderSystem(RenderContext renderContext) : base(
@@ -74,9 +76,29 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                     ProcessWindowCommand(windowPayload);
 
                     break;
+
+                case RenderCommandType.GpuCommand:
+                    var gpuPayload = cmd.GetPayload<GpuCommandPayload>();
+                    ProcessGpuCommand(gpuPayload);
+
+                    break;
             }
         }
         base.ProcessRenderCommands(ref renderCommands);
+    }
+
+    private void ProcessGpuCommand(GpuCommandPayload payload)
+    {
+        switch (payload.CommandType)
+        {
+            case GpuSubCommandType.SetWireframeMode:
+                _renderContext.Gl.PolygonMode(
+                    TriangleFace.FrontAndBack,
+                    payload.GetPayloadAs<SetWireframeMode>().Enabled ? PolygonMode.Line : PolygonMode.Fill
+                );
+
+                break;
+        }
     }
 
     private void ProcessWindowCommand(WindowPayload payload)
