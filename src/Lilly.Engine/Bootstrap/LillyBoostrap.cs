@@ -228,11 +228,16 @@ public class LillyBoostrap : ILillyBootstrap
             }
         }
 
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-10, 10);
+            var randomY = Random.Shared.Next(-10, 10);
+            var randomZ = Random.Shared.Next(-10, 10);
+            var cube = factory.CreateGameObject<SimpleCubeGameObject>();
 
-
-        var cube = factory.CreateGameObject<SimpleCubeGameObject>();
-
-        _renderPipeline.AddGameObject(cube);
+            cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(cube);
+        }
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()

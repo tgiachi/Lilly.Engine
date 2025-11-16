@@ -1,4 +1,3 @@
-using Lilly.Engine.Rendering.Core.Interfaces.Shaders;
 using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
@@ -24,33 +23,7 @@ public interface IAssetManager
     /// <returns>The shader program.</returns>
     ShaderProgram GetShaderProgram(string shaderName);
 
-    /// <summary>
-    ///  Loads a Lilly shader from a file.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="fileName"></param>
-    void LoadLillyShaderFromFile(string name, string fileName);
 
-    /// <summary>
-    ///  Loads a Lilly shader from a stream.
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="stream"></param>
-    void LoadLillyShaderFromStream(string name, Stream stream);
-
-    /// <summary>
-    ///  Gets the Lilly shader by name.
-    /// </summary>
-    /// <param name="shaderName"></param>
-    /// <returns></returns>
-    ILillyShader GetLillyShader(string shaderName);
-
-    /// <summary>
-    ///  Gets the Lilly shader by handle.
-    /// </summary>
-    /// <param name="handle"></param>
-    /// <returns></returns>
-    ILillyShader GetLillyShaderFromHandle(uint handle);
 
     /// <summary>
     /// Gets the texture by name.
@@ -98,6 +71,16 @@ public interface IAssetManager
         unmanaged, IVertex;
 
     /// <summary>
+    /// Loads a shader from a file containing combined shader source.
+    /// The file should contain both vertex and fragment shaders separated by "#shader vertex" and "#shader fragment" markers.
+    /// </summary>
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="shaderName">The name of the shader.</param>
+    /// <param name="shaderPath">The path to the shader file.</param>
+    void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath)
+        where TVertex : unmanaged, IVertex;
+
+    /// <summary>
     /// Loads a shader from memory.
     /// </summary>
     /// <typeparam name="TVertex">The vertex type.</typeparam>
@@ -105,6 +88,16 @@ public interface IAssetManager
     /// <param name="vertexStream">The stream containing the vertex shader data.</param>
     /// <param name="fragmentStream">The stream containing the fragment shader data.</param>
     void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream)
+        where TVertex : unmanaged, IVertex;
+
+    /// <summary>
+    /// Loads a shader from a combined shader source string.
+    /// The source should contain both vertex and fragment shaders separated by "#shader vertex" and "#shader fragment" markers.
+    /// </summary>
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="shaderName">The name of the shader.</param>
+    /// <param name="shaderSource">The combined shader source string.</param>
+    void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource)
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
@@ -117,7 +110,17 @@ public interface IAssetManager
     /// <summary>
     /// Loads a texture from memory.
     /// </summary>
-    /// <param name="textureName">The name of the texture.</param>
+    /// <param name="textureName">The name to associate with the loaded texture.</param>
     /// <param name="stream">The stream containing the texture data.</param>
     void LoadTextureFromMemory(string textureName, Stream stream);
+
+    /// <summary>
+    /// Creates a vertex buffer from vertex data.
+    /// </summary>
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="vertices">The vertex data array.</param>
+    /// <param name="usage">The buffer usage hint.</param>
+    /// <returns>The created vertex buffer.</returns>
+    VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
+        where TVertex : unmanaged, IVertex;
 }

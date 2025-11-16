@@ -4,9 +4,7 @@ using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Interfaces.Shaders;
 using Lilly.Engine.Rendering.Core.Utils;
-using Lilly.Engine.Shaders;
 using Serilog;
 using Silk.NET.OpenGL;
 using TrippyGL;
@@ -28,8 +26,51 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly Dictionary<string, Texture2D> _texture2Ds = new();
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
 
-    private readonly Dictionary<string, ILillyShader> _lillyShaders = new();
-    private readonly Dictionary<uint, ILillyShader> _lillyShadersByHandle = new();
+
+
+    private static Dictionary<ShaderType, string> ParseShaderSource(string source)
+    {
+        var shaders = new Dictionary<ShaderType, string>();
+
+        // Split by shader type markers
+        var lines = source.Split('\n');
+        ShaderType? currentType = null;
+        var currentShader = new List<string>();
+
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("#shader vertex", StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentType.HasValue && currentShader.Count > 0)
+                {
+                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                }
+                currentType = ShaderType.VertexShader;
+                currentShader.Clear();
+            }
+            else if (line.StartsWith("#shader fragment", StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentType.HasValue && currentShader.Count > 0)
+                {
+                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                }
+                currentType = ShaderType.FragmentShader;
+                currentShader.Clear();
+            }
+            else if (currentType.HasValue)
+            {
+                currentShader.Add(line);
+            }
+        }
+
+        // Add the last shader
+        if (currentType.HasValue && currentShader.Count > 0)
+        {
+            shaders[currentType.Value] = string.Join('\n', currentShader);
+        }
+
+        return shaders;
+    }
 
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
@@ -88,42 +129,9 @@ public class AssetManager : IAssetManager, IDisposable
                ? shaderProgram
                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
 
-    public void LoadLillyShaderFromFile(string name, string fileName)
-    {
-        var fullFilePath = Path.Combine(_directoriesConfig[DirectoryType.Assets], fileName);
 
-        using var stream = new FileStream(fullFilePath, FileMode.Open, FileAccess.Read);
 
-        LoadLillyShaderFromStream(name, stream);
-    }
 
-    public void LoadLillyShaderFromStream(string name, Stream stream)
-    {
-        var stopWatch = Stopwatch.GetTimestamp();
-        var streamContent = new StreamReader(stream).ReadToEnd();
-
-        var lillyShader = new OpenGlLillyShader(_context.GraphicsDevice.GL, name);
-
-        lillyShader.CompileAndLink(streamContent);
-
-        _lillyShaders[name] = lillyShader;
-        _lillyShadersByHandle[lillyShader.Handle] = lillyShader;
-        _logger.Information("Loaded Lilly shader {ShaderName} in {ElapsedTime}", name, Stopwatch.GetElapsedTime(stopWatch));
-    }
-
-    public ILillyShader GetLillyShader(string shaderName)
-    {
-        return _lillyShaders.TryGetValue(shaderName, out var lillyShader)
-                   ? lillyShader
-                   : throw new InvalidOperationException($"Lilly shader '{shaderName}' is not loaded.");
-    }
-
-    public ILillyShader GetLillyShaderFromHandle(uint handle)
-    {
-        return _lillyShadersByHandle.TryGetValue(handle, out var lillyShader)
-                   ? lillyShader
-                   : throw new InvalidOperationException($"Lilly shader with handle '{handle}' is not loaded.");
-    }
 
     /// <summary>
     /// Retrieves a previously loaded texture by name.
@@ -233,6 +241,25 @@ public class AssetManager : IAssetManager, IDisposable
     }
 
     /// <summary>
+    /// Loads a shader program from a file containing combined shader source and registers it with the asset manager.
+    /// The file should contain both vertex and fragment shaders separated by "#shader vertex" and "#shader fragment" markers.
+    /// </summary>
+    /// <param name="shaderName">The name to associate with the loaded shader.</param>
+    /// <param name="shaderPath">The path to the shader file.</param>
+    /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
+    public void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath)
+        where TVertex : unmanaged, IVertex
+    {
+        var fullShaderPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], shaderPath);
+
+        using var stream = new FileStream(fullShaderPath, FileMode.Open, FileAccess.Read);
+        using var reader = new StreamReader(stream);
+        var shaderSource = reader.ReadToEnd();
+
+        LoadShaderFromMemory<TVertex>(shaderName, shaderSource);
+    }
+
+    /// <summary>
     /// Loads a shader program from vertex and fragment streams and registers it with the asset manager.
     /// </summary>
     /// <param name="shaderName">The name to associate with the loaded shader.</param>
@@ -247,6 +274,35 @@ public class AssetManager : IAssetManager, IDisposable
 
         using var fragReader = new StreamReader(fragmentStream);
         var fragmentSource = fragReader.ReadToEnd();
+
+        var _program = ShaderProgram.FromCode<TVertex>(_context.GraphicsDevice, vertexSource, fragmentSource);
+
+        _logger.Information("Loaded shader {ShaderName}", shaderName);
+
+        _shaderPrograms[shaderName] = _program;
+    }
+
+    /// <summary>
+    /// Loads a shader program from a combined shader source string and registers it with the asset manager.
+    /// The source should contain both vertex and fragment shaders separated by "#shader vertex" and "#shader fragment" markers.
+    /// </summary>
+    /// <param name="shaderName">The name to associate with the loaded shader.</param>
+    /// <param name="shaderSource">The combined shader source string.</param>
+    /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
+    public void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource)
+        where TVertex : unmanaged, IVertex
+    {
+        var shaders = ParseShaderSource(shaderSource);
+
+        if (!shaders.TryGetValue(ShaderType.VertexShader, out string? vertexSource) ||
+            !shaders.TryGetValue(ShaderType.FragmentShader, out string? fragmentSource))
+        {
+            throw new InvalidOperationException(
+                $"Shader source must contain both vertex and fragment shaders. " +
+                $"Expected format: '#shader vertex' followed by vertex shader code, " +
+                $"then '#shader fragment' followed by fragment shader code."
+            );
+        }
 
         var _program = ShaderProgram.FromCode<TVertex>(_context.GraphicsDevice, vertexSource, fragmentSource);
 
@@ -279,6 +335,21 @@ public class AssetManager : IAssetManager, IDisposable
         var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
         _texture2Ds[textureName] = texture;
         _logger.Information("Loaded texture {TextureName}", textureName);
+    }
+
+    /// <summary>
+    /// Creates a vertex buffer from vertex data.
+    /// </summary>
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="vertices">The vertex data array.</param>
+    /// <param name="usage">The buffer usage hint.</param>
+    /// <returns>The created vertex buffer.</returns>
+    public VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
+        where TVertex : unmanaged, IVertex
+    {
+        var vertexBuffer = new VertexBuffer<TVertex>(_context.GraphicsDevice, vertices, usage);
+        _logger.Debug("Created vertex buffer with {VertexCount} vertices", vertices.Length);
+        return vertexBuffer;
     }
 
     public void Dispose()

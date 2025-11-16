@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
+using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Primitives;
 using TrippyGL;
@@ -11,7 +12,7 @@ namespace Lilly.Engine.Rendering.Core.Base.GameObjects;
 /// <summary>
 /// Base class for 3D game objects.
 /// </summary>
-public abstract class BaseGameObject3D : IGameObject3D
+public abstract class BaseGameObject3D : IGameObject3D, IUpdatable
 {
     /// <summary>
     /// Gets or sets the parent game object.
@@ -95,6 +96,11 @@ public abstract class BaseGameObject3D : IGameObject3D
                 yield return command;
             }
         }
+    }
+
+    public virtual void Update(GameTime gameTime)
+    {
+
     }
 
     /// <summary>

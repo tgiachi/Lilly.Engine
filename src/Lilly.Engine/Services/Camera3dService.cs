@@ -1,5 +1,6 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Serilog;
 using TrippyGL;
@@ -15,7 +16,18 @@ public class Camera3dService : ICamera3dService
     private readonly ILogger _logger = Log.ForContext<Camera3dService>();
     private readonly List<ICamera3D> _cameras = [];
 
+    private readonly RenderContext _renderContext;
+
     private Viewport _viewport;
+
+    public Camera3dService(RenderContext renderContext)
+    {
+        _renderContext = renderContext;
+        _renderContext.Renderer.Resize += (s, e) =>
+                                          {
+                                              UpdateViewport(_renderContext.GraphicsDevice.Viewport);
+                                          };
+    }
 
     //private Viewport _currentViewport;
 

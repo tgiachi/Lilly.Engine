@@ -13,14 +13,17 @@ namespace Lilly.Engine.GameObjects;
 
 public class SimpleCubeGameObject : BaseGameObject3D
 {
-    VertexBuffer<VertexColor> vertexBuffer;
-    SimpleShaderProgram shaderProgram;
+    private VertexBuffer<VertexColor> vertexBuffer;
+    private SimpleShaderProgram shaderProgram;
+    private VertexColor[] cubeVertices;
+    private double lastColorChangeTime;
 
     public SimpleCubeGameObject(RenderContext context) : base(context.GraphicsDevice) { }
 
     public override void Initialize()
     {
-        Span<VertexColor> cubeBufferData = stackalloc VertexColor[]
+        // Initialize cube vertices with positions (colors will be set randomly)
+        cubeVertices = new VertexColor[]
         {
             new VertexColor(new Vector3(-0.5f, -0.5f, -0.5f), Color4b.LightBlue), //4
             new VertexColor(new Vector3(-0.5f, -0.5f, 0.5f), Color4b.Lime),       //3
@@ -38,9 +41,26 @@ public class SimpleCubeGameObject : BaseGameObject3D
             new VertexColor(new Vector3(0.5f, -0.5f, 0.5f), Color4b.Red),         //1
         };
 
-        vertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, cubeBufferData, BufferUsage.StaticCopy);
+        // Generate initial random colors
+        UpdateRandomColors();
+
+        vertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, cubeVertices, BufferUsage.DynamicCopy);
 
         shaderProgram = SimpleShaderProgram.Create<VertexColor>(GraphicsDevice);
+    }
+
+    private void UpdateRandomColors()
+    {
+        var random = new Random();
+        for (int i = 0; i < cubeVertices.Length; i++)
+        {
+            // Generate random color
+            byte r = (byte)random.Next(256);
+            byte g = (byte)random.Next(256);
+            byte b = (byte)random.Next(256);
+            byte a = (byte)random.Next(256);
+            cubeVertices[i] = new VertexColor(cubeVertices[i].Position, new Color4b(r, g, b, a));
+        }
     }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
@@ -55,7 +75,27 @@ public class SimpleCubeGameObject : BaseGameObject3D
         );
     }
 
+    public override void Update(GameTime gameTime)
+    {
+        double currentTime = gameTime.GetTotalGameTimeSeconds();
 
+        // Change colors every second
+        if (currentTime - lastColorChangeTime >= 1.0)
+        {
+            UpdateRandomColors();
+            // Recreate vertex buffer with new colors
+            vertexBuffer.Dispose();
+            vertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, cubeVertices, BufferUsage.DynamicCopy);
+            lastColorChangeTime = currentTime;
+        }
+
+        // Scale sin from 0.5 to 1.5
+        float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 0.5f + 0.5f);
+        Transform.Scale = new Vector3D<float>(scale, scale, scale);
+        Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitY, 0.01f);
+        Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitZ, 0.01f);
+        base.Update(gameTime);
+    }
 
     public override void Draw(ICamera3D camera, GameTime gameTime)
     {
