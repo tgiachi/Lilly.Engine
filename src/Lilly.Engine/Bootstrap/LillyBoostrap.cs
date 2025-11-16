@@ -190,6 +190,7 @@ public class LillyBoostrap : ILillyBootstrap
     private void InitializeRenderSystem()
     {
         _container.RegisterGameObject<SimpleCubeGameObject>();
+        _container.RegisterGameObject<SimpleSphereGameObject>();
         var factory = _container.Resolve<IGameObjectFactory>();
         var pluginRegistry = _container.Resolve<PluginRegistry>();
 
@@ -228,7 +229,7 @@ public class LillyBoostrap : ILillyBootstrap
             }
         }
 
-        foreach (var index in Enumerable.Range(1, 10))
+        foreach (var index in Enumerable.Range(1, 100))
         {
             var randomX = Random.Shared.Next(-10, 10);
             var randomY = Random.Shared.Next(-10, 10);
@@ -238,6 +239,18 @@ public class LillyBoostrap : ILillyBootstrap
             cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(cube);
         }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-10, 10);
+            var randomY = Random.Shared.Next(-10, 10);
+            var randomZ = Random.Shared.Next(-10, 10);
+            var sphere = factory.CreateGameObject<SimpleSphereGameObject>();
+
+            sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(sphere);
+        }
+
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()

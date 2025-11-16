@@ -16,7 +16,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 {
     private readonly RenderContext _renderContext;
 
-    public Color4b ClearColor { get; set; } = Color4b.BlanchedAlmond;
+    public Color4b ClearColor { get; set; } = Color4b.Black;
 
     /// <summary>
     /// This layer processes Clear and Window commands.
@@ -58,6 +58,7 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     {
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+        _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
         _renderContext.Gl.Enable(GLEnum.Multisample);
 
         foreach (var cmd in renderCommands)

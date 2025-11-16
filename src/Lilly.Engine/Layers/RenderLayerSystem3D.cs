@@ -67,19 +67,15 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                 continue;
             }
 
+            gameObject.Draw(camera, gameTime);
+
             if (IsInFrustum(gameObject, camera))
             {
-                gameObject.Draw(camera, gameTime);
                 RenderCommands.AddRange(gameObject.Render(gameTime));
                 ObjectInFrustum.Add(gameObject);
             }
             else
             {
-                _logger.Debug(
-                    "Culled game object {GameObjectName} from rendering because it is outside the camera frustum.",
-                    gameObject.Name
-                );
-
                 ObjectOutOfFrustum.Add(gameObject);
             }
         }
@@ -113,7 +109,6 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     private void ProcessDrawArrayCommand(DrawArrayPayload payload)
     {
-
         _renderContext.GraphicsDevice.ShaderProgram = payload.ShaderProgram;
         _renderContext.GraphicsDevice.VertexArray = payload.VertexArray;
         _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.TriangleStrip, 0, payload.VertexCount);
