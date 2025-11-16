@@ -90,7 +90,7 @@ public class SimpleCubeGameObject : BaseGameObject3D
         }
 
         // Scale sin from 0.5 to 1.5
-        float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 0.5f + 0.5f);
+        float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 1.5f + 0.5f);
         Transform.Scale = new Vector3D<float>(scale, scale, scale);
         Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitY, 0.01f);
         Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitZ, 0.01f);

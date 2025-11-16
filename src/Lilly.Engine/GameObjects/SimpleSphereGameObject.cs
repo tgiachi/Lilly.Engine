@@ -23,19 +23,25 @@ public class SimpleSphereGameObject : BaseGameObject3D
 
     public override void Initialize()
     {
-        // Genera la sfera con latitudine e longitudine
-        GenerateSphere(16, 16, 0.5f); // 16 stacks, 16 slices, raggio 0.5
+        // Generate sphere using latitude and longitude parameters
+        GenerateSphere(16, 16, 0.5f); // 16 stacks, 16 slices, radius 0.5
 
         vertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, sphereVertices, BufferUsage.DynamicCopy);
 
         shaderProgram = SimpleShaderProgram.Create<VertexColor>(GraphicsDevice);
     }
 
+    /// <summary>
+    /// Generates a sphere mesh using spherical coordinates (latitude/longitude).
+    /// </summary>
+    /// <param name="stacks">Number of horizontal subdivisions</param>
+    /// <param name="slices">Number of vertical subdivisions</param>
+    /// <param name="radius">Sphere radius</param>
     private void GenerateSphere(int stacks, int slices, float radius)
     {
         var vertices = new List<VertexColor>();
 
-        // Genera vertici della sfera usando coordinate sferiche
+        // Generate vertices using spherical coordinates
         for (int stack = 0; stack <= stacks; stack++)
         {
             float phi = MathF.PI * stack / stacks;
@@ -48,12 +54,12 @@ public class SimpleSphereGameObject : BaseGameObject3D
                 float sinTheta = MathF.Sin(theta);
                 float cosTheta = MathF.Cos(theta);
 
-                // Calcola la posizione del vertice
+                // Calculate vertex position
                 float x = radius * sinPhi * cosTheta;
                 float y = radius * cosPhi;
                 float z = radius * sinPhi * sinTheta;
 
-                // Colore basato sulla posizione
+                // Color based on position
                 byte r = (byte)((x + radius) / (2 * radius) * 255);
                 byte g = (byte)((y + radius) / (2 * radius) * 255);
                 byte b = (byte)((z + radius) / (2 * radius) * 255);
@@ -62,7 +68,7 @@ public class SimpleSphereGameObject : BaseGameObject3D
             }
         }
 
-        // Crea i triangoli
+        // Create triangles from vertices
         var triangles = new List<VertexColor>();
         for (int stack = 0; stack < stacks; stack++)
         {
@@ -73,12 +79,12 @@ public class SimpleSphereGameObject : BaseGameObject3D
                 int v2 = v0 + (slices + 1);
                 int v3 = v2 + 1;
 
-                // Primo triangolo
+                // First triangle
                 triangles.Add(vertices[v0]);
                 triangles.Add(vertices[v2]);
                 triangles.Add(vertices[v1]);
 
-                // Secondo triangolo
+                // Second triangle
                 triangles.Add(vertices[v1]);
                 triangles.Add(vertices[v2]);
                 triangles.Add(vertices[v3]);
@@ -89,6 +95,9 @@ public class SimpleSphereGameObject : BaseGameObject3D
         vertexCount = sphereVertices.Length;
     }
 
+    /// <summary>
+    /// Updates all vertex colors to random values.
+    /// </summary>
     private void UpdateRandomColors()
     {
         var random = new Random();
@@ -100,6 +109,12 @@ public class SimpleSphereGameObject : BaseGameObject3D
             sphereVertices[i] = new VertexColor(sphereVertices[i].Position, new Color4b(r, g, b, 255));
         }
     }
+
+    /// <summary>
+    /// Renders the sphere by returning a draw command with all vertices.
+    /// </summary>
+    /// <param name="gameTime">Game timing information</param>
+    /// <returns>A render command for drawing the sphere</returns>
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
@@ -113,11 +128,15 @@ public class SimpleSphereGameObject : BaseGameObject3D
         );
     }
 
+    /// <summary>
+    /// Updates the sphere every frame: changes colors, scales, and rotates it.
+    /// </summary>
+    /// <param name="gameTime">Game timing information</param>
     public override void Update(GameTime gameTime)
     {
         double currentTime = gameTime.GetTotalGameTimeSeconds();
 
-        // Cambia colori ogni secondo
+        // Change colors every second
         if (currentTime - lastColorChangeTime >= 1.0)
         {
             UpdateRandomColors();
@@ -126,16 +145,21 @@ public class SimpleSphereGameObject : BaseGameObject3D
             lastColorChangeTime = currentTime;
         }
 
-        // Scala con seno
+        // Apply sinusoidal scaling
         float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 0.5f + 0.5f);
         Transform.Scale = new Vector3D<float>(scale, scale, scale);
 
-        // Ruota continuamente
+        // Apply continuous rotation
         Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitY, 0.01f);
         Transform.Rotation *= Quaternion<float>.CreateFromAxisAngle(Vector3D<float>.UnitZ, 0.005f);
         base.Update(gameTime);
     }
 
+    /// <summary>
+    /// Sets up the shader matrices and renders the sphere.
+    /// </summary>
+    /// <param name="camera">The active camera</param>
+    /// <param name="gameTime">Game timing information</param>
     public override void Draw(ICamera3D camera, GameTime gameTime)
     {
         shaderProgram.Projection = camera.Projection.ToSystem();
