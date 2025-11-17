@@ -194,6 +194,9 @@ public class LillyBoostrap : ILillyBootstrap
         _container.RegisterGameObject<SimpleCubeGameObject>();
         _container.RegisterGameObject<SimpleSphereGameObject>();
         _container.RegisterGameObject<SimplePyramidGameObject>();
+        _container.RegisterGameObject<SimpleTorusGameObject>();
+        _container.RegisterGameObject<SimpleStarGameObject>();
+        _container.RegisterGameObject<SimpleFractalCubeGameObject>();
         var factory = _container.Resolve<IGameObjectFactory>();
         var pluginRegistry = _container.Resolve<PluginRegistry>();
 
@@ -245,13 +248,68 @@ public class LillyBoostrap : ILillyBootstrap
 
         foreach (var index in Enumerable.Range(1, 10))
         {
-            var randomX = Random.Shared.Next(-10, 10);
-            var randomY = Random.Shared.Next(-10, 10);
-            var randomZ = Random.Shared.Next(-10, 10);
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
+            var cube = factory.Create<SimpleCubeGameObject>();
+
+            cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(cube);
+        }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
             var sphere = factory.Create<SimpleSphereGameObject>();
 
             sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(sphere);
+        }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
+            var pyramid = factory.Create<SimplePyramidGameObject>();
+
+            pyramid.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(pyramid);
+        }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
+            var torus = factory.Create<SimpleTorusGameObject>();
+
+            torus.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(torus);
+        }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
+            var star = factory.Create<SimpleStarGameObject>();
+
+            star.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(star);
+        }
+
+        foreach (var index in Enumerable.Range(1, 5))
+        {
+            var randomX = Random.Shared.Next(-50, 50);
+            var randomY = Random.Shared.Next(-50, 50);
+            var randomZ = Random.Shared.Next(-50, 50);
+            var fractal = factory.Create<SimpleFractalCubeGameObject>();
+
+            fractal.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(fractal);
         }
 
         foreach (var index in Enumerable.Range(1, 10))
@@ -263,6 +321,17 @@ public class LillyBoostrap : ILillyBootstrap
 
             pyramid.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(pyramid);
+        }
+
+        foreach (var index in Enumerable.Range(1, 10))
+        {
+            var randomX = Random.Shared.Next(-10, 10);
+            var randomY = Random.Shared.Next(-10, 10);
+            var randomZ = Random.Shared.Next(-10, 10);
+            var torus = factory.Create<SimpleTorusGameObject>();
+
+            torus.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(torus);
         }
 
         // _renderPipeline.AddGameObject(
