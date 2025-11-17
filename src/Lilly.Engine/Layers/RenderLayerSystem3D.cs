@@ -7,7 +7,6 @@ using Lilly.Engine.Rendering.Core.Helpers;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
-using Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
 using Silk.NET.OpenGL;

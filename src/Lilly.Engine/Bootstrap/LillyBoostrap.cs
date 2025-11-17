@@ -259,10 +259,10 @@ public class LillyBoostrap : ILillyBootstrap
             var randomX = Random.Shared.Next(-10, 10);
             var randomY = Random.Shared.Next(-10, 10);
             var randomZ = Random.Shared.Next(-10, 10);
-            var sphere = factory.Create<SimpleSphereGameObject>();
+            var pyramid = factory.Create<SimplePyramidGameObject>();
 
-            sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(sphere);
+            pyramid.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
+            _renderPipeline.AddGameObject(pyramid);
         }
 
         // _renderPipeline.AddGameObject(

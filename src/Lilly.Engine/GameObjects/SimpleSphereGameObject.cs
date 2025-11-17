@@ -123,7 +123,8 @@ public class SimpleSphereGameObject : BaseGameObject3D
             new DrawArrayPayload(
                 shaderProgram,
                 vertexBuffer,
-                (uint)vertexCount
+                (uint)vertexCount,
+                PrimitiveType.Triangles
             )
         );
     }

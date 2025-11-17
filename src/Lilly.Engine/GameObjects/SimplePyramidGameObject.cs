@@ -22,7 +22,6 @@ public class SimplePyramidGameObject : BaseGameObject3D
 
     public override void Initialize()
     {
-        // Genera la piramide a base quadrata
         GeneratePyramid(0.5f);
 
         vertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, pyramidVertices, BufferUsage.DynamicCopy);
@@ -124,8 +123,8 @@ public class SimplePyramidGameObject : BaseGameObject3D
             lastColorChangeTime = currentTime;
         }
 
-        // Apply sinusoidal scaling
-        float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 0.5f + 0.5f);
+        // Apply sinusoidal scaling (increased base size to make pyramids more visible)
+        float scale = (float)((MathF.Sin((float)currentTime * 2.0f) + 1.0f) * 1.5f + 1.5f);
         Transform.Scale = new Vector3D<float>(scale, scale, scale);
 
         // Apply continuous rotation
