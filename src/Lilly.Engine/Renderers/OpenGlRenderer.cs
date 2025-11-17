@@ -78,6 +78,9 @@ public class OpenGlRenderer : IGraphicRenderer
             new(options.TargetRenderVersion.Major, options.TargetRenderVersion.Minor)
         );
 
+        windowOptions.Size = options.GraphicOptions.WindowSize;
+        windowOptions.VSync = options.GraphicOptions.VSync;
+
         _logger.Information(
             "Initializing with OpenGL Version {Major}.{Minor}",
             options.TargetRenderVersion.Major,

@@ -22,7 +22,9 @@ await ConsoleApp.RunAsync(
     async (
         string rootDirectory = null,
         bool logToFile = false,
-        LogLevelType logLevel = LogLevelType.Debug
+        LogLevelType logLevel = LogLevelType.Debug,
+        int width = 1280 ,
+        int height = 720
     ) =>
     {
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
@@ -41,7 +43,13 @@ await ConsoleApp.RunAsync(
 
         var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
 
-        var initialEngineOptions = new InitialEngineOptions();
+        var initialEngineOptions = new InitialEngineOptions
+        {
+            GraphicOptions =
+            {
+                WindowSize = new(width, height)
+            }
+        };
 
         if (PlatformUtils.IsRunningOnLinux())
         {

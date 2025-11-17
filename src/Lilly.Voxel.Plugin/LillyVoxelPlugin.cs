@@ -1,4 +1,5 @@
 using DryIoc;
+using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Interfaces.Plugins;
@@ -29,8 +30,8 @@ public class LillyVoxelPlugin : ILillyPlugin
     {
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
 
-        container.Register<IBlockRegistry, BlockRegistry>();
-        container.Register<IChunkGeneratorService, ChunkGeneratorService>();
+        container.RegisterService<IBlockRegistry, BlockRegistry>();
+        container.RegisterService<IChunkGeneratorService, ChunkGeneratorService>();
 
         container.AddScriptModule<BlockRegistryModule>()
                  .AddScriptModule<GenerationModule>();
