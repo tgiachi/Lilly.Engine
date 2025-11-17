@@ -90,9 +90,6 @@ public class SkyGameObject : BaseGameObject3D
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
-        yield return RenderCommandHelpers.SetDepthState(SetDepthState.SkyboxDepthState());
-        yield return RenderCommandHelpers.SetCullMode(SetCullMode.None());
-
         yield return new RenderCommand(
             RenderCommandType.DrawArray,
             new DrawArrayPayload(
@@ -102,9 +99,6 @@ public class SkyGameObject : BaseGameObject3D
                 PrimitiveType.Triangles
             )
         );
-
-        yield return RenderCommandHelpers.SetDepthState(SetDepthState.DefaultDepthState());
-        yield return RenderCommandHelpers.SetCullMode(SetCullMode.Back());
     }
 
     private void CreateSkyGeometry()

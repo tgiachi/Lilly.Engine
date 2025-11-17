@@ -32,9 +32,8 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     public override IReadOnlySet<RenderCommandType> SupportedCommandTypes
         => new HashSet<RenderCommandType>()
         {
-            RenderCommandType.UseShader,
             RenderCommandType.DrawArray,
-            RenderCommandType.GpuCommand
+            //RenderCommandType.GpuCommand
         };
 
     public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base(
