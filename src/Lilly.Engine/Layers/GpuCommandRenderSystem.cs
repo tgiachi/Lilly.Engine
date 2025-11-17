@@ -56,9 +56,9 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        // _renderContext.GraphicsDevice.DepthState = DepthState.Default;
-        // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
-        // _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
+        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+        _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
         _renderContext.Gl.Enable(GLEnum.Multisample);
 
         foreach (var cmd in renderCommands)
@@ -100,79 +100,11 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
 
                 break;
 
-            // case GpuSubCommandType.SetDepthState:
-            //     var depthState = payload.GetPayloadAs<SetDepthState>();
-            //     ProcessDepthState(depthState);
-            //
-            //     break;
-            //
-            // case GpuSubCommandType.SetCullMode:
-            //     var cullMode = payload.GetPayloadAs<SetCullMode>();
-            //     ProcessCullMode(cullMode);
 
-                break;
         }
     }
 
-    private void ProcessDepthState(SetDepthState state)
-    {
-        if (state.DepthTestEnabled)
-        {
-            _renderContext.Gl.Enable(GLEnum.DepthTest);
-        }
-        else
-        {
-            _renderContext.Gl.Disable(GLEnum.DepthTest);
-        }
 
-        _renderContext.Gl.DepthMask(state.DepthWriteEnabled);
-
-        // Map depth function enum to OpenGL enum
-        var depthFunc = state.DepthFunction switch
-        {
-            Rendering.Core.Types.DepthFunction.Never => GLEnum.Never,
-            Rendering.Core.Types.DepthFunction.Less => GLEnum.Less,
-            Rendering.Core.Types.DepthFunction.Equal => GLEnum.Equal,
-            Rendering.Core.Types.DepthFunction.LessEqual => GLEnum.Lequal,
-            Rendering.Core.Types.DepthFunction.Greater => GLEnum.Greater,
-            Rendering.Core.Types.DepthFunction.NotEqual => GLEnum.Notequal,
-            Rendering.Core.Types.DepthFunction.GreaterEqual => GLEnum.Gequal,
-            Rendering.Core.Types.DepthFunction.Always => GLEnum.Always,
-            _ => GLEnum.Less
-        };
-
-        _renderContext.Gl.DepthFunc(depthFunc);
-    }
-
-    private void ProcessCullMode(SetCullMode cullMode)
-    {
-        switch (cullMode.CullMode)
-        {
-            case Rendering.Core.Types.CullFaceMode.None:
-                _renderContext.Gl.Disable(GLEnum.CullFace);
-                break;
-
-            case Rendering.Core.Types.CullFaceMode.Back:
-                _renderContext.Gl.Enable(GLEnum.CullFace);
-                _renderContext.Gl.CullFace(GLEnum.Back);
-                break;
-
-            case Rendering.Core.Types.CullFaceMode.Front:
-                _renderContext.Gl.Enable(GLEnum.CullFace);
-                _renderContext.Gl.CullFace(GLEnum.Front);
-                break;
-
-            case Rendering.Core.Types.CullFaceMode.FrontAndBack:
-                _renderContext.Gl.Enable(GLEnum.CullFace);
-                _renderContext.Gl.CullFace(GLEnum.FrontAndBack);
-                break;
-
-            default:
-                _renderContext.Gl.Enable(GLEnum.CullFace);
-                _renderContext.Gl.CullFace(GLEnum.Back);
-                break;
-        }
-    }
 
     private void ProcessWindowCommand(WindowPayload payload)
     {
