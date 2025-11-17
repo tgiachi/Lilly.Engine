@@ -1,6 +1,7 @@
 using ImGuiNET;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Debuggers;
+using Lilly.Engine.Layers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Helpers;
@@ -16,6 +17,7 @@ namespace Lilly.Engine.Debuggers;
 public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
 {
     private readonly IGraphicRenderPipeline _renderPipeline;
+    private readonly RenderLayerSystem3D _renderLayerSystem3D;
     private bool _showDetailedStats = true;
     private bool _showLayerBreakdown = true;
 
@@ -59,7 +61,10 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// </summary>
     /// <param name="renderPipeline">The render pipeline to monitor.</param>
     public RenderPipelineDiagnosticsDebugger(IGraphicRenderPipeline renderPipeline)
-        => _renderPipeline = renderPipeline;
+    {
+        _renderPipeline = renderPipeline;
+        _renderLayerSystem3D = _renderPipeline.GetRenderLayerSystem<RenderLayerSystem3D>();
+    }
 
     /// <summary>
     /// Renders the game object (IGameObject implementation).
@@ -195,6 +200,10 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
 
             ImGui.ProgressBar(loadPercentage, new(0, 0), $"{loadPercentage * 100:F1}%");
         }
+
+        ImGui.Text($"Objects rendered this frame: {_renderLayerSystem3D.ObjectInFrustum.Count:N0}");
+        ImGui.Spacing();
+        ImGui.Text($"Object not rendered  this frame: {_renderLayerSystem3D.ObjectOutOfFrustum.Count:N0}");
 
         // === Export ===
         ImGui.Spacing();

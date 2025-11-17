@@ -3,7 +3,7 @@ namespace Lilly.Engine.Jobs;
 /// <summary>
 /// Represents a queued job in the job system.
 /// </summary>
-internal abstract class QueuedJob
+public abstract class QueuedJob
 {
     private readonly CancellationToken _jobCancellationToken;
 

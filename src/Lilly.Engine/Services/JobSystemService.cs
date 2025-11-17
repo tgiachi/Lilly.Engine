@@ -73,6 +73,30 @@ public class JobSystemService : IJobSystemService, IDisposable
     }
 
     /// <inheritdoc />
+    public Task<TResult> ExecuteTaskAsync<TResult>(string name, Func<CancellationToken, Task<TResult>> taskFactory, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(taskFactory);
+
+        var queuedJob = new TaskResultJob<TResult>(name, taskFactory, cancellationToken);
+        EnqueueJob(queuedJob);
+
+        return queuedJob.CompletionTask;
+    }
+
+    /// <inheritdoc />
+    public Task<TResult> ExecuteTaskAsync<TResult>(string name, Func<Task<TResult>> taskFactory, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(taskFactory);
+
+        var queuedJob = new TaskResultJob<TResult>(name, taskFactory, cancellationToken);
+        EnqueueJob(queuedJob);
+
+        return queuedJob.CompletionTask;
+    }
+
+    /// <inheritdoc />
     public void Initialize(int workerCount)
     {
         _logger.Information("Initializing {count} workers", workerCount);
