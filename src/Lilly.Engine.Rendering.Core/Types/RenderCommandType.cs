@@ -45,6 +45,15 @@ public enum RenderCommandType : byte
     /// </summary>
     UseShader,
 
+    /// <summary>
+    /// Set depth buffer state.
+    /// </summary>
+    SetDepthState,
+
+    /// <summary>
+    /// Set face culling mode.
+    /// </summary>
+    SetCullMode,
 
     /// <summary>
     /// Render ImGui debug interface.

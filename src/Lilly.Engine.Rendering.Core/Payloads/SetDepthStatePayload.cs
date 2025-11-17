@@ -1,11 +1,11 @@
 using Lilly.Engine.Rendering.Core.Types;
 
-namespace Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
+namespace Lilly.Engine.Rendering.Core.Payloads;
 
 /// <summary>
 /// Payload for configuring depth buffer state.
 /// </summary>
-public readonly struct SetDepthState
+public readonly struct SetDepthStatePayload
 {
     /// <summary>
     /// Gets whether depth testing is enabled.
@@ -22,7 +22,7 @@ public readonly struct SetDepthState
     /// </summary>
     public DepthFunction DepthFunction { get; init; }
 
-    public SetDepthState(bool depthTestEnabled, bool depthWriteEnabled, DepthFunction depthFunction = Types.DepthFunction.Less)
+    public SetDepthStatePayload(bool depthTestEnabled, bool depthWriteEnabled, DepthFunction depthFunction = Types.DepthFunction.Less)
     {
         DepthTestEnabled = depthTestEnabled;
         DepthWriteEnabled = depthWriteEnabled;
@@ -32,12 +32,12 @@ public readonly struct SetDepthState
     /// <summary>
     /// Creates a depth state suitable for skybox rendering (test enabled, write disabled, LessEqual).
     /// </summary>
-    public static SetDepthState SkyboxDepthState()
+    public static SetDepthStatePayload SkyboxDepthState()
         => new(true, false, Types.DepthFunction.LessEqual);
 
     /// <summary>
     /// Creates the default depth state (test enabled, write enabled, Less).
     /// </summary>
-    public static SetDepthState DefaultDepthState()
+    public static SetDepthStatePayload DefaultDepthState()
         => new(true, true, Types.DepthFunction.Less);
 }

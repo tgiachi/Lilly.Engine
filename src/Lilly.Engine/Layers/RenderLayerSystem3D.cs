@@ -32,7 +32,8 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         => new HashSet<RenderCommandType>()
         {
             RenderCommandType.DrawArray,
-            RenderCommandType.GpuCommand
+            RenderCommandType.SetDepthState,
+            RenderCommandType.SetCullMode
         };
 
     public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base(
@@ -139,41 +140,24 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
                     break;
 
-                case RenderCommandType.GpuCommand:
-                    var gpuPayload = cmd.GetPayload<GpuCommandPayload>();
-                    ProcessGpuCommand(gpuPayload);
+                case RenderCommandType.SetDepthState:
+                    var depthState = cmd.GetPayload<SetDepthStatePayload>();
+                    ProcessDepthState(depthState);
+
+                    break;
+
+                case RenderCommandType.SetCullMode:
+                    var cullMode = cmd.GetPayload<SetCullModePayload>();
+                    ProcessCullMode(cullMode);
 
                     break;
             }
         }
     }
 
-    private void ProcessGpuCommand(GpuCommandPayload payload)
+    private void ProcessDepthState(SetDepthStatePayload state)
     {
-        switch (payload.CommandType)
-        {
-            case GpuSubCommandType.SetDepthState:
-                var depthState = payload.GetPayloadAs<SetDepthState>();
-                ProcessDepthState(depthState);
 
-                break;
-
-            case GpuSubCommandType.SetCullMode:
-                var cullMode = payload.GetPayloadAs<SetCullMode>();
-                ProcessCullMode(cullMode);
-
-                break;
-        }
-    }
-
-    private void ProcessDepthState(SetDepthState state)
-    {
-        _logger.Debug(
-            "ProcessDepthState: Test={Test} Write={Write} Func={Func}",
-            state.DepthTestEnabled,
-            state.DepthWriteEnabled,
-            state.DepthFunction
-        );
 
         if (state.DepthTestEnabled)
         {
@@ -202,28 +186,28 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         _renderContext.Gl.DepthFunc(depthFunc);
     }
 
-    private void ProcessCullMode(SetCullMode cullMode)
+    private void ProcessCullMode(SetCullModePayload cullMode)
     {
         switch (cullMode.CullMode)
         {
-            case Rendering.Core.Types.CullFaceMode.None:
+            case CullFaceMode.None:
                 _renderContext.Gl.Disable(GLEnum.CullFace);
 
                 break;
 
-            case Rendering.Core.Types.CullFaceMode.Back:
+            case CullFaceMode.Back:
                 _renderContext.Gl.Enable(GLEnum.CullFace);
                 _renderContext.Gl.CullFace(GLEnum.Back);
 
                 break;
 
-            case Rendering.Core.Types.CullFaceMode.Front:
+            case CullFaceMode.Front:
                 _renderContext.Gl.Enable(GLEnum.CullFace);
                 _renderContext.Gl.CullFace(GLEnum.Front);
 
                 break;
 
-            case Rendering.Core.Types.CullFaceMode.FrontAndBack:
+            case CullFaceMode.FrontAndBack:
                 _renderContext.Gl.Enable(GLEnum.CullFace);
                 _renderContext.Gl.CullFace(GLEnum.FrontAndBack);
 

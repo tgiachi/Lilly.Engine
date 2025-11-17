@@ -89,30 +89,20 @@ public static class RenderCommandHelpers
         );
 
     /// <summary>
-    /// Creates a GPU command to set depth buffer state.
+    /// Creates a command to set depth buffer state.
     /// </summary>
     /// <param name="state">The depth state configuration.</param>
     /// <returns>A render command to set depth state.</returns>
-    public static RenderCommand SetDepthState(SetDepthState state)
-        => CreateGpuCommand(
-            new GpuCommandPayload(
-                GpuSubCommandType.SetDepthState,
-                state
-            )
-        );
+    public static RenderCommand SetDepthState(SetDepthStatePayload state)
+        => new(RenderCommandType.SetDepthState, state);
 
     /// <summary>
-    /// Creates a GPU command to set face culling mode.
+    /// Creates a command to set face culling mode.
     /// </summary>
     /// <param name="cullMode">The cull mode configuration.</param>
     /// <returns>A render command to set cull mode.</returns>
-    public static RenderCommand SetCullMode(SetCullMode cullMode)
-        => CreateGpuCommand(
-            new GpuCommandPayload(
-                GpuSubCommandType.SetCullMode,
-                cullMode
-            )
-        );
+    public static RenderCommand SetCullMode(SetCullModePayload cullMode)
+        => new(RenderCommandType.SetCullMode, cullMode);
 
     /// <summary>
     /// Creates a window command to set the refresh rate.
