@@ -17,6 +17,15 @@
     <ItemGroup>
         <PackageReference Include="Silk.NET.Maths" Version="2.22.0"/>
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
+        <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\**\*" />
+      <EmbeddedResource Include="Assets\**\*" />
     </ItemGroup>
 
 </Project>

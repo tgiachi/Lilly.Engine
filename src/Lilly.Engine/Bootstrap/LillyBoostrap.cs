@@ -75,6 +75,7 @@ public class LillyBoostrap : ILillyBootstrap
     public Task InitializeAsync(InitialEngineOptions options)
     {
         OnConfiguring?.Invoke(_container);
+
         Renderer.Initialize(options);
 
         Renderer.Update += RendererOnUpdate;
@@ -83,12 +84,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _container.RegisterInstance(Renderer.Context);
 
-        var pluginRegistry = _container.Resolve<PluginRegistry>();
 
-        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
-        {
-            plugin.EngineInitialized(_container);
-        }
 
         return Task.CompletedTask;
     }
@@ -533,7 +529,16 @@ public class LillyBoostrap : ILillyBootstrap
 
         var scriptEngine = _container.Resolve<IScriptEngineService>();
 
+
         InitializePlugins();
+
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
+        {
+            plugin.EngineInitialized(_container);
+        }
+
 
         _container.Resolve<IGameObjectFactory>();
 

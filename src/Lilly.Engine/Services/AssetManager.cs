@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Reflection;
 using FontStashSharp;
+using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Rendering.Core.Contexts;
@@ -25,8 +27,6 @@ public class AssetManager : IAssetManager, IDisposable
 
     private readonly Dictionary<string, Texture2D> _texture2Ds = new();
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
-
-
 
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
@@ -88,8 +88,6 @@ public class AssetManager : IAssetManager, IDisposable
         _context = context;
         GetWhiteTexture<Texture2D>();
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
-
-
     }
 
     /// <summary>
@@ -128,10 +126,6 @@ public class AssetManager : IAssetManager, IDisposable
         => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
                ? shaderProgram
                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
-
-
-
-
 
     /// <summary>
     /// Retrieves a previously loaded texture by name.
@@ -227,7 +221,12 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="vertexPath">The path to the vertex shader file.</param>
     /// <param name="fragmentPath">The path to the fragment shader file.</param>
     /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
-    public void LoadShaderFromFile<TVertex>(string shaderName, string vertexPath, string fragmentPath)
+    public void LoadShaderFromFile<TVertex>(
+        string shaderName,
+        string vertexPath,
+        string fragmentPath,
+        string[] attributesNames
+    )
         where TVertex :
         unmanaged, IVertex
     {
@@ -237,7 +236,7 @@ public class AssetManager : IAssetManager, IDisposable
         using var vertexStream = new FileStream(fullVertexPath, FileMode.Open, FileAccess.Read);
         using var fragmentStream = new FileStream(fullFragmentPath, FileMode.Open, FileAccess.Read);
 
-        LoadShaderFromMemory<TVertex>(shaderName, vertexStream, fragmentStream);
+        LoadShaderFromMemory<TVertex>(shaderName, vertexStream, fragmentStream, attributesNames);
     }
 
     /// <summary>
@@ -247,7 +246,7 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="shaderName">The name to associate with the loaded shader.</param>
     /// <param name="shaderPath">The path to the shader file.</param>
     /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
-    public void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath)
+    public void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath, string[] attributesNames)
         where TVertex : unmanaged, IVertex
     {
         var fullShaderPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], shaderPath);
@@ -256,7 +255,7 @@ public class AssetManager : IAssetManager, IDisposable
         using var reader = new StreamReader(stream);
         var shaderSource = reader.ReadToEnd();
 
-        LoadShaderFromMemory<TVertex>(shaderName, shaderSource);
+        LoadShaderFromMemory<TVertex>(shaderName, shaderSource, attributesNames);
     }
 
     /// <summary>
@@ -266,20 +265,20 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="vertexStream">The stream containing the vertex shader source.</param>
     /// <param name="fragmentStream">The stream containing the fragment shader source.</param>
     /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
-    public void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream)
+    public void LoadShaderFromMemory<TVertex>(
+        string shaderName,
+        Stream vertexStream,
+        Stream fragmentStream,
+        string[] attributesNames
+    )
         where TVertex : unmanaged, IVertex
     {
         using var reader = new StreamReader(vertexStream);
-        var vertexSource = reader.ReadToEnd();
 
         using var fragReader = new StreamReader(fragmentStream);
-        var fragmentSource = fragReader.ReadToEnd();
+        var fullShaderSource = reader.ReadToEnd() + "\n" + fragReader.ReadToEnd();
 
-        var _program = ShaderProgram.FromCode<TVertex>(_context.GraphicsDevice, vertexSource, fragmentSource);
-
-        _logger.Information("Loaded shader {ShaderName}", shaderName);
-
-        _shaderPrograms[shaderName] = _program;
+        LoadShaderFromMemory<TVertex>(shaderName, fullShaderSource, attributesNames);
     }
 
     /// <summary>
@@ -289,7 +288,7 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="shaderName">The name to associate with the loaded shader.</param>
     /// <param name="shaderSource">The combined shader source string.</param>
     /// <typeparam name="TVertex">The vertex type for the shader.</typeparam>
-    public void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource)
+    public void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource, string[]? attributesNames)
         where TVertex : unmanaged, IVertex
     {
         var shaders = ParseShaderSource(shaderSource);
@@ -304,7 +303,40 @@ public class AssetManager : IAssetManager, IDisposable
             );
         }
 
-        var _program = ShaderProgram.FromCode<TVertex>(_context.GraphicsDevice, vertexSource, fragmentSource);
+        if (attributesNames == null || attributesNames.Length == 0)
+        {
+            // extract attribute from TVertex type
+            var vertexType = typeof(TVertex);
+            var properties = vertexType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            var attribNames = new List<string>();
+
+            foreach (var property in properties)
+            {
+                var attrib = property.GetCustomAttribute<VertexPropertyNameAttribute>();
+
+                if (attrib != null)
+                {
+                    attribNames.Add(attrib.Name);
+                }
+            }
+
+            attributesNames = attribNames.ToArray();
+        }
+
+        if (attributesNames == null || attributesNames.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Attribute names must be provided either via the attributesNames parameter " +
+                $"or through VertexPropertyNameAttribute annotations on the {typeof(TVertex).Name} type."
+            );
+        }
+
+        var _program = ShaderProgram.FromCode<TVertex>(
+            _context.GraphicsDevice,
+            vertexSource,
+            fragmentSource,
+            attributesNames
+        );
 
         _logger.Information("Loaded shader {ShaderName}", shaderName);
 
@@ -349,6 +381,7 @@ public class AssetManager : IAssetManager, IDisposable
     {
         var vertexBuffer = new VertexBuffer<TVertex>(_context.GraphicsDevice, vertices, usage);
         _logger.Debug("Created vertex buffer with {VertexCount} vertices", vertices.Length);
+
         return vertexBuffer;
     }
 

@@ -66,7 +66,7 @@ public interface IAssetManager
     /// <param name="shaderName">The name of the shader.</param>
     /// <param name="vertexPath">The path to the vertex shader file.</param>
     /// <param name="fragmentPath">The path to the fragment shader file.</param>
-    void LoadShaderFromFile<TVertex>(string shaderName, string vertexPath, string fragmentPath)
+    void LoadShaderFromFile<TVertex>(string shaderName, string vertexPath, string fragmentPath, string[] attributesNames)
         where TVertex :
         unmanaged, IVertex;
 
@@ -77,7 +77,7 @@ public interface IAssetManager
     /// <typeparam name="TVertex">The vertex type.</typeparam>
     /// <param name="shaderName">The name of the shader.</param>
     /// <param name="shaderPath">The path to the shader file.</param>
-    void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath)
+    void LoadShaderFromFile<TVertex>(string shaderName, string shaderPath, string[] attributesNames)
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
@@ -87,7 +87,9 @@ public interface IAssetManager
     /// <param name="shaderName">The name of the shader.</param>
     /// <param name="vertexStream">The stream containing the vertex shader data.</param>
     /// <param name="fragmentStream">The stream containing the fragment shader data.</param>
-    void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream)
+    void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream,
+                                       string[] attributesNames
+    )
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
@@ -97,7 +99,7 @@ public interface IAssetManager
     /// <typeparam name="TVertex">The vertex type.</typeparam>
     /// <param name="shaderName">The name of the shader.</param>
     /// <param name="shaderSource">The combined shader source string.</param>
-    void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource)
+    void LoadShaderFromMemory<TVertex>(string shaderName, string shaderSource, string[] attributesNames)
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
