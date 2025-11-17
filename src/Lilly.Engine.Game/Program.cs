@@ -12,6 +12,7 @@ using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Engine.Renderers;
 using Lilly.Engine.Rendering.Core.Data.Config;
+using Lilly.Voxel.Plugin;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -46,6 +47,11 @@ await ConsoleApp.RunAsync(
         {
             initialEngineOptions.TargetRenderVersion = new(4, 5, 0, 0);
         }
+
+        bootstrap.OnConfiguring += container1 =>
+                                   {
+                                       container1.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+                                   };
 
         ///https: //github.com/aemeny/Custom-OpenGL-GameEngine
 

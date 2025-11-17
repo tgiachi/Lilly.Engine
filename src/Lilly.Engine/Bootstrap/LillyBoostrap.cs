@@ -40,6 +40,7 @@ public class LillyBoostrap : ILillyBootstrap
     public event ILillyBootstrap.RenderHandler? OnRender;
 
     public event ILillyBootstrap.UpdateHandler? OnUpdate;
+    public event ILillyBootstrap.ConfiguringHandler? OnConfiguring;
 
     private readonly IContainer _container;
     private IGraphicRenderPipeline _renderPipeline;
@@ -62,6 +63,8 @@ public class LillyBoostrap : ILillyBootstrap
         container.RegisterInstance(renderer);
 
         RegisterDefaults();
+
+
     }
 
     /// <summary>
@@ -71,6 +74,7 @@ public class LillyBoostrap : ILillyBootstrap
     /// <returns>A task representing the initialization operation.</returns>
     public Task InitializeAsync(InitialEngineOptions options)
     {
+        OnConfiguring?.Invoke(_container);
         Renderer.Initialize(options);
 
         Renderer.Update += RendererOnUpdate;
@@ -262,7 +266,6 @@ public class LillyBoostrap : ILillyBootstrap
             sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(sphere);
         }
-
 
         // _renderPipeline.AddGameObject(
         //     new TextGameObject()

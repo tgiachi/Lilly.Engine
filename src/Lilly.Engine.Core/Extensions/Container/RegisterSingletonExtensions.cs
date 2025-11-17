@@ -17,7 +17,13 @@ public static class RegisterSingletonExtensions
     public static IContainer RegisterService<TService, TImplementation>(this IContainer container)
         where TImplementation : TService
     {
-        container.Register<TService, TImplementation>(Reuse.Singleton);
+        container.Register<TService, TImplementation>(
+            Reuse.Singleton,
+            setup: Setup.With(
+                allowDisposableTransient: true,
+                trackDisposableTransient: true
+            )
+        );
 
         return container;
     }
