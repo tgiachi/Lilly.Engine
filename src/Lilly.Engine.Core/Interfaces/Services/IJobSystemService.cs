@@ -42,6 +42,26 @@ public interface IJobSystemService
     Task<TResult> ExecuteAsync<TResult>(IAsyncJob<TResult> job, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Executes a task-returning function that produces a result.
+    /// </summary>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="taskFactory">Function that creates and returns the task to execute.</param>
+    /// <param name="cancellationToken">Token used to cancel the execution.</param>
+    /// <typeparam name="TResult">Type of the result.</typeparam>
+    /// <returns>A task that completes with the job result.</returns>
+    Task<TResult> ExecuteTaskAsync<TResult>(string name, Func<CancellationToken, Task<TResult>> taskFactory, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a task-returning function that produces a result.
+    /// </summary>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="taskFactory">Function that creates and returns the task to execute.</param>
+    /// <param name="cancellationToken">Token used to cancel the execution.</param>
+    /// <typeparam name="TResult">Type of the result.</typeparam>
+    /// <returns>A task that completes with the job result.</returns>
+    Task<TResult> ExecuteTaskAsync<TResult>(string name, Func<Task<TResult>> taskFactory, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Initializes the worker pool.
     /// </summary>
     /// <param name="workerCount">Number of worker threads to create.</param>

@@ -15,8 +15,9 @@
         <PackageReference Include="Silk.NET.Input" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Input.Extensions" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Maths" Version="2.22.0"/>
-        <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
+        <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
+
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
         <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1"/>
         <PackageReference Include="Silk.NET.Windowing.Common" Version="2.22.0"/>
