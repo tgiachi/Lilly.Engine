@@ -15,14 +15,14 @@ public interface IGameObjectFactory
     /// </summary>
     /// <typeparam name="TGameObject">The type of game object to create.</typeparam>
     /// <returns>A new instance of the game object.</returns>
-    TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject;
+    TGameObject Create<TGameObject>() where TGameObject : class, IGameObject;
 
     /// <summary>
     /// Creates an instance of the game object using the specified type.
     /// </summary>
     /// <param name="type">The type of game object to create.</param>
     /// <returns>A new instance of the game object.</returns>
-    IGameObject CreateGameObject(Type type);
+    IGameObject Create(Type type);
 
     /// <summary>
     /// Determines whether a game object type is registered in the factory.

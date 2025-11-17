@@ -65,6 +65,11 @@ public abstract class BaseGameObject3D : IGameObject3D, IUpdatable
 
     public virtual void Initialize() { }
 
+    /// <summary>
+    ///  Gets or sets a value indicating whether to ignore frustum culling for this object.
+    /// </summary>
+    public bool IgnoreFrustumCulling { get; set; }
+
     public BaseGameObject3D(GraphicsDevice graphicsDevice)
     {
         GraphicsDevice = graphicsDevice;

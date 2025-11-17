@@ -15,5 +15,6 @@ public interface IGameObject3D : IGameObject
     int Layer { get; set; }
     void Draw(ICamera3D camera, GameTime gameTime);
 
+    bool IgnoreFrustumCulling { get; set; }
     void Initialize();
 }

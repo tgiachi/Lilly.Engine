@@ -7,8 +7,10 @@ using Lilly.Engine.Rendering.Core.Helpers;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
+using Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
+using Silk.NET.OpenGL;
 using PrimitiveType = TrippyGL.PrimitiveType;
 
 namespace Lilly.Engine.Layers;
@@ -30,7 +32,9 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     public override IReadOnlySet<RenderCommandType> SupportedCommandTypes
         => new HashSet<RenderCommandType>()
         {
-            RenderCommandType.DrawArray
+            RenderCommandType.UseShader,
+            RenderCommandType.DrawArray,
+            RenderCommandType.GpuCommand
         };
 
     public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base(
@@ -95,6 +99,11 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     public static bool IsInFrustum(IGameObject3D gameObject, ICamera3D camera)
     {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
         var position = gameObject.Transform.Position;
         var scale = gameObject.Transform.Scale;
 
@@ -111,7 +120,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     {
         _renderContext.GraphicsDevice.ShaderProgram = payload.ShaderProgram;
         _renderContext.GraphicsDevice.VertexArray = payload.VertexArray;
-        _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.TriangleStrip, 0, payload.VertexCount);
+        _renderContext.GraphicsDevice.DrawArrays(payload.PrimitiveType, 0, payload.VertexCount);
     }
 
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
@@ -125,7 +134,94 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                     ProcessDrawArrayCommand(drawArrayPayload);
 
                     break;
+
+                case RenderCommandType.UseShader:
+                    var useShaderPayload = cmd.GetPayload<UseShaderPayload>();
+                    _renderContext.GraphicsDevice.ShaderProgram = useShaderPayload.ShaderProgram;
+
+                    break;
+
+                case RenderCommandType.GpuCommand:
+                    var gpuPayload = cmd.GetPayload<GpuCommandPayload>();
+                    ProcessGpuCommand(gpuPayload);
+
+                    break;
             }
+        }
+    }
+
+    private void ProcessGpuCommand(GpuCommandPayload payload)
+    {
+        switch (payload.CommandType)
+        {
+            case GpuSubCommandType.SetDepthState:
+                var depthState = payload.GetPayloadAs<SetDepthState>();
+                ProcessDepthState(depthState);
+                break;
+
+            case GpuSubCommandType.SetCullMode:
+                var cullMode = payload.GetPayloadAs<SetCullMode>();
+                ProcessCullMode(cullMode);
+                break;
+        }
+    }
+
+    private void ProcessDepthState(SetDepthState state)
+    {
+        if (state.DepthTestEnabled)
+        {
+            _renderContext.Gl.Enable(GLEnum.DepthTest);
+        }
+        else
+        {
+            _renderContext.Gl.Disable(GLEnum.DepthTest);
+        }
+
+        _renderContext.Gl.DepthMask(state.DepthWriteEnabled);
+
+        var depthFunc = state.DepthFunction switch
+        {
+            Rendering.Core.Types.DepthFunction.Never => GLEnum.Never,
+            Rendering.Core.Types.DepthFunction.Less => GLEnum.Less,
+            Rendering.Core.Types.DepthFunction.Equal => GLEnum.Equal,
+            Rendering.Core.Types.DepthFunction.LessEqual => GLEnum.Lequal,
+            Rendering.Core.Types.DepthFunction.Greater => GLEnum.Greater,
+            Rendering.Core.Types.DepthFunction.NotEqual => GLEnum.Notequal,
+            Rendering.Core.Types.DepthFunction.GreaterEqual => GLEnum.Gequal,
+            Rendering.Core.Types.DepthFunction.Always => GLEnum.Always,
+            _ => GLEnum.Less
+        };
+
+        _renderContext.Gl.DepthFunc(depthFunc);
+    }
+
+    private void ProcessCullMode(SetCullMode cullMode)
+    {
+        switch (cullMode.CullMode)
+        {
+            case Rendering.Core.Types.CullFaceMode.None:
+                _renderContext.Gl.Disable(GLEnum.CullFace);
+                break;
+
+            case Rendering.Core.Types.CullFaceMode.Back:
+                _renderContext.Gl.Enable(GLEnum.CullFace);
+                _renderContext.Gl.CullFace(GLEnum.Back);
+                break;
+
+            case Rendering.Core.Types.CullFaceMode.Front:
+                _renderContext.Gl.Enable(GLEnum.CullFace);
+                _renderContext.Gl.CullFace(GLEnum.Front);
+                break;
+
+            case Rendering.Core.Types.CullFaceMode.FrontAndBack:
+                _renderContext.Gl.Enable(GLEnum.CullFace);
+                _renderContext.Gl.CullFace(GLEnum.FrontAndBack);
+                break;
+
+            default:
+                _renderContext.Gl.Enable(GLEnum.CullFace);
+                _renderContext.Gl.CullFace(GLEnum.Back);
+                break;
         }
     }
 

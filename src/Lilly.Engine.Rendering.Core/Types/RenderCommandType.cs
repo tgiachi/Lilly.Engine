@@ -40,6 +40,11 @@ public enum RenderCommandType : byte
     /// </summary>
     DrawArray,
 
+    /// <summary>
+    ///  Use a specific shader program.
+    /// </summary>
+    UseShader,
+
 
     /// <summary>
     /// Render ImGui debug interface.

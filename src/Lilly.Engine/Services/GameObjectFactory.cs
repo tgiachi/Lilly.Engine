@@ -46,7 +46,7 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     /// <typeparam name="TGameObject">The type of game object to create.</typeparam>
     /// <returns>A new game object instance.</returns>
-    public TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
+    public TGameObject Create<TGameObject>() where TGameObject : class, IGameObject
     {
         var type = typeof(TGameObject);
 
@@ -55,7 +55,7 @@ public class GameObjectFactory : IGameObjectFactory
             throw new InvalidOperationException($"Game object of type {type.FullName} is not registered.");
         }
 
-        return (TGameObject)CreateGameObject(typeof(TGameObject));
+        return (TGameObject)Create(typeof(TGameObject));
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     /// <param name="type">The type of game object to create.</param>
     /// <returns>A new game object instance.</returns>
-    public IGameObject CreateGameObject(Type type)
+    public IGameObject Create(Type type)
     {
         if (!_container.IsRegistered(type))
         {
@@ -128,7 +128,7 @@ public class GameObjectFactory : IGameObjectFactory
             _scriptEngineService.AddManualModuleFunction<object[], object>(
                 moduleName,
                 functionName,
-                _ => CreateGameObject(gameObjectType)
+                _ => Create(gameObjectType)
             );
 
             UserData.RegisterType(gameObjectType);

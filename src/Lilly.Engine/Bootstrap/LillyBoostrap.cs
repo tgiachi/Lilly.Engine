@@ -86,6 +86,7 @@ public class LillyBoostrap : ILillyBootstrap
 
 
 
+
         return Task.CompletedTask;
     }
 
@@ -189,6 +190,7 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void InitializeRenderSystem()
     {
+        _container.RegisterInstance(Renderer.Context.GraphicsDevice);
         _container.RegisterGameObject<SimpleCubeGameObject>();
         _container.RegisterGameObject<SimpleSphereGameObject>();
         _container.RegisterGameObject<SimplePyramidGameObject>();
@@ -218,9 +220,9 @@ public class LillyBoostrap : ILillyBootstrap
             )
         );
 
-        _renderPipeline.AddGameObject(factory.CreateGameObject<CameraDebugger>());
+        _renderPipeline.AddGameObject(factory.Create<CameraDebugger>());
 
-        _renderPipeline.AddGameObject(factory.CreateGameObject<InputDebugger>());
+        _renderPipeline.AddGameObject(factory.Create<InputDebugger>());
 
         foreach (var plugin in pluginRegistry.GetLoadedPlugins())
         {
@@ -235,7 +237,7 @@ public class LillyBoostrap : ILillyBootstrap
             var randomX = Random.Shared.Next(-10, 10);
             var randomY = Random.Shared.Next(-10, 10);
             var randomZ = Random.Shared.Next(-10, 10);
-            var cube = factory.CreateGameObject<SimpleCubeGameObject>();
+            var cube = factory.Create<SimpleCubeGameObject>();
 
             cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(cube);
@@ -246,7 +248,7 @@ public class LillyBoostrap : ILillyBootstrap
             var randomX = Random.Shared.Next(-10, 10);
             var randomY = Random.Shared.Next(-10, 10);
             var randomZ = Random.Shared.Next(-10, 10);
-            var sphere = factory.CreateGameObject<SimpleSphereGameObject>();
+            var sphere = factory.Create<SimpleSphereGameObject>();
 
             sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(sphere);
@@ -257,7 +259,7 @@ public class LillyBoostrap : ILillyBootstrap
             var randomX = Random.Shared.Next(-10, 10);
             var randomY = Random.Shared.Next(-10, 10);
             var randomZ = Random.Shared.Next(-10, 10);
-            var sphere = factory.CreateGameObject<SimpleSphereGameObject>();
+            var sphere = factory.Create<SimpleSphereGameObject>();
 
             sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
             _renderPipeline.AddGameObject(sphere);

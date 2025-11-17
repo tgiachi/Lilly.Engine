@@ -10,10 +10,13 @@ public struct DrawArrayPayload
 
     public uint VertexCount { get; init; }
 
-    public DrawArrayPayload(ShaderProgram shaderProgram, VertexArray vertexArray, uint vertexCount)
+    public PrimitiveType PrimitiveType { get; init; }
+
+    public DrawArrayPayload(ShaderProgram shaderProgram, VertexArray vertexArray, uint vertexCount, PrimitiveType primitiveType = PrimitiveType.TriangleStrip)
     {
         ShaderProgram = shaderProgram;
         VertexArray = vertexArray;
         VertexCount = vertexCount;
+        PrimitiveType = primitiveType;
     }
 }

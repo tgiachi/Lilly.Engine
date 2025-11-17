@@ -5,9 +5,11 @@ using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
+using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Shaders;
+using Lilly.Voxel.Plugin.GameObjects.Environment;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
@@ -38,12 +40,15 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield break;
+        yield return gameObjectFactory.Create<SkyGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)
     {
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
+
+
+        container.RegisterGameObject<SkyGameObject>();
 
         container.RegisterService<IBlockRegistry, BlockRegistry>();
 

@@ -21,14 +21,14 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        var text = gameObjectFactory.CreateGameObject<TextEditGameObject>();
+        var text = gameObjectFactory.Create<TextEditGameObject>();
         text.Transform.Position = new(200, 200);
 
         yield return text;
 
-        yield return gameObjectFactory.CreateGameObject<NotificationHudGameObject>();
+        yield return gameObjectFactory.Create<NotificationHudGameObject>();
 
-        var quakeConsole = gameObjectFactory.CreateGameObject<QuakeConsoleGameObject>();
+        var quakeConsole = gameObjectFactory.Create<QuakeConsoleGameObject>();
 
         quakeConsole.Name = "Global Quake Console";
 
@@ -44,7 +44,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
         yield return quakeConsole;
 
-        yield return gameObjectFactory.CreateGameObject<ScriptErrorGameObject>();
+        yield return gameObjectFactory.Create<ScriptErrorGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)
