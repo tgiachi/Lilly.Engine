@@ -15,6 +15,11 @@ public class TextGameObject : BaseGameObject2D
 {
     private readonly IAssetManager? _assetManager;
 
+    public TextGameObject(IAssetManager? assetManager)
+    {
+        _assetManager = assetManager;
+    }
+
     /// <summary>
     /// Gets or sets the text to be displayed.
     /// </summary>
@@ -44,12 +49,18 @@ public class TextGameObject : BaseGameObject2D
     {
         Vector2D<float>? origin = null;
 
-        if (CenterText && _assetManager != null)
-        {
-            var font = _assetManager.GetFont<DynamicSpriteFont>(FontFamily, FontSize);
+        var font = _assetManager?.GetFont<DynamicSpriteFont>(FontFamily, FontSize);
 
+        if (font != null)
+        {
             var size = font.MeasureString(Text);
-            origin = new Vector2D<float>(size.X / 2f, size.Y / 2f);
+            // Update Transform.Size for proper scissor clipping
+            Transform.Size = new Vector2D<float>(size.X, size.Y);
+
+            if (CenterText)
+            {
+                origin = new Vector2D<float>(size.X / 2f, size.Y / 2f);
+            }
         }
 
         yield return DrawText(FontFamily, Text, FontSize, Color, origin: origin);

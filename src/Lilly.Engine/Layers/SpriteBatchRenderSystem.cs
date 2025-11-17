@@ -126,10 +126,10 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
                     break;
 
-                // case RenderCommandType.Scissor:
-                //     FlushSpriteBatch();
-                //     var scissorPayload = command.GetPayload<ScissorPayload>();
-                //     ProcessScissorCommand(scissorPayload);
+                case RenderCommandType.Scissor:
+                    FlushSpriteBatch();
+                    var scissorPayload = command.GetPayload<ScissorPayload>();
+                    ProcessScissorCommand(scissorPayload);
 
                     break;
             }

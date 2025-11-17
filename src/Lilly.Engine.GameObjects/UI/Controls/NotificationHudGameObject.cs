@@ -177,6 +177,49 @@ public class NotificationHudGameObject : BaseGameObject2D
             yield break;
         }
 
+        // Pre-pass: Calculate total bounds for proper scissor clipping
+        var minX = float.MaxValue;
+        var minY = float.MaxValue;
+        var maxX = float.MinValue;
+        var maxY = float.MinValue;
+
+        for (var i = 0; i < _messages.Count; i++)
+        {
+            var message = _messages[i];
+
+            if (message.Alpha <= DefaultOpacityThreshold)
+            {
+                continue;
+            }
+
+            var basePosition = new Vector2D<float>(StartPosition.X, StartPosition.Y + message.YOffset);
+            var textSize = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var hasIcon = !string.IsNullOrWhiteSpace(message.IconTextureName);
+            var iconWidth = hasIcon ? IconSize.X : 0f;
+            var iconSpacing = hasIcon ? IconSpacing : 0f;
+            var contentHeight = MathF.Max(textSize.Y, hasIcon ? IconSize.Y : 0f);
+
+            var calculatedWidth = textSize.X + iconWidth + iconSpacing + MessagePadding * 2f;
+            var width = MathF.Max(calculatedWidth, MinNotificationWidth);
+            var height = contentHeight + MessagePadding * 2f;
+
+            var rectX = basePosition.X - MessagePadding;
+            var rectY = basePosition.Y - MessagePadding;
+
+            minX = MathF.Min(minX, rectX);
+            minY = MathF.Min(minY, rectY);
+            maxX = MathF.Max(maxX, rectX + width);
+            maxY = MathF.Max(maxY, rectY + height);
+        }
+
+        // Update Transform for proper scissor clipping
+        if (minX != float.MaxValue)
+        {
+            Transform.Position = new Vector2D<float>(minX, minY);
+            Transform.Size = new Vector2D<float>(maxX - minX, maxY - minY);
+        }
+
+        // Rendering pass
         for (var i = 0; i < _messages.Count; i++)
         {
             var message = _messages[i];
