@@ -38,13 +38,7 @@ public class TextGameObject : BaseGameObject2D
     /// <summary>
     /// Gets or sets whether the text should be centered on its position (default: false, top-left aligned).
     /// </summary>
-    public bool CenterText { get; set; } = false;
-
-    public TextGameObject()
-        => _assetManager = null;
-
-    public TextGameObject(IAssetManager assetManager)
-        => _assetManager = assetManager;
+    public bool CenterText { get; set; }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
@@ -52,14 +46,10 @@ public class TextGameObject : BaseGameObject2D
 
         if (CenterText && _assetManager != null)
         {
-            // Calculate centered origin
             var font = _assetManager.GetFont<DynamicSpriteFont>(FontFamily, FontSize);
 
-            if (font != null)
-            {
-                var size = font.MeasureString(Text);
-                origin = new Vector2D<float>(size.X / 2f, size.Y / 2f);
-            }
+            var size = font.MeasureString(Text);
+            origin = new Vector2D<float>(size.X / 2f, size.Y / 2f);
         }
 
         yield return DrawText(FontFamily, Text, FontSize, Color, origin: origin);

@@ -40,7 +40,8 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield return gameObjectFactory.Create<SkyGameObject>();
+        yield break;
+        //yield return gameObjectFactory.Create<SkyGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)

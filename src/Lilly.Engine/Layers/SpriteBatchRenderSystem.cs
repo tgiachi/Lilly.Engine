@@ -10,6 +10,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
+using Serilog;
 using Silk.NET.Maths;
 using TrippyGL;
 
@@ -105,9 +106,9 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        //_renderContext.GraphicsDevice.DepthState = DepthState.None;
-        // _renderContext.GraphicsDevice.BlendingEnabled = true;
-        // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+        _renderContext.GraphicsDevice.DepthState = DepthState.None;
+         _renderContext.GraphicsDevice.BlendingEnabled = true;
+         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         BeginSpriteBatch();
 
         foreach (var command in renderCommands)
@@ -115,7 +116,8 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
             switch (command.CommandType)
             {
                 case RenderCommandType.DrawText:
-                    DrawText(command.GetPayload<DrawTextPayload>());
+                    var textPayload = command.GetPayload<DrawTextPayload>();
+                    DrawText(textPayload);
 
                     break;
 
@@ -124,10 +126,10 @@ public class SpriteBatchRenderSystem : BaseRenderLayerSystem<IGameObject2D>, IDi
 
                     break;
 
-                case RenderCommandType.Scissor:
-                    FlushSpriteBatch();
-                    var scissorPayload = command.GetPayload<ScissorPayload>();
-                    ProcessScissorCommand(scissorPayload);
+                // case RenderCommandType.Scissor:
+                //     FlushSpriteBatch();
+                //     var scissorPayload = command.GetPayload<ScissorPayload>();
+                //     ProcessScissorCommand(scissorPayload);
 
                     break;
             }

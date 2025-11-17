@@ -1,5 +1,6 @@
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Controls;
 using Lilly.Engine.GameObjects.UI.Dialogs;
 using Lilly.Engine.GameObjects.UI.Theme;
@@ -7,6 +8,7 @@ using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Rendering.Core.Extensions;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using TrippyGL;
 
 namespace Lilly.Engine.GameObjects;
 
@@ -21,30 +23,23 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        var text = gameObjectFactory.Create<TextEditGameObject>();
-        text.Transform.Position = new(200, 200);
-
-        yield return text;
-
         yield return gameObjectFactory.Create<NotificationHudGameObject>();
 
-        var quakeConsole = gameObjectFactory.Create<QuakeConsoleGameObject>();
-
-        quakeConsole.Name = "Global Quake Console";
-
-        var inputManager = _container.Resolve<IInputManagerService>();
-
-        inputManager.BindKey(
-            "F3",
-            () =>
-            {
-                quakeConsole.ToggleConsole();
-            }
-        );
-
-        yield return quakeConsole;
-
         yield return gameObjectFactory.Create<ScriptErrorGameObject>();
+
+        var textConsole = gameObjectFactory.Create<TextGameObject>();
+        textConsole.Transform.Position = new(100, 100);
+        textConsole.Color = Color4b.Blue;
+        ;
+        textConsole.Text = "Quake Console (Press ` to toggle)";
+
+        yield return textConsole;
+
+        var textBox = gameObjectFactory.Create<TextEditGameObject>();
+        textBox.Transform.Position = new(100, 200);
+
+        yield return textBox;
+
     }
 
     public IContainer RegisterModule(IContainer container)
@@ -55,6 +50,7 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
         return container
                .RegisterGameObject<ButtonGameObject>()
+               .RegisterGameObject<TextGameObject>()
                .RegisterGameObject<CheckBoxGameObject>()
                .RegisterGameObject<ComboBoxGameObject>()
                .RegisterGameObject<ListBoxGameObject>()

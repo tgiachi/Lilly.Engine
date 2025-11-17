@@ -63,8 +63,6 @@ public class LillyBoostrap : ILillyBootstrap
         container.RegisterInstance(renderer);
 
         RegisterDefaults();
-
-
     }
 
     /// <summary>
@@ -83,9 +81,6 @@ public class LillyBoostrap : ILillyBootstrap
         Renderer.Resize += RendererOnResize;
 
         _container.RegisterInstance(Renderer.Context);
-
-
-
 
         return Task.CompletedTask;
     }
@@ -191,301 +186,41 @@ public class LillyBoostrap : ILillyBootstrap
     private void InitializeRenderSystem()
     {
         _container.RegisterInstance(Renderer.Context.GraphicsDevice);
+
         _container.RegisterGameObject<SimpleCubeGameObject>();
         _container.RegisterGameObject<SimpleSphereGameObject>();
         _container.RegisterGameObject<SimplePyramidGameObject>();
         _container.RegisterGameObject<SimpleTorusGameObject>();
         _container.RegisterGameObject<SimpleStarGameObject>();
         _container.RegisterGameObject<SimpleFractalCubeGameObject>();
-        var factory = _container.Resolve<IGameObjectFactory>();
-        var pluginRegistry = _container.Resolve<PluginRegistry>();
 
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _container.RegisterInstance<IGameObjectManager>(_renderPipeline);
         _renderPipeline.Initialize();
 
-        _renderPipeline.AddGameObject(_container.Resolve<IPerformanceProfilerService>());
+        InizializeGameObjectFromPlugins();
+    }
 
-        var gpuCommandRenderSystem = _renderPipeline.GetRenderLayerSystem<GpuCommandRenderSystem>();
+    private void InizializeGameObjectFromPlugins()
+    {
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+        var loadedPlugins = pluginRegistry.GetLoadedPlugins().ToList();
 
-        _renderPipeline.AddGameObject(new PerformanceDebugger(_container.Resolve<IPerformanceProfilerService>()));
+        _logger.Information("Loading game objects from {PluginCount} plugins", loadedPlugins.Count);
 
-        _renderPipeline.AddGameObject(
-            new ImGuiActionDebugger(
-                "Action Debugger",
-                () =>
-                {
-                    var clearColor = gpuCommandRenderSystem.ClearColor.ToVector4();
-                    ImGui.Text("Lilly Engine Action Debugger");
-                    ImGui.ColorEdit4("Clear Color", ref clearColor);
-                    gpuCommandRenderSystem.ClearColor = clearColor;
-                }
-            )
-        );
-
-        _renderPipeline.AddGameObject(factory.Create<CameraDebugger>());
-
-        _renderPipeline.AddGameObject(factory.Create<InputDebugger>());
-
-        foreach (var plugin in pluginRegistry.GetLoadedPlugins())
+        foreach (var plugin in loadedPlugins)
         {
-            foreach (var globalGameObject in plugin.GlobalGameObjects(factory))
+            _logger.Debug("Loading global game objects from plugin {PluginId}", plugin.LillyData.Id);
+
+            foreach (var globalGameObject in plugin.GlobalGameObjects(_container.Resolve<IGameObjectFactory>()))
             {
+                _logger.Debug("Adding game object {GameObjectType} from plugin {PluginId}",
+                    globalGameObject.GetType().Name,
+                    plugin.LillyData.Id);
+
                 _renderPipeline.AddGameObject(globalGameObject);
             }
         }
-
-        foreach (var index in Enumerable.Range(1, 100))
-        {
-            var randomX = Random.Shared.Next(-10, 10);
-            var randomY = Random.Shared.Next(-10, 10);
-            var randomZ = Random.Shared.Next(-10, 10);
-            var cube = factory.Create<SimpleCubeGameObject>();
-
-            cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(cube);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var cube = factory.Create<SimpleCubeGameObject>();
-
-            cube.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(cube);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var sphere = factory.Create<SimpleSphereGameObject>();
-
-            sphere.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(sphere);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var pyramid = factory.Create<SimplePyramidGameObject>();
-
-            pyramid.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(pyramid);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var torus = factory.Create<SimpleTorusGameObject>();
-
-            torus.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(torus);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var star = factory.Create<SimpleStarGameObject>();
-
-            star.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(star);
-        }
-
-        foreach (var index in Enumerable.Range(1, 5))
-        {
-            var randomX = Random.Shared.Next(-50, 50);
-            var randomY = Random.Shared.Next(-50, 50);
-            var randomZ = Random.Shared.Next(-50, 50);
-            var fractal = factory.Create<SimpleFractalCubeGameObject>();
-
-            fractal.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(fractal);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-10, 10);
-            var randomY = Random.Shared.Next(-10, 10);
-            var randomZ = Random.Shared.Next(-10, 10);
-            var pyramid = factory.Create<SimplePyramidGameObject>();
-
-            pyramid.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(pyramid);
-        }
-
-        foreach (var index in Enumerable.Range(1, 10))
-        {
-            var randomX = Random.Shared.Next(-10, 10);
-            var randomY = Random.Shared.Next(-10, 10);
-            var randomZ = Random.Shared.Next(-10, 10);
-            var torus = factory.Create<SimpleTorusGameObject>();
-
-            torus.Transform.Position = new Vector3D<float>(randomX, randomY, randomZ);
-            _renderPipeline.AddGameObject(torus);
-        }
-
-        // _renderPipeline.AddGameObject(
-        //     new TextGameObject()
-        //     {
-        //         Text = "Lilly Lilly",
-        //         Transform = { Position = new Vector2D<float>(300, 300) }
-        //     }
-        // );
-        //
-        // var logo = new ImageGameObject()
-        // {
-        //     TextureKey = "logo",
-        // };
-        //
-        // logo.Transform.Position = new Vector2D<float>(200, 200);
-        // logo.Transform.Scale = new Vector2D<float>(0.1f, 0.1f);
-        //
-        // var rectangle = new RectangleGameObject()
-        // {
-        //     Size = new Vector2D<float>(400, 100),
-        //     Color = Color4b.CornflowerBlue,
-        //     BorderThickness = 2,
-        // };
-        //
-        // rectangle.Transform.Position = new Vector2D<float>(400, 400);
-        // _renderPipeline.AddGameObject(rectangle);
-        //
-        // _renderPipeline.AddGameObject(logo);
-        //
-        // var textBox = new TextEditGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // );
-        //
-        // textBox.Text = "Welcome to Lilly Engine!";
-        // textBox.Transform.Position = new Vector2D<float>(50, 50);
-        // textBox.Transform.Size = new Vector2D<float>(400, 32);
-        //
-        // _renderPipeline.AddGameObject(textBox);
-        //
-        // var button = new ButtonGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Text = "Click Me!",
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(50, 100),
-        //         Size = new Vector2D<float>(150, 40)
-        //     }
-        // };
-        //
-        // button.Click += (sender, args) =>
-        //                 {
-        //                     _logger.Information("Button Clicked!");
-        //                 };
-        //
-        // _renderPipeline.AddGameObject(button);
-        //
-        // var comboBox = new ComboBoxGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(50, 150),
-        //         Size = new Vector2D<float>(200, 30)
-        //     }
-        // };
-        //
-        // comboBox.Items.Add("Option 1");
-        // comboBox.Items.Add("Option 2");
-        // comboBox.Items.Add("Option 3");
-        // comboBox.SelectedIndex = 0;
-        //
-        // _renderPipeline.AddGameObject(comboBox);
-        //
-        // var progressBar = new ProgressBarGameObject(
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(50, 200),
-        //         Size = new Vector2D<float>(300, 25)
-        //     },
-        //     Progress = 0.5f
-        // };
-        //
-        // _renderPipeline.AddGameObject(progressBar);
-        //
-        // var listBox = new ListBoxGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(50, 250),
-        //         Size = new Vector2D<float>(200, 100)
-        //     }
-        // };
-        //
-        // listBox.Items.Add("Item 1");
-        // listBox.Items.Add("Item 2");
-        // listBox.Items.Add("Item 3");
-        // listBox.Items.Add("Item 4");
-        // listBox.Items.Add("Item 5");
-        //
-        // _renderPipeline.AddGameObject(listBox);
-        //
-        // var memo = new MemoEditGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(300, 50),
-        //         Size = new Vector2D<float>(400, 150)
-        //     },
-        //     Text = "This is a memo edit box.\nYou can write multiple lines of text here."
-        // };
-        //
-        // _renderPipeline.AddGameObject(memo);
-        //
-        // var checkBox = new CheckBoxGameObject(
-        //     _container.Resolve<IInputManagerService>(),
-        //     _container.Resolve<IAssetManager>(),
-        //     UITheme.Default
-        // )
-        // {
-        //     Transform =
-        //     {
-        //         Position = new Vector2D<float>(50, 370),
-        //         Size = new Vector2D<float>(20, 20)
-        //     },
-        //     IsChecked = true,
-        //     Label = "Is Checked",
-        // };
-        //
-        // _renderPipeline.AddGameObject(checkBox);
-
-        _renderPipeline.AddGameObject(new LogViewerDebugger(new()));
-        _renderPipeline.AddGameObject(new RenderPipelineDiagnosticsDebugger(_renderPipeline));
     }
 
     private void RegisterDefaults()
@@ -528,6 +263,7 @@ public class LillyBoostrap : ILillyBootstrap
             ;
 
         _container.AddLuaUserData<Vector2D<int>>();
+
         _container
             .AddScriptModule<EngineModule>()
             .AddScriptModule<ConsoleModule>()
@@ -600,7 +336,6 @@ public class LillyBoostrap : ILillyBootstrap
 
         var scriptEngine = _container.Resolve<IScriptEngineService>();
 
-
         InitializePlugins();
 
         var pluginRegistry = _container.Resolve<PluginRegistry>();
@@ -609,7 +344,6 @@ public class LillyBoostrap : ILillyBootstrap
         {
             plugin.EngineInitialized(_container);
         }
-
 
         _container.Resolve<IGameObjectFactory>();
 
