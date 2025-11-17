@@ -199,6 +199,27 @@ public class LillyBoostrap : ILillyBootstrap
         _renderPipeline.Initialize();
 
         InizializeGameObjectFromPlugins();
+
+        //generate 10 random cubes for testing
+        var random = new Random();
+        var gameObjectFactory = _container.Resolve<IGameObjectFactory>();
+
+        for (int i = 0; i < 10; i++)
+        {
+            var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
+            cube.Transform.Position = new Vector3D<float>(
+                random.Next(-10, 10),
+                random.Next(-10, 10),
+                random.Next(-10, 10)
+            );
+            cube.Transform.Scale = new Vector3D<float>(
+                random.Next(1, 3),
+                random.Next(1, 3),
+                random.Next(1, 3)
+            );
+            _renderPipeline.AddGameObject(cube);
+        }
+
     }
 
     private void InizializeGameObjectFromPlugins()
@@ -214,9 +235,11 @@ public class LillyBoostrap : ILillyBootstrap
 
             foreach (var globalGameObject in plugin.GlobalGameObjects(_container.Resolve<IGameObjectFactory>()))
             {
-                _logger.Debug("Adding game object {GameObjectType} from plugin {PluginId}",
+                _logger.Debug(
+                    "Adding game object {GameObjectType} from plugin {PluginId}",
                     globalGameObject.GetType().Name,
-                    plugin.LillyData.Id);
+                    plugin.LillyData.Id
+                );
 
                 _renderPipeline.AddGameObject(globalGameObject);
             }

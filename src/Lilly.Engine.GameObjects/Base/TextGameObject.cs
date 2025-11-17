@@ -55,7 +55,7 @@ public class TextGameObject : BaseGameObject2D
         {
             var size = font.MeasureString(Text);
             // Update Transform.Size for proper scissor clipping
-            Transform.Size = new Vector2D<float>(size.X, size.Y);
+            Transform.Size = new(size.X, size.Y);
 
             if (CenterText)
             {
@@ -63,6 +63,6 @@ public class TextGameObject : BaseGameObject2D
             }
         }
 
-        yield return DrawText(FontFamily, Text, FontSize, Color, origin: origin);
+        yield return DrawText(FontFamily, Text, FontSize, Color);
     }
 }

@@ -1,9 +1,8 @@
-using System;
 using System.Runtime.InteropServices;
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Lilly.Voxel.Plugin.Primitives;
+namespace Lilly.Voxel.Plugin.Primitives.Vertex;
 
 /// <summary>
 /// Defines the vertex layout used by chunk geometry shaders.

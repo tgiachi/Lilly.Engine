@@ -1,3 +1,5 @@
+using Lilly.Voxel.Plugin.Primitives.Vertex;
+
 namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>

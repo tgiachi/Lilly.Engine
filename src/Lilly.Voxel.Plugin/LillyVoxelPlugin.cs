@@ -13,6 +13,7 @@ using Lilly.Voxel.Plugin.GameObjects.Environment;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
+using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
 using Serilog;
 using Squid.Engine.World.Voxels.Interfaces.Services;
@@ -36,20 +37,46 @@ public class LillyVoxelPlugin : ILillyPlugin
             ["aPosition"],
             typeof(LillyVoxelPlugin).Assembly
         );
+
+        assetManager.LoadShaderFromResource<SnowVertex>(
+            "snow",
+            "Assets/Shaders/Environment/snow.shader",
+            ["aPosition", "aCorner", "aSize", "aAlpha"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<RainVertex>(
+            "rain",
+            "Assets/Shaders/Environment/rain.shader",
+            ["aPosition", "aCorner", "aLength", "aAlpha"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<RainVertex>(
+            "rain_legacy",
+            "Assets/Shaders/Environment/rain_legacy.shader",
+            ["aPosition", "aCorner", "aLength", "aAlpha"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
     }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield break;
-        //yield return gameObjectFactory.Create<SkyGameObject>();
+        yield return gameObjectFactory.Create<SkyGameObject>();
+        yield return gameObjectFactory.Create<SnowEffectGameObject>();
+        yield return gameObjectFactory.Create<RainEffectGameObject>();
+
+
+
     }
 
     public IContainer RegisterModule(IContainer container)
     {
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
 
-
         container.RegisterGameObject<SkyGameObject>();
+        container.RegisterGameObject<SnowEffectGameObject>();
+        container.RegisterGameObject<RainEffectGameObject>();
 
         container.RegisterService<IBlockRegistry, BlockRegistry>();
 

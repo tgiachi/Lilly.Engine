@@ -1,9 +1,8 @@
-using System;
 using System.Runtime.InteropServices;
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Lilly.Voxel.Plugin.Primitives;
+namespace Lilly.Voxel.Plugin.Primitives.Vertex;
 
 /// <summary>
 /// Vertex layout used for water and other fluid quads.
