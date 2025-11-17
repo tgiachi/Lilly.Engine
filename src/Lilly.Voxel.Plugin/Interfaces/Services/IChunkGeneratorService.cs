@@ -1,0 +1,27 @@
+using System.Numerics;
+using Squid.Engine.World.Voxels.Interfaces.Generation.Pipeline;
+using Squid.Engine.World.Voxels.Primitives;
+
+namespace Lilly.Voxel.Plugin.Interfaces.Services;
+
+public interface IChunkGeneratorService
+{
+    int Seed { get; set; }
+
+    Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position);
+
+    Task StartAsync(CancellationToken cancellationToken = default);
+
+    Task<ChunkEntity> GetChunkByWorldPosition(int chunkX, int chunkY, int chunkZ);
+
+    Task<IEnumerable<ChunkEntity>> GetChunksByPositions(IEnumerable<Vector3> positions);
+
+    Task GenerateInitialChunksAsync();
+
+    void AddGeneratorStep(IGeneratorStep generationStep);
+
+    void ClearCache();
+
+    bool RemoveGeneratorStep(string stepName);
+
+}
