@@ -11,6 +11,8 @@ using Lilly.Engine.Rendering.Core.Utils;
 using Serilog;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using TrippyGL;
 using TrippyGL.ImageSharp;
 
@@ -156,9 +158,12 @@ public class AssetManager : IAssetManager, IDisposable
         int margin = 0
     )
     {
-        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
+
+
 
         var textureName = atlasName + "_atlas";
+        LoadTextureFromMemory(textureName, stream);
+        var texture = _texture2Ds[textureName];
         _texture2Ds[textureName] = texture;
 
         var atlasDefinition = new AtlasDefinition(textureName, atlasName, tileWidth, tileHeight, margin, spacing);
@@ -233,7 +238,9 @@ public class AssetManager : IAssetManager, IDisposable
             throw new InvalidOperationException($"Texture atlas '{atlasName}' is not loaded.");
         }
 
-        var columns = (int)((_texture2Ds[atlasDefinition.TextureName].Width - 2 * atlasDefinition.Margin + atlasDefinition.Spacing) /
+        var columns = (int)((_texture2Ds[atlasDefinition.TextureName].Width -
+                             2 * atlasDefinition.Margin +
+                             atlasDefinition.Spacing) /
                             (float)(atlasDefinition.Width + atlasDefinition.Spacing));
 
         var tileIndex = yIndex * columns + xIndex;
@@ -466,6 +473,36 @@ public class AssetManager : IAssetManager, IDisposable
     }
 
     /// <summary>
+    /// Replaces all magenta pixels (RGB: 255, 0, 255) with transparent pixels in the image.
+    /// This is useful for handling transparency in sprite sheets or textures.
+    /// </summary>
+    /// <param name="image">The image to process.</param>
+    private static void ReplaceMagentaWithTransparency(Image<Rgba32> image)
+    {
+        image.ProcessPixelRows(
+            accessor =>
+            {
+                for (var y = 0; y < accessor.Height; y++)
+                {
+                    var row = accessor.GetRowSpan(y);
+
+                    for (var x = 0; x < row.Length; x++)
+                    {
+                        var pixel = row[x];
+
+                        // Check if pixel is magenta (RGB: 255, 0, 255)
+                        if (pixel.R == 255 && pixel.G == 0 && pixel.B == 255)
+                        {
+                            // Set alpha to 0 to make it transparent
+                            row[x] = new Rgba32(255, 0, 255, 0);
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    /// <summary>
     /// Loads a texture from a file and registers it with the asset manager.
     /// </summary>
     /// <param name="textureName">The name to associate with the loaded texture.</param>
@@ -481,14 +518,26 @@ public class AssetManager : IAssetManager, IDisposable
 
     /// <summary>
     /// Loads a texture from a stream and registers it with the asset manager.
+    /// Magenta pixels (RGB: 255, 0, 255) are automatically replaced with transparent pixels.
     /// </summary>
     /// <param name="textureName">The name to associate with the loaded texture.</param>
     /// <param name="stream">The stream containing the texture data.</param>
     public void LoadTextureFromMemory(string textureName, Stream stream)
     {
-        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
+        // Read the image from the stream to process it
+        using var image = Image.Load<Rgba32>(stream);
+
+        // Replace magenta pixels with transparent ones
+        ReplaceMagentaWithTransparency(image);
+
+        // Save the processed image to a memory stream and load it as texture
+        using var processedStream = new MemoryStream();
+        image.SaveAsPng(processedStream);
+        processedStream.Seek(0, SeekOrigin.Begin);
+
+        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, processedStream, true);
         _texture2Ds[textureName] = texture;
-        _logger.Information("Loaded texture {TextureName}", textureName);
+        _logger.Information("Loaded texture {TextureName} (magenta pixels converted to transparent)", textureName);
     }
 
     /// <summary>
