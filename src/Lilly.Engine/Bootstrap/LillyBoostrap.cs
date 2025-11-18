@@ -114,6 +114,18 @@ public class LillyBoostrap : ILillyBootstrap
 
         try
         {
+            // Dispose audio service
+            var audioService = _container.Resolve<IAudioService>();
+            audioService?.Dispose();
+            _logger.Debug("Audio service disposed");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error disposing audio service");
+        }
+
+        try
+        {
             // Dispose event bus service (handles pending events)
             var eventBus = _container.Resolve<IEventBusService>();
             (eventBus as IDisposable)?.Dispose();
@@ -332,6 +344,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<ISceneManager, SceneManager>()
             .RegisterService<INotificationService, NotificationService>()
             .RegisterService<IEventBusService, EventBusService>()
+            .RegisterService<IAudioService, AudioService>()
             ;
 
         _container
@@ -418,6 +431,7 @@ public class LillyBoostrap : ILillyBootstrap
         _container.Resolve<IEventBusService>();
         _container.Resolve<ITimerService>();
         _container.Resolve<IMainThreadDispatcher>();
+        _container.Resolve<IAudioService>();
 
         _container.Resolve<IJobSystemService>()
                   .Initialize(Environment.ProcessorCount);

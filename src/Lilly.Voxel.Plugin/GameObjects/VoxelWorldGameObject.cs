@@ -73,7 +73,7 @@ public class VoxelWorldGameObject : BaseGameObject3D
             var testChunkEntity = await _chunkGeneratorService.GetChunkByWorldPosition(0, 0, 0);
 
             _testChunk.SetChunk(testChunkEntity);
-            _testChunk.Coordinates = new ChunkCoordinates(0, 0, 0);
+            _testChunk.Coordinates = new(0, 0, 0);
 
             _logger.Information("Test chunk loaded and ready for rendering");
         }
