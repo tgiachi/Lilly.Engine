@@ -47,12 +47,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             typeof(LillyVoxelPlugin).Assembly
         );
 
-        assetManager.LoadShaderFromResource<RainVertex>(
-            "rain",
-            "Assets/Shaders/Environment/rain.shader",
-            ["aPosition", "aCorner", "aLength", "aAlpha"],
-            typeof(LillyVoxelPlugin).Assembly
-        );
+       
 
         assetManager.LoadShaderFromResource<RainVertex>(
             "rain_legacy",
