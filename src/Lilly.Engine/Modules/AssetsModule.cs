@@ -19,7 +19,6 @@ public class AssetsModule
         return fontName;
     }
 
-
     [ScriptFunction("load_texture", "Loads a texture from the specified file path and returns its name.")]
     public string LoadTexture(string textureName, string texturePath)
     {
@@ -28,4 +27,19 @@ public class AssetsModule
         return textureName;
     }
 
+
+    [ScriptFunction("load_atlas", "Loads a texture atlas from the specified file path and returns its name.")]
+    public string LoadTextureAtlas(
+        string atlasName,
+        string atlasPath,
+        int tileWidth,
+        int tileHeight,
+        int margin = 0,
+        int spacing = 0
+    )
+    {
+        _assetManager.LoadTextureAtlasFromFile(atlasName, atlasPath, tileWidth, tileHeight, margin, spacing);
+
+        return atlasName;
+    }
 }

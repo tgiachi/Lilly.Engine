@@ -1,3 +1,4 @@
+using Lilly.Engine.Rendering.Core.Data.TextureAtlas;
 using TrippyGL;
 
 namespace Lilly.Engine.Rendering.Core.Interfaces.Services;
@@ -24,6 +25,36 @@ public interface IAssetManager
     ShaderProgram GetShaderProgram(string shaderName);
 
 
+
+    /// <summary>
+    ///  Loads a texture atlas from a file.
+    /// </summary>
+    /// <param name="atlasName"></param>
+    /// <param name="atlasPath"></param>
+    /// <param name="tileWidth"></param>
+    /// <param name="tileHeight"></param>
+    /// <param name="spacing"></param>
+    /// <param name="margin"></param>
+    void LoadTextureAtlasFromFile(string atlasName, string atlasPath, int tileWidth, int tileHeight, int spacing = 0, int margin = 0);
+
+    /// <summary>
+    ///  Loads a texture atlas from memory.
+    /// </summary>
+    /// <param name="atlasName"></param>
+    /// <param name="stream"></param>
+    /// <param name="tileWidth"></param>
+    /// <param name="tileHeight"></param>
+    /// <param name="spacing"></param>
+    /// <param name="margin"></param>
+    void LoadTextureAtlasFromMemory(string atlasName, Stream stream, int tileWidth, int tileHeight, int spacing = 0, int margin = 0);
+
+    /// <summary>
+    /// Gets a specific region from a loaded texture atlas.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="tileIndex">The index of the tile in the atlas.</param>
+    /// <returns>The atlas region with UV coordinates and size.</returns>
+    AtlasRegion GetAtlasRegion(string atlasName, int tileIndex);
 
     /// <summary>
     /// Gets the texture by name.

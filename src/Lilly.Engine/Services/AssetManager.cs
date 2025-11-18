@@ -5,9 +5,11 @@ using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Engine.Rendering.Core.Data.TextureAtlas;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Utils;
 using Serilog;
+using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using TrippyGL;
 using TrippyGL.ImageSharp;
@@ -27,6 +29,8 @@ public class AssetManager : IAssetManager, IDisposable
 
     private readonly Dictionary<string, Texture2D> _texture2Ds = new();
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
+
+    private readonly Dictionary<string, AtlasDefinition> _textureAtlases = new();
 
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
@@ -126,6 +130,99 @@ public class AssetManager : IAssetManager, IDisposable
         => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
                ? shaderProgram
                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+
+    public void LoadTextureAtlasFromFile(
+        string atlasName,
+        string atlasPath,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    )
+    {
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], atlasPath);
+
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
+
+        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin);
+    }
+
+    public void LoadTextureAtlasFromMemory(
+        string atlasName,
+        Stream stream,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    )
+    {
+        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, stream, true);
+
+        var textureName = atlasName + "_atlas";
+        _texture2Ds[textureName] = texture;
+
+        var atlasDefinition = new AtlasDefinition(textureName, atlasName, tileWidth, tileHeight, margin, spacing);
+
+        var columns = (int)((texture.Width - 2 * margin + spacing) / (float)(tileWidth + spacing));
+        var rows = (int)((texture.Height - 2 * margin + spacing) / (float)(tileHeight + spacing));
+
+        for (var y = 0; y < rows; y++)
+        {
+            for (var x = 0; x < columns; x++)
+            {
+                // Calculate pixel position of this tile in the atlas
+                var pixelX = margin + x * (tileWidth + spacing);
+                var pixelY = margin + y * (tileHeight + spacing);
+
+                // Convert to UV coordinates (0.0 - 1.0)
+                var uvX = pixelX / (float)texture.Width;
+                var uvY = pixelY / (float)texture.Height;
+                var uvWidth = tileWidth / (float)texture.Width;
+                var uvHeight = tileHeight / (float)texture.Height;
+
+                var region = new AtlasRegion(
+                    new Vector2D<float>(uvX, uvY),
+                    new Vector2D<float>(uvWidth, uvHeight)
+                );
+
+                atlasDefinition.AddRegion(region);
+            }
+        }
+
+        _textureAtlases[atlasName] = atlasDefinition;
+
+        _logger.Information(
+            "Loaded texture atlas {AtlasName} - Texture: {TextureName}, Tiles: {Columns}x{Rows}, TileSize: {TileWidth}x{TileHeight}",
+            atlasName,
+            textureName,
+            columns,
+            rows,
+            tileWidth,
+            tileHeight
+        );
+    }
+
+    /// <summary>
+    /// Gets a specific region from a loaded texture atlas.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="tileIndex">The index of the tile in the atlas.</param>
+    /// <returns>The atlas region with UV coordinates and size.</returns>
+    public AtlasRegion GetAtlasRegion(string atlasName, int tileIndex)
+    {
+        if (!_textureAtlases.TryGetValue(atlasName, out var atlasDefinition))
+        {
+            throw new InvalidOperationException($"Texture atlas '{atlasName}' is not loaded.");
+        }
+
+        if (tileIndex < 0 || tileIndex >= atlasDefinition.Regions.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tileIndex),
+                $"Tile index {tileIndex} is out of range for atlas '{atlasName}' with {atlasDefinition.Regions.Count} tiles.");
+        }
+
+        return atlasDefinition.Regions[tileIndex];
+    }
 
     /// <summary>
     /// Retrieves a previously loaded texture by name.
