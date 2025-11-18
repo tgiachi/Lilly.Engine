@@ -9,8 +9,8 @@ internal sealed class SynchronousFireAndForgetJob : QueuedJob
 {
     private readonly IJob _job;
 
-    public SynchronousFireAndForgetJob(IJob job)
-        : base(job.Name, CancellationToken.None)
+    public SynchronousFireAndForgetJob(IJob job, JobPriority priority)
+        : base(job.Name, priority, CancellationToken.None)
         => _job = job;
 
     protected override Task ExecuteCoreAsync(CancellationToken cancellationToken)

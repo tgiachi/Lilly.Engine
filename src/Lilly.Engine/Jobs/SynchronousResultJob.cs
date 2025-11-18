@@ -10,8 +10,8 @@ internal sealed class SynchronousResultJob<TResult> : QueuedJob
     private readonly IJob<TResult> _job;
     private readonly TaskCompletionSource<TResult> _completionSource;
 
-    public SynchronousResultJob(IJob<TResult> job, CancellationToken cancellationToken)
-        : base(job.Name, cancellationToken)
+    public SynchronousResultJob(IJob<TResult> job, JobPriority priority, CancellationToken cancellationToken)
+        : base(job.Name, priority, cancellationToken)
     {
         _job = job;
         _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);

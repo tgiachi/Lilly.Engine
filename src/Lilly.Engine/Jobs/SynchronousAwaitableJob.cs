@@ -10,8 +10,8 @@ internal sealed class SynchronousAwaitableJob : QueuedJob
     private readonly IJob _job;
     private readonly TaskCompletionSource<bool> _completionSource;
 
-    public SynchronousAwaitableJob(IJob job, CancellationToken cancellationToken)
-        : base(job.Name, cancellationToken)
+    public SynchronousAwaitableJob(IJob job, JobPriority priority, CancellationToken cancellationToken)
+        : base(job.Name, priority, cancellationToken)
     {
         _job = job;
         _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);

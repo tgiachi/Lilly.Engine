@@ -10,8 +10,8 @@ internal sealed class AsyncJobWrapper<TResult> : QueuedJob
     private readonly IAsyncJob<TResult> _job;
     private readonly TaskCompletionSource<TResult> _completionSource;
 
-    public AsyncJobWrapper(IAsyncJob<TResult> job, CancellationToken cancellationToken)
-        : base(job.Name, cancellationToken)
+    public AsyncJobWrapper(IAsyncJob<TResult> job, JobPriority priority, CancellationToken cancellationToken)
+        : base(job.Name, priority, cancellationToken)
     {
         _job = job;
         _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -1,5 +1,6 @@
 using DryIoc;
 using Lilly.Engine.Core.Extensions.Container;
+using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
@@ -15,6 +16,7 @@ using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
+using Lilly.Voxel.Plugin.Steps;
 using Serilog;
 using Squid.Engine.World.Voxels.Interfaces.Services;
 
@@ -58,6 +60,21 @@ public class LillyVoxelPlugin : ILillyPlugin
             ["aPosition", "aCorner", "aLength", "aAlpha"],
             typeof(LillyVoxelPlugin).Assembly
         );
+
+        var generatorService = container.Resolve<IChunkGeneratorService>();
+
+        var jobSystem = container.Resolve<IJobSystemService>();
+
+        generatorService.AddGeneratorStep(new FlatWorldGenerationStep());
+
+        jobSystem.ExecuteAsync(
+            "LillyVoxelPlugin: Load Default Generators",
+            async () =>
+            {
+                await generatorService.GenerateInitialChunksAsync();
+                _logger.Information("Default chunk generators loaded.");
+            }
+        );
     }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
@@ -65,9 +82,6 @@ public class LillyVoxelPlugin : ILillyPlugin
         yield return gameObjectFactory.Create<SkyGameObject>();
         yield return gameObjectFactory.Create<SnowEffectGameObject>();
         yield return gameObjectFactory.Create<RainEffectGameObject>();
-
-
-
     }
 
     public IContainer RegisterModule(IContainer container)
@@ -82,8 +96,9 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         container.RegisterService<IChunkGeneratorService, ChunkGeneratorService>();
 
-        container.AddScriptModule<BlockRegistryModule>()
-                 .AddScriptModule<GenerationModule>();
+        container
+            .AddScriptModule<BlockRegistryModule>()
+            .AddScriptModule<GenerationModule>();
 
         return container;
     }

@@ -103,7 +103,6 @@ public class BlockRegistry : IBlockRegistry
         _blocksById[block.Id] = builtBlock;
         _blocksByName[block.Name] = builtBlock;
 
-        _logger.Information("Built and registered block: {BlockName} with ID {BlockId}", builtBlock.Name, builtBlock.Id);
     }
 
     public void RegisterBlockFromJson(BlockDefinitionJson blockJson)

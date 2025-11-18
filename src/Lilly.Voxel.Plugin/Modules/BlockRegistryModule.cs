@@ -5,6 +5,7 @@ using Lilly.Engine.Core.Json;
 using Lilly.Voxel.Plugin.Json.Entities;
 using Lilly.Voxel.Plugin.Primitives;
 using MoonSharp.Interpreter;
+using Serilog;
 using Squid.Engine.World.Voxels.Interfaces.Services;
 
 namespace Lilly.Voxel.Plugin.Modules;
@@ -13,6 +14,7 @@ namespace Lilly.Voxel.Plugin.Modules;
     "block_registry",
     "Provides access to the block registry, allowing retrieval of block types and their properties."
 )]
+
 /// <summary>
 /// Provides scripting access to the block registry for registering and creating block types.
 /// </summary>
@@ -20,6 +22,7 @@ public class BlockRegistryModule
 {
     private readonly IBlockRegistry _blockRegistry;
 
+    private readonly ILogger _logger = Log.ForContext<BlockRegistryModule>();
     private readonly DirectoriesConfig _directoriesConfig;
 
     public BlockRegistryModule(IBlockRegistry blockRegistry, DirectoriesConfig directoriesConfig)
@@ -62,10 +65,12 @@ public class BlockRegistryModule
             {
                 _blockRegistry.RegisterBlockFromJson(blockJson);
             }
+
+            _logger.Information("Loaded {Count} blocks from {FileName}", blocks.Length, fileName);
+
             return;
         }
 
         throw new FileNotFoundException($"The file {fileName} was not found.");
-
     }
 }

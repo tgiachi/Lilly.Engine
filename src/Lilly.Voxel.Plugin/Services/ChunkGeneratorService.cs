@@ -47,7 +47,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     // Configuration
     private readonly int _maxConcurrentGenerations;
     private int _maxCachedChunks = 512;
-    private bool _useJobSystem = false;
+    private bool _useJobSystem;
 
     // Metrics counters
     private long _totalChunksGenerated;
@@ -207,10 +207,12 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     {
         if (_useJobSystem)
         {
-            return await _jobSystemService.ExecuteTaskAsync(
-                       "ChunkGeneration",
-                       _ => GenerateChunkAsync(chunkPosition)
-                   );
+            var handle = _jobSystemService.ExecuteTaskAsync(
+                "ChunkGeneration",
+                _ => GenerateChunkAsync(chunkPosition)
+            );
+
+            return await handle.CompletionTask;
         }
 
         return await GenerateChunkAsync(chunkPosition);

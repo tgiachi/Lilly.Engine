@@ -1,3 +1,5 @@
+using Lilly.Engine.Core.Interfaces.Jobs;
+
 namespace Lilly.Engine.Jobs;
 
 /// <summary>
@@ -14,13 +16,15 @@ public sealed class TaskResultJob<TResult> : QueuedJob
     /// </summary>
     /// <param name="name">The name of the job.</param>
     /// <param name="taskFactory">Function that creates and returns the task to execute.</param>
+    /// <param name="priority">The execution priority of the job.</param>
     /// <param name="cancellationToken">Token used to cancel the job.</param>
     public TaskResultJob(
         string name,
         Func<CancellationToken, Task<TResult>> taskFactory,
+        JobPriority priority,
         CancellationToken cancellationToken
     )
-        : base(name, cancellationToken)
+        : base(name, priority, cancellationToken)
     {
         _taskFactory = taskFactory ?? throw new ArgumentNullException(nameof(taskFactory));
         _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -31,9 +35,10 @@ public sealed class TaskResultJob<TResult> : QueuedJob
     /// </summary>
     /// <param name="name">The name of the job.</param>
     /// <param name="taskFactory">Function that creates and returns the task to execute.</param>
+    /// <param name="priority">The execution priority of the job.</param>
     /// <param name="cancellationToken">Token used to cancel the job.</param>
-    public TaskResultJob(string name, Func<Task<TResult>> taskFactory, CancellationToken cancellationToken)
-        : base(name, cancellationToken)
+    public TaskResultJob(string name, Func<Task<TResult>> taskFactory, JobPriority priority, CancellationToken cancellationToken)
+        : base(name, priority, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(taskFactory);
 
