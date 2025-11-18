@@ -46,7 +46,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     // Configuration
     private readonly int _maxConcurrentGenerations;
     private int _maxCachedChunks = 512;
-    private bool _useJobSystem = true;
+    private bool _useJobSystem = false;
 
     // Metrics counters
     private long _totalChunksGenerated;
@@ -258,7 +258,8 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
                 try
                 {
                     // context.CloudAreas.Clear();
-                    // await step.ExecuteAsync(context);
+                    await step.ExecuteAsync(context);
+
                     //
                     // if (context.CloudAreas.Count > 0)
                     // {

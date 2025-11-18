@@ -531,13 +531,25 @@ public sealed class ChunkMeshBuilder
         vertices.Add(new ChunkVertex(v2, lighting, t2, tileBase, tileSize, blockCoord));
         vertices.Add(new ChunkVertex(v3, lighting, t3, tileBase, tileSize, blockCoord));
 
-        // Add indices for two triangles
-        indices.Add(baseIndex);
-        indices.Add(baseIndex + 1);
-        indices.Add(baseIndex + 2);
-        indices.Add(baseIndex);
-        indices.Add(baseIndex + 2);
-        indices.Add(baseIndex + 3);
+        // Generate indices with consistent outward winding (CCW for OpenGL)
+        if (face is BlockFace.Top or BlockFace.Bottom)
+        {
+            indices.Add(baseIndex);
+            indices.Add(baseIndex + 1);
+            indices.Add(baseIndex + 2);
+            indices.Add(baseIndex);
+            indices.Add(baseIndex + 2);
+            indices.Add(baseIndex + 3);
+        }
+        else
+        {
+            indices.Add(baseIndex);
+            indices.Add(baseIndex + 2);
+            indices.Add(baseIndex + 1);
+            indices.Add(baseIndex);
+            indices.Add(baseIndex + 3);
+            indices.Add(baseIndex + 2);
+        }
     }
 
     /// <summary>
@@ -545,7 +557,22 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private static bool CanMerge(FaceRenderInfo a, FaceRenderInfo b)
     {
-        return a.HasValue && b.HasValue && a.Lighting == b.Lighting;
+        if (!a.HasValue || !b.HasValue)
+        {
+            return false;
+        }
+
+        if (a.BlockType == null || b.BlockType == null)
+        {
+            return false;
+        }
+
+        if (a.BlockType.Id != b.BlockType.Id)
+        {
+            return false;
+        }
+
+        return a.Lighting == b.Lighting;
     }
 
     /// <summary>

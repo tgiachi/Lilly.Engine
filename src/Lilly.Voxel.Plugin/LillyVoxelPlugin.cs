@@ -38,18 +38,8 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         var generatorService = container.Resolve<IChunkGeneratorService>();
 
-        var jobSystem = container.Resolve<IJobSystemService>();
 
         generatorService.AddGeneratorStep(new FlatWorldGenerationStep());
-
-        jobSystem.ExecuteAsync(
-            "LillyVoxelPlugin: Load Default Generators",
-            async () =>
-            {
-                await generatorService.GenerateInitialChunksAsync();
-                _logger.Information("Default chunk generators loaded.");
-            }
-        );
     }
 
     private void LoadShaders(IAssetManager assetManager)

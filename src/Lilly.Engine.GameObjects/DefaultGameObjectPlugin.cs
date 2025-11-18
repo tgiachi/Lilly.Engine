@@ -27,19 +27,6 @@ public class DefaultGameObjectPlugin : ILillyPlugin
 
         yield return gameObjectFactory.Create<ScriptErrorGameObject>();
 
-        var textConsole = gameObjectFactory.Create<TextGameObject>();
-        textConsole.Transform.Position = new(100, 100);
-        textConsole.Color = Color4b.Blue;
-        ;
-        textConsole.Text = "Quake Console (Press ` to toggle)";
-
-        yield return textConsole;
-
-        var textBox = gameObjectFactory.Create<TextEditGameObject>();
-        textBox.Transform.Position = new(100, 200);
-
-        yield return textBox;
-
     }
 
     public IContainer RegisterModule(IContainer container)

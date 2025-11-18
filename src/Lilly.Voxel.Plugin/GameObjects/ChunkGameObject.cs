@@ -1,5 +1,6 @@
 using System;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Helpers;
@@ -31,6 +32,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private ChunkMeshData? _cachedMeshData;
     private bool _meshDirty = true;
     private float _animationTime;
+    private string _blockAtlasName = "blocks"; // Default atlas name for blocks
 
     // GPU Resources for each geometry type
     private VertexBuffer<ChunkVertex>? _solidVertexBuffer;
@@ -38,10 +40,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private VertexBuffer<ChunkFluidVertex>? _fluidVertexBuffer;
     private VertexBuffer<ChunkItemVertex>? _itemVertexBuffer;
 
-    private uint _solidIndexCount;
-    private uint _billboardIndexCount;
-    private uint _fluidIndexCount;
-    private uint _itemIndexCount;
+    private uint _solidVertexCount;
+    private uint _billboardVertexCount;
+    private uint _fluidVertexCount;
+    private uint _itemVertexCount;
 
     // Shader programs
     private ShaderProgram? _blockShader;
@@ -162,6 +164,9 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 
         try
         {
+            // Extract atlas name from the first non-air block
+            ExtractBlockAtlasName();
+
             // Build mesh data from chunk
             _cachedMeshData = _meshBuilder.BuildMeshData(Chunk, null);
 
@@ -178,63 +183,156 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     }
 
     /// <summary>
+    /// Extracts the atlas name from the first non-air block in the chunk.
+    /// </summary>
+    private void ExtractBlockAtlasName()
+    {
+        if (Chunk == null)
+            return;
+
+        // Count non-air blocks for debugging
+        int nonAirBlockCount = 0;
+        BlockType? firstNonAirBlock = null;
+        ushort firstNonAirBlockId = 0;
+
+        for (int i = 0; i < Chunk.Blocks.Length; i++)
+        {
+            var blockId = Chunk.Blocks[i];
+            if (blockId != 0) // Not air
+            {
+                nonAirBlockCount++;
+                if (firstNonAirBlock == null)
+                {
+                    firstNonAirBlockId = blockId;
+                    var block = _blockRegistry.GetById(blockId);
+                    firstNonAirBlock = block;
+                    _blockAtlasName = block.TextureSet.Top.AtlasName;
+
+                    _logger.Debug(
+                        "First non-air block - ID: {BlockId}, Name: {BlockName}, IsSolid: {IsSolid}, IsOpaque: {IsOpaque}, RenderType: {RenderType}",
+                        blockId,
+                        block.Name,
+                        block.IsSolid,
+                        block.IsOpaque,
+                        block.RenderType
+                    );
+                }
+            }
+        }
+
+        _logger.Information(
+            "Chunk analysis - Total blocks: {Total}, Non-air blocks: {NonAir}, Percentage: {Percentage:P}",
+            Chunk.Blocks.Length,
+            nonAirBlockCount,
+            nonAirBlockCount / (float)Chunk.Blocks.Length
+        );
+
+        if (nonAirBlockCount == 0)
+        {
+            _logger.Warning("Chunk is completely empty (all air)");
+        }
+    }
+
+    /// <summary>
     /// Uploads mesh data to GPU buffers.
     /// </summary>
     private void UploadMeshData(ChunkMeshData meshData)
     {
         DisposeBuffers();
 
+        var expandedSolidVertices = ExpandIndexedGeometry(meshData.Vertices, meshData.Indices);
+        var expandedBillboardVertices = ExpandIndexedGeometry(meshData.BillboardVertices, meshData.BillboardIndices);
+        var expandedFluidVertices = ExpandIndexedGeometry(meshData.FluidVertices, meshData.FluidIndices);
+        var expandedItemVertices = ExpandIndexedGeometry(meshData.ItemVertices, meshData.ItemIndices);
+
+        _logger.Debug(
+            "Uploading mesh data - Solid: {SolidVerts}/{SolidIndices}, Billboard: {BbVerts}/{BbIndices}, Fluid: {FluidVerts}/{FluidIndices}, Item: {ItemVerts}/{ItemIndices}",
+            expandedSolidVertices.Length,
+            meshData.Indices.Length,
+            expandedBillboardVertices.Length,
+            meshData.BillboardIndices.Length,
+            expandedFluidVertices.Length,
+            meshData.FluidIndices.Length,
+            expandedItemVertices.Length,
+            meshData.ItemIndices.Length
+        );
+
         // Upload solid geometry
-        if (meshData.Vertices.Length > 0 && meshData.Indices.Length > 0)
+        if (expandedSolidVertices.Length > 0)
         {
             _solidVertexBuffer = new VertexBuffer<ChunkVertex>(
                 GraphicsDevice,
-                meshData.Vertices,
+                expandedSolidVertices,
                 BufferUsage.StaticCopy
             );
-            _solidIndexCount = (uint)meshData.Indices.Length;
+            _solidVertexCount = (uint)expandedSolidVertices.Length;
         }
 
         // Upload billboard geometry
-        if (meshData.BillboardVertices.Length > 0 && meshData.BillboardIndices.Length > 0)
+        if (expandedBillboardVertices.Length > 0)
         {
             _billboardVertexBuffer = new VertexBuffer<ChunkVertex>(
                 GraphicsDevice,
-                meshData.BillboardVertices,
+                expandedBillboardVertices,
                 BufferUsage.StaticCopy
             );
-            _billboardIndexCount = (uint)meshData.BillboardIndices.Length;
+            _billboardVertexCount = (uint)expandedBillboardVertices.Length;
         }
 
         // Upload fluid geometry
-        if (meshData.FluidVertices.Length > 0 && meshData.FluidIndices.Length > 0)
+        if (expandedFluidVertices.Length > 0)
         {
             _fluidVertexBuffer = new VertexBuffer<ChunkFluidVertex>(
                 GraphicsDevice,
-                meshData.FluidVertices,
+                expandedFluidVertices,
                 BufferUsage.StaticCopy
             );
-            _fluidIndexCount = (uint)meshData.FluidIndices.Length;
+            _fluidVertexCount = (uint)expandedFluidVertices.Length;
         }
 
         // Upload item geometry
-        if (meshData.ItemVertices.Length > 0 && meshData.ItemIndices.Length > 0)
+        if (expandedItemVertices.Length > 0)
         {
             _itemVertexBuffer = new VertexBuffer<ChunkItemVertex>(
                 GraphicsDevice,
-                meshData.ItemVertices,
+                expandedItemVertices,
                 BufferUsage.StaticCopy
             );
-            _itemIndexCount = (uint)meshData.ItemIndices.Length;
+            _itemVertexCount = (uint)expandedItemVertices.Length;
         }
 
         _logger.Information(
-            "Mesh uploaded - Solid: {SolidCount}, Billboard: {BillboardCount}, Fluid: {FluidCount}, Item: {ItemCount}",
-            _solidIndexCount,
-            _billboardIndexCount,
-            _fluidIndexCount,
-            _itemIndexCount
+            "Mesh uploaded to GPU - Solid: {SolidVertices} vertices, Billboard: {BillboardVertices} vertices, Fluid: {FluidVertices} vertices, Item: {ItemVertices} vertices",
+            _solidVertexCount,
+            _billboardVertexCount,
+            _fluidVertexCount,
+            _itemVertexCount
         );
+    }
+
+    private static T[] ExpandIndexedGeometry<T>(T[] vertices, int[] indices) where T : struct
+    {
+        if (vertices.Length == 0 || indices.Length == 0)
+        {
+            return Array.Empty<T>();
+        }
+
+        var expanded = new T[indices.Length];
+
+        for (int i = 0; i < indices.Length; i++)
+        {
+            int index = indices[i];
+
+            if ((uint)index >= (uint)vertices.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(indices),
+                    $"Index {index} is out of range for vertex array length {vertices.Length}");
+            }
+
+            expanded[i] = vertices[index];
+        }
+
+        return expanded;
     }
 
     /// <inheritdoc />
@@ -246,7 +344,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         }
 
         // Solid geometry
-        if (_solidIndexCount > 0 && _solidVertexBuffer != null && _blockShader != null)
+        if (_solidVertexBuffer != null && _blockShader != null)
         {
             SetSolidUniforms();
 
@@ -255,14 +353,14 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 new DrawArrayPayload(
                     _blockShader,
                     _solidVertexBuffer,
-                    _solidIndexCount,
+                    _solidVertexCount,
                     PrimitiveType.Triangles
                 )
             );
         }
 
         // Billboard geometry
-        if (_billboardIndexCount > 0 && _billboardVertexBuffer != null && _billboardShader != null)
+        if (_billboardVertexBuffer != null && _billboardShader != null)
         {
             SetBillboardUniforms();
 
@@ -271,14 +369,14 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 new DrawArrayPayload(
                     _billboardShader,
                     _billboardVertexBuffer,
-                    _billboardIndexCount,
+                    _billboardVertexCount,
                     PrimitiveType.Triangles
                 )
             );
         }
 
         // Fluid geometry
-        if (_fluidIndexCount > 0 && _fluidVertexBuffer != null && _fluidShader != null)
+        if (_fluidVertexBuffer != null && _fluidShader != null)
         {
             SetFluidUniforms(gameTime);
 
@@ -287,14 +385,14 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 new DrawArrayPayload(
                     _fluidShader,
                     _fluidVertexBuffer,
-                    _fluidIndexCount,
+                    _fluidVertexCount,
                     PrimitiveType.Triangles
                 )
             );
         }
 
         // Item geometry
-        if (_itemIndexCount > 0 && _itemVertexBuffer != null && _itemBillboardShader != null)
+        if (_itemVertexBuffer != null && _itemBillboardShader != null)
         {
             // Item uniforms are set in the camera-based Draw method
             yield return new RenderCommand(
@@ -302,7 +400,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 new DrawArrayPayload(
                     _itemBillboardShader,
                     _itemVertexBuffer,
-                    _itemIndexCount,
+                    _itemVertexCount,
                     PrimitiveType.Triangles
                 )
             );
@@ -318,7 +416,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             SetCommonUniforms(camera);
 
             // Set item-specific uniforms that require camera
-            if (_itemIndexCount > 0 && _itemBillboardShader != null)
+            if (_itemBillboardShader != null)
             {
                 SetItemUniforms(camera);
             }
@@ -341,14 +439,14 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 continue;
             }
 
-            shader.Uniforms["uModel"].SetValueVec3(Transform.Position.ToSystem());
-            shader.Uniforms["uView"].SetValueMat4(camera.View.ToSystem());
-            shader.Uniforms["uProjection"].SetValueMat4(camera.Projection.ToSystem());
-            shader.Uniforms["uFogEnabled"].SetValueBool(FogEnabled);
-            shader.Uniforms["uFogColor"].SetValueVec3(FogColor.ToSystem());
-            shader.Uniforms["uFogStart"].SetValueFloat(FogStart);
-            shader.Uniforms["uFogEnd"].SetValueFloat(FogEnd);
-            shader.Uniforms["uAmbient"].SetValueVec3(AmbientLight.ToSystem());
+            shader.TrySetUniform("uModel", uniform => uniform.SetValueVec3(Transform.Position.ToSystem()));
+            shader.TrySetUniform("uView", uniform => uniform.SetValueMat4(camera.View.ToSystem()));
+            shader.TrySetUniform("uProjection", uniform => uniform.SetValueMat4(camera.Projection.ToSystem()));
+            shader.TrySetUniform("uFogEnabled", uniform => uniform.SetValueBool(FogEnabled));
+            shader.TrySetUniform("uFogColor", uniform => uniform.SetValueVec3(FogColor.ToSystem()));
+            shader.TrySetUniform("uFogStart", uniform => uniform.SetValueFloat(FogStart));
+            shader.TrySetUniform("uFogEnd", uniform => uniform.SetValueFloat(FogEnd));
+            shader.TrySetUniform("uAmbient", uniform => uniform.SetValueVec3(AmbientLight.ToSystem()));
         }
     }
 
@@ -360,8 +458,33 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         if (_blockShader == null)
             return;
 
-        _blockShader.Uniforms["uLightDirection"].SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem());
-        _blockShader.Uniforms["uLightIntensity"].SetValueFloat(LightIntensity);
+        _blockShader.TrySetUniform(
+            "uLightDirection",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
+        );
+        _blockShader.TrySetUniform("uLightIntensity", uniform => uniform.SetValueFloat(LightIntensity));
+
+        // Set the texture atlas for block rendering
+        _blockShader.TrySetUniform(
+            "uTexture",
+            uniform =>
+            {
+                try
+                {
+                    var textureName = _blockAtlasName + "_atlas";
+                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
+                    uniform.SetValueTexture(texture);
+                }
+                catch
+                {
+                    // Fallback to white texture if atlas is not available
+                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
+                }
+            }
+        );
+
+        // Set texture multiplier (typically 1.0 for standard texture atlases)
+        _blockShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
     }
 
     /// <summary>
@@ -374,7 +497,25 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             return;
         }
 
-        // Billboards use simplified lighting
+        // Set the texture atlas for billboard rendering
+        _billboardShader.TrySetUniform(
+            "uTexture",
+            uniform =>
+            {
+                try
+                {
+                    var textureName = _blockAtlasName + "_atlas";
+                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
+                    uniform.SetValueTexture(texture);
+                }
+                catch
+                {
+                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
+                }
+            }
+        );
+
+        _billboardShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
     }
 
     /// <summary>
@@ -387,9 +528,32 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             return;
         }
 
-        _fluidShader.Uniforms["uLightDirection"].SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem());
-        _fluidShader.Uniforms["uTime"].SetValueFloat(_animationTime);
-        _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(WaterTransparency);
+        _fluidShader.TrySetUniform(
+            "uLightDirection",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
+        );
+        _fluidShader.TrySetUniform("uTime", uniform => uniform.SetValueFloat(_animationTime));
+        _fluidShader.TrySetUniform("uWaterTransparency", uniform => uniform.SetValueFloat(WaterTransparency));
+
+        // Set the texture atlas for fluid rendering
+        _fluidShader.TrySetUniform(
+            "uTexture",
+            uniform =>
+            {
+                try
+                {
+                    var textureName = _blockAtlasName + "_atlas";
+                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
+                    uniform.SetValueTexture(texture);
+                }
+                catch
+                {
+                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
+                }
+            }
+        );
+
+        _fluidShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
     }
 
     /// <summary>
@@ -400,10 +564,22 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         if (_itemBillboardShader == null)
             return;
 
-        _itemBillboardShader.Uniforms["uLightDirection"].SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem());
-        _itemBillboardShader.Uniforms["uCameraRight"].SetValueVec3(Vector3D.Normalize(camera.Right).ToSystem());
-        _itemBillboardShader.Uniforms["uCameraUp"].SetValueVec3(Vector3D.Normalize(camera.Up).ToSystem());
-        _itemBillboardShader.Uniforms["uCameraForward"].SetValueVec3(Vector3D.Normalize(camera.Forward).ToSystem());
+        _itemBillboardShader.TrySetUniform(
+            "uLightDirection",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
+        );
+        _itemBillboardShader.TrySetUniform(
+            "uCameraRight",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Right).ToSystem())
+        );
+        _itemBillboardShader.TrySetUniform(
+            "uCameraUp",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Up).ToSystem())
+        );
+        _itemBillboardShader.TrySetUniform(
+            "uCameraForward",
+            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Forward).ToSystem())
+        );
     }
 
     /// <summary>
@@ -421,10 +597,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         _fluidVertexBuffer = null;
         _itemVertexBuffer = null;
 
-        _solidIndexCount = 0;
-        _billboardIndexCount = 0;
-        _fluidIndexCount = 0;
-        _itemIndexCount = 0;
+        _solidVertexCount = 0;
+        _billboardVertexCount = 0;
+        _fluidVertexCount = 0;
+        _itemVertexCount = 0;
     }
 
     /// <inheritdoc />

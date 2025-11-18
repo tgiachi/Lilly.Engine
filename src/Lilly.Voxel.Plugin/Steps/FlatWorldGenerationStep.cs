@@ -36,13 +36,13 @@ public class FlatWorldGenerationStep : IGeneratorStep
         // Layers 1-28: Stone (main underground)
         if (stoneId.HasValue)
         {
-            context.FillBlocks(0, 1, 0, chunkSize, 28, chunkSize, stoneId.Value);
+            context.FillBlocks(0, 1, 0, chunkSize, 29, chunkSize, stoneId.Value);
         }
 
         // Layers 29-31: Dirt (soil layer)
         if (dirtId.HasValue)
         {
-            context.FillBlocks(0, 29, 0, chunkSize, 31, chunkSize, dirtId.Value);
+            context.FillBlocks(0, 29, 0, chunkSize, 32, chunkSize, dirtId.Value);
         }
 
         // Layer 32: Grass (surface)
