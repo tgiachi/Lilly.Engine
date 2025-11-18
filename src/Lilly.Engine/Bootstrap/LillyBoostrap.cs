@@ -352,7 +352,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _logger.Information("Root Directory: {RootDirectory}", directoriesConfig.Root);
 
-        _container.Register<IEventBusService>();
+        _container.Resolve<IEventBusService>();
         _container.Resolve<ITimerService>();
         _container.Resolve<IMainThreadDispatcher>();
 
