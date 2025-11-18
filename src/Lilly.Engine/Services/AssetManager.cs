@@ -217,8 +217,33 @@ public class AssetManager : IAssetManager, IDisposable
 
         if (tileIndex < 0 || tileIndex >= atlasDefinition.Regions.Count)
         {
-            throw new ArgumentOutOfRangeException(nameof(tileIndex),
-                $"Tile index {tileIndex} is out of range for atlas '{atlasName}' with {atlasDefinition.Regions.Count} tiles.");
+            throw new ArgumentOutOfRangeException(
+                nameof(tileIndex),
+                $"Tile index {tileIndex} is out of range for atlas '{atlasName}' with {atlasDefinition.Regions.Count} tiles."
+            );
+        }
+
+        return atlasDefinition.Regions[tileIndex];
+    }
+
+    public AtlasRegion GetAtlasRegion(string atlasName, int xIndex, int yIndex)
+    {
+        if (!_textureAtlases.TryGetValue(atlasName, out var atlasDefinition))
+        {
+            throw new InvalidOperationException($"Texture atlas '{atlasName}' is not loaded.");
+        }
+
+        var columns = (int)((_texture2Ds[atlasDefinition.TextureName].Width - 2 * atlasDefinition.Margin + atlasDefinition.Spacing) /
+                            (float)(atlasDefinition.Width + atlasDefinition.Spacing));
+
+        var tileIndex = yIndex * columns + xIndex;
+
+        if (tileIndex < 0 || tileIndex >= atlasDefinition.Regions.Count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(tileIndex),
+                $"Tile index {tileIndex} is out of range for atlas '{atlasName}' with {atlasDefinition.Regions.Count} tiles."
+            );
         }
 
         return atlasDefinition.Regions[tileIndex];

@@ -57,6 +57,15 @@ public interface IAssetManager
     AtlasRegion GetAtlasRegion(string atlasName, int tileIndex);
 
     /// <summary>
+    ///  Gets a specific region from a loaded texture atlas by its x and y indices.
+    /// </summary>
+    /// <param name="atlasName"></param>
+    /// <param name="xIndex"></param>
+    /// <param name="yIndex"></param>
+    /// <returns></returns>
+    AtlasRegion GetAtlasRegion(string atlasName, int xIndex, int yIndex);
+
+    /// <summary>
     /// Gets the texture by name.
     /// </summary>
     /// <typeparam name="TTexture">The texture type.</typeparam>
@@ -156,4 +165,6 @@ public interface IAssetManager
     /// <returns>The created vertex buffer.</returns>
     VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
         where TVertex : unmanaged, IVertex;
+
+
 }
