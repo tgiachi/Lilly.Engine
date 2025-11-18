@@ -10,8 +10,8 @@ public class AlSource : IDisposable
 
     public AlSource()
     {
-        sourcehandle = AudioMaster.GetInstance().al.GenSource();
-        al = AudioMaster.GetInstance().al;
+        sourcehandle = AudioMaster.GetInstance().Al.GenSource();
+        al = AudioMaster.GetInstance().Al;
     }
 
     public void Dispose()

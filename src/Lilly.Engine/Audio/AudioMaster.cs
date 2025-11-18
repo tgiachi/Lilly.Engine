@@ -6,7 +6,7 @@ public class AudioMaster : IDisposable
 {
     private static AudioMaster? instance;
     private readonly ALContext alc;
-    public AL al { get; }
+    public AL Al { get; }
     private readonly unsafe Context* context;
     private readonly unsafe Device* device;
     private bool disposed;
@@ -14,7 +14,7 @@ public class AudioMaster : IDisposable
     private unsafe AudioMaster()
     {
         alc = ALContext.GetApi();
-        al = AL.GetApi();
+        Al = AL.GetApi();
         device = alc.OpenDevice("");
 
         if (device == null)
@@ -34,7 +34,7 @@ public class AudioMaster : IDisposable
             alc.DestroyContext(context);
             alc.CloseDevice(device);
 
-            al.Dispose();
+            Al.Dispose();
             alc.Dispose();
             disposed = true;
         }
@@ -43,7 +43,7 @@ public class AudioMaster : IDisposable
 
     public void GetError()
     {
-        var err = al.GetError();
+        var err = Al.GetError();
 
         if (err != AudioError.NoError)
         {

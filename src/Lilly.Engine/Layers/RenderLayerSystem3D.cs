@@ -9,6 +9,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
+using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 
 namespace Lilly.Engine.Layers;
@@ -17,6 +18,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 {
     private readonly ICamera3dService _camera3dService;
 
+    private readonly IAudioService _audioService;
     private readonly RenderContext _renderContext;
 
     private readonly ILogger _logger = Log.ForContext<RenderLayerSystem3D>();
@@ -35,13 +37,18 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
             RenderCommandType.SetCullMode
         };
 
-    public RenderLayerSystem3D(ICamera3dService camera3dService, RenderContext renderContext) : base(
+    public RenderLayerSystem3D(
+        ICamera3dService camera3dService,
+        RenderContext renderContext,
+        IAudioService audioService
+    ) : base(
         "3d",
         RenderLayer.ThreeDimension
     )
     {
         _camera3dService = camera3dService;
         _renderContext = renderContext;
+        _audioService = audioService;
         _camera3dService.UpdateViewport(renderContext.GraphicsDevice.Viewport);
     }
 
@@ -156,8 +163,6 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
     private void ProcessDepthState(SetDepthStatePayload state)
     {
-
-
         if (state.DepthTestEnabled)
         {
             _renderContext.Gl.Enable(GLEnum.DepthTest);
@@ -223,6 +228,12 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
     public override void Update(GameTime gameTime)
     {
         _camera3dService.Update(gameTime);
+
+        if (_camera3dService.ActiveCamera != null)
+        {
+            _audioService.Update(_camera3dService.ActiveCamera);
+        }
+
         base.Update(gameTime);
     }
 }

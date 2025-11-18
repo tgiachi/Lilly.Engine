@@ -13,7 +13,7 @@ public class AudioEffect : IDisposable
 
     public AudioEffect(string path)
     {
-        al = AudioMaster.GetInstance().al;
+        al = AudioMaster.GetInstance().Al;
         var vorbisReader = new VorbisReader(path);
 
         var channels = vorbisReader.Channels;

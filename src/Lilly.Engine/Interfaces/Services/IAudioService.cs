@@ -1,3 +1,4 @@
+using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Silk.NET.Maths;
 
 namespace Lilly.Engine.Interfaces.Services;
@@ -21,6 +22,12 @@ public interface IAudioService : IDisposable
     /// Sets the listener's orientation (forward and up vectors).
     /// </summary>
     void SetListenerOrientation(Vector3D<float> forward, Vector3D<float> up);
+
+
+    /// <summary>
+    /// Sets the camera to synchronize listener position and orientation.
+    ///
+    void Update(ICamera3D camera);
 
     /// <summary>
     /// Gets the current listener position.

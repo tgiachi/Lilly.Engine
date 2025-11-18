@@ -1,5 +1,6 @@
 using Lilly.Engine.Audio;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Silk.NET.Maths;
 using Silk.NET.OpenAL;
 using Serilog;
@@ -26,7 +27,7 @@ public class AudioService : IAudioService
     public AudioService()
     {
         // Initialize AudioMaster (OpenAL context)
-        _al = AudioMaster.GetInstance().al;
+        _al = AudioMaster.GetInstance().Al;
 
         // Set initial listener parameters
         UpdateListenerProperties();
@@ -60,6 +61,13 @@ public class AudioService : IAudioService
         _listenerForward = forward;
         _listenerUp = up;
         UpdateListenerProperties();
+    }
+
+    public void Update(ICamera3D camera)
+    {
+        SetListenerPosition(camera.Position);
+        SetListenerOrientation(camera.Forward, camera.Up);
+
     }
 
     /// <summary>

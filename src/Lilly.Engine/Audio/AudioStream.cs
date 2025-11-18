@@ -23,7 +23,7 @@ public class AudioStream : IDisposable
     public AudioStream(string path, bool loop = true)
     {
         this.loop = loop;
-        al = AudioMaster.GetInstance().al;
+        al = AudioMaster.GetInstance().Al;
         vorbisReader = new(path);
 
         _channels = vorbisReader.Channels;

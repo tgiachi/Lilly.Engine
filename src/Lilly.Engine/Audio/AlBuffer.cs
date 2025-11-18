@@ -9,7 +9,7 @@ public class AlBuffer : IDisposable
 
     public AlBuffer()
     {
-        al = AudioMaster.GetInstance().al;
+        al = AudioMaster.GetInstance().Al;
         bufferhandle = al.GenBuffer();
     }
 
