@@ -1,5 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Events;
+using Lilly.Engine.Core.Events;
 using Lilly.Engine.Rendering.Core.Data.Input;
 using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Silk.NET.Input;

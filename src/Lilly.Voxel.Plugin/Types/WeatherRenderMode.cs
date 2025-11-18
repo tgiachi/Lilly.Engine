@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Types;
+namespace Lilly.Voxel.Plugin.Types;
 
 public enum WeatherRenderMode
 {

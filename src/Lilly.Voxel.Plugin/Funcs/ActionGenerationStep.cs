@@ -1,5 +1,4 @@
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
-using Squid.Engine.World.Voxels.Interfaces.Generation.Pipeline;
 
 namespace Lilly.Voxel.Plugin.Funcs;
 

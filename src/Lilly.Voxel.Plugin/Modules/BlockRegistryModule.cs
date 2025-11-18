@@ -2,11 +2,11 @@ using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Json;
+using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Entities;
 using Lilly.Voxel.Plugin.Primitives;
 using MoonSharp.Interpreter;
 using Serilog;
-using Squid.Engine.World.Voxels.Interfaces.Services;
 
 namespace Lilly.Voxel.Plugin.Modules;
 

@@ -1,5 +1,4 @@
 using Lilly.Voxel.Plugin.Types;
-using Squid.Engine.World.Voxels.Primitives;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Primitives;

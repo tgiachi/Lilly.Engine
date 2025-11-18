@@ -3,7 +3,7 @@ namespace Lilly.Voxel.Plugin.Primitives;
 /// <summary>
 /// Represents the current state of a chunk in the voxel world.
 /// </summary>
-public enum ChunkState
+public enum ChunkState : byte
 {
     /// <summary>
     /// Chunk data is not loaded in memory.

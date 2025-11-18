@@ -1,6 +1,4 @@
-using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
-
-namespace Squid.Engine.World.Voxels.Interfaces.Generation.Pipeline;
+namespace Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 
 /// <summary>
 /// Defines a single step in the chunk generation pipeline.

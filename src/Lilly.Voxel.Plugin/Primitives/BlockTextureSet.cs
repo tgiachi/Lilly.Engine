@@ -1,7 +1,6 @@
 using Lilly.Voxel.Plugin.Types;
-using Squid.Engine.World.Voxels.Types;
 
-namespace Squid.Engine.World.Voxels.Primitives;
+namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>
 /// Defines a set of textures for different faces of a block.

@@ -3,14 +3,13 @@ using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.Contexts;
 using Lilly.Voxel.Plugin.Data.Cache;
+using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 using Lilly.Voxel.Plugin.Interfaces.Services;
+using Lilly.Voxel.Plugin.Noise;
+using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Utils;
 using Serilog;
 using Silk.NET.Maths;
-using Squid.Engine.World.Voxels.Interfaces.Generation.Pipeline;
-using Squid.Engine.World.Voxels.Interfaces.Services;
-using Squid.Engine.World.Voxels.Noise;
-using Squid.Engine.World.Voxels.Primitives;
 
 namespace Lilly.Voxel.Plugin.Services;
 

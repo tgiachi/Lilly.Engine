@@ -1,7 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Voxel.Plugin.Primitives;
 using Serilog;
-using Squid.Engine.World.Voxels.Primitives;
 
 namespace Lilly.Voxel.Plugin.Data.Cache;
 

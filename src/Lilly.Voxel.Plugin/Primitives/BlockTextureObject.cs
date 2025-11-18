@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Primitives;
+namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>
 /// Represents a texture object with an atlas name and index for block rendering.

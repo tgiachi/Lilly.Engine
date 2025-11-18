@@ -1,7 +1,6 @@
 using System.Numerics;
+using Lilly.Voxel.Plugin.Noise;
 using Lilly.Voxel.Plugin.Primitives;
-using Squid.Engine.World.Voxels.Noise;
-using Squid.Engine.World.Voxels.Primitives;
 
 namespace Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 

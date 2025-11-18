@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Noise;
+namespace Lilly.Voxel.Plugin.Noise;
 
 /// <summary>
 /// Defines the domain warp algorithms supported by <see cref="FastNoiseLite"/>.

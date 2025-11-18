@@ -1,6 +1,6 @@
 using System.Numerics;
-using Squid.Engine.World.Voxels.Interfaces.Generation.Pipeline;
-using Squid.Engine.World.Voxels.Primitives;
+using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
+using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Interfaces.Services;
 

@@ -19,7 +19,6 @@ using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
 using Serilog;
-using Squid.Engine.World.Voxels.Interfaces.Services;
 
 namespace Lilly.Voxel.Plugin;
 

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Squid.Engine.World.Voxels.Noise;
+namespace Lilly.Voxel.Plugin.Noise;
 
 // MIT License
 //

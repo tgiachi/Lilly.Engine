@@ -1,10 +1,8 @@
-
-using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
 using Silk.NET.Maths;
 using TrippyGL;
 
-namespace Squid.Engine.World.Voxels.Primitives;
+namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>
 /// Stores the runtime state for a cubic chunk, including its position and contained blocks.

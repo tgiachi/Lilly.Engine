@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Noise;
+namespace Lilly.Voxel.Plugin.Noise;
 
 /// <summary>
 /// Orientation tweaks applied before sampling 3D noise.

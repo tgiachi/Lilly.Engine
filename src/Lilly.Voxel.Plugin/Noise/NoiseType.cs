@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Noise;
+namespace Lilly.Voxel.Plugin.Noise;
 
 /// <summary>
 /// Fundamental noise algorithms exposed by <see cref="FastNoiseLite"/>.

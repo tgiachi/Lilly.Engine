@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
-using Squid.Engine.World.Voxels.Primitives;
 
 namespace Lilly.Voxel.Plugin.Json.Converters;
 

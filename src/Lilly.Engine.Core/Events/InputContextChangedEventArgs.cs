@@ -1,4 +1,4 @@
-namespace Lilly.Engine.Events;
+namespace Lilly.Engine.Core.Events;
 
 /// <summary>
 /// Event arguments for input context changes.

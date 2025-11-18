@@ -1,9 +1,8 @@
 using Lilly.Voxel.Plugin.Builders;
 using Lilly.Voxel.Plugin.Json.Entities;
 using Lilly.Voxel.Plugin.Primitives;
-using Squid.Engine.World.Voxels.Primitives;
 
-namespace Squid.Engine.World.Voxels.Interfaces.Services;
+namespace Lilly.Voxel.Plugin.Interfaces.Services;
 
 public interface IBlockRegistry
 {

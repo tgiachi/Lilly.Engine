@@ -1,4 +1,4 @@
-namespace Squid.Engine.World.Voxels.Noise;
+namespace Lilly.Voxel.Plugin.Noise;
 
 /// <summary>
 /// Supported distance functions for cellular noise evaluation.

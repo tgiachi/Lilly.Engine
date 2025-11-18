@@ -1,9 +1,9 @@
 using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Voxel.Plugin.Builders;
+using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Entities;
 using Lilly.Voxel.Plugin.Primitives;
 using Serilog;
-using Squid.Engine.World.Voxels.Interfaces.Services;
 
 namespace Lilly.Voxel.Plugin.Services;
 

@@ -1,6 +1,6 @@
 using System.Numerics;
+using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
-using Squid.Engine.World.Voxels.Primitives;
 
 namespace Lilly.Voxel.Plugin.Utils;
 

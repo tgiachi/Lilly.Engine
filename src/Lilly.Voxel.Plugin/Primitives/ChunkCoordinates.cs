@@ -1,8 +1,11 @@
+using System.Runtime.InteropServices;
+
 namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>
 /// Represents the coordinates of a chunk in the voxel world grid.
 /// </summary>
+[StructLayout(LayoutKind.Sequential)]
 public struct ChunkCoordinates : IEquatable<ChunkCoordinates>
 {
     /// <summary>
