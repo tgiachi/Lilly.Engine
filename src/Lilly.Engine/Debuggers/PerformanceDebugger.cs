@@ -16,7 +16,7 @@ public class PerformanceDebugger : IImGuiDebugger
 {
     public IGameObject? Parent { get; set; }
     public GameObjectCollection<IGameObject> Children { get; } = new();
-    public uint Id { get; set; } = 0;
+    public uint Id { get; set; }
     public string Name { get; set; } = "Performance Debugger";
     public ushort Order { get; } = 1000;
 

@@ -139,7 +139,7 @@ public class StackPanelGameObject : BaseGameObject2D
     /// <summary>
     /// Gets or sets the border thickness in pixels.
     /// </summary>
-    public int BorderThickness { get; set; } = 0;
+    public int BorderThickness { get; set; }
 
     /// <summary>
     /// Gets or sets the UI theme used for default styling.

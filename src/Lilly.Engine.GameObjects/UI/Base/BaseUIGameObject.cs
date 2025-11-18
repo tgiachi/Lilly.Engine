@@ -16,7 +16,7 @@ namespace Lilly.Engine.GameObjects.UI.Base;
 /// Base class for all UI game objects.
 /// Provides input handling, focus management, and basic UI properties.
 /// </summary>
-public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D
+public abstract class BaseUIGameObject : IInputReceiver, IGameObject2D, IDisposable
 {
     private bool _hasFocus;
 

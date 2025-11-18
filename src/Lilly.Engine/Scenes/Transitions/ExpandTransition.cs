@@ -38,7 +38,7 @@ public class ExpandTransition : TransitionGameObject
     /// <summary>
     /// Expand transition effect implementation.
     /// </summary>
-    private class ExpandTransitionEffect : ITransitionEffect
+    private sealed class ExpandTransitionEffect : ITransitionEffect
     {
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;

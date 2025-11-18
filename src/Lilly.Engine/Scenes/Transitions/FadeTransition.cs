@@ -38,7 +38,7 @@ public class FadeTransition : TransitionGameObject
     /// <summary>
     /// Fade transition effect implementation.
     /// </summary>
-    private class FadeTransitionEffect : ITransitionEffect
+    private sealed class FadeTransitionEffect : ITransitionEffect
     {
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;

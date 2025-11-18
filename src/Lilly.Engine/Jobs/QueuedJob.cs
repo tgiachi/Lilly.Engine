@@ -5,7 +5,7 @@ namespace Lilly.Engine.Jobs;
 /// <summary>
 /// Represents a queued job in the job system.
 /// </summary>
-public abstract class QueuedJob : IComparable<QueuedJob>
+public abstract class QueuedJob : IComparable<QueuedJob>, IEquatable<QueuedJob>, IDisposable
 {
     private readonly CancellationToken _jobCancellationToken;
     private readonly CancellationTokenSource _jobCts = new();
@@ -35,6 +35,7 @@ public abstract class QueuedJob : IComparable<QueuedJob>
         try
         {
             _jobCts.Cancel();
+
             return true;
         }
         catch (ObjectDisposedException)
@@ -45,7 +46,8 @@ public abstract class QueuedJob : IComparable<QueuedJob>
 
     private async Task ExecuteWithLinkedTokenAsync(CancellationToken serviceToken)
     {
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(serviceToken, _jobCancellationToken, _jobCts.Token);
+        using var linkedCts =
+            CancellationTokenSource.CreateLinkedTokenSource(serviceToken, _jobCancellationToken, _jobCts.Token);
         await ExecuteCoreAsync(linkedCts.Token).ConfigureAwait(false);
     }
 
@@ -56,11 +58,60 @@ public abstract class QueuedJob : IComparable<QueuedJob>
 
         // Higher priority comes first (reversed comparison)
         var priorityComparison = other.Priority.CompareTo(Priority);
+
         if (priorityComparison != 0)
             return priorityComparison;
 
         // Same priority - maintain FIFO order using ID (first in has lower GUID when ordered)
         return Id.CompareTo(other.Id);
+    }
+
+    public bool Equals(QueuedJob? other)
+    {
+        return other != null && Id.Equals(other.Id);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is QueuedJob other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
+    }
+
+    public static bool operator ==(QueuedJob? left, QueuedJob? right)
+    {
+        if (left is null)
+            return right is null;
+
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(QueuedJob? left, QueuedJob? right)
+    {
+        return !(left == right);
+    }
+
+    public static bool operator <(QueuedJob? left, QueuedJob? right)
+    {
+        return left is null ? right is not null : left.CompareTo(right) < 0;
+    }
+
+    public static bool operator <=(QueuedJob? left, QueuedJob? right)
+    {
+        return left is null || left.CompareTo(right) <= 0;
+    }
+
+    public static bool operator >(QueuedJob? left, QueuedJob? right)
+    {
+        return left is not null && left.CompareTo(right) > 0;
+    }
+
+    public static bool operator >=(QueuedJob? left, QueuedJob? right)
+    {
+        return left is null ? right is null : left.CompareTo(right) >= 0;
     }
 
     public void Dispose()

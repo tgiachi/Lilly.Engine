@@ -49,7 +49,7 @@ public class RainEffectGameObject : BaseGameObject3D
     // Internal state
     private float _animationTime;
     private Vector3D<float> _lastCameraPosition;
-    private bool _cameraPositionInitialized = false;
+    private bool _cameraPositionInitialized;
 
     public RainEffectGameObject(GraphicsDevice graphicsDevice, IAssetManager assetManager) : base(graphicsDevice)
     {

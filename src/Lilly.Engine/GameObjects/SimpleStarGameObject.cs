@@ -16,7 +16,6 @@ public class SimpleStarGameObject : BaseGameObject3D
     private VertexBuffer<VertexColor> vertexBuffer;
     private SimpleShaderProgram shaderProgram;
     private VertexColor[] starVertices;
-    private double lastColorChangeTime;
 
     public SimpleStarGameObject(RenderContext context) : base(context.GraphicsDevice) { }
 
@@ -113,7 +112,7 @@ public class SimpleStarGameObject : BaseGameObject3D
     private Color4b GetColorFromIndex(int index, int total)
     {
         float hue = (float)index / total;
-        
+
         byte r = (byte)(255 * (0.5f + 0.5f * MathF.Sin(hue * MathF.PI * 2.0f)));
         byte g = (byte)(255 * (0.5f + 0.5f * MathF.Sin(hue * MathF.PI * 2.0f + MathF.PI * 2.0f / 3.0f)));
         byte b = (byte)(255 * (0.5f + 0.5f * MathF.Sin(hue * MathF.PI * 2.0f + MathF.PI * 4.0f / 3.0f)));
@@ -126,7 +125,7 @@ public class SimpleStarGameObject : BaseGameObject3D
         for (int i = 0; i < starVertices.Length; i++)
         {
             float pulse = (float)(0.5f + 0.5f * MathF.Sin((float)time * 3.0f + i * 0.1f));
-            
+
             byte r = (byte)(255 * pulse);
             byte g = (byte)(255 * (1.0f - pulse));
             byte b = (byte)(128 + 127 * pulse);

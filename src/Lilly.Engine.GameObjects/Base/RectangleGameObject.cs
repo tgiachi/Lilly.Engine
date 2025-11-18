@@ -35,7 +35,7 @@ public class RectangleGameObject : BaseGameObject2D
     /// <summary>
     /// If true, draws only the border. If false, draws a filled rectangle.
     /// </summary>
-    public bool IsHollow { get; set; } = false;
+    public bool IsHollow { get; set; }
 
     /// <summary>
     /// The thickness of the border (only used when IsHollow is true).
@@ -45,7 +45,7 @@ public class RectangleGameObject : BaseGameObject2D
     /// <summary>
     /// Optional custom white pixel texture. If null, uses DefaultTextures.WhiteTextureKey.
     /// </summary>
-    public string? CustomWhitePixelTexture { get; set; } = null;
+    public string? CustomWhitePixelTexture { get; set; }
 
     public RectangleGameObject()
         => Transform.Size = _size;
