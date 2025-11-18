@@ -103,10 +103,11 @@ public class RainEffectGameObject : BaseGameObject3D
             float windStrength = MathF.Sin(_animationTime * 1.5f + drop.Position.Z * 0.3f) * 0.2f;
             float windStrengthZ = MathF.Cos(_animationTime * 1.2f + drop.Position.X * 0.3f) * 0.15f;
             var windOffset = new Vector3D<float>(
-                WindDirection.X * windStrength,
-                WindDirection.Y * windStrength * 0.3f,
-                WindDirection.Z * windStrengthZ
-            ) * delta;
+                                 WindDirection.X * windStrength,
+                                 WindDirection.Y * windStrength * 0.3f,
+                                 WindDirection.Z * windStrengthZ
+                             ) *
+                             delta;
 
             // Update position: rain direction + wind sway
             drop.Position += rainMovement + windOffset;
@@ -165,6 +166,7 @@ public class RainEffectGameObject : BaseGameObject3D
         if (_cameraPositionInitialized)
         {
             var cameraDelta = camera.Position - _lastCameraPosition;
+
             for (int i = 0; i < ActiveDropCount; i++)
             {
                 _drops[i].Position -= cameraDelta;

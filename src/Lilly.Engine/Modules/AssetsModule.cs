@@ -20,4 +20,12 @@ public class AssetsModule
     }
 
 
+    [ScriptFunction("load_texture", "Loads a texture from the specified file path and returns its name.")]
+    public string LoadTexture(string textureName, string texturePath)
+    {
+        _assetManager.LoadTextureFromFile(textureName, texturePath);
+
+        return textureName;
+    }
+
 }

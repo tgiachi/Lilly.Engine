@@ -141,7 +141,7 @@ public class OpenGlRenderer : IGraphicRenderer
     {
         if (success)
         {
-            _logger.Information("Shader Program '{ProgramName}' compiled", programBuilder.ProgramLog);
+            _logger.Debug("Shader Program compiled");
         }
         else
         {

@@ -31,8 +31,59 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public void EngineInitialized(IContainer container)
     {
-        var assetManager = container.Resolve<IAssetManager>();
+        container.Resolve<ChunkLightingService>();
+        container.Resolve<ChunkMeshBuilder>();
 
+        LoadShaders(container.Resolve<IAssetManager>());
+
+        var generatorService = container.Resolve<IChunkGeneratorService>();
+
+        var jobSystem = container.Resolve<IJobSystemService>();
+
+        generatorService.AddGeneratorStep(new FlatWorldGenerationStep());
+
+        jobSystem.ExecuteAsync(
+            "LillyVoxelPlugin: Load Default Generators",
+            async () =>
+            {
+                await generatorService.GenerateInitialChunksAsync();
+                _logger.Information("Default chunk generators loaded.");
+            }
+        );
+    }
+
+    private void LoadShaders(IAssetManager assetManager)
+    {
+        // Chunk rendering shaders
+        assetManager.LoadShaderFromResource<ChunkVertex>(
+            "chunk_block",
+            "Assets/Shaders/Chunks/chunk_block.shader",
+            ["aPosition", "aColor", "aTileCoord", "aTileBase", "aTileSize", "aBlockCoord"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkVertex>(
+            "chunk_billboard",
+            "Assets/Shaders/Chunks/chunk_billboard.shader",
+            ["aPosition", "aColor", "aTexCoords", "aTileBase", "aTileSize", "aBlockCoord"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkFluidVertex>(
+            "chunk_fluid",
+            "Assets/Shaders/Chunks/chunk_fluid.shader",
+            ["aPosition", "aColor", "aTexCoord", "aTileBase", "aTileSize", "aDirection", "aTop"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkItemVertex>(
+            "chunk_item_billboard",
+            "Assets/Shaders/Chunks/chunk_item_billboard.shader",
+            ["aPosition", "aColor", "aTexCoord", "aOffset"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        // Environment shaders
         assetManager.LoadShaderFromResource<PositionVertex>(
             "dynamicSky",
             "Assets/Shaders/Environment/dynamic_sky.shader",
@@ -53,21 +104,6 @@ public class LillyVoxelPlugin : ILillyPlugin
             ["aPosition", "aCorner", "aLength", "aAlpha"],
             typeof(LillyVoxelPlugin).Assembly
         );
-
-        var generatorService = container.Resolve<IChunkGeneratorService>();
-
-        var jobSystem = container.Resolve<IJobSystemService>();
-
-        generatorService.AddGeneratorStep(new FlatWorldGenerationStep());
-
-        jobSystem.ExecuteAsync(
-            "LillyVoxelPlugin: Load Default Generators",
-            async () =>
-            {
-                await generatorService.GenerateInitialChunksAsync();
-                _logger.Information("Default chunk generators loaded.");
-            }
-        );
     }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
@@ -86,11 +122,16 @@ public class LillyVoxelPlugin : ILillyPlugin
                  .RegisterGameObject<SnowEffectGameObject>()
                  .RegisterGameObject<RainEffectGameObject>()
                  .RegisterGameObject<VoxelWorldGameObject>()
+                 .RegisterGameObject<ChunkGameObject>()
             ;
 
         container.RegisterService<IBlockRegistry, BlockRegistry>();
 
         container.RegisterService<IChunkGeneratorService, ChunkGeneratorService>();
+
+        container.RegisterService<ChunkLightingService>();
+
+        container.RegisterService<ChunkMeshBuilder>();
 
         container
             .AddScriptModule<BlockRegistryModule>()

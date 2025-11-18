@@ -359,7 +359,9 @@ public class JobSystemService : IJobSystemService, IDisposable
     private void ThrowIfDisposed()
     {
         if (_disposed)
+        {
             throw new ObjectDisposedException(nameof(JobSystemService));
+        }
     }
 
     private void EnqueueJobWithCompletion<THandle>(QueuedJob job, THandle handle)

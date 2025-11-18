@@ -57,7 +57,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
     private int _height = 260;
     private bool _hasFocus;
     private bool _isMouseInBounds;
-    private int _hoveredIndex = -1;
+    private int _hoveredIndeix;
 
     /// <summary>
     /// Gets or sets the text content.
@@ -100,7 +100,7 @@ public class MemoEditGameObject : BaseGameObject2D, IInputReceiver
 
             if (_maxLength.HasValue && _text.Length > _maxLength.Value)
             {
-                Text = _text.Substring(0, _maxLength.Value);
+                Text = _text[.._maxLength.Value];
             }
         }
     }
