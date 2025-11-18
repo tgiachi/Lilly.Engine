@@ -96,8 +96,71 @@ public class LillyBoostrap : ILillyBootstrap
     /// Shuts down the engine asynchronously.
     /// </summary>
     /// <returns>A task representing the shutdown operation.</returns>
-    public Task ShutdownAsync()
-        => Task.CompletedTask;
+    public async Task ShutdownAsync()
+    {
+        _logger.Information("Shutting down Lilly Engine...");
+
+        try
+        {
+            // Shutdown job system first to stop background workers
+            var jobSystem = _container.Resolve<IJobSystemService>();
+            jobSystem?.Shutdown();
+            _logger.Debug("Job system shut down");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error shutting down job system");
+        }
+
+        try
+        {
+            // Dispose event bus service (handles pending events)
+            var eventBus = _container.Resolve<IEventBusService>();
+            (eventBus as IDisposable)?.Dispose();
+            _logger.Debug("Event bus service disposed");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error disposing event bus service");
+        }
+
+        try
+        {
+            // Dispose timer service
+            var timerService = _container.Resolve<ITimerService>();
+            (timerService as IDisposable)?.Dispose();
+            _logger.Debug("Timer service disposed");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error disposing timer service");
+        }
+
+        try
+        {
+            // Dispose asset manager BEFORE renderer to clean up GPU resources while context is active
+            var assetManager = _container.Resolve<IAssetManager>();
+            (assetManager as IDisposable)?.Dispose();
+            _logger.Debug("Asset manager disposed");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error disposing asset manager");
+        }
+
+        try
+        {
+            // Dispose renderer LAST to close the graphics context
+            (Renderer as IDisposable)?.Dispose();
+            _logger.Debug("Renderer disposed");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error disposing renderer");
+        }
+
+        _logger.Information("Lilly Engine shutdown complete");
+    }
 
     private void InitializePlugins()
     {

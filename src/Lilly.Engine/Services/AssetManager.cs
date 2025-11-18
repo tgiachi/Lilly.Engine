@@ -159,8 +159,6 @@ public class AssetManager : IAssetManager, IDisposable
     )
     {
 
-
-
         var textureName = atlasName + "_atlas";
         LoadTextureFromMemory(textureName, stream);
         var texture = _texture2Ds[textureName];
