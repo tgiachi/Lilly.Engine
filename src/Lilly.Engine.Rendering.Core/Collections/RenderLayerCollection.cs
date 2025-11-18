@@ -76,13 +76,13 @@ public sealed class RenderLayerCollection
         ArgumentNullException.ThrowIfNull(gameObject);
         EnsureSorted();
 
-        List<RenderLayer> addedLayers = [];
+        List<string> addedLayers = [];
 
         foreach (var layer in _layers)
         {
             if (layer.CanAddOrRemove(gameObject))
             {
-                addedLayers.Add(layer.Layer);
+                addedLayers.Add(layer.Name);
 
                 layer.Add(gameObject);
             }
