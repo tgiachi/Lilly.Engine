@@ -73,17 +73,10 @@ public class VoxelWorldGameObject : BaseGameObject3D
             // Generate chunk using the chunk generator service
             var testChunkEntity = await _chunkGeneratorService.GetChunkByWorldPosition(0, 0, 0);
 
-            if (testChunkEntity != null)
-            {
-                _testChunk.SetChunk(testChunkEntity);
-                _testChunk.Coordinates = new ChunkCoordinates(0, 0, 0);
+            _testChunk.SetChunk(testChunkEntity);
+            _testChunk.Coordinates = new ChunkCoordinates(0, 0, 0);
 
-                _logger.Information("Test chunk loaded and ready for rendering");
-            }
-            else
-            {
-                _logger.Warning("Failed to generate test chunk: null result from generator");
-            }
+            _logger.Information("Test chunk loaded and ready for rendering");
         }
         catch (Exception ex)
         {

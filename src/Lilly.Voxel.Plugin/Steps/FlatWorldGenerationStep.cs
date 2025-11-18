@@ -9,7 +9,8 @@ namespace Lilly.Voxel.Plugin.Steps;
 /// - Level 0: Bedrock (indestructible base)
 /// - Levels 1-28: Stone (main underground layer)
 /// - Levels 29-31: Dirt (soil layer)
-/// - Level 32: Grass (surface layer)
+/// - Level 31: Grass (surface layer)
+/// - Level 32: Water (sea level)
 /// - Levels 33+: Air (sky)
 /// </summary>
 public class FlatWorldGenerationStep : IGeneratorStep
@@ -26,6 +27,7 @@ public class FlatWorldGenerationStep : IGeneratorStep
         var stoneId = context.GetBlockIdByName("stone");
         var dirtId = context.GetBlockIdByName("dirt");
         var grassId = context.GetBlockIdByName("grass");
+        var waterId = context.GetBlockIdByName("water");
 
         // Layer 0: Bedrock (indestructible foundation)
         if (bedrockId.HasValue)
@@ -45,10 +47,16 @@ public class FlatWorldGenerationStep : IGeneratorStep
             context.FillBlocks(0, 29, 0, chunkSize, 32, chunkSize, dirtId.Value);
         }
 
-        // Layer 32: Grass (surface)
+        // Layer 31: Grass (surface)
         if (grassId.HasValue)
         {
-            context.FillLayer(32, grassId.Value);
+            context.FillLayer(31, grassId.Value);
+        }
+
+        // Layer 32: Water (sea level)
+        if (waterId.HasValue)
+        {
+            context.FillLayer(32, waterId.Value);
         }
 
         return Task.CompletedTask;
