@@ -139,6 +139,27 @@ public sealed class GameObjectCollection<T> where T : IGameObject
         return CollectionsMarshal.AsSpan(_gameObjects);
     }
 
+    public ReadOnlySpan<TEntity> GetSpanAsGeneric<TEntity>() where TEntity : T
+    {
+        EnsureSorted();
+
+        // This is safe because TEntity : T (type constraint guarantees it)
+        var castedList = (List<TEntity>)(object)_gameObjects;
+
+        return CollectionsMarshal.AsSpan(castedList);
+    }
+
+    /// <summary>
+    /// Enumerates game objects of a specific type with type safety.
+    /// Safe to use with iterators and await boundaries.
+    /// </summary>
+    public IEnumerable<TEntity> EnumerateAsGeneric<TEntity>() where TEntity : T
+    {
+        EnsureSorted();
+
+        return _gameObjects.OfType<TEntity>();
+    }
+
     /// <summary>
     /// Removes a specific game object from the collection.
     /// </summary>

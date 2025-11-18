@@ -19,9 +19,7 @@ public class SkyGameObject : BaseGameObject3D
     private readonly IAssetManager _assetManager;
     private VertexBuffer<PositionVertex> _vertexBuffer;
     private float _timeOfDay;
-
     public Texture2D? SkyTexture { get; set; }
-
     public Vector3D<float> SunDirection { get; set; } = new Vector3D<float>(0.5f, 0.7f, 0.3f);
     public Vector3D<float> MoonDirection { get; set; } = new Vector3D<float>(-0.5f, -0.7f, -0.3f);
 

@@ -61,7 +61,16 @@ public abstract class BaseGameObject3D : IGameObject3D, IUpdatable
     /// </summary>
     /// <param name="camera"></param>
     /// <param name="gameTime"></param>
-    public virtual void Draw(ICamera3D camera, GameTime gameTime) { }
+    public virtual void Draw(ICamera3D camera, GameTime gameTime)
+    {
+        foreach (var gameObject in Children.EnumerateAsGeneric<IGameObject3D>())
+        {
+            if (gameObject.IsVisible)
+            {
+                gameObject.Draw(camera, gameTime);
+            }
+        }
+    }
 
     public virtual void Initialize() { }
 
@@ -105,7 +114,15 @@ public abstract class BaseGameObject3D : IGameObject3D, IUpdatable
 
     public virtual void Update(GameTime gameTime)
     {
+        if (!IsVisible)
+        {
+            return;
+        }
 
+        foreach (var child in Children.EnumerateAsGeneric<IUpdatable>())
+        {
+            child.Update(gameTime);
+        }
     }
 
     /// <summary>
@@ -113,5 +130,30 @@ public abstract class BaseGameObject3D : IGameObject3D, IUpdatable
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
     /// <returns>An enumerable collection of render commands for this object.</returns>
-    protected abstract IEnumerable<RenderCommand> Draw(GameTime gameTime);
+    protected virtual IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    {
+        foreach (var gameObject in Children.EnumerateAsGeneric<IGameObject3D>())
+        {
+            foreach (var command in gameObject.Render(gameTime))
+            {
+                yield return command;
+            }
+        }
+    }
+
+    protected void AddChild(IGameObject child)
+    {
+        Children.Add(child);
+        child.Parent = this;
+
+        if (child is IInitializable initializable)
+        {
+            initializable.Initialize();
+        }
+
+        if (child is IGameObject3D baseGameObject3D)
+        {
+            baseGameObject3D.Initialize();
+        }
+    }
 }

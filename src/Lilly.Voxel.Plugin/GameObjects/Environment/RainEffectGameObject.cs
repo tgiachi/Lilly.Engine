@@ -56,7 +56,6 @@ public class RainEffectGameObject : BaseGameObject3D
         _assetManager = assetManager;
         _rainShader = assetManager.GetShaderProgram("rain_legacy");
         Order = 11;
-        IsVisible = true;
         IgnoreFrustumCulling = true;
 
         // rain_legacy.shader doesn't require textures

@@ -47,14 +47,13 @@ public class SnowEffectGameObject : BaseGameObject3D
     // Internal state
     private float _animationTime;
     private Vector3D<float> _lastCameraPosition;
-    private bool _cameraPositionInitialized = false;
+    private bool _cameraPositionInitialized;
 
     public SnowEffectGameObject(GraphicsDevice graphicsDevice, IAssetManager assetManager) : base(graphicsDevice)
     {
         _assetManager = assetManager;
         _snowShader = assetManager.GetShaderProgram("snow");
         Order = 10;
-        IsVisible = true;
         IgnoreFrustumCulling = true;
 
         // Try to load textures
