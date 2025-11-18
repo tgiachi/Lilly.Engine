@@ -12,6 +12,7 @@ using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
+using Lilly.Voxel.Plugin.Types;
 using Serilog;
 using Silk.NET.Maths;
 using TrippyGL;
@@ -32,7 +33,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private ChunkMeshData? _cachedMeshData;
     private bool _meshDirty = true;
     private float _animationTime;
-    private string _blockAtlasName = "blocks"; // Default atlas name for blocks
+    private string _blockAtlasName = "blocks"; // Default atlas names
+    private string _billboardAtlasName = "blocks";
+    private string _fluidAtlasName = "blocks";
+    private string _itemAtlasName = "blocks";
 
     // GPU Resources for each geometry type
     private VertexBuffer<ChunkVertex>? _solidVertexBuffer;
@@ -164,8 +168,8 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 
         try
         {
-            // Extract atlas name from the first non-air block
-            ExtractBlockAtlasName();
+            // Extract atlas names used by different render types
+            ExtractAtlasNames();
 
             // Build mesh data from chunk
             _cachedMeshData = _meshBuilder.BuildMeshData(Chunk, null);
@@ -183,39 +187,66 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     }
 
     /// <summary>
-    /// Extracts the atlas name from the first non-air block in the chunk.
+    /// Extracts atlas names used by the various render types present in the chunk.
     /// </summary>
-    private void ExtractBlockAtlasName()
+    private void ExtractAtlasNames()
     {
         if (Chunk == null)
             return;
 
+        _blockAtlasName = "blocks";
+        _billboardAtlasName = "blocks";
+        _fluidAtlasName = "blocks";
+        _itemAtlasName = "blocks";
+
         // Count non-air blocks for debugging
         int nonAirBlockCount = 0;
-        BlockType? firstNonAirBlock = null;
-        ushort firstNonAirBlockId = 0;
+        bool solidAtlasSet = false;
+        bool billboardAtlasSet = false;
+        bool fluidAtlasSet = false;
+        bool itemAtlasSet = false;
 
         for (int i = 0; i < Chunk.Blocks.Length; i++)
         {
             var blockId = Chunk.Blocks[i];
+
             if (blockId != 0) // Not air
             {
                 nonAirBlockCount++;
-                if (firstNonAirBlock == null)
-                {
-                    firstNonAirBlockId = blockId;
-                    var block = _blockRegistry.GetById(blockId);
-                    firstNonAirBlock = block;
-                    _blockAtlasName = block.TextureSet.Top.AtlasName;
+                var block = _blockRegistry.GetById(blockId);
 
-                    _logger.Debug(
-                        "First non-air block - ID: {BlockId}, Name: {BlockName}, IsSolid: {IsSolid}, IsOpaque: {IsOpaque}, RenderType: {RenderType}",
-                        blockId,
-                        block.Name,
-                        block.IsSolid,
-                        block.IsOpaque,
-                        block.RenderType
-                    );
+                if (!solidAtlasSet &&
+                    block.RenderType is BlockRenderType.Solid or BlockRenderType.Transparent or BlockRenderType.Cutout)
+                {
+                    var texture = block.TextureSet.Top;
+                    _blockAtlasName = texture.AtlasName;
+                    solidAtlasSet = true;
+                }
+
+                if (!billboardAtlasSet && block.RenderType == BlockRenderType.Billboard)
+                {
+                    var texture = block.TextureSet.GetTextureForFace(BlockFace.Front);
+                    _billboardAtlasName = texture.AtlasName;
+                    billboardAtlasSet = true;
+                }
+
+                if (!fluidAtlasSet && block.RenderType == BlockRenderType.Fluid)
+                {
+                    var texture = block.TextureSet.Top;
+                    _fluidAtlasName = texture.AtlasName;
+                    fluidAtlasSet = true;
+                }
+
+                if (!itemAtlasSet && block.RenderType == BlockRenderType.Item)
+                {
+                    var texture = block.TextureSet.GetTextureForFace(BlockFace.Front);
+                    _itemAtlasName = texture.AtlasName;
+                    itemAtlasSet = true;
+                }
+
+                if (solidAtlasSet && billboardAtlasSet && fluidAtlasSet && itemAtlasSet)
+                {
+                    break;
                 }
             }
         }
@@ -325,8 +356,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 
             if ((uint)index >= (uint)vertices.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(indices),
-                    $"Index {index} is out of range for vertex array length {vertices.Length}");
+                throw new ArgumentOutOfRangeException(
+                    nameof(indices),
+                    $"Index {index} is out of range for vertex array length {vertices.Length}"
+                );
             }
 
             expanded[i] = vertices[index];
@@ -364,6 +397,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         {
             SetBillboardUniforms();
 
+            yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.None());
             yield return new RenderCommand(
                 RenderCommandType.DrawArray,
                 new DrawArrayPayload(
@@ -373,6 +407,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                     PrimitiveType.Triangles
                 )
             );
+            yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.Back());
         }
 
         // Fluid geometry
@@ -504,7 +539,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             {
                 try
                 {
-                    var textureName = _blockAtlasName + "_atlas";
+                    var textureName = _billboardAtlasName + "_atlas";
                     var texture = _assetManager.GetTexture<Texture2D>(textureName);
                     uniform.SetValueTexture(texture);
                 }
@@ -542,7 +577,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             {
                 try
                 {
-                    var textureName = _blockAtlasName + "_atlas";
+                    var textureName = _fluidAtlasName + "_atlas";
                     var texture = _assetManager.GetTexture<Texture2D>(textureName);
                     uniform.SetValueTexture(texture);
                 }
@@ -569,6 +604,22 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
         );
         _itemBillboardShader.TrySetUniform(
+            "uTexture",
+            uniform =>
+            {
+                try
+                {
+                    var textureName = _itemAtlasName + "_atlas";
+                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
+                    uniform.SetValueTexture(texture);
+                }
+                catch
+                {
+                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
+                }
+            }
+        );
+        _itemBillboardShader.TrySetUniform(
             "uCameraRight",
             uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Right).ToSystem())
         );
@@ -579,6 +630,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         _itemBillboardShader.TrySetUniform(
             "uCameraForward",
             uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Forward).ToSystem())
+        );
+        _itemBillboardShader.TrySetUniform(
+            "uTexMultiplier",
+            uniform => uniform.SetValueFloat(1.0f)
         );
     }
 

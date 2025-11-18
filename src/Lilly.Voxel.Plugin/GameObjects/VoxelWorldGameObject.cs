@@ -58,7 +58,6 @@ public class VoxelWorldGameObject : BaseGameObject3D
     {
         base.Initialize();
 
-        // Generate test chunk asynchronously
         _ = InitializeTestChunkAsync();
     }
 

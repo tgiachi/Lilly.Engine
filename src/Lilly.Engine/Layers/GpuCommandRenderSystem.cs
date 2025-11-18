@@ -99,12 +99,8 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                 );
 
                 break;
-
-
         }
     }
-
-
 
     private void ProcessWindowCommand(WindowPayload payload)
     {

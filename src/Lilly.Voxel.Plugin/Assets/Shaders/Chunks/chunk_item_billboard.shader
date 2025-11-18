@@ -7,6 +7,8 @@ in vec4 vColor;
 in float vFogFactor;
 in vec3 vNormal;
 in vec3 vVertexLight;
+in vec2 vTileBase;
+in vec2 vTileSize;
 
 // Output
 out vec4 FragColor;
@@ -20,7 +22,9 @@ uniform vec3 uLightDirection;
 
 void main()
 {
-    vec4 texResult = texture(uTexture, vTexCoord);
+    vec2 tiledCoord = vec2(vTexCoord.x, 1.0 - vTexCoord.y);
+    vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
+    vec4 texResult = texture(uTexture, atlasCoord);
     
     if (texResult.a < 0.001)
         discard;
@@ -48,6 +52,8 @@ layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec4 aColor;
 layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec2 aOffset;
+layout(location = 4) in vec2 aTileBase;
+layout(location = 5) in vec2 aTileSize;
 
 // Uniforms
 uniform float uTexMultiplier;
@@ -67,6 +73,8 @@ out vec4 vColor;
 out float vFogFactor;
 out vec3 vNormal;
 out vec3 vVertexLight;
+out vec2 vTileBase;
+out vec2 vTileSize;
 
 void main()
 {
@@ -81,6 +89,8 @@ void main()
     vTexCoord = aTexCoord * uTexMultiplier;
     vColor = aColor;
     vVertexLight = aColor.rgb / 255.0;
+    vTileBase = aTileBase;
+    vTileSize = aTileSize;
 
     vNormal = normalize(-uCameraForward);
 
