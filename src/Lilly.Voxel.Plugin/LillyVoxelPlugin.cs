@@ -79,7 +79,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         assetManager.LoadShaderFromResource<ChunkItemVertex>(
             "chunk_item_billboard",
             "Assets/Shaders/Chunks/chunk_item_billboard.shader",
-            ["aPosition", "aColor", "aTexCoord", "aOffset"],
+            ["aPosition", "aColor", "aTexCoord", "aOffset", "aTileBase", "aTileSize"],
             typeof(LillyVoxelPlugin).Assembly
         );
 

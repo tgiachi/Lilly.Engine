@@ -52,8 +52,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         GC.SuppressFinalize(this);
     }
 
-#region Metrics Implementation
-
     public int PendingJobCount
     {
         get
@@ -96,10 +94,6 @@ public class JobSystemService : IJobSystemService, IDisposable
     public double MinExecutionTimeMs => _minExecutionTimeMs;
     public double MaxExecutionTimeMs => _maxExecutionTimeMs;
 
-#endregion
-
-#region IJob Execution
-
     public IJobHandle ExecuteAsync(
         IJob job,
         JobPriority priority = JobPriority.Normal,
@@ -132,10 +126,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         return handle;
     }
 
-#endregion
-
-#region IAsyncJob Execution
-
     public IJobHandle ExecuteAsync(
         IAsyncJob job,
         JobPriority priority = JobPriority.Normal,
@@ -167,10 +157,6 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         return handle;
     }
-
-#endregion
-
-#region Task Factory Execution
 
     public IJobHandle<TResult> ExecuteTaskAsync<TResult>(
         string name,
@@ -207,10 +193,6 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         return handle;
     }
-
-#endregion
-
-#region Lambda Execution (Action & Func)
 
     public IJobHandle ExecuteAsync(
         string name,
@@ -288,10 +270,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         return handle;
     }
 
-#endregion
-
-#region Fire-and-Forget Scheduling
-
     public IJobHandle Schedule(IJob job, JobPriority priority = JobPriority.Normal)
     {
         ThrowIfDisposed();
@@ -320,10 +298,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         return handle;
     }
 
-#endregion
-
-#region Lifecycle
-
     public void Initialize(int workerCount)
     {
         ThrowIfDisposed();
@@ -336,7 +310,7 @@ public class JobSystemService : IJobSystemService, IDisposable
             var thread = new Thread(() => Worker(_cts.Token))
             {
                 IsBackground = true,
-                Name = $"SquidEngine-JobWorker-{i}"
+                Name = $"LillyEngine-JobWorker-{i}"
             };
 
             thread.Start();
@@ -351,10 +325,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         _logger.Information("Shutting down job system");
         _cts.Cancel();
     }
-
-#endregion
-
-#region Private Methods
 
     private void ThrowIfDisposed()
     {
@@ -513,11 +483,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                 _maxExecutionTimeMs = elapsedMs;
         }
     }
-
-#endregion
 }
-
-#region Helper Job Classes for Lambda Support
 
 /// <summary>Helper job class that wraps an Action.</summary>
 internal sealed class ActionJob : IJob
@@ -582,5 +548,3 @@ internal sealed class AsyncFuncJob<TResult> : IAsyncJob<TResult>
     public Task<TResult> ExecuteAsync(CancellationToken cancellationToken)
         => _asyncFunc();
 }
-
-#endregion

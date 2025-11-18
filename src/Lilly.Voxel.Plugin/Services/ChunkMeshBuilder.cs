@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Silk.NET.Maths;
 using Serilog;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
@@ -21,6 +22,7 @@ public sealed class ChunkMeshBuilder
 
     private readonly IBlockRegistry _blockRegistry;
     private readonly ChunkLightingService _lightingService;
+    private readonly IAssetManager _assetManager;
     private readonly ILogger _logger = Log.ForContext<ChunkMeshBuilder>();
 
     /// <summary>
@@ -28,10 +30,12 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     /// <param name="blockRegistry">Block registry for resolving block properties.</param>
     /// <param name="lightingService">Lighting service for ambient occlusion calculations.</param>
-    public ChunkMeshBuilder(IBlockRegistry blockRegistry, ChunkLightingService lightingService)
+    /// <param name="assetManager">Asset manager for loading texture atlases.</param>
+    public ChunkMeshBuilder(IBlockRegistry blockRegistry, ChunkLightingService lightingService, IAssetManager assetManager)
     {
         _blockRegistry = blockRegistry;
         _lightingService = lightingService;
+        _assetManager = assetManager;
     }
 
     /// <summary>
@@ -215,7 +219,7 @@ public sealed class ChunkMeshBuilder
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
-                    mask[x + z * width] = new FaceRenderInfo(x, y, z, lighting);
+                    mask[x + z * width] = new FaceRenderInfo(x, y, z, lighting, blockType);
                 }
             }
 
@@ -263,7 +267,7 @@ public sealed class ChunkMeshBuilder
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
-                    mask[x + y * width] = new FaceRenderInfo(x, y, z, lighting);
+                    mask[x + y * width] = new FaceRenderInfo(x, y, z, lighting, blockType);
                 }
             }
 
@@ -311,7 +315,7 @@ public sealed class ChunkMeshBuilder
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
-                    mask[z + y * depth] = new FaceRenderInfo(x, y, z, lighting);
+                    mask[z + y * depth] = new FaceRenderInfo(x, y, z, lighting, blockType);
                 }
             }
 
@@ -386,7 +390,7 @@ public sealed class ChunkMeshBuilder
 
                 // Emit the merged quad
                 var blockCoord = new Vector3D<float>(info.X, info.Y, info.Z);
-                AppendGreedyFace(vertices, indices, face, blockCoord, info.Lighting, spanU, spanV);
+                AppendGreedyFace(vertices, indices, face, blockCoord, info.Lighting, spanU, spanV, info.BlockType);
 
                 // Clear the mask to avoid duplicates
                 for (int dv = 0; dv < spanV; dv++)
@@ -414,7 +418,8 @@ public sealed class ChunkMeshBuilder
         Vector3D<float> blockCoord,
         Vector4D<byte> lighting,
         int spanU,
-        int spanV
+        int spanV,
+        BlockType blockType
     )
     {
         const float scale = 1f;
@@ -516,9 +521,9 @@ public sealed class ChunkMeshBuilder
         t2.Y = 1f - t2.Y;
         t3.Y = 1f - t3.Y;
 
-        // Create vertices with atlas coordinates
-        var tileBase = new Vector2D<float>(0f, 0f);
-        var tileSize = new Vector2D<float>(1f, 1f);
+        // Get texture atlas region for this block face
+        var blockTexture = blockType.TextureSet.GetTextureForFace(face);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture);
         var baseIndex = vertices.Count;
 
         vertices.Add(new ChunkVertex(v0, lighting, t0, tileBase, tileSize, blockCoord));
@@ -658,6 +663,24 @@ public sealed class ChunkMeshBuilder
     }
 
     /// <summary>
+    /// Gets the atlas region for a block texture object.
+    /// </summary>
+    private (Vector2D<float> Position, Vector2D<float> Size) GetAtlasRegionForTexture(BlockTextureObject texture)
+    {
+        try
+        {
+            var region = _assetManager.GetAtlasRegion(texture.AtlasName, texture.Index);
+            return (region.Position, region.Size);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to get atlas region for texture {AtlasName}:{Index}, using default",
+                texture.AtlasName, texture.Index);
+            return (Vector2D<float>.Zero, Vector2D<float>.One);
+        }
+    }
+
+    /// <summary>
     /// Gets the direction index for encoding in vertex alpha channel.
     /// </summary>
     private static int GetDirectionIndex(BlockFace face)
@@ -707,8 +730,8 @@ public sealed class ChunkMeshBuilder
         var topB1 = new Vector3D<float>(bottomB1.X, topHeight, bottomB1.Z);
         var topB0 = new Vector3D<float>(bottomB0.X, topHeight, bottomB0.Z);
 
-        AppendBillboardQuad(vertices, indices, bottomA0, bottomA1, topA1, topA0, blockCoord, color);
-        AppendBillboardQuad(vertices, indices, bottomB0, bottomB1, topB1, topB0, blockCoord, color);
+        AppendBillboardQuad(vertices, indices, bottomA0, bottomA1, topA1, topA0, blockCoord, color, blockType);
+        AppendBillboardQuad(vertices, indices, bottomB0, bottomB1, topB1, topB0, blockCoord, color, blockType);
     }
 
     /// <summary>
@@ -722,12 +745,15 @@ public sealed class ChunkMeshBuilder
         Vector3D<float> topRight,
         Vector3D<float> topLeft,
         Vector3D<float> blockCoord,
-        Vector4D<byte> color
+        Vector4D<byte> color,
+        BlockType blockType
     )
     {
         var baseIndex = vertices.Count;
-        var tileBase = new Vector2D<float>(0f, 0f);
-        var tileSize = new Vector2D<float>(1f, 1f);
+
+        // Get texture atlas region for this billboard
+        var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture);
 
         var t0 = new Vector2D<float>(0f, 1f);
         var t1 = new Vector2D<float>(1f, 1f);
@@ -774,6 +800,10 @@ public sealed class ChunkMeshBuilder
         var color = new Vector4D<byte>(255, 255, 255, 255);
         var baseIndex = vertices.Count;
 
+        // Get texture atlas region for this item
+        var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture);
+
         var offsets = new[]
         {
             new Vector2D<float>(-halfWidth, halfHeight),
@@ -782,10 +812,10 @@ public sealed class ChunkMeshBuilder
             new Vector2D<float>(-halfWidth, -halfHeight)
         };
 
-        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(0f, 1f), offsets[0]));
-        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(1f, 1f), offsets[1]));
-        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(1f, 0f), offsets[2]));
-        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(0f, 0f), offsets[3]));
+        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(0f, 1f), offsets[0], tileBase, tileSize));
+        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(1f, 1f), offsets[1], tileBase, tileSize));
+        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(1f, 0f), offsets[2], tileBase, tileSize));
+        vertices.Add(new ChunkItemVertex(center, color, new Vector2D<float>(0f, 0f), offsets[3], tileBase, tileSize));
 
         indices.Add(baseIndex);
         indices.Add(baseIndex + 1);
@@ -818,7 +848,7 @@ public sealed class ChunkMeshBuilder
             if (!ShouldRenderFluidFace(chunk, getNeighborChunk, x, y, z, face))
                 continue;
 
-            AppendFluidFace(vertices, indices, origin, face, color);
+            AppendFluidFace(vertices, indices, origin, face, color, blockType);
         }
     }
 
@@ -868,13 +898,16 @@ public sealed class ChunkMeshBuilder
         List<int> indices,
         Vector3D<float> origin,
         BlockFace face,
-        Vector4D<byte> color
+        Vector4D<byte> color,
+        BlockType blockType
     )
     {
         const float scale = 1f;
         var baseIndex = vertices.Count;
-        var tileBase = new Vector2D<float>(0f, 0f);
-        var tileSize = new Vector2D<float>(1f, 1f);
+
+        // Get texture atlas region for this fluid
+        var blockTexture = blockType.TextureSet.GetTextureForFace(face);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture);
 
         Vector3D<float> v0,
                         v1,
@@ -959,12 +992,13 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private readonly struct FaceRenderInfo
     {
-        public FaceRenderInfo(int x, int y, int z, Vector4D<byte> lighting)
+        public FaceRenderInfo(int x, int y, int z, Vector4D<byte> lighting, BlockType blockType)
         {
             X = x;
             Y = y;
             Z = z;
             Lighting = lighting;
+            BlockType = blockType;
             HasValue = true;
         }
 
@@ -972,6 +1006,7 @@ public sealed class ChunkMeshBuilder
         public int Y { get; }
         public int Z { get; }
         public Vector4D<byte> Lighting { get; }
+        public BlockType BlockType { get; }
         public bool HasValue { get; }
     }
 }

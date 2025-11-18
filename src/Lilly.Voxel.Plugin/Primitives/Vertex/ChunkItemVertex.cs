@@ -10,12 +10,14 @@ namespace Lilly.Voxel.Plugin.Primitives.Vertex;
 [StructLayout(LayoutKind.Sequential)]
 public struct ChunkItemVertex : IVertex
 {
-    public ChunkItemVertex(Vector3D<float> position, Vector4D<byte> color, Vector2D<float> texCoord, Vector2D<float> offset)
+    public ChunkItemVertex(Vector3D<float> position, Vector4D<byte> color, Vector2D<float> texCoord, Vector2D<float> offset, Vector2D<float> tileBase, Vector2D<float> tileSize)
     {
         Position = position;
         Color = color;
         TexCoord = texCoord;
         Offset = offset;
+        TileBase = tileBase;
+        TileSize = tileSize;
     }
 
     public Vector3D<float> Position;
@@ -26,8 +28,12 @@ public struct ChunkItemVertex : IVertex
 
     public Vector2D<float> Offset;
 
+    public Vector2D<float> TileBase;
+
+    public Vector2D<float> TileSize;
+
     /// <inheritdoc />
-    public int AttribDescriptionCount => 4;
+    public int AttribDescriptionCount => 6;
 
     /// <inheritdoc />
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
@@ -43,5 +49,11 @@ public struct ChunkItemVertex : IVertex
 
         // Offset: vec2 (2 floats)
         descriptions[3] = new VertexAttribDescription(AttributeType.FloatVec2);
+
+        // TileBase: vec2 (2 floats)
+        descriptions[4] = new VertexAttribDescription(AttributeType.FloatVec2);
+
+        // TileSize: vec2 (2 floats)
+        descriptions[5] = new VertexAttribDescription(AttributeType.FloatVec2);
     }
 }
