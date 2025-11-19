@@ -27,6 +27,8 @@ await ConsoleApp.RunAsync(
         int height = 720
     ) =>
     {
+
+        //--root-directory /Users/squid/lilly --width 3272 --height 1277
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
 
@@ -80,7 +82,10 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.MinimumLevel.Is(logEventLevel);
 
-    logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
+
+
+    logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
+    //logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
 
     if (logToFile)
     {

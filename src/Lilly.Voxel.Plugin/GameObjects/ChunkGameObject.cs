@@ -9,6 +9,9 @@ using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
+using Lilly.Engine.Core.Interfaces.Dispatchers;
+using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Jobs;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
@@ -29,10 +32,13 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private readonly ChunkMeshBuilder _meshBuilder;
     private readonly IAssetManager _assetManager;
     private readonly IBlockRegistry _blockRegistry;
+    private readonly IJobSystemService _jobSystemService;
+    private readonly IMainThreadDispatcher _mainThreadDispatcher;
     private readonly ILogger _logger = Log.ForContext<ChunkGameObject>();
 
     private ChunkMeshData? _cachedMeshData;
     private bool _meshDirty = true;
+    private bool _isMeshBuilding;
     private float _animationTime;
     private string _blockAtlasName = "blocks"; // Default atlas names
     private string _billboardAtlasName = "blocks";
@@ -81,22 +87,22 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         GraphicsDevice graphicsDevice,
         ChunkMeshBuilder meshBuilder,
         IAssetManager assetManager,
-        IBlockRegistry blockRegistry
+        IBlockRegistry blockRegistry,
+        IJobSystemService jobSystemService,
+        IMainThreadDispatcher mainThreadDispatcher
     ) : base(graphicsDevice)
     {
         _meshBuilder = meshBuilder;
         _assetManager = assetManager;
         _blockRegistry = blockRegistry;
-
-        IgnoreFrustumCulling = true;
+        _jobSystemService = jobSystemService;
+        _mainThreadDispatcher = mainThreadDispatcher;
     }
 
     /// <summary>
     /// Gets the chunk currently bound to this renderer.
     /// </summary>
     public ChunkEntity? Chunk { get; private set; }
-
-
 
     /// <summary>
     /// Binds a chunk instance to the renderer and schedules a mesh rebuild.
@@ -105,7 +111,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     {
         Chunk = chunk ?? throw new ArgumentNullException(nameof(chunk));
         _meshDirty = true;
-        _logger.Information("SetChunk called at position {Position}, mesh marked dirty", Transform.Position);
     }
 
     /// <summary>
@@ -154,10 +159,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             return;
         }
 
-        // Rebuild mesh if dirty
-        if (_meshDirty)
+        // Rebuild mesh if dirty and not already building
+        if (_meshDirty && !_isMeshBuilding)
         {
-            BuildAndUploadMesh();
+            ScheduleMeshRebuild();
         }
     }
 
@@ -268,33 +273,56 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     }
 
     /// <summary>
-    /// Builds mesh data and uploads it to GPU buffers.
+    /// Schedules the chunk mesh generation and upload as a background job.
     /// </summary>
-    private void BuildAndUploadMesh()
+    private void ScheduleMeshRebuild()
     {
         if (Chunk == null)
-        {
             return;
-        }
 
-        try
-        {
-            // Extract atlas names used by different render types
-            ExtractAtlasNames();
+        _isMeshBuilding = true;
+        _meshDirty = false;
 
-            // Build mesh data from chunk
-            _cachedMeshData = _meshBuilder.BuildMeshData(Chunk, null);
+        _jobSystemService.ExecuteAsync(
+            "BuildChunkMesh",
+            async () =>
+            {
+                try
+                {
+                    _logger.Verbose("Starting background mesh build for chunk at {Position}", Transform.Position);
 
-            // Upload to GPU
-            UploadMeshData(_cachedMeshData);
+                    // Extract atlas names used by different render types
+                    ExtractAtlasNames();
 
-            _meshDirty = false;
-            _logger.Information("Mesh built and uploaded for chunk at {Position}", Transform.Position);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Failed to build chunk mesh");
-        }
+                    // Build mesh data from chunk
+                    var meshData = _meshBuilder.BuildMeshData(Chunk, null);
+
+                    _mainThreadDispatcher.EnqueueAction(
+                        () =>
+                        {
+                            try
+                            {
+                                UploadMeshData(meshData);
+                                _logger.Verbose("Mesh uploaded to GPU for chunk at {Position}", Transform.Position);
+                            }
+                            finally
+                            {
+                                _isMeshBuilding = false;
+                            }
+                        }
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(
+                        ex,
+                        "Failed to build chunk mesh in background job for chunk at {Position}",
+                        Transform.Position
+                    );
+                    _isMeshBuilding = false;
+                }
+            }
+        );
     }
 
     /// <summary>
@@ -362,7 +390,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             }
         }
 
-        _logger.Information(
+        _logger.Verbose(
             "Chunk analysis - Total blocks: {Total}, Non-air blocks: {NonAir}, Percentage: {Percentage:P}",
             Chunk.Blocks.Length,
             nonAirBlockCount,

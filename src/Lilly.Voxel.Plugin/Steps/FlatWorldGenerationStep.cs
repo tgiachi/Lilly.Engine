@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
+using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Steps;
 
@@ -22,6 +23,14 @@ public class FlatWorldGenerationStep : IGeneratorStep
     {
         var chunkSize = context.ChunkSize();
         var chunkHeight = context.ChunkHeight();
+        var chunkBaseY = (int)context.WorldPosition.Y;
+
+        if (chunkBaseY >= ChunkEntity.Height)
+        {
+            context.FillBlocks(0, 0, 0, chunkSize, chunkHeight, chunkSize, 0);
+
+            return Task.CompletedTask;
+        }
 
         // Get block IDs from the block registry
         var bedrockId = context.GetBlockIdByName("bedrock");

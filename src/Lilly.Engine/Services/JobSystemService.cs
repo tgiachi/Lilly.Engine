@@ -454,7 +454,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
     private bool TryDequeueJob(out QueuedJob job)
     {
-        _queueLock.EnterReadLock();
+        _queueLock.EnterWriteLock();
 
         try
         {
@@ -462,7 +462,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
         finally
         {
-            _queueLock.ExitReadLock();
+            _queueLock.ExitWriteLock();
         }
     }
 
