@@ -13,7 +13,6 @@ public class VoxelWorldGameObject : BaseGameObject3D
     private readonly RainEffectGameObject _rainEffect;
     private readonly SnowEffectGameObject _snowEffect;
     private readonly SkyGameObject _skyGameObject;
-    private readonly ChunkGameObject _testChunk;
     private readonly IChunkGeneratorService _chunkGeneratorService;
     private readonly ILogger _logger = Log.ForContext<VoxelWorldGameObject>();
 
@@ -45,12 +44,10 @@ public class VoxelWorldGameObject : BaseGameObject3D
         _rainEffect = gameObjectFactory.Create<RainEffectGameObject>();
         _snowEffect = gameObjectFactory.Create<SnowEffectGameObject>();
         _skyGameObject = gameObjectFactory.Create<SkyGameObject>();
-        _testChunk = gameObjectFactory.Create<ChunkGameObject>();
 
         AddChild(_skyGameObject);
         AddChild(_rainEffect);
         AddChild(_snowEffect);
-        AddChild(_testChunk);
 
         IsRaining = false;
         IsSnowing = false;
