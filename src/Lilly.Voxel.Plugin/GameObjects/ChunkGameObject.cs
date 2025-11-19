@@ -44,6 +44,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private string _billboardAtlasName = "blocks";
     private string _fluidAtlasName = "blocks";
     private string _itemAtlasName = "blocks";
+    private Func<ChunkCoordinates, ChunkEntity?>? _getNeighborChunk;
 
     // GPU Resources for each geometry type
     private VertexBuffer<ChunkVertex>? _solidVertexBuffer;
@@ -107,9 +108,12 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     /// <summary>
     /// Binds a chunk instance to the renderer and schedules a mesh rebuild.
     /// </summary>
-    public void SetChunk(ChunkEntity chunk)
+    /// <param name="chunk">The chunk entity to render.</param>
+    /// <param name="getNeighborChunk">Optional callback to retrieve neighboring chunks for face culling at chunk boundaries.</param>
+    public void SetChunk(ChunkEntity chunk, Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk = null)
     {
         Chunk = chunk ?? throw new ArgumentNullException(nameof(chunk));
+        _getNeighborChunk = getNeighborChunk;
         _meshDirty = true;
     }
 
@@ -294,8 +298,8 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                     // Extract atlas names used by different render types
                     ExtractAtlasNames();
 
-                    // Build mesh data from chunk
-                    var meshData = _meshBuilder.BuildMeshData(Chunk, null);
+                    // Build mesh data from chunk, using neighbor callback for face culling at boundaries
+                    var meshData = _meshBuilder.BuildMeshData(Chunk, _getNeighborChunk);
 
                     _mainThreadDispatcher.EnqueueAction(
                         () =>

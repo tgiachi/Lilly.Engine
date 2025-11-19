@@ -399,7 +399,18 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
         var chunkGameObject = _gameObjectFactory.Create<ChunkGameObject>();
         ApplyRenderSettings(chunkGameObject);
-        chunkGameObject.SetChunk(chunk);
+
+        // Create callback to retrieve neighboring chunks for face culling at chunk boundaries
+        Func<ChunkCoordinates, ChunkEntity?> getNeighborChunk = (neighborCoords) =>
+        {
+            if (_activeChunks.TryGetValue(neighborCoords, out var neighborChunkObject))
+            {
+                return neighborChunkObject.Chunk;
+            }
+            return null;
+        };
+
+        chunkGameObject.SetChunk(chunk, getNeighborChunk);
 
         var worldOrigin = ChunkUtils.ChunkCoordinatesToWorldPosition(
             coordinates.X,
