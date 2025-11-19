@@ -124,7 +124,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Plays a looping audio stream.
     /// </summary>
-    public void PlayStream(string streamName, float volume = 1.0f, bool loop = true)
+    public void PlayStream(string streamName, float volume = 1.0f, bool isLooping = true)
     {
         try
         {
@@ -135,7 +135,7 @@ public class AudioService : IAudioService
             }
 
             stream.SetVolume(volume);
-            stream.SetLooping(loop);
+            stream.SetLooping(isLooping);
             stream.Play();
         }
         catch (Exception ex)
@@ -147,7 +147,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Plays a looping audio stream at a specific position in 3D space.
     /// </summary>
-    public void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool loop = true, float referenceDistance = 1.0f)
+    public void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f)
     {
         try
         {
@@ -158,7 +158,7 @@ public class AudioService : IAudioService
             }
 
             stream.SetVolume(volume);
-            stream.SetLooping(loop);
+            stream.SetLooping(isLooping);
             stream.SetPosition(position);
             stream.SetReferenceDistance(referenceDistance);
             stream.Play();
@@ -172,7 +172,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Stops a stream.
     /// </summary>
-    public void Stop(string soundName)
+    public void StopAudio(string soundName)
     {
         try
         {
@@ -221,11 +221,11 @@ public class AudioService : IAudioService
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    public void LoadAudioStream(string streamName, string filePath, bool loop = true)
+    public void LoadAudioStream(string streamName, string filePath, bool isLooping = true)
     {
         try
         {
-            var stream = new Audio.AudioStream(filePath, loop);
+            var stream = new Audio.AudioStream(filePath, isLooping);
             _streams[streamName] = stream;
             _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
         }

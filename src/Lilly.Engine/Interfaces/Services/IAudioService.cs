@@ -47,17 +47,17 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Plays a looping audio stream.
     /// </summary>
-    void PlayStream(string streamName, float volume = 1.0f, bool loop = true);
+    void PlayStream(string streamName, float volume = 1.0f, bool isLooping = true);
 
     /// <summary>
     /// Plays a looping audio stream at a specific position in 3D space.
     /// </summary>
-    void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool loop = true, float referenceDistance = 1.0f);
+    void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f);
 
     /// <summary>
     /// Stops a stream.
     /// </summary>
-    void Stop(string soundName);
+    void StopAudio(string soundName);
 
     /// <summary>
     /// Stops all audio playback.
@@ -72,5 +72,5 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    void LoadAudioStream(string streamName, string filePath, bool loop = true);
+    void LoadAudioStream(string streamName, string filePath, bool isLooping = true);
 }

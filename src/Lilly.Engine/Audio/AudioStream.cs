@@ -97,7 +97,7 @@ public class AudioStream : IDisposable
     public void UpdateBuffer()
     {
         al.GetSourceProperty(
-            alSource.sourcehandle,
+            alSource.SourceHandle,
             GetSourceInteger.BuffersProcessed,
             out var processedBuffersCount
         );

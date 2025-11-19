@@ -1,4 +1,4 @@
-﻿using Silk.NET.OpenAL;
+using Silk.NET.OpenAL;
 
 namespace Lilly.Engine.Audio;
 
@@ -19,7 +19,7 @@ public class AudioMaster : IDisposable
 
         if (device == null)
         {
-            throw new("Could not create device");
+            throw new InvalidOperationException("Could not create device");
         }
 
 
@@ -48,7 +48,7 @@ public class AudioMaster : IDisposable
 
         if (err != AudioError.NoError)
         {
-            throw new($"Audio error {Enum.GetName(typeof(AudioError), err)}");
+            throw new InvalidOperationException($"Audio error {Enum.GetName<AudioError>(err)}");
         }
     }
 

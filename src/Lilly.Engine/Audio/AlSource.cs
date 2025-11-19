@@ -6,60 +6,60 @@ namespace Lilly.Engine.Audio;
 public class AlSource : IDisposable
 {
     private readonly AL al;
-    public readonly uint sourcehandle;
+    public uint SourceHandle { get; }
 
     public AlSource()
     {
-        sourcehandle = AudioMaster.GetInstance().Al.GenSource();
+        SourceHandle = AudioMaster.GetInstance().Al.GenSource();
         al = AudioMaster.GetInstance().Al;
     }
 
     public void Dispose()
     {
-        al.DeleteSource(sourcehandle);
+        al.DeleteSource(SourceHandle);
         GC.SuppressFinalize(this);
     }
 
     public int GetProcessedBuffers()
     {
-        al.GetSourceProperty(sourcehandle, GetSourceInteger.BuffersProcessed, out var processed);
+        al.GetSourceProperty(SourceHandle, GetSourceInteger.BuffersProcessed, out var processed);
 
         return processed;
     }
 
     public void Play()
     {
-        al.SourcePlay(sourcehandle);
+        al.SourcePlay(SourceHandle);
     }
 
     public void QueueBuffers(AlBuffer[] buffers)
     {
-        al.SourceQueueBuffers(sourcehandle, buffers.Select(a => a.bufferhandle).ToArray());
+        al.SourceQueueBuffers(SourceHandle, buffers.Select(a => a.bufferhandle).ToArray());
     }
 
     public void SetBuffer(AlBuffer buffer)
     {
-        al.SetSourceProperty(sourcehandle, SourceInteger.Buffer, buffer.bufferhandle);
+        al.SetSourceProperty(SourceHandle, SourceInteger.Buffer, buffer.bufferhandle);
     }
 
     public void SetProperty(SourceBoolean looping, bool b)
     {
-        al.SetSourceProperty(sourcehandle, looping, b);
+        al.SetSourceProperty(SourceHandle, looping, b);
     }
 
     public void SetProperty(SourceFloat gain, float b)
     {
-        al.SetSourceProperty(sourcehandle, gain, b);
+        al.SetSourceProperty(SourceHandle, gain, b);
     }
 
     public void Stop()
     {
-        al.SourceStop(sourcehandle);
+        al.SourceStop(SourceHandle);
     }
 
     public void UnqueueBuffer(AlBuffer[] buffers)
     {
-        al.SourceUnqueueBuffers(sourcehandle, buffers.Select(a => a.bufferhandle).ToArray());
+        al.SourceUnqueueBuffers(SourceHandle, buffers.Select(a => a.bufferhandle).ToArray());
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class AlSource : IDisposable
     /// <param name="position">The position in 3D space.</param>
     public void SetPosition(Vector3D<float> position)
     {
-        al.SetSourceProperty(sourcehandle, SourceVector3.Position, position.X, position.Y, position.Z);
+        al.SetSourceProperty(SourceHandle, SourceVector3.Position, position.X, position.Y, position.Z);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class AlSource : IDisposable
     /// <param name="velocity">The velocity in 3D space.</param>
     public void SetVelocity(Vector3D<float> velocity)
     {
-        al.SetSourceProperty(sourcehandle, SourceVector3.Velocity, velocity.X, velocity.Y, velocity.Z);
+        al.SetSourceProperty(SourceHandle, SourceVector3.Velocity, velocity.X, velocity.Y, velocity.Z);
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public class AlSource : IDisposable
     /// <param name="distance">The reference distance in units.</param>
     public void SetReferenceDistance(float distance)
     {
-        al.SetSourceProperty(sourcehandle, SourceFloat.ReferenceDistance, distance);
+        al.SetSourceProperty(SourceHandle, SourceFloat.ReferenceDistance, distance);
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ public class AlSource : IDisposable
     /// <param name="distance">The maximum distance in units.</param>
     public void SetMaxDistance(float distance)
     {
-        al.SetSourceProperty(sourcehandle, SourceFloat.MaxDistance, distance);
+        al.SetSourceProperty(SourceHandle, SourceFloat.MaxDistance, distance);
     }
 
     /// <summary>
@@ -105,7 +105,6 @@ public class AlSource : IDisposable
     /// <param name="rolloff">The rolloff factor.</param>
     public void SetRolloffFactor(float rolloff)
     {
-        al.SetSourceProperty(sourcehandle, SourceFloat.RolloffFactor, rolloff);
+        al.SetSourceProperty(SourceHandle, SourceFloat.RolloffFactor, rolloff);
     }
-
 }
