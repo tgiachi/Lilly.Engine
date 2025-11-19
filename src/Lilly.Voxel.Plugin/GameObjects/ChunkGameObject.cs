@@ -1,4 +1,6 @@
 using System;
+using System;
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
@@ -55,6 +57,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private ShaderProgram? _fluidShader;
     private ShaderProgram? _itemBillboardShader;
 
+    // Cached camera-dependent uniforms
+    private CommonUniformData _commonUniforms;
+    private ItemCameraUniformData _itemCameraUniforms;
+    private bool _hasCachedCameraUniforms;
+
     // Rendering configuration
     public bool WireframeEnabled { get; set; }
     public bool ShowChunkBoundaries { get; set; }
@@ -89,10 +96,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     /// </summary>
     public ChunkEntity? Chunk { get; private set; }
 
-    /// <summary>
-    /// Gets the coordinates of the chunk within the world grid.
-    /// </summary>
-    public ChunkCoordinates Coordinates { get; set; }
+
 
     /// <summary>
     /// Binds a chunk instance to the renderer and schedules a mesh rebuild.
@@ -101,6 +105,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     {
         Chunk = chunk ?? throw new ArgumentNullException(nameof(chunk));
         _meshDirty = true;
+        _logger.Information("SetChunk called at position {Position}, mesh marked dirty", Transform.Position);
     }
 
     /// <summary>
@@ -154,6 +159,29 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         {
             BuildAndUploadMesh();
         }
+    }
+
+    private void CacheCameraUniforms(ICamera3D camera)
+    {
+        _commonUniforms = new CommonUniformData
+        {
+            View = camera.View.ToSystem(),
+            Projection = camera.Projection.ToSystem(),
+            FogEnabled = FogEnabled,
+            FogColor = FogColor.ToSystem(),
+            FogStart = FogStart,
+            FogEnd = FogEnd,
+            Ambient = AmbientLight.ToSystem()
+        };
+
+        _itemCameraUniforms = new ItemCameraUniformData
+        {
+            CameraRight = Vector3D.Normalize(camera.Right).ToSystem(),
+            CameraUp = Vector3D.Normalize(camera.Up).ToSystem(),
+            CameraForward = Vector3D.Normalize(camera.Forward).ToSystem()
+        };
+
+        _hasCachedCameraUniforms = true;
     }
 
     /// <summary>
@@ -371,20 +399,36 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     /// <inheritdoc />
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
     {
-        if (Chunk == null)
+        if (Chunk == null || !_hasCachedCameraUniforms)
         {
             yield break;
         }
 
+        var modelTranslation = Transform.Position.ToSystem();
+        var commonUniforms = _commonUniforms;
+        var assetManager = _assetManager;
+
         // Solid geometry
         if (_solidVertexBuffer != null && _blockShader != null)
         {
-            SetSolidUniforms();
+            var shader = _blockShader;
+            var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
+            var lightIntensity = LightIntensity;
+            var blockAtlas = _blockAtlasName;
+
+            yield return RenderCommandHelpers.SetUniforms(
+                shader,
+                s =>
+                {
+                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
+                    ApplySolidUniforms(s, lightDirection, lightIntensity, blockAtlas, assetManager);
+                }
+            );
 
             yield return new RenderCommand(
                 RenderCommandType.DrawArray,
                 new DrawArrayPayload(
-                    _blockShader,
+                    shader,
                     _solidVertexBuffer,
                     _solidVertexCount,
                     PrimitiveType.Triangles
@@ -395,13 +439,23 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         // Billboard geometry
         if (_billboardVertexBuffer != null && _billboardShader != null)
         {
-            SetBillboardUniforms();
+            var shader = _billboardShader;
+            var atlasName = _billboardAtlasName;
+
+            yield return RenderCommandHelpers.SetUniforms(
+                shader,
+                s =>
+                {
+                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
+                    ApplyBillboardUniforms(s, atlasName, assetManager);
+                }
+            );
 
             yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.None());
             yield return new RenderCommand(
                 RenderCommandType.DrawArray,
                 new DrawArrayPayload(
-                    _billboardShader,
+                    shader,
                     _billboardVertexBuffer,
                     _billboardVertexCount,
                     PrimitiveType.Triangles
@@ -413,12 +467,25 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         // Fluid geometry
         if (_fluidVertexBuffer != null && _fluidShader != null)
         {
-            SetFluidUniforms(gameTime);
+            var shader = _fluidShader;
+            var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
+            var atlasName = _fluidAtlasName;
+            var animationTime = _animationTime;
+            var waterTransparency = WaterTransparency;
+
+            yield return RenderCommandHelpers.SetUniforms(
+                shader,
+                s =>
+                {
+                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
+                    ApplyFluidUniforms(s, lightDirection, animationTime, waterTransparency, atlasName, assetManager);
+                }
+            );
 
             yield return new RenderCommand(
                 RenderCommandType.DrawArray,
                 new DrawArrayPayload(
-                    _fluidShader,
+                    shader,
                     _fluidVertexBuffer,
                     _fluidVertexCount,
                     PrimitiveType.Triangles
@@ -429,11 +496,24 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         // Item geometry
         if (_itemVertexBuffer != null && _itemBillboardShader != null)
         {
-            // Item uniforms are set in the camera-based Draw method
+            var shader = _itemBillboardShader;
+            var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
+            var atlasName = _itemAtlasName;
+            var cameraUniforms = _itemCameraUniforms;
+
+            yield return RenderCommandHelpers.SetUniforms(
+                shader,
+                s =>
+                {
+                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
+                    ApplyItemUniforms(s, lightDirection, cameraUniforms, atlasName, assetManager);
+                }
+            );
+
             yield return new RenderCommand(
                 RenderCommandType.DrawArray,
                 new DrawArrayPayload(
-                    _itemBillboardShader,
+                    shader,
                     _itemVertexBuffer,
                     _itemVertexCount,
                     PrimitiveType.Triangles
@@ -447,195 +527,13 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     {
         if (Chunk != null)
         {
-            // Set common uniforms that require camera
-            SetCommonUniforms(camera);
-
-            // Set item-specific uniforms that require camera
-            if (_itemBillboardShader != null)
-            {
-                SetItemUniforms(camera);
-            }
+            CacheCameraUniforms(camera);
         }
 
         base.Draw(camera, gameTime);
     }
 
-    /// <summary>
-    /// Sets common uniforms for all shaders.
-    /// </summary>
-    private void SetCommonUniforms(ICamera3D camera)
-    {
-        var shaders = new[] { _blockShader, _billboardShader, _fluidShader, _itemBillboardShader };
-
-        foreach (var shader in shaders)
-        {
-            if (shader == null)
-            {
-                continue;
-            }
-
-            shader.TrySetUniform("uModel", uniform => uniform.SetValueVec3(Transform.Position.ToSystem()));
-            shader.TrySetUniform("uView", uniform => uniform.SetValueMat4(camera.View.ToSystem()));
-            shader.TrySetUniform("uProjection", uniform => uniform.SetValueMat4(camera.Projection.ToSystem()));
-            shader.TrySetUniform("uFogEnabled", uniform => uniform.SetValueBool(FogEnabled));
-            shader.TrySetUniform("uFogColor", uniform => uniform.SetValueVec3(FogColor.ToSystem()));
-            shader.TrySetUniform("uFogStart", uniform => uniform.SetValueFloat(FogStart));
-            shader.TrySetUniform("uFogEnd", uniform => uniform.SetValueFloat(FogEnd));
-            shader.TrySetUniform("uAmbient", uniform => uniform.SetValueVec3(AmbientLight.ToSystem()));
-        }
-    }
-
-    /// <summary>
-    /// Sets uniforms specific to solid block rendering.
-    /// </summary>
-    private void SetSolidUniforms()
-    {
-        if (_blockShader == null)
-            return;
-
-        _blockShader.TrySetUniform(
-            "uLightDirection",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
-        );
-        _blockShader.TrySetUniform("uLightIntensity", uniform => uniform.SetValueFloat(LightIntensity));
-
-        // Set the texture atlas for block rendering
-        _blockShader.TrySetUniform(
-            "uTexture",
-            uniform =>
-            {
-                try
-                {
-                    var textureName = _blockAtlasName + "_atlas";
-                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
-                    uniform.SetValueTexture(texture);
-                }
-                catch
-                {
-                    // Fallback to white texture if atlas is not available
-                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
-                }
-            }
-        );
-
-        // Set texture multiplier (typically 1.0 for standard texture atlases)
-        _blockShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
-    }
-
-    /// <summary>
-    /// Sets uniforms specific to billboard rendering.
-    /// </summary>
-    private void SetBillboardUniforms()
-    {
-        if (_billboardShader == null)
-        {
-            return;
-        }
-
-        // Set the texture atlas for billboard rendering
-        _billboardShader.TrySetUniform(
-            "uTexture",
-            uniform =>
-            {
-                try
-                {
-                    var textureName = _billboardAtlasName + "_atlas";
-                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
-                    uniform.SetValueTexture(texture);
-                }
-                catch
-                {
-                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
-                }
-            }
-        );
-
-        _billboardShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
-    }
-
-    /// <summary>
-    /// Sets uniforms specific to fluid rendering.
-    /// </summary>
-    private void SetFluidUniforms(GameTime gameTime)
-    {
-        if (_fluidShader == null)
-        {
-            return;
-        }
-
-        _fluidShader.TrySetUniform(
-            "uLightDirection",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
-        );
-        _fluidShader.TrySetUniform("uTime", uniform => uniform.SetValueFloat(_animationTime));
-        _fluidShader.TrySetUniform("uWaterTransparency", uniform => uniform.SetValueFloat(WaterTransparency));
-
-        // Set the texture atlas for fluid rendering
-        _fluidShader.TrySetUniform(
-            "uTexture",
-            uniform =>
-            {
-                try
-                {
-                    var textureName = _fluidAtlasName + "_atlas";
-                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
-                    uniform.SetValueTexture(texture);
-                }
-                catch
-                {
-                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
-                }
-            }
-        );
-
-        _fluidShader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
-    }
-
-    /// <summary>
-    /// Sets uniforms specific to item billboard rendering.
-    /// </summary>
-    private void SetItemUniforms(ICamera3D camera)
-    {
-        if (_itemBillboardShader == null)
-            return;
-
-        _itemBillboardShader.TrySetUniform(
-            "uLightDirection",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(LightDirection).ToSystem())
-        );
-        _itemBillboardShader.TrySetUniform(
-            "uTexture",
-            uniform =>
-            {
-                try
-                {
-                    var textureName = _itemAtlasName + "_atlas";
-                    var texture = _assetManager.GetTexture<Texture2D>(textureName);
-                    uniform.SetValueTexture(texture);
-                }
-                catch
-                {
-                    uniform.SetValueTexture(_assetManager.GetWhiteTexture<Texture2D>());
-                }
-            }
-        );
-        _itemBillboardShader.TrySetUniform(
-            "uCameraRight",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Right).ToSystem())
-        );
-        _itemBillboardShader.TrySetUniform(
-            "uCameraUp",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Up).ToSystem())
-        );
-        _itemBillboardShader.TrySetUniform(
-            "uCameraForward",
-            uniform => uniform.SetValueVec3(Vector3D.Normalize(camera.Forward).ToSystem())
-        );
-        _itemBillboardShader.TrySetUniform(
-            "uTexMultiplier",
-            uniform => uniform.SetValueFloat(1.0f)
-        );
-    }
+    // Legacy uniform helper methods replaced by command-buffer-based uniforms.
 
     /// <summary>
     /// Releases GPU resources.
@@ -656,6 +554,111 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         _billboardVertexCount = 0;
         _fluidVertexCount = 0;
         _itemVertexCount = 0;
+    }
+
+    private static void ApplyCommonUniforms(ShaderProgram shader, Vector3 modelTranslation, CommonUniformData data)
+    {
+        shader.TrySetUniform("uModel", uniform => uniform.SetValueVec3(modelTranslation));
+        shader.TrySetUniform("uView", uniform => uniform.SetValueMat4(data.View));
+        shader.TrySetUniform("uProjection", uniform => uniform.SetValueMat4(data.Projection));
+        shader.TrySetUniform("uFogEnabled", uniform => uniform.SetValueBool(data.FogEnabled));
+        shader.TrySetUniform("uFogColor", uniform => uniform.SetValueVec3(data.FogColor));
+        shader.TrySetUniform("uFogStart", uniform => uniform.SetValueFloat(data.FogStart));
+        shader.TrySetUniform("uFogEnd", uniform => uniform.SetValueFloat(data.FogEnd));
+        shader.TrySetUniform("uAmbient", uniform => uniform.SetValueVec3(data.Ambient));
+    }
+
+    private static void ApplySolidUniforms(
+        ShaderProgram shader,
+        Vector3 lightDirection,
+        float lightIntensity,
+        string atlasName,
+        IAssetManager assetManager
+    )
+    {
+        shader.TrySetUniform("uLightDirection", uniform => uniform.SetValueVec3(lightDirection));
+        shader.TrySetUniform("uLightIntensity", uniform => uniform.SetValueFloat(lightIntensity));
+        SetTextureUniform(shader, atlasName, assetManager);
+        shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
+    }
+
+    private static void ApplyBillboardUniforms(
+        ShaderProgram shader,
+        string atlasName,
+        IAssetManager assetManager
+    )
+    {
+        SetTextureUniform(shader, atlasName, assetManager);
+        shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
+    }
+
+    private static void ApplyFluidUniforms(
+        ShaderProgram shader,
+        Vector3 lightDirection,
+        float animationTime,
+        float waterTransparency,
+        string atlasName,
+        IAssetManager assetManager
+    )
+    {
+        shader.TrySetUniform("uLightDirection", uniform => uniform.SetValueVec3(lightDirection));
+        shader.TrySetUniform("uTime", uniform => uniform.SetValueFloat(animationTime));
+        shader.TrySetUniform("uWaterTransparency", uniform => uniform.SetValueFloat(waterTransparency));
+        SetTextureUniform(shader, atlasName, assetManager);
+        shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
+    }
+
+    private static void ApplyItemUniforms(
+        ShaderProgram shader,
+        Vector3 lightDirection,
+        ItemCameraUniformData cameraUniforms,
+        string atlasName,
+        IAssetManager assetManager
+    )
+    {
+        shader.TrySetUniform("uLightDirection", uniform => uniform.SetValueVec3(lightDirection));
+        SetTextureUniform(shader, atlasName, assetManager);
+        shader.TrySetUniform("uCameraRight", uniform => uniform.SetValueVec3(cameraUniforms.CameraRight));
+        shader.TrySetUniform("uCameraUp", uniform => uniform.SetValueVec3(cameraUniforms.CameraUp));
+        shader.TrySetUniform("uCameraForward", uniform => uniform.SetValueVec3(cameraUniforms.CameraForward));
+        shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
+    }
+
+    private static void SetTextureUniform(ShaderProgram shader, string atlasName, IAssetManager assetManager)
+    {
+        shader.TrySetUniform(
+            "uTexture",
+            uniform =>
+            {
+                try
+                {
+                    var texture = assetManager.GetTexture<Texture2D>(atlasName + "_atlas");
+                    uniform.SetValueTexture(texture);
+                }
+                catch
+                {
+                    uniform.SetValueTexture(assetManager.GetWhiteTexture<Texture2D>());
+                }
+            }
+        );
+    }
+
+    private struct CommonUniformData
+    {
+        public Matrix4x4 View;
+        public Matrix4x4 Projection;
+        public bool FogEnabled;
+        public Vector3 FogColor;
+        public float FogStart;
+        public float FogEnd;
+        public Vector3 Ambient;
+    }
+
+    private struct ItemCameraUniformData
+    {
+        public Vector3 CameraRight;
+        public Vector3 CameraUp;
+        public Vector3 CameraForward;
     }
 
     /// <inheritdoc />

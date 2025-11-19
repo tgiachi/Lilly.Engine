@@ -34,7 +34,8 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         {
             RenderCommandType.DrawArray,
             RenderCommandType.SetDepthState,
-            RenderCommandType.SetCullMode
+            RenderCommandType.SetCullMode,
+            RenderCommandType.SetUniforms
         };
 
     public RenderLayerSystem3D(
@@ -155,6 +156,12 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                 case RenderCommandType.SetCullMode:
                     var cullMode = cmd.GetPayload<SetCullModePayload>();
                     ProcessCullMode(cullMode);
+
+                    break;
+
+                case RenderCommandType.SetUniforms:
+                    var uniformsPayload = cmd.GetPayload<SetUniformsPayload>();
+                    uniformsPayload.Apply();
 
                     break;
             }

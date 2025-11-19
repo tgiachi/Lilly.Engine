@@ -56,6 +56,11 @@ public enum RenderCommandType : byte
     SetCullMode,
 
     /// <summary>
+    /// Set shader uniforms for a specific program.
+    /// </summary>
+    SetUniforms,
+
+    /// <summary>
     /// Render ImGui debug interface.
     /// </summary>
     ImGui,

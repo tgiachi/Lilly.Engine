@@ -1,3 +1,4 @@
+using System;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Payloads.GpuSubCommands;
@@ -103,6 +104,15 @@ public static class RenderCommandHelpers
     /// <returns>A render command to set cull mode.</returns>
     public static RenderCommand SetCullMode(SetCullModePayload cullMode)
         => new(RenderCommandType.SetCullMode, cullMode);
+
+    /// <summary>
+    /// Creates a command to apply shader uniforms before a draw call.
+    /// </summary>
+    /// <param name="shaderProgram">The shader program whose uniforms will be updated.</param>
+    /// <param name="applyUniforms">Delegate that applies the uniform values.</param>
+    /// <returns>A render command that sets uniforms.</returns>
+    public static RenderCommand SetUniforms(ShaderProgram shaderProgram, Action<ShaderProgram> applyUniforms)
+        => new(RenderCommandType.SetUniforms, new SetUniformsPayload(shaderProgram, applyUniforms));
 
     /// <summary>
     /// Creates a window command to set the refresh rate.

@@ -22,6 +22,7 @@ public class AudioMaster : IDisposable
             throw new("Could not create device");
         }
 
+
         context = alc.CreateContext(device, null);
         MakeContextCurrent();
         GetError();
@@ -53,10 +54,7 @@ public class AudioMaster : IDisposable
 
     public static AudioMaster GetInstance()
     {
-        if (instance == null)
-        {
-            instance = new();
-        }
+        instance ??= new();
 
         return instance;
     }
