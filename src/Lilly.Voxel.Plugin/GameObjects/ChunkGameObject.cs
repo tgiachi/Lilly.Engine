@@ -1,5 +1,4 @@
 using System;
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Extensions;
@@ -45,26 +44,27 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private VertexBuffer<ChunkVertex>? _billboardVertexBuffer;
     private VertexBuffer<ChunkFluidVertex>? _fluidVertexBuffer;
     private VertexBuffer<ChunkItemVertex>? _itemVertexBuffer;
+    private VertexBuffer<VertexColor>? _boundaryVertexBuffer;
 
     private uint _solidVertexCount;
     private uint _billboardVertexCount;
     private uint _fluidVertexCount;
     private uint _itemVertexCount;
+    private uint _boundaryVertexCount;
 
     // Shader programs
     private ShaderProgram? _blockShader;
     private ShaderProgram? _billboardShader;
     private ShaderProgram? _fluidShader;
     private ShaderProgram? _itemBillboardShader;
+    private SimpleShaderProgram? _boundaryShader;
 
     // Cached camera-dependent uniforms
     private CommonUniformData _commonUniforms;
     private ItemCameraUniformData _itemCameraUniforms;
     private bool _hasCachedCameraUniforms;
 
-    // Rendering configuration
-    public bool WireframeEnabled { get; set; }
-    public bool ShowChunkBoundaries { get; set; }
+    public bool ShowChunkBoundaries { get; set; } = true;
     public bool FogEnabled { get; set; } = true;
     public Vector3D<float> FogColor { get; set; } = new(0.7f, 0.8f, 0.9f);
     public float FogStart { get; set; } = 48f;
@@ -182,6 +182,89 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         };
 
         _hasCachedCameraUniforms = true;
+
+        if (ShowChunkBoundaries)
+        {
+            UpdateBoundaryShader(camera);
+        }
+    }
+
+    private void UpdateBoundaryShader(ICamera3D camera)
+    {
+        EnsureBoundaryResources();
+
+        if (_boundaryShader == null)
+        {
+            return;
+        }
+
+        var world = Transform.GetTransformationMatrix().ToSystem();
+        _boundaryShader.World = world;
+        _boundaryShader.View = camera.View.ToSystem();
+        _boundaryShader.Projection = camera.Projection.ToSystem();
+    }
+
+    private void EnsureBoundaryResources()
+    {
+        if (_boundaryShader == null)
+        {
+            _boundaryShader = SimpleShaderProgram.Create<VertexColor>(GraphicsDevice);
+        }
+
+        if (_boundaryVertexBuffer == null)
+        {
+            var vertices = BuildBoundaryVertices();
+            _boundaryVertexBuffer = new VertexBuffer<VertexColor>(GraphicsDevice, vertices, BufferUsage.StaticCopy);
+            _boundaryVertexCount = (uint)vertices.Length;
+        }
+    }
+
+    private static VertexColor[] BuildBoundaryVertices()
+    {
+        var color = new Color4b(255, 200, 50, 255);
+        float width = ChunkEntity.Size;
+        float height = ChunkEntity.Height;
+
+        Vector3[] corners =
+        {
+            new(0f, 0f, 0f),
+            new(width, 0f, 0f),
+            new(width, 0f, width),
+            new(0f, 0f, width),
+            new(0f, height, 0f),
+            new(width, height, 0f),
+            new(width, height, width),
+            new(0f, height, width)
+        };
+
+        var vertices = new VertexColor[24];
+        int index = 0;
+
+        void AddEdge(int a, int b)
+        {
+            vertices[index++] = new VertexColor(corners[a], color);
+            vertices[index++] = new VertexColor(corners[b], color);
+        }
+
+        // Bottom square
+        AddEdge(0, 1);
+        AddEdge(1, 2);
+        AddEdge(2, 3);
+        AddEdge(3, 0);
+
+        // Top square
+        AddEdge(4, 5);
+        AddEdge(5, 6);
+        AddEdge(6, 7);
+        AddEdge(7, 4);
+
+        // Vertical edges
+        AddEdge(0, 4);
+        AddEdge(1, 5);
+        AddEdge(2, 6);
+        AddEdge(3, 7);
+
+        return vertices;
     }
 
     /// <summary>
@@ -520,6 +603,19 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 )
             );
         }
+
+        if (ShowChunkBoundaries && _boundaryVertexBuffer != null && _boundaryShader != null && _boundaryVertexCount > 0)
+        {
+            yield return new RenderCommand(
+                RenderCommandType.DrawArray,
+                new DrawArrayPayload(
+                    _boundaryShader,
+                    _boundaryVertexBuffer,
+                    _boundaryVertexCount,
+                    PrimitiveType.Lines
+                )
+            );
+        }
     }
 
     /// <inheritdoc />
@@ -665,6 +761,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     public void Dispose()
     {
         DisposeBuffers();
+        _boundaryVertexBuffer?.Dispose();
+        _boundaryShader?.Dispose();
+        _boundaryVertexBuffer = null;
+        _boundaryShader = null;
+        _boundaryVertexCount = 0;
         GC.SuppressFinalize(this);
     }
 }

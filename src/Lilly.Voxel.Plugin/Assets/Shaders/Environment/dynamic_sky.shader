@@ -60,34 +60,19 @@ vec3 GetSkyColor(vec3 direction, float t)
     vec3 night_top = vec3(0.004, 0.004, 0.008);
     vec3 night_bottom = vec3(0.035, 0.043, 0.075);
 
-    vec3 top_color, bottom_color;
+    float day_blend = smoothstep(0.0, 0.6, sun_height);
+    float sunset_window = smoothstep(-0.4, 0.2, sun_height);
+    float night_blend = smoothstep(-0.6, -0.1, sun_height);
 
-    // Full day
-    if (sun_height > 0.7)
-    {
-        top_color = day_top;
-        bottom_color = day_bottom;
-    }
-    // Day to sunset transition
-    else if (sun_height > 0.0)
-    {
-        float blend = sun_height / 0.7;
-        top_color = mix(sunset_top, day_top, blend);
-        bottom_color = mix(sunset_bottom, day_bottom, blend);
-    }
-    // Sunset to night transition
-    else if (sun_height > -0.3)
-    {
-        float blend = (sun_height + 0.3) / 0.3;
-        top_color = mix(night_top, sunset_top, blend);
-        bottom_color = mix(night_bottom, sunset_bottom, blend);
-    }
-    // Full night
-    else
-    {
-        top_color = night_top;
-        bottom_color = night_bottom;
-    }
+    vec3 high_sky = mix(sunset_top, day_top, day_blend);
+    vec3 low_sky = mix(sunset_bottom, day_bottom, day_blend);
+
+    vec3 top_color = mix(night_top, high_sky, sunset_window);
+    vec3 bottom_color = mix(night_bottom, low_sky, sunset_window);
+
+    // Reinforce full night when sun is far below horizon
+    top_color = mix(night_top, top_color, night_blend);
+    bottom_color = mix(night_bottom, bottom_color, night_blend);
 
     // Horizon rotation effect
     float horizon_rotation = sun_angle * 0.1;
@@ -96,22 +81,7 @@ vec3 GetSkyColor(vec3 direction, float t)
     float transition_width = 0.08;
     float horizon_center = 0.0;
 
-    float blend_factor;
-
-    if (rotated_vertical_pos < horizon_center - transition_width)
-    {
-        blend_factor = 1.0;
-    }
-    else if (rotated_vertical_pos > horizon_center + transition_width)
-    {
-        blend_factor = 0.0;
-    }
-    else
-    {
-        float transition_pos = (rotated_vertical_pos - horizon_center) / transition_width;
-        blend_factor = 1.0 - smoothstep(-1.0, 1.0, transition_pos);
-    }
-
+    float blend_factor = smoothstep(-transition_width, transition_width, horizon_center - rotated_vertical_pos);
     vec3 sky_color = mix(top_color, bottom_color, blend_factor);
 
     // Horizontal variation
@@ -504,4 +474,3 @@ void main()
     // This renders the skybox at maximum depth (far plane)
     gl_Position = projPos.xyww;
 }
-
