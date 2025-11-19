@@ -2,9 +2,11 @@ using DryIoc;
 using ImGuiNET;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Debuggers;
@@ -26,6 +28,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Services.Input;
+using Lilly.Engine.Wrappers.Commands;
 using Lilly.Engine.Wrappers.Debugger;
 using MoonSharp.Interpreter;
 using Serilog;
@@ -294,7 +297,6 @@ public class LillyBoostrap : ILillyBootstrap
             );
             _renderPipeline.AddGameObject(cube);
         }
-
     }
 
     private void InizializeGameObjectFromPlugins()
@@ -323,6 +325,8 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void RegisterDefaults()
     {
+        _container.RegisterInstance(new JobServiceConfig(Environment.ProcessorCount));
+
         _container
             .Register<PluginRegistry>(Reuse.Singleton);
 
@@ -330,12 +334,13 @@ public class LillyBoostrap : ILillyBootstrap
             .Register<PluginDependencyValidator>(Reuse.Singleton);
 
         _container
-            .RegisterService<IScriptEngineService, LuaScriptEngineService>()
+            .RegisterService<IEventBusService, EventBusService>(true)
+            .RegisterService<ITimerService, TimerService>(true)
+            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>(true)
+            .RegisterService<IJobSystemService, JobSystemService>(true)
+            .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             .RegisterService<IVersionService, VersionService>()
             .RegisterService<IInputManagerService, InputManagerService>()
-            .RegisterService<ITimerService, TimerService>()
-            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
-            .RegisterService<IJobSystemService, JobSystemService>()
             .RegisterService<IGraphicRenderPipeline, GraphicRenderPipeline>()
             .RegisterService<IGameObjectFactory, GameObjectFactory>()
             .RegisterService<IAssetManager, AssetManager>()
@@ -343,8 +348,8 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterService<ICamera3dService, Camera3dService>()
             .RegisterService<ISceneManager, SceneManager>()
             .RegisterService<INotificationService, NotificationService>()
-            .RegisterService<IEventBusService, EventBusService>()
-            .RegisterService<IAudioService, AudioService>()
+            .RegisterService<IAudioService, AudioService>(true)
+            .RegisterService<ICommandSystemService, CommandSystemService>(true)
             ;
 
         _container
@@ -366,6 +371,7 @@ public class LillyBoostrap : ILillyBootstrap
 
         _container
             .AddScriptModule<EngineModule>()
+            .AddScriptModule<CommandsModule>()
             .AddScriptModule<ConsoleModule>()
             .AddScriptModule<WindowModule>()
             .AddScriptModule<AssetsModule>()
@@ -428,15 +434,15 @@ public class LillyBoostrap : ILillyBootstrap
 
         _logger.Information("Root Directory: {RootDirectory}", directoriesConfig.Root);
 
-        _container.Resolve<IEventBusService>();
-        _container.Resolve<ITimerService>();
-        _container.Resolve<IMainThreadDispatcher>();
-        _container.Resolve<IAudioService>();
+        var autostartServices = _container.Resolve<List<AutostartRegistration>>();
 
-        _container.Resolve<IJobSystemService>()
-                  .Initialize(Environment.ProcessorCount);
+        foreach (var autostart in autostartServices)
+        {
+            _container.Resolve(autostart.ServiceType);
+            _logger.Debug("Autostarting service: {ServiceType}", autostart.ServiceType.Name);
+        }
 
-        var scriptEngine = _container.Resolve<IScriptEngineService>();
+
 
         InitializePlugins();
 
@@ -449,7 +455,15 @@ public class LillyBoostrap : ILillyBootstrap
 
         _container.Resolve<IGameObjectFactory>();
 
-        await scriptEngine.StartAsync();
+        foreach (var service in autostartServices)
+        {
+            if (_container.Resolve(service.ServiceType) is ILillyService instance)
+            {
+                await instance.StartAsync();
+                _logger.Debug("Started autostart service: {ServiceType}", service.ServiceType.Name);
+            }
+        }
+
 
         var assetManager = _container.Resolve<IAssetManager>();
 

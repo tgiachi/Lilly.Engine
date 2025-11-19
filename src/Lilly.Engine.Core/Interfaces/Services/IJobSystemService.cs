@@ -1,13 +1,13 @@
 using Lilly.Engine.Core.Interfaces.Jobs;
+using Lilly.Engine.Core.Interfaces.Services.Base;
 
 namespace Lilly.Engine.Core.Interfaces.Services;
 
 /// <summary>
 /// Provides a pool of worker threads for executing synchronous and asynchronous jobs.
 /// </summary>
-public interface IJobSystemService : IJobSystemMetrics
+public interface IJobSystemService : IJobSystemMetrics, ILillyService
 {
-    #region IJob Execution
 
     /// <summary>
     /// Executes a synchronous job and returns a task that completes when the job finishes.
@@ -28,9 +28,6 @@ public interface IJobSystemService : IJobSystemMetrics
     /// <returns>A job handle and completion task with result.</returns>
     IJobHandle<TResult> ExecuteAsync<TResult>(IJob<TResult> job, JobPriority priority = JobPriority.Normal, CancellationToken cancellationToken = default);
 
-    #endregion
-
-    #region IAsyncJob Execution
 
     /// <summary>
     /// Executes an asynchronous job.
@@ -51,9 +48,6 @@ public interface IJobSystemService : IJobSystemMetrics
     /// <returns>A job handle and completion task with result.</returns>
     IJobHandle<TResult> ExecuteAsync<TResult>(IAsyncJob<TResult> job, JobPriority priority = JobPriority.Normal, CancellationToken cancellationToken = default);
 
-    #endregion
-
-    #region Task Factory Execution
 
     /// <summary>
     /// Executes a task-returning function that produces a result.
@@ -119,9 +113,6 @@ public interface IJobSystemService : IJobSystemMetrics
     /// <returns>A job handle and completion task with result.</returns>
     IJobHandle<TResult> ExecuteAsync<TResult>(string name, Func<Task<TResult>> asyncAction, JobPriority priority = JobPriority.Normal, CancellationToken cancellationToken = default);
 
-    #endregion
-
-    #region Fire-and-Forget Scheduling
 
     /// <summary>
     /// Schedules a synchronous job without waiting for completion.
@@ -140,9 +131,6 @@ public interface IJobSystemService : IJobSystemMetrics
     /// <returns>A job handle for tracking.</returns>
     IJobHandle Schedule(IAsyncJob job, JobPriority priority = JobPriority.Normal, CancellationToken cancellationToken = default);
 
-    #endregion
-
-    #region Lifecycle
 
     /// <summary>
     /// Initializes the worker pool.
@@ -155,5 +143,4 @@ public interface IJobSystemService : IJobSystemMetrics
     /// </summary>
     void Shutdown();
 
-    #endregion
 }

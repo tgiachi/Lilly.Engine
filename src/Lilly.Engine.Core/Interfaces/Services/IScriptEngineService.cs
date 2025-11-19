@@ -1,11 +1,12 @@
 using Lilly.Engine.Core.Data.Scripts;
+using Lilly.Engine.Core.Interfaces.Services.Base;
 
 namespace Lilly.Engine.Core.Interfaces.Services;
 
 /// <summary>
 /// Interface for the script engine service that manages JavaScript execution.
 /// </summary>
-public interface IScriptEngineService
+public interface IScriptEngineService : ILillyService
 {
     /// <summary>
     /// Delegate for handling script file change events.
@@ -135,17 +136,6 @@ public interface IScriptEngineService
     /// <param name="func">The delegate to register as a global function.</param>
     void RegisterGlobalFunction(string name, Delegate func);
 
-    /// <summary>
-    /// Starts the script engine service asynchronously.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task StartAsync();
-
-    /// <summary>
-    /// Stops the script engine service asynchronously.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    Task StopAsync();
 
     /// <summary>
     /// Converts a .NET method name to a JavaScript-compatible function name.

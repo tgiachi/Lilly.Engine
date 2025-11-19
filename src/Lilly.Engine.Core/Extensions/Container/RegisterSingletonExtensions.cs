@@ -1,4 +1,5 @@
 using DryIoc;
+using Lilly.Engine.Core.Data.Services;
 
 namespace Lilly.Engine.Core.Extensions.Container;
 
@@ -16,7 +17,7 @@ public static class RegisterSingletonExtensions
         /// <typeparam name="TService">The service interface type.</typeparam>
         /// <typeparam name="TImplementation">The implementation type.</typeparam>
         /// <returns>The container for method chaining.</returns>
-        public IContainer RegisterService<TService, TImplementation>()
+        public IContainer RegisterService<TService, TImplementation>(bool autoStart = false)
             where TImplementation : TService
         {
             container.Register<TService, TImplementation>(
@@ -27,20 +28,17 @@ public static class RegisterSingletonExtensions
                 )
             );
 
+            if (autoStart)
+            {
+                container.AddToRegisterTypedList(new AutostartRegistration(typeof(TService)));
+            }
+
             return container;
         }
 
         public IContainer RegisterService<TService>()
         {
-            container.Register<TService>(
-                Reuse.Singleton,
-                setup: Setup.With(
-                    allowDisposableTransient: true,
-                    trackDisposableTransient: true
-                )
-            );
-
-            return container;
+            return container.RegisterService<TService, TService>();
         }
     }
 }

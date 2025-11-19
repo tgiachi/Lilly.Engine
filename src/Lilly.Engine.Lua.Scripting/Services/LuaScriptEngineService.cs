@@ -622,7 +622,7 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     /// Stops the script engine asynchronously.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public Task StopAsync()
+    public Task ShutdownAsync()
         => Task.CompletedTask;
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Interfaces.Jobs;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Jobs;
@@ -18,6 +19,8 @@ public class JobSystemService : IJobSystemService, IDisposable
     private readonly PriorityQueue<QueuedJob, QueuedJob> _jobQueue = new();
     private readonly ReaderWriterLockSlim _queueLock = new();
 
+    private readonly JobServiceConfig _config;
+
     // Signaling
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _queueSignal = new(0);
@@ -27,12 +30,15 @@ public class JobSystemService : IJobSystemService, IDisposable
     private long _cancelledJobsCount;
     private long _failedJobsCount;
     private double _totalExecutionTimeMs;
-    private double _minExecutionTimeMs = double.MaxValue;
-    private double _maxExecutionTimeMs;
     private int _activeWorkerCount;
     private int _totalWorkerCount;
     private readonly Lock _metricsLock = new();
     private bool _disposed;
+
+    public JobSystemService(JobServiceConfig config)
+    {
+        _config = config;
+    }
 
     /// <summary>
     /// Releases resources used by the job system service.
@@ -91,8 +97,9 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    public double MinExecutionTimeMs => _minExecutionTimeMs;
-    public double MaxExecutionTimeMs => _maxExecutionTimeMs;
+    public double MinExecutionTimeMs { get; private set; } = double.MaxValue;
+
+    public double MaxExecutionTimeMs { get; private set; }
 
     public IJobHandle ExecuteAsync(
         IJob job,
@@ -105,7 +112,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new SynchronousAwaitableJob(job, priority, cancellationToken);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -121,7 +128,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new SynchronousResultJob<TResult>(job, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -137,7 +144,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new AsyncJobWrapper(job, priority, true, cancellationToken);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -153,7 +160,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new AsyncJobWrapper<TResult>(job, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -171,7 +178,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new TaskResultJob<TResult>(name, taskFactory, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -189,7 +196,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new TaskResultJob<TResult>(name, taskFactory, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -208,7 +215,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         var job = new ActionJob(name, action);
         var queuedJob = new SynchronousAwaitableJob(job, priority, cancellationToken);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -227,7 +234,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         var job = new FuncJob<TResult>(name, action);
         var queuedJob = new SynchronousResultJob<TResult>(job, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -246,7 +253,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         var job = new AsyncActionJob(name, asyncAction);
         var queuedJob = new AsyncJobWrapper(job, priority, true, cancellationToken);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -265,7 +272,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         var job = new AsyncFuncJob<TResult>(name, asyncAction);
         var queuedJob = new AsyncJobWrapper<TResult>(job, priority, cancellationToken);
         var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJobWithCompletion(queuedJob, handle);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -277,7 +284,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new SynchronousFireAndForgetJob(job, priority);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithoutCompletion(queuedJob);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -293,7 +300,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         var queuedJob = new AsyncJobWrapper(job, priority, false, cancellationToken);
         var handle = new JobHandle(queuedJob);
-        EnqueueJobWithoutCompletion(queuedJob);
+        EnqueueJob(queuedJob);
 
         return handle;
     }
@@ -320,7 +327,9 @@ public class JobSystemService : IJobSystemService, IDisposable
     public void Shutdown()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _logger.Information("Shutting down job system");
         _cts.Cancel();
@@ -334,28 +343,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    private void EnqueueJobWithCompletion<THandle>(QueuedJob job, THandle handle)
-        where THandle : class
-    {
-        _queueLock.EnterWriteLock();
-
-        try
-        {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(JobSystemService));
-            }
-
-            _jobQueue.Enqueue(job, job);
-            _queueSignal.Release();
-        }
-        finally
-        {
-            _queueLock.ExitWriteLock();
-        }
-    }
-
-    private void EnqueueJobWithoutCompletion(QueuedJob job)
+    private void EnqueueJob(QueuedJob job)
     {
         _queueLock.EnterWriteLock();
 
@@ -410,7 +398,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                             Environment.CurrentManagedThreadId
                         );
                     }
-                    catch (OperationCanceledException oce)
+                    catch (OperationCanceledException)
                     {
                         var elapsed = Stopwatch.GetElapsedTime(stopwatch);
                         Interlocked.Increment(ref _cancelledJobsCount);
@@ -476,75 +464,85 @@ public class JobSystemService : IJobSystemService, IDisposable
         {
             _totalExecutionTimeMs += elapsedMs;
 
-            if (elapsedMs < _minExecutionTimeMs)
-                _minExecutionTimeMs = elapsedMs;
+            if (elapsedMs < MinExecutionTimeMs)
+                MinExecutionTimeMs = elapsedMs;
 
-            if (elapsedMs > _maxExecutionTimeMs)
-                _maxExecutionTimeMs = elapsedMs;
+            if (elapsedMs > MaxExecutionTimeMs)
+                MaxExecutionTimeMs = elapsedMs;
         }
     }
-}
 
-/// <summary>Helper job class that wraps an Action.</summary>
-internal sealed class ActionJob : IJob
-{
-    private readonly Action _action;
-    public string Name { get; }
-
-    public ActionJob(string name, Action action)
+    /// <summary>Helper job class that wraps an Action.</summary>
+    private sealed class ActionJob : IJob
     {
-        Name = name;
-        _action = action;
+        private readonly Action _action;
+        public string Name { get; }
+
+        public ActionJob(string name, Action action)
+        {
+            Name = name;
+            _action = action;
+        }
+
+        public void Execute()
+            => _action();
     }
 
-    public void Execute()
-        => _action();
-}
-
-/// <summary>Helper job class that wraps a Func{T}.</summary>
-internal sealed class FuncJob<TResult> : IJob<TResult>
-{
-    private readonly Func<TResult> _func;
-    public string Name { get; }
-
-    public FuncJob(string name, Func<TResult> func)
+    /// <summary>Helper job class that wraps a Func{T}.</summary>
+    private sealed class FuncJob<TResult> : IJob<TResult>
     {
-        Name = name;
-        _func = func;
+        private readonly Func<TResult> _func;
+        public string Name { get; }
+
+        public FuncJob(string name, Func<TResult> func)
+        {
+            Name = name;
+            _func = func;
+        }
+
+        public TResult Execute()
+            => _func();
     }
 
-    public TResult Execute()
-        => _func();
-}
-
-/// <summary>Helper job class that wraps a Func{Task}.</summary>
-internal sealed class AsyncActionJob : IAsyncJob
-{
-    private readonly Func<Task> _asyncAction;
-    public string Name { get; }
-
-    public AsyncActionJob(string name, Func<Task> asyncAction)
+    /// <summary>Helper job class that wraps a Func{Task}.</summary>
+    private sealed class AsyncActionJob : IAsyncJob
     {
-        Name = name;
-        _asyncAction = asyncAction;
+        private readonly Func<Task> _asyncAction;
+        public string Name { get; }
+
+        public AsyncActionJob(string name, Func<Task> asyncAction)
+        {
+            Name = name;
+            _asyncAction = asyncAction;
+        }
+
+        public Task ExecuteAsync(CancellationToken cancellationToken)
+            => _asyncAction();
     }
 
-    public Task ExecuteAsync(CancellationToken cancellationToken)
-        => _asyncAction();
-}
-
-/// <summary>Helper job class that wraps a Func{Task{T}}.</summary>
-internal sealed class AsyncFuncJob<TResult> : IAsyncJob<TResult>
-{
-    private readonly Func<Task<TResult>> _asyncFunc;
-    public string Name { get; }
-
-    public AsyncFuncJob(string name, Func<Task<TResult>> asyncFunc)
+    /// <summary>Helper job class that wraps a Func{Task{T}}.</summary>
+    private sealed class AsyncFuncJob<TResult> : IAsyncJob<TResult>
     {
-        Name = name;
-        _asyncFunc = asyncFunc;
+        private readonly Func<Task<TResult>> _asyncFunc;
+        public string Name { get; }
+
+        public AsyncFuncJob(string name, Func<Task<TResult>> asyncFunc)
+        {
+            Name = name;
+            _asyncFunc = asyncFunc;
+        }
+
+        public Task<TResult> ExecuteAsync(CancellationToken cancellationToken)
+            => _asyncFunc();
     }
 
-    public Task<TResult> ExecuteAsync(CancellationToken cancellationToken)
-        => _asyncFunc();
+    public async Task StartAsync()
+    {
+        Initialize(_config.WorkerCount);
+    }
+
+    public async Task ShutdownAsync()
+    {
+        Shutdown();
+    }
 }
