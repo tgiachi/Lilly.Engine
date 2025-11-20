@@ -62,10 +62,12 @@ public sealed class ChunkMeshBuilder
             var fluidVertices = new List<ChunkFluidVertex>(2048);
             var fluidIndices = new List<int>(4096);
 
+            var neighbors = BuildNeighborCache(chunk, getNeighborChunk);
+
             // Process non-solid geometry first (billboards, items, fluids)
             ProcessSpecialGeometry(
                 chunk,
-                getNeighborChunk,
+                neighbors,
                 billboardVertices,
                 billboardIndices,
                 itemVertices,
@@ -75,7 +77,7 @@ public sealed class ChunkMeshBuilder
             );
 
             // Process solid geometry with greedy meshing
-            BuildSolidFacesGreedy(chunk, getNeighborChunk, solidVertices, solidIndices);
+            BuildSolidFacesGreedy(chunk, neighbors, solidVertices, solidIndices);
 
             return new ChunkMeshData
             {
@@ -98,11 +100,36 @@ public sealed class ChunkMeshBuilder
     }
 
     /// <summary>
+    /// Pulls all neighboring chunks once so face culling at chunk boundaries avoids repeated lookups.
+    /// </summary>
+    private NeighborChunkCache BuildNeighborCache(
+        ChunkEntity chunk,
+        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk
+    )
+    {
+        if (getNeighborChunk == null)
+        {
+            return default;
+        }
+
+        var coords = chunk.ChunkCoordinates;
+
+        return new NeighborChunkCache(
+            getNeighborChunk(coords + ChunkCoordinates.Left),
+            getNeighborChunk(coords + ChunkCoordinates.Right),
+            getNeighborChunk(coords + ChunkCoordinates.Down),
+            getNeighborChunk(coords + ChunkCoordinates.Up),
+            getNeighborChunk(coords + ChunkCoordinates.Backward),
+            getNeighborChunk(coords + ChunkCoordinates.Forward)
+        );
+    }
+
+    /// <summary>
     /// Processes special geometry types: billboards, items, and fluids.
     /// </summary>
     private void ProcessSpecialGeometry(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         List<ChunkVertex> billboardVertices,
         List<int> billboardIndices,
         List<ChunkItemVertex> itemVertices,
@@ -153,7 +180,7 @@ public sealed class ChunkMeshBuilder
                     // Process fluids
                     if (blockType.RenderType == BlockRenderType.Fluid)
                     {
-                        AppendFluidBlock(chunk, getNeighborChunk, x, y, z, origin, blockType, fluidVertices, fluidIndices);
+                        AppendFluidBlock(chunk, neighbors, x, y, z, origin, blockType, fluidVertices, fluidIndices);
                     }
                 }
             }
@@ -165,17 +192,17 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private void BuildSolidFacesGreedy(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         List<ChunkVertex> vertices,
         List<int> indices
     )
     {
-        ProcessHorizontalFaces(chunk, getNeighborChunk, BlockFace.Top, vertices, indices);
-        ProcessHorizontalFaces(chunk, getNeighborChunk, BlockFace.Bottom, vertices, indices);
-        ProcessDepthAlignedFaces(chunk, getNeighborChunk, BlockFace.Front, vertices, indices);
-        ProcessDepthAlignedFaces(chunk, getNeighborChunk, BlockFace.Back, vertices, indices);
-        ProcessWidthAlignedFaces(chunk, getNeighborChunk, BlockFace.Right, vertices, indices);
-        ProcessWidthAlignedFaces(chunk, getNeighborChunk, BlockFace.Left, vertices, indices);
+        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Top, vertices, indices);
+        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Bottom, vertices, indices);
+        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Front, vertices, indices);
+        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Back, vertices, indices);
+        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Right, vertices, indices);
+        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Left, vertices, indices);
     }
 
     /// <summary>
@@ -183,7 +210,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private void ProcessHorizontalFaces(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
         List<int> indices
@@ -215,7 +242,7 @@ public sealed class ChunkMeshBuilder
                     if (blockType.IsBillboard || blockType.RenderType is BlockRenderType.Item or BlockRenderType.Fluid)
                         continue;
 
-                    if (!ShouldRenderFace(chunk, getNeighborChunk, x, y, z, face, blockType))
+                    if (!ShouldRenderFace(chunk, neighbors, x, y, z, face, blockType))
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
@@ -232,7 +259,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private void ProcessDepthAlignedFaces(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
         List<int> indices
@@ -263,7 +290,7 @@ public sealed class ChunkMeshBuilder
                     if (blockType.IsBillboard || blockType.RenderType is BlockRenderType.Item or BlockRenderType.Fluid)
                         continue;
 
-                    if (!ShouldRenderFace(chunk, getNeighborChunk, x, y, z, face, blockType))
+                    if (!ShouldRenderFace(chunk, neighbors, x, y, z, face, blockType))
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
@@ -280,7 +307,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private void ProcessWidthAlignedFaces(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
         List<int> indices
@@ -311,7 +338,7 @@ public sealed class ChunkMeshBuilder
                     if (blockType.IsBillboard || blockType.RenderType is BlockRenderType.Item or BlockRenderType.Fluid)
                         continue;
 
-                    if (!ShouldRenderFace(chunk, getNeighborChunk, x, y, z, face, blockType))
+                    if (!ShouldRenderFace(chunk, neighbors, x, y, z, face, blockType))
                         continue;
 
                     var lighting = CalculateLighting(chunk, x, y, z, face);
@@ -580,7 +607,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private bool ShouldRenderFace(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -588,6 +615,8 @@ public sealed class ChunkMeshBuilder
         BlockType currentType
     )
     {
+        _ = currentType;
+
         // Try to get neighbor block in same chunk
         if (chunk.TryGetAdjacentBlock(x, y, z, face, out var neighborId))
         {
@@ -602,7 +631,7 @@ public sealed class ChunkMeshBuilder
         }
 
         // Try to get neighbor from adjacent chunk
-        if (getNeighborChunk != null && TryGetNeighborBlock(chunk, getNeighborChunk, x, y, z, face, out neighborId))
+        if (TryGetNeighborBlock(neighbors, x, y, z, face, out neighborId))
         {
             if (neighborId == 0)
                 return true;
@@ -620,8 +649,7 @@ public sealed class ChunkMeshBuilder
     /// Retrieves a block from a neighboring chunk.
     /// </summary>
     private bool TryGetNeighborBlock(
-        ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?> getNeighborChunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -630,7 +658,13 @@ public sealed class ChunkMeshBuilder
     )
     {
         blockId = 0;
-        var neighborCoords = chunk.ChunkCoordinates;
+        var neighborChunk = neighbors.Get(face);
+
+        if (neighborChunk == null)
+        {
+            return false;
+        }
+
         var localX = x;
         var localY = y;
         var localZ = z;
@@ -638,43 +672,32 @@ public sealed class ChunkMeshBuilder
         switch (face)
         {
             case BlockFace.Left:
-                neighborCoords += ChunkCoordinates.Left;
                 localX = ChunkEntity.Size - 1;
 
                 break;
             case BlockFace.Right:
-                neighborCoords += ChunkCoordinates.Right;
                 localX = 0;
 
                 break;
             case BlockFace.Bottom:
-                neighborCoords += ChunkCoordinates.Down;
                 localY = ChunkEntity.Height - 1;
 
                 break;
             case BlockFace.Top:
-                neighborCoords += ChunkCoordinates.Up;
                 localY = 0;
 
                 break;
             case BlockFace.Back:
-                neighborCoords += ChunkCoordinates.Backward;
                 localZ = ChunkEntity.Size - 1;
 
                 break;
             case BlockFace.Front:
-                neighborCoords += ChunkCoordinates.Forward;
                 localZ = 0;
 
                 break;
             default:
                 return false;
         }
-
-        var neighborChunk = getNeighborChunk(neighborCoords);
-
-        if (neighborChunk == null)
-            return false;
 
         blockId = neighborChunk.GetBlock(localX, localY, localZ);
 
@@ -857,7 +880,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private void AppendFluidBlock(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -872,7 +895,7 @@ public sealed class ChunkMeshBuilder
         // Render all faces that are adjacent to non-fluid blocks
         foreach (var face in AllFaces)
         {
-            if (!ShouldRenderFluidFace(chunk, getNeighborChunk, x, y, z, face))
+            if (!ShouldRenderFluidFace(chunk, neighbors, x, y, z, face))
                 continue;
 
             AppendFluidFace(vertices, indices, origin, face, color, blockType);
@@ -884,7 +907,7 @@ public sealed class ChunkMeshBuilder
     /// </summary>
     private bool ShouldRenderFluidFace(
         ChunkEntity chunk,
-        Func<ChunkCoordinates, ChunkEntity?>? getNeighborChunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -903,7 +926,7 @@ public sealed class ChunkMeshBuilder
         }
 
         // Try neighbor chunk
-        if (getNeighborChunk != null && TryGetNeighborBlock(chunk, getNeighborChunk, x, y, z, face, out neighborId))
+        if (TryGetNeighborBlock(neighbors, x, y, z, face, out neighborId))
         {
             if (neighborId == 0)
                 return true;
@@ -1012,6 +1035,48 @@ public sealed class ChunkMeshBuilder
         indices.Add(baseIndex);
         indices.Add(baseIndex + 2);
         indices.Add(baseIndex + 3);
+    }
+
+    /// <summary>
+    /// Caches direct references to adjacent chunks for fast boundary lookups during meshing.
+    /// </summary>
+    private readonly struct NeighborChunkCache
+    {
+        public NeighborChunkCache(
+            ChunkEntity? left,
+            ChunkEntity? right,
+            ChunkEntity? bottom,
+            ChunkEntity? top,
+            ChunkEntity? back,
+            ChunkEntity? front
+        )
+        {
+            Left = left;
+            Right = right;
+            Bottom = bottom;
+            Top = top;
+            Back = back;
+            Front = front;
+        }
+
+        public ChunkEntity? Left { get; }
+        public ChunkEntity? Right { get; }
+        public ChunkEntity? Bottom { get; }
+        public ChunkEntity? Top { get; }
+        public ChunkEntity? Back { get; }
+        public ChunkEntity? Front { get; }
+
+        public ChunkEntity? Get(BlockFace face)
+            => face switch
+            {
+                BlockFace.Left   => Left,
+                BlockFace.Right  => Right,
+                BlockFace.Bottom => Bottom,
+                BlockFace.Top    => Top,
+                BlockFace.Back   => Back,
+                BlockFace.Front  => Front,
+                _                => null
+            };
     }
 
     /// <summary>
