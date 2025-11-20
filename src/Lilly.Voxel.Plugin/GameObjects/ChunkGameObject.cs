@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Extensions;
@@ -11,7 +10,6 @@ using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Jobs;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
@@ -400,11 +398,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             nonAirBlockCount,
             nonAirBlockCount / (float)Chunk.Blocks.Length
         );
-
-        if (nonAirBlockCount == 0)
-        {
-            _logger.Warning("Chunk is completely empty (all air)");
-        }
     }
 
     /// <summary>
@@ -413,6 +406,18 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private void UploadMeshData(ChunkMeshData meshData)
     {
         DisposeBuffers();
+
+        var hasSolid = meshData.Vertices.Length > 0 && meshData.Indices.Length > 0;
+        var hasBillboard = meshData.BillboardVertices.Length > 0 && meshData.BillboardIndices.Length > 0;
+        var hasFluid = meshData.FluidVertices.Length > 0 && meshData.FluidIndices.Length > 0;
+        var hasItem = meshData.ItemVertices.Length > 0 && meshData.ItemIndices.Length > 0;
+
+        if (!hasSolid && !hasBillboard && !hasFluid && !hasItem)
+        {
+            _logger.Debug("Skipping mesh upload - all geometry is empty");
+
+            return;
+        }
 
         var expandedSolidVertices = ExpandIndexedGeometry(meshData.Vertices, meshData.Indices);
         var expandedBillboardVertices = ExpandIndexedGeometry(meshData.BillboardVertices, meshData.BillboardIndices);

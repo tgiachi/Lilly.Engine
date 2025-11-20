@@ -137,7 +137,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     public float LightIntensity { get; set; } = 1.5f;
 
-    public float WaterTransparency { get; set; } = 0.3f;
+    public float WaterTransparency { get; set; } = 0.1f;
 
     public bool ShowChunkBoundaries
     {
