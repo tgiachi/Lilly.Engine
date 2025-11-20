@@ -137,7 +137,20 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     public float LightIntensity { get; set; } = 1.5f;
 
-    public float WaterTransparency { get; set; } = 0.1f;
+    private float _waterTransparency = 0.1f;
+    public float WaterTransparency
+    {
+        get => _waterTransparency;
+        set
+        {
+            _waterTransparency = Math.Clamp(value, 0f, 1f);
+
+            foreach (var chunk in _activeChunks.Values)
+            {
+                chunk.WaterTransparency = _waterTransparency;
+            }
+        }
+    }
 
     public bool ShowChunkBoundaries
     {

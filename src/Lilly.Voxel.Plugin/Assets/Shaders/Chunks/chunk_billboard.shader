@@ -30,12 +30,10 @@ void main()
         discard;
 
     // Billboards are camera-facing, so use simplified lighting
-    vec3 vertexLight = vColor.rgb;
-    float lightFactor = max(max(vertexLight.r, vertexLight.g), vertexLight.b);
-    // Expand range to 0.3-1.0 to show AO shadows more clearly
-    lightFactor = mix(0.3, 1.0, clamp(lightFactor, 0.0, 1.0));
+    vec3 vertexLight = clamp(vColor.rgb, 0.0, 1.0);
+    vertexLight = max(vertexLight, vec3(0.4)); // lift dark billboards
     vec3 diffuse = vec3(0.5, 0.5, 0.5); // Fixed diffuse for billboards
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * lightFactor;
+    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.08;
 
     if (uFogEnabled)
     {

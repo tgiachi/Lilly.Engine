@@ -35,11 +35,8 @@ void main()
     float diff = max(dot(vNormal, lightDir), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
-    vec3 vertexLight = vVertexLight;
-// lightFactor = mix(0.3, 1.0, clamp(lightFactor, 0.0, 1.0));
-    float lightFactor = max(max(vertexLight.r, vertexLight.g), vertexLight.b);
-    lightFactor = clamp(lightFactor, 0.0, 1.0);
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * lightFactor;
+    vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
+    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight;
 
     // Apply fog
     if (uFogEnabled)

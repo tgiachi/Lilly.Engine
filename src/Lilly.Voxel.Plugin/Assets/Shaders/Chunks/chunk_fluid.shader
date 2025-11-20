@@ -26,11 +26,9 @@ void main()
     float diff = max(dot(vNormal, lightDir), 0.0);
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
-    vec3 vertexLight = vVertexLight;
-    float lightFactor = max(max(vertexLight.r, vertexLight.g), vertexLight.b);
-    // Expand range to 0.3-1.0 to show AO shadows more clearly
-    lightFactor = mix(0.3, 1.0, clamp(lightFactor, 0.0, 1.0));
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * lightFactor;
+    vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
+    vertexLight = max(vertexLight, vec3(0.4)); // keep water readable even in low light
+    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.08; // slight base term
 
     if (uFogEnabled)
     {
@@ -38,7 +36,8 @@ void main()
     }
 
     // Apply water transparency: 0.0 = fully opaque, 1.0 = fully transparent
-    float alpha = texResult.a * (1.0 - uWaterTransparency);
+    float t = clamp(uWaterTransparency, 0.0, 1.0);
+    float alpha = texResult.a * (1.0 - t);
 
     FragColor = vec4(color, alpha);
 }

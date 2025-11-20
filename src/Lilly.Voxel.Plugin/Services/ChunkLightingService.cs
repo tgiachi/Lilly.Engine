@@ -45,13 +45,35 @@ public sealed class ChunkLightingService
         float averageAO = (ao0 + ao1 + ao2 + ao3) / 4f;
         averageAO = Math.Clamp(averageAO, 0f, 1f);
 
-        // If this block is not exposed to the sky, dampen light aggressively so caves stay dark.
-        float light = HasOpenSky(chunk, x, y, z) ? averageAO : averageAO * 0.08f;
+        bool openSky = HasOpenSky(chunk, x, y, z);
 
-        // Convert to brightness (1.0 = no shadow, 0.0 = full shadow)
-        byte brightness = (byte)(light * 255f);
+        // Sky light (AO modulated, damped if underground)
+        float skyLight = openSky ? averageAO : averageAO * 0.08f;
 
-        return new Vector4D<byte>(brightness, brightness, brightness, GetDirectionIndex(face));
+        // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
+        // so we don't wash out caves before lighting is computed.
+        var lightLevel = chunk.GetLightLevel(x, y, z);
+        float levelFactor = Math.Clamp(lightLevel / 15f, 0f, 1f);
+
+        if (chunk.IsLightingDirty && lightLevel >= 15)
+        {
+            levelFactor = 0f;
+        }
+
+        // Use the stronger of propagated light and skylight so torches still light caves.
+        float light = Math.Max(levelFactor, skyLight);
+
+        // Apply per-channel light color (defaults to white)
+        var color = chunk.GetLightColor(x, y, z);
+        float r = (color.R / 255f) * light;
+        float g = (color.G / 255f) * light;
+        float b = (color.B / 255f) * light;
+
+        byte rByte = (byte)(Math.Clamp(r, 0f, 1f) * 255f);
+        byte gByte = (byte)(Math.Clamp(g, 0f, 1f) * 255f);
+        byte bByte = (byte)(Math.Clamp(b, 0f, 1f) * 255f);
+
+        return new Vector4D<byte>(rByte, gByte, bByte, GetDirectionIndex(face));
     }
 
     /// <summary>

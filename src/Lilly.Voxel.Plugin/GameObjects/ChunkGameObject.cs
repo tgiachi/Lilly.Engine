@@ -77,7 +77,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     public Vector3D<float> AmbientLight { get; set; } = new(0.5f, 0.5f, 0.5f);
     public Vector3D<float> LightDirection { get; set; } = new(0.8f, 1.0f, 0.7f);
     public float LightIntensity { get; set; } = 1.5f;
-    public float WaterTransparency { get; set; } = 0.3f;
+    public float WaterTransparency { get; set; } = 0.1f;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChunkGameObject"/> class.
@@ -151,8 +151,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     /// <inheritdoc />
     public override void Update(GameTime gameTime)
     {
-        var delta = gameTime.GetElapsedSeconds();
-        _animationTime += delta;
+        _animationTime = gameTime.GetTotalGameTimeSeconds();
 
         base.Update(gameTime);
 

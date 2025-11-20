@@ -767,7 +767,8 @@ public sealed class ChunkMeshBuilder
         var centerX = origin.X + half;
         var centerZ = origin.Z + half;
 
-        var color = new Vector4D<byte>(255, 255, 255, 6);
+        var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, BlockFace.Top);
+        var lightColor = new Vector4D<byte>(lighting.X, lighting.Y, lighting.Z, 255);
 
         // Create two crossed quads
         var bottomA0 = new Vector3D<float>(centerX - half, baseHeight, centerZ - half);
@@ -780,8 +781,8 @@ public sealed class ChunkMeshBuilder
         var topB1 = new Vector3D<float>(bottomB1.X, topHeight, bottomB1.Z);
         var topB0 = new Vector3D<float>(bottomB0.X, topHeight, bottomB0.Z);
 
-        AppendBillboardQuad(vertices, indices, bottomA0, bottomA1, topA1, topA0, blockCoord, color, blockType);
-        AppendBillboardQuad(vertices, indices, bottomB0, bottomB1, topB1, topB0, blockCoord, color, blockType);
+        AppendBillboardQuad(vertices, indices, bottomA0, bottomA1, topA1, topA0, blockCoord, lightColor, blockType);
+        AppendBillboardQuad(vertices, indices, bottomB0, bottomB1, topB1, topB0, blockCoord, lightColor, blockType);
     }
 
     /// <summary>
@@ -847,7 +848,8 @@ public sealed class ChunkMeshBuilder
         var halfWidth = scale * 0.5f;
         var halfHeight = scale * 0.5f;
 
-        var color = new Vector4D<byte>(255, 255, 255, 255);
+        var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, BlockFace.Top);
+        var color = new Vector4D<byte>(lighting.X, lighting.Y, lighting.Z, 255);
         var baseIndex = vertices.Count;
 
         // Get texture atlas region for this item
@@ -890,14 +892,14 @@ public sealed class ChunkMeshBuilder
         List<int> indices
     )
     {
-        var color = new Vector4D<byte>(100, 150, 255, 200);
-
         // Render all faces that are adjacent to non-fluid blocks
         foreach (var face in AllFaces)
         {
             if (!ShouldRenderFluidFace(chunk, neighbors, x, y, z, face))
                 continue;
 
+            var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, face);
+            var color = new Vector4D<byte>(lighting.X, lighting.Y, lighting.Z, 200);
             AppendFluidFace(vertices, indices, origin, face, color, blockType);
         }
     }
