@@ -38,10 +38,21 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _prefetchedChunks = new();
     private readonly ConcurrentQueue<(ChunkCoordinates Coordinates, ChunkEntity Chunk)> _pendingChunks = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _pendingChunkCoordinates = new();
+    private readonly ConcurrentQueue<ChunkCoordinates> _neighborInvalidateQueue = new();
+    private readonly ConcurrentDictionary<ChunkCoordinates, byte> _queuedNeighborInvalidations = new();
     private readonly CancellationTokenSource _chunkCancellation = new();
 
     private static readonly float ChunkBoundingSphereRadius =
         0.5f * MathF.Sqrt(ChunkEntity.Size * ChunkEntity.Size * 2 + ChunkEntity.Height * ChunkEntity.Height);
+    private static readonly ChunkCoordinates[] NeighborOffsets =
+    [
+        ChunkCoordinates.Left,
+        ChunkCoordinates.Right,
+        ChunkCoordinates.Down,
+        ChunkCoordinates.Up,
+        ChunkCoordinates.Backward,
+        ChunkCoordinates.Forward
+    ];
 
     private ChunkCoordinates _lastCenterCoordinates;
     private bool _disposed;
@@ -108,6 +119,8 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     public int MaxChunkRequestsPerFrame { get; set; } = 12;
 
+    public int MaxNeighborInvalidationsPerFrame { get; set; } = 1;
+
     public float ChunkProcessBudgetMs { get; set; } = 1.5f;
 
     public bool EnableFog { get; set; } = true;
@@ -163,6 +176,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
         UpdateChunkLoading(camera);
         ProcessPendingChunks();
+        ProcessNeighborInvalidations();
     }
 
 
@@ -473,6 +487,8 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         AddChild(chunkGameObject);
         _activeChunks[coordinates] = chunkGameObject;
 
+        QueueNeighborInvalidations(coordinates);
+
         _logger.Information("Loaded chunk at {Coordinates}", coordinates);
     }
 
@@ -483,6 +499,39 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             Children.Remove(chunk);
             chunk.Dispose();
             _logger.Information("Unloaded chunk at {Coordinates}", coordinates);
+
+            QueueNeighborInvalidations(coordinates);
+        }
+    }
+
+    private void QueueNeighborInvalidations(ChunkCoordinates coordinates)
+    {
+        foreach (var offset in NeighborOffsets)
+        {
+            var neighborCoords = coordinates + offset;
+
+            if (_queuedNeighborInvalidations.TryAdd(neighborCoords, 1))
+            {
+                _neighborInvalidateQueue.Enqueue(neighborCoords);
+            }
+        }
+    }
+
+    private void ProcessNeighborInvalidations()
+    {
+        var processed = 0;
+
+        while (processed < MaxNeighborInvalidationsPerFrame &&
+               _neighborInvalidateQueue.TryDequeue(out var coords))
+        {
+            _queuedNeighborInvalidations.TryRemove(coords, out _);
+
+            if (_activeChunks.TryGetValue(coords, out var neighborChunk))
+            {
+                neighborChunk.InvalidateGeometry();
+            }
+
+            processed++;
         }
     }
 

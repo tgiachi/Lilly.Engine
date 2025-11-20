@@ -484,6 +484,14 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         );
     }
 
+    public bool IsEmpty()
+    {
+        return _solidVertexCount == 0 &&
+               _billboardVertexCount == 0 &&
+               _fluidVertexCount == 0 &&
+               _itemVertexCount == 0;
+    }
+
     private static T[] ExpandIndexedGeometry<T>(T[] vertices, int[] indices) where T : struct
     {
         if (vertices.Length == 0 || indices.Length == 0)
