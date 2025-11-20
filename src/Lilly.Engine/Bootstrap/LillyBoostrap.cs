@@ -120,7 +120,6 @@ public class LillyBoostrap : ILillyBootstrap
             // Dispose audio service
             var audioService = _container.Resolve<IAudioService>();
             audioService?.Dispose();
-            _logger.Debug("Audio service disposed");
         }
         catch (Exception ex)
         {
@@ -299,7 +298,6 @@ public class LillyBoostrap : ILillyBootstrap
             _renderPipeline.AddGameObject(cube);
         }
         _renderPipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDiagnosticsDebugger>());
-
     }
 
     private void InizializeGameObjectFromPlugins()
@@ -307,11 +305,11 @@ public class LillyBoostrap : ILillyBootstrap
         var pluginRegistry = _container.Resolve<PluginRegistry>();
         var loadedPlugins = pluginRegistry.GetLoadedPlugins().ToList();
 
-        _logger.Information("Loading game objects from {PluginCount} plugins", loadedPlugins.Count);
-
         foreach (var plugin in loadedPlugins)
         {
             _logger.Debug("Loading global game objects from plugin {PluginId}", plugin.LillyData.Id);
+
+            plugin.EngineReady(_container);
 
             foreach (var globalGameObject in plugin.GlobalGameObjects(_container.Resolve<IGameObjectFactory>()))
             {
@@ -445,8 +443,6 @@ public class LillyBoostrap : ILillyBootstrap
             _logger.Debug("Autostarting service: {ServiceType}", autostart.ServiceType.Name);
         }
 
-
-
         InitializePlugins();
 
         var pluginRegistry = _container.Resolve<PluginRegistry>();
@@ -466,7 +462,6 @@ public class LillyBoostrap : ILillyBootstrap
                 _logger.Debug("Started autostart service: {ServiceType}", service.ServiceType.Name);
             }
         }
-
 
         var assetManager = _container.Resolve<IAssetManager>();
 

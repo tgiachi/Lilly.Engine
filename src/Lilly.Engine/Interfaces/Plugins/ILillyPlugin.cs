@@ -11,6 +11,8 @@ public interface ILillyPlugin
 
     void EngineInitialized(IContainer container);
 
+    void EngineReady(IContainer container);
+
     IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory);
 
     IContainer RegisterModule(IContainer container);

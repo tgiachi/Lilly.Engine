@@ -20,6 +20,10 @@ public class DefaultGameObjectPlugin : ILillyPlugin
         => new("squid.lilly.defaultgameobjects", "Lilly Default Game Objects", "1.0.0", "SquidDev", []);
 
     public void EngineInitialized(IContainer container) { }
+    public void EngineReady(IContainer container)
+    {
+
+    }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {

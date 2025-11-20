@@ -18,6 +18,7 @@ using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
+using Lilly.Voxel.Plugin.Steps.World;
 using Serilog;
 
 namespace Lilly.Voxel.Plugin;
@@ -29,17 +30,19 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     private readonly ILogger _logger = Log.ForContext<LillyVoxelPlugin>();
 
+    private readonly bool _isWorldFlat ;
+
     public void EngineInitialized(IContainer container)
     {
         container.Resolve<ChunkLightingService>();
         container.Resolve<ChunkMeshBuilder>();
 
         LoadShaders(container.Resolve<IAssetManager>());
+    }
 
-        var generatorService = container.Resolve<IChunkGeneratorService>();
-
-
-        generatorService.AddGeneratorStep(new FlatWorldGenerationStep());
+    public void EngineReady(IContainer container)
+    {
+        AddGenerationSteps(container.Resolve<IChunkGeneratorService>(), container.Resolve<IBlockRegistry>());
     }
 
     private void LoadShaders(IAssetManager assetManager)
@@ -98,9 +101,6 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        // yield return gameObjectFactory.Create<SkyGameObject>();
-        // yield return gameObjectFactory.Create<SnowEffectGameObject>();
-        // yield return gameObjectFactory.Create<RainEffectGameObject>();
         yield return gameObjectFactory.Create<VoxelWorldGameObject>();
     }
 
@@ -128,5 +128,21 @@ public class LillyVoxelPlugin : ILillyPlugin
             .AddScriptModule<GenerationModule>();
 
         return container;
+    }
+
+    private void AddGenerationSteps(IChunkGeneratorService chunkGeneratorService, IBlockRegistry blockRegistry)
+    {
+        if (_isWorldFlat)
+        {
+            chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
+        }
+        else
+        {
+            chunkGeneratorService.AddGeneratorStep(new HeightMapGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainErosionGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
+            chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+        }
     }
 }

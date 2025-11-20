@@ -158,7 +158,6 @@ public class AssetManager : IAssetManager, IDisposable
         int margin = 0
     )
     {
-
         var textureName = atlasName + "_atlas";
         LoadTextureFromMemory(textureName, stream);
         var texture = _texture2Ds[textureName];
@@ -556,12 +555,7 @@ public class AssetManager : IAssetManager, IDisposable
 
     public void Dispose()
     {
-        _whiteTexture?.Dispose();
 
-        foreach (var shaderProgram in _shaderPrograms.Values)
-        {
-            shaderProgram.Dispose();
-        }
 
         GC.SuppressFinalize(this);
     }

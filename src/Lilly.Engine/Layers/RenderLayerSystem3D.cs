@@ -4,12 +4,10 @@ using Lilly.Engine.Rendering.Core.Base.RenderLayers;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Helpers;
-using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
-using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 
 namespace Lilly.Engine.Layers;
