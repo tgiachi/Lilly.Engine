@@ -26,7 +26,7 @@ void main()
     vec2 tiledCoord = fract(vec2(vTileCoord.x, 1.0 - vTileCoord.y));
     vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
     vec4 texResult = texture(uTexture, atlasCoord * uTexMultiplier);
-    
+
     // Discard transparent pixels
     if (texResult.a == 0.0)
         discard;
@@ -36,17 +36,17 @@ void main()
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
     vec3 vertexLight = vVertexLight;
+// lightFactor = mix(0.3, 1.0, clamp(lightFactor, 0.0, 1.0));
     float lightFactor = max(max(vertexLight.r, vertexLight.g), vertexLight.b);
-    // Expand range to 0.3-1.0 to show AO shadows more clearly
-    lightFactor = mix(0.3, 1.0, clamp(lightFactor, 0.0, 1.0));
+    lightFactor = clamp(lightFactor, 0.0, 1.0);
     vec3 color = texResult.rgb * (uAmbient + diffuse) * lightFactor;
-    
+
     // Apply fog
     if (uFogEnabled)
     {
         color = mix(uFogColor, color, vFogFactor);
     }
-    
+
     FragColor = vec4(color, texResult.a);
 }
 

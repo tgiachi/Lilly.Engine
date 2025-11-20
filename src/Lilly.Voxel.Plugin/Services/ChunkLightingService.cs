@@ -1,5 +1,6 @@
 using Silk.NET.Maths;
 using Lilly.Voxel.Plugin.Primitives;
+using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Types;
 
 namespace Lilly.Voxel.Plugin.Services;
@@ -9,6 +10,13 @@ namespace Lilly.Voxel.Plugin.Services;
 /// </summary>
 public sealed class ChunkLightingService
 {
+    private readonly IBlockRegistry _blockRegistry;
+
+    public ChunkLightingService(IBlockRegistry blockRegistry)
+    {
+        _blockRegistry = blockRegistry;
+    }
+
     /// <summary>
     /// Computes the face lighting color using ambient occlusion heuristics.
     /// AO is calculated by checking the 3 adjacent blocks at each corner of the face.
@@ -37,8 +45,11 @@ public sealed class ChunkLightingService
         float averageAO = (ao0 + ao1 + ao2 + ao3) / 4f;
         averageAO = Math.Clamp(averageAO, 0f, 1f);
 
+        // If this block is not exposed to the sky, dampen light aggressively so caves stay dark.
+        float light = HasOpenSky(chunk, x, y, z) ? averageAO : averageAO * 0.08f;
+
         // Convert to brightness (1.0 = no shadow, 0.0 = full shadow)
-        byte brightness = (byte)(averageAO * 255f);
+        byte brightness = (byte)(light * 255f);
 
         return new Vector4D<byte>(brightness, brightness, brightness, GetDirectionIndex(face));
     }
@@ -140,6 +151,40 @@ public sealed class ChunkLightingService
             },
             _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
         };
+    }
+
+    private bool HasOpenSky(ChunkEntity chunk, int x, int y, int z)
+    {
+        // Already at the top of this chunk – assume open sky.
+        if (y >= ChunkEntity.Height - 1)
+        {
+            return true;
+        }
+
+        for (int ty = y + 1; ty < ChunkEntity.Height; ty++)
+        {
+            var blockId = chunk.GetBlock(x, ty, z);
+
+            if (blockId == 0)
+            {
+                continue;
+            }
+
+            var blockType = _blockRegistry.GetById(blockId);
+
+            // Non-solid or explicitly transparent elements (billboards/items/glass) don't block the sky.
+            if (!blockType.IsSolid ||
+                blockType.IsTransparent ||
+                blockType.IsBillboard ||
+                blockType.RenderType is BlockRenderType.Item)
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
