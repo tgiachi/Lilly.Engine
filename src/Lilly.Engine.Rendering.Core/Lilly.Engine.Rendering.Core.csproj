@@ -20,7 +20,7 @@
         <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
 
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
-        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1"/>
+        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.2" />
         <PackageReference Include="Silk.NET.Windowing.Common" Version="2.22.0"/>
         <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
             <PrivateAssets>all</PrivateAssets>

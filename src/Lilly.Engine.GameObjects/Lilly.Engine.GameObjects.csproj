@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.1"/>
+        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.2" />
         <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

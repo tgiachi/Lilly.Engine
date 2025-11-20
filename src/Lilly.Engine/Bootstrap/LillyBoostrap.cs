@@ -359,7 +359,7 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<SpriteBatchRenderSystem>()
             .RegisterRenderSystem<UpdatableRenderSystem>()
             .RegisterRenderSystem<InputRenderSystem>()
-            .RegisterRenderSystem<RenderLayerSystem3D>()
+            .RegisterRenderSystem<RenderLayerSystem3D>(s)
             ;
 
         _container

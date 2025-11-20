@@ -34,8 +34,8 @@ void main()
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
-    vertexLight = max(vertexLight, vec3(0.4)); // avoid fully black items
-    vec3 litColor = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.08;
+    vertexLight = max(vertexLight, vec3(0.45)); // avoid fully black items
+    vec3 litColor = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.1;
     vec4 finalColor = vec4(litColor, texResult.a * vColor.a);
 
     if (uFogEnabled)
