@@ -588,6 +588,13 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             var animationTime = _animationTime;
             var waterTransparency = WaterTransparency;
 
+            yield return RenderCommandHelpers.SetDepthState(
+                new SetDepthStatePayload(
+                    depthTestEnabled: true,
+                    depthWriteEnabled: false
+                )
+            );
+
             yield return RenderCommandHelpers.SetUniforms(
                 shader,
                 s =>
@@ -606,6 +613,8 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                     PrimitiveType.Triangles
                 )
             );
+
+            yield return RenderCommandHelpers.SetDepthState(SetDepthStatePayload.DefaultDepthState());
         }
 
         // Item geometry

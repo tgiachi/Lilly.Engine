@@ -92,7 +92,8 @@ void main()
     if (int(aTop) == 1)
     {
         pos.y -= 0.1;
-        pos.y += (sin(pos.x * PI / 2.0 + uTime) + sin(pos.z * PI / 2.0 + uTime * 1.5)) * 0.05;
+        float wave = (sin((pos.x + uModel.x) * PI / 2.0 + uTime) + sin((pos.z + uModel.z) * PI / 2.0 + uTime * 1.5)) * 0.05;
+        pos.y += wave;
     }
 
     vec4 worldPosition = vec4(pos + uModel, 1.0);
