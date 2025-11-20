@@ -5,6 +5,7 @@ using Lilly.Engine.Layers;
 using Lilly.Engine.Rendering.Core.Collections;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Helpers;
+using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
 using Lilly.Engine.Rendering.Core.Types;
@@ -25,6 +26,9 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// Gets or sets the unique identifier for this debugger.
     /// </summary>
     public uint Id { get; set; }
+
+
+
 
     /// <summary>
     /// Gets or sets the name of this debugger.

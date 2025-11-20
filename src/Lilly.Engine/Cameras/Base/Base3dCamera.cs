@@ -283,4 +283,23 @@ public abstract class Base3dCamera : ICamera3D
     {
         _view = Matrix4X4.CreateLookAt(_position, _target, Up);
     }
+
+    public bool IsInFrustum(IGameObject3D gameObject)
+    {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
+        var position = gameObject.Transform.Position;
+        var scale = gameObject.Transform.Scale;
+
+        // Calculate bounding sphere radius for a unit cube (vertices from -0.5 to +0.5)
+        // Corner is at (0.5*sx, 0.5*sy, 0.5*sz), so:
+        // radius = sqrt((0.5*sx)² + (0.5*sy)² + (0.5*sz)²) = 0.5 * sqrt(sx² + sy² + sz²)
+        var scaleLength = MathF.Sqrt(scale.X * scale.X + scale.Y * scale.Y + scale.Z * scale.Z);
+        var estimatedRadius = scaleLength * 0.5f;
+
+        return Frustum.Intersects(position, estimatedRadius);
+    }
 }

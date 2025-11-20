@@ -23,4 +23,9 @@ public class Transform3D
 
         return scaling * rotation * translation;
     }
+
+    public override string ToString()
+    {
+        return $"Position: {Position}, Rotation: {Rotation}, Scale: {Scale}";
+    }
 }

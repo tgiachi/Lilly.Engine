@@ -495,6 +495,8 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         _activeChunks.Clear();
 
         while (_pendingChunks.TryDequeue(out _)) { }
+
+        GC.SuppressFinalize(this);
     }
 
     private sealed class ChunkGenerationJob : IAsyncJob

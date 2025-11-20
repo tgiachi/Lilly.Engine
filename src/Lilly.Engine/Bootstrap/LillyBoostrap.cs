@@ -271,6 +271,7 @@ public class LillyBoostrap : ILillyBootstrap
         _container.RegisterGameObject<SimpleTorusGameObject>();
         _container.RegisterGameObject<SimpleStarGameObject>();
         _container.RegisterGameObject<SimpleFractalCubeGameObject>();
+        _container.RegisterGameObject<RenderPipelineDiagnosticsDebugger>();
 
         _renderPipeline = _container.Resolve<IGraphicRenderPipeline>();
         _container.RegisterInstance<IGameObjectManager>(_renderPipeline);
@@ -297,6 +298,8 @@ public class LillyBoostrap : ILillyBootstrap
             );
             _renderPipeline.AddGameObject(cube);
         }
+        _renderPipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDiagnosticsDebugger>());
+
     }
 
     private void InizializeGameObjectFromPlugins()

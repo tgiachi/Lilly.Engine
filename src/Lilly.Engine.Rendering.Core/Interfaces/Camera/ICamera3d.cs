@@ -131,4 +131,12 @@ public interface ICamera3D : IUpdatable
     /// <param name="yaw">Rotation around Y axis in radians</param>
     /// <param name="roll">Rotation around Z axis in radians</param>
     void Rotate(float pitch, float yaw, float roll);
+
+
+    /// <summary>
+    ///  Determines if a 3D game object is within the camera's frustum
+    /// </summary>
+    /// <param name="gameObject"></param>
+    /// <returns></returns>
+    bool IsInFrustum(IGameObject3D gameObject);
 }
