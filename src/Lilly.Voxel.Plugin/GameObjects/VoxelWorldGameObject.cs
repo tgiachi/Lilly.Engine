@@ -1,17 +1,14 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Threading;
-using System.Threading.Tasks;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Jobs;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
+using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
+using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.GameObjects.Environment;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -42,6 +39,9 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     private readonly ConcurrentQueue<(ChunkCoordinates Coordinates, ChunkEntity Chunk)> _pendingChunks = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _pendingChunkCoordinates = new();
     private readonly CancellationTokenSource _chunkCancellation = new();
+
+    private static readonly float ChunkBoundingSphereRadius =
+        0.5f * MathF.Sqrt(ChunkEntity.Size * ChunkEntity.Size * 2 + ChunkEntity.Height * ChunkEntity.Height);
 
     private ChunkCoordinates _lastCenterCoordinates;
     private bool _disposed;
@@ -165,10 +165,6 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         ProcessPendingChunks();
     }
 
-    public override void Draw(ICamera3D camera, GameTime gameTime)
-    {
-        base.Draw(camera, gameTime);
-    }
 
     private void UpdateChunkLoading(ICamera3D camera)
     {
@@ -386,8 +382,54 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         var dy = coordinates.Y - _lastCenterCoordinates.Y;
 
         return dy >= 0
-            ? dy <= ChunkVerticalLoadDistance
-            : -dy <= ChunkVerticalBelowLoadDistance;
+                   ? dy <= ChunkVerticalLoadDistance
+                   : -dy <= ChunkVerticalBelowLoadDistance;
+    }
+
+    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    {
+        var currentCamera = _camera3dService.ActiveCamera;
+
+        if (currentCamera == null)
+        {
+            yield break;
+        }
+
+        foreach (var gameObject in Children.EnumerateAsGeneric<IGameObject3D>())
+        {
+            bool shouldRender = gameObject switch
+            {
+                ChunkGameObject chunk => IsChunkInFrustum(chunk, currentCamera),
+                _                     => currentCamera.IsInFrustum(gameObject)
+            };
+
+            if (!shouldRender)
+            {
+                continue;
+            }
+
+            foreach (var command in gameObject.Render(gameTime))
+            {
+                yield return command;
+            }
+        }
+    }
+
+    public static bool IsChunkInFrustum(ChunkGameObject gameObject, ICamera3D camera)
+    {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
+        var origin = gameObject.Transform.Position;
+        var center = new Vector3D<float>(
+            origin.X + ChunkEntity.Size * 0.5f,
+            origin.Y + ChunkEntity.Height * 0.5f,
+            origin.Z + ChunkEntity.Size * 0.5f
+        );
+
+        return camera.Frustum.Intersects(center, ChunkBoundingSphereRadius);
     }
 
     private void AttachChunk(ChunkCoordinates coordinates, ChunkEntity chunk)
@@ -402,13 +444,17 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
         // Create callback to retrieve neighboring chunks for face culling at chunk boundaries
         Func<ChunkCoordinates, ChunkEntity?> getNeighborChunk = (neighborCoords) =>
-        {
-            if (_activeChunks.TryGetValue(neighborCoords, out var neighborChunkObject))
-            {
-                return neighborChunkObject.Chunk;
-            }
-            return null;
-        };
+                                                                {
+                                                                    if (_activeChunks.TryGetValue(
+                                                                            neighborCoords,
+                                                                            out var neighborChunkObject
+                                                                        ))
+                                                                    {
+                                                                        return neighborChunkObject.Chunk;
+                                                                    }
+
+                                                                    return null;
+                                                                };
 
         chunkGameObject.SetChunk(chunk, getNeighborChunk);
 

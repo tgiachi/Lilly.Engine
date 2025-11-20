@@ -27,9 +27,6 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
     /// </summary>
     public uint Id { get; set; }
 
-
-
-
     /// <summary>
     /// Gets or sets the name of this debugger.
     /// </summary>
@@ -208,6 +205,28 @@ public class RenderPipelineDiagnosticsDebugger : IImGuiDebugger
         ImGui.Text($"Objects rendered this frame: {_renderLayerSystem3D.ObjectInFrustum.Count:N0}");
         ImGui.Spacing();
         ImGui.Text($"Object not rendered  this frame: {_renderLayerSystem3D.ObjectOutOfFrustum.Count:N0}");
+
+        ImGui.Spacing();
+        ImGui.Text("Objects In Frustum");
+        if (ImGui.BeginListBox("##ObjectInFrustumListBox", new(300, 150)))
+        {
+            foreach (var obj in _renderLayerSystem3D.ObjectInFrustum)
+            {
+                ImGui.Text($"- {obj.Name} (ID: {obj.Id})");
+            }
+            ImGui.EndListBox();
+        }
+
+        ImGui.Spacing();
+        ImGui.Text("Objects Outside Frustum");
+        if (ImGui.BeginListBox("##ObjectOutOfFrustumListBox", new(300, 150)))
+        {
+            foreach (var obj in _renderLayerSystem3D.ObjectOutOfFrustum)
+            {
+                ImGui.Text($"- {obj.Name} (ID: {obj.Id})");
+            }
+            ImGui.EndListBox();
+        }
 
         // === Export ===
         ImGui.Spacing();
