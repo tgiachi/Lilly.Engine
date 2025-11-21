@@ -1,6 +1,5 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
@@ -14,20 +13,21 @@ namespace Lilly.Voxel.Plugin.GameObjects;
 
 public class BlockOutlineGameObject : BaseGameObject3D
 {
-    private readonly ICamera3dService _camera3dService;
-
-    // Dependencies
-    public VoxelWorldGameObject? VoxelWorld { get; set; }
 
     private VertexBuffer<VertexColor> _vertexBuffer;
     private SimpleShaderProgram _shaderProgram;
     private bool _hasTarget;
-    private const float RayDistance = 10.0f;
 
-    public BlockOutlineGameObject(GraphicsDevice graphicsDevice, ICamera3dService camera3dService)
+    private ICamera3D _camera;
+
+
+    public Vector3D<int>? TargetBlockPosition { get; private set; }
+
+    public float RayDistance { get; set; } = 10.0f;
+
+    public BlockOutlineGameObject(GraphicsDevice graphicsDevice)
         : base(graphicsDevice)
     {
-        _camera3dService = camera3dService;
     }
 
     public override void Initialize()
@@ -70,20 +70,14 @@ public class BlockOutlineGameObject : BaseGameObject3D
         _shaderProgram = SimpleShaderProgram.Create<VertexColor>(GraphicsDevice);
     }
 
+
+
+
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        if (VoxelWorld == null)
-        {
-            _hasTarget = false;
-
-            return;
-        }
-
-        var camera = _camera3dService.ActiveCamera;
-
-        if (camera == null)
+        if (Parent == null)
         {
             _hasTarget = false;
 
@@ -91,24 +85,36 @@ public class BlockOutlineGameObject : BaseGameObject3D
         }
 
 
-        var ray = new Ray(camera.Position, camera.Forward);
-
-        if (VoxelWorld.Raycast(ray, RayDistance, out var blockPos))
+        if (Parent != null && Parent is VoxelWorldGameObject voxelWorldGameObject && _camera != null)
         {
-            _hasTarget = true;
+            var ray = new Ray(_camera.Position, _camera.Forward);
 
-            // The blockPos is the integer coordinate of the block (floor).
-            // Our cube vertices are 0..1, so setting position to blockPos covers the block.
-            Transform.Position = new Vector3D<float>(blockPos.X, blockPos.Y, blockPos.Z);
+            if (voxelWorldGameObject.Raycast(ray, RayDistance, out var blockPos))
+            {
+                _hasTarget = true;
 
-            // Optional: Scale slightly to avoid Z-fighting if needed
-            Transform.Scale = new Vector3D<float>(1.001f);
-            Transform.Position -= new Vector3D<float>(0.0005f);
+                // The blockPos is the integer coordinate of the block (floor).
+                // Our cube vertices are 0..1, so setting position to blockPos covers the block.
+                Transform.Position = new Vector3D<float>(blockPos.X, blockPos.Y, blockPos.Z);
+
+                // Optional: Scale slightly to avoid Z-fighting if needed
+                Transform.Scale = new Vector3D<float>(1.001f);
+                Transform.Position -= new Vector3D<float>(0.0005f);
+
+                TargetBlockPosition = blockPos;
+            }
+            else
+            {
+                _hasTarget = false;
+                TargetBlockPosition = null;
+
+            }
         }
-        else
-        {
-            _hasTarget = false;
-        }
+
+
+
+
+
     }
 
     protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
@@ -131,8 +137,14 @@ public class BlockOutlineGameObject : BaseGameObject3D
 
     public override void Draw(ICamera3D camera, GameTime gameTime)
     {
+        _camera = camera;
+
         if (!_hasTarget)
+        {
             return;
+        }
+
+
 
         _shaderProgram.Projection = camera.Projection.ToSystem();
         _shaderProgram.View = camera.View.ToSystem();

@@ -179,6 +179,24 @@ public abstract class BaseRenderLayerSystem<TEntity> : IRenderLayerSystem where 
     public virtual void Update(GameTime gameTime) { }
 
     /// <summary>
+    ///  Gets the first game object of the specified type from the layer.
+    /// </summary>
+    /// <typeparam name="TGameObject"></typeparam>
+    /// <returns></returns>
+    public TGameObject? GetGameObject<TGameObject>()
+    {
+        foreach (var gameObject in GameObjects)
+        {
+            if (gameObject is TGameObject typedGameObject)
+            {
+                return typedGameObject;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
     /// Adds a render command to the collection of commands for this frame.
     /// </summary>
     /// <param name="command">The render command to add.</param>

@@ -12,6 +12,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.GameObjects.Environment;
+using Lilly.Voxel.Plugin.Data.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Utils;
@@ -31,6 +32,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     private readonly IChunkGeneratorService _chunkGeneratorService;
     private readonly IGameObjectFactory _gameObjectFactory;
     private readonly ICamera3dService _camera3dService;
+    private readonly BlockOutlineGameObject _blockOutline;
     private readonly IJobSystemService _jobSystemService;
     private readonly ILogger _logger = Log.ForContext<VoxelWorldGameObject>();
 
@@ -76,9 +78,8 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         _camera3dService = camera3dService ?? throw new ArgumentNullException(nameof(camera3dService));
         _jobSystemService = jobSystemService ?? throw new ArgumentNullException(nameof(jobSystemService));
 
-        var blockoutline = gameObjectFactory.Create<BlockOutlineGameObject>();
-        blockoutline.VoxelWorld = this;
-        AddChild(blockoutline);
+        _blockOutline = gameObjectFactory.Create<BlockOutlineGameObject>();
+
         _rainEffect = gameObjectFactory.Create<RainEffectGameObject>();
         _snowEffect = gameObjectFactory.Create<SnowEffectGameObject>();
         SkyGameObject = gameObjectFactory.Create<SkyGameObject>();
@@ -87,6 +88,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         IsSnowing = false;
 
         AddChild(SkyGameObject);
+        AddChild(_blockOutline);
         AddChild(_rainEffect);
         AddChild(_snowEffect);
     }
@@ -659,6 +661,144 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     }
 
     /// <summary>
+    /// Places a block at the specified world coordinates, rebuilding the affected chunk(s).
+    /// </summary>
+    /// <param name="blockId">The block ID to place (0 = air).</param>
+    /// <param name="worldX">World X coordinate.</param>
+    /// <param name="worldY">World Y coordinate.</param>
+    /// <param name="worldZ">World Z coordinate.</param>
+    /// <returns>True if the block was placed in a loaded chunk; otherwise false.</returns>
+    public bool AddBlock(ushort blockId, int worldX, int worldY, int worldZ)
+    {
+        var chunkCoordsVec = ChunkUtils.GetChunkCoordinates(new Vector3(worldX, worldY, worldZ));
+        var chunkCoords = new ChunkCoordinates((int)chunkCoordsVec.X, (int)chunkCoordsVec.Y, (int)chunkCoordsVec.Z);
+
+        if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGameObject) || chunkGameObject.Chunk == null)
+        {
+            return false;
+        }
+
+        var (localX, localY, localZ) = ChunkUtils.GetLocalIndices(new Vector3(worldX, worldY, worldZ));
+
+        if (!ChunkUtils.IsValidLocalPosition(localX, localY, localZ))
+        {
+            return false;
+        }
+
+        chunkGameObject.Chunk.SetBlock(localX, localY, localZ, blockId);
+        chunkGameObject.Chunk.IsMeshDirty = true;
+        chunkGameObject.InvalidateGeometry();
+
+        if (IsOnChunkBoundary(localX, localY, localZ))
+        {
+            QueueNeighborInvalidations(chunkCoords);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Places multiple blocks in bulk, rebuilding affected chunk meshes once per chunk.
+    /// </summary>
+    /// <param name="blocks">Array of block placements (world coordinates).</param>
+    /// <returns>The number of blocks successfully placed.</returns>
+    public int AddBlocks(BlockBulk[] blocks)
+    {
+        return ApplyBulkBlocks(blocks, bulk => (ushort)bulk.BlockId);
+    }
+
+    /// <summary>
+    /// Removes a block at the specified world coordinates (sets it to air), rebuilding the affected chunk(s).
+    /// </summary>
+    /// <param name="worldX">World X coordinate.</param>
+    /// <param name="worldY">World Y coordinate.</param>
+    /// <param name="worldZ">World Z coordinate.</param>
+    /// <returns>True if the block was removed in a loaded chunk; otherwise false.</returns>
+    public bool RemoveBlock(int worldX, int worldY, int worldZ)
+    {
+        return AddBlock(0, worldX, worldY, worldZ);
+    }
+
+    /// <summary>
+    /// Removes multiple blocks (sets them to air) in bulk, rebuilding affected chunk meshes once per chunk.
+    /// </summary>
+    /// <param name="blocks">Array of block positions to clear.</param>
+    /// <returns>The number of blocks successfully removed.</returns>
+    public int RemoveBlocks(BlockBulk[] blocks)
+    {
+        return ApplyBulkBlocks(blocks, _ => (ushort)0);
+    }
+
+    private int ApplyBulkBlocks(BlockBulk[] blocks, Func<BlockBulk, ushort> blockSelector)
+    {
+        int modified = 0;
+        var chunksToUpdate = new Dictionary<ChunkCoordinates, (ChunkGameObject Chunk, bool BoundaryTouched)>();
+
+        foreach (var block in blocks)
+        {
+            var pos = block.Position;
+            var chunkCoordsVec = ChunkUtils.GetChunkCoordinates(new Vector3(pos.X, pos.Y, pos.Z));
+            var chunkCoords = new ChunkCoordinates((int)chunkCoordsVec.X, (int)chunkCoordsVec.Y, (int)chunkCoordsVec.Z);
+
+            if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGameObject) || chunkGameObject.Chunk == null)
+            {
+                continue;
+            }
+
+            var (localX, localY, localZ) = ChunkUtils.GetLocalIndices(new Vector3(pos.X, pos.Y, pos.Z));
+
+            if (!ChunkUtils.IsValidLocalPosition(localX, localY, localZ))
+            {
+                continue;
+            }
+
+            var blockId = blockSelector(block);
+            chunkGameObject.Chunk.SetBlock(localX, localY, localZ, blockId);
+            modified++;
+
+            var boundaryTouched = IsOnChunkBoundary(localX, localY, localZ);
+
+            if (chunksToUpdate.TryGetValue(chunkCoords, out var info))
+            {
+                chunksToUpdate[chunkCoords] = (info.Chunk, info.BoundaryTouched || boundaryTouched);
+            }
+            else
+            {
+                chunksToUpdate[chunkCoords] = (chunkGameObject, boundaryTouched);
+            }
+        }
+
+        foreach (var entry in chunksToUpdate)
+        {
+            var chunk = entry.Value.Chunk;
+
+            if (chunk.Chunk != null)
+            {
+                chunk.Chunk.IsMeshDirty = true;
+            }
+
+            chunk.InvalidateGeometry();
+
+            if (entry.Value.BoundaryTouched)
+            {
+                QueueNeighborInvalidations(entry.Key);
+            }
+        }
+
+        return modified;
+    }
+
+    private static bool IsOnChunkBoundary(int x, int y, int z)
+    {
+        return x == 0 ||
+               x == ChunkEntity.Size - 1 ||
+               z == 0 ||
+               z == ChunkEntity.Size - 1 ||
+               y == 0 ||
+               y == ChunkEntity.Height - 1;
+    }
+
+    /// <summary>
     /// Debug method: Tests if there are any loaded chunks with blocks
     /// </summary>
     public void DebugLogBlocksInfo()
@@ -826,6 +966,18 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         {
             return _owner.GenerateChunkAsync(_coordinates, _worldPosition, cancellationToken);
         }
+    }
+
+    public bool RemoveCurrentBlock()
+    {
+        if (_blockOutline.TargetBlockPosition != null)
+        {
+            var pos = _blockOutline.TargetBlockPosition.Value;
+
+            return RemoveBlock(pos.X, pos.Y, pos.Z);
+        }
+
+        return false;
     }
 
     private readonly record struct ChunkFailureInfo(DateTime LastFailureUtc, int Attempts, string? LastError);

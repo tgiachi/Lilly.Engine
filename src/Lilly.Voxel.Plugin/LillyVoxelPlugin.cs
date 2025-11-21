@@ -126,7 +126,9 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         container
             .AddScriptModule<BlockRegistryModule>()
-            .AddScriptModule<GenerationModule>();
+            .AddScriptModule<GenerationModule>()
+            .AddScriptModule<WorldModule>()
+            ;
 
         return container;
     }
