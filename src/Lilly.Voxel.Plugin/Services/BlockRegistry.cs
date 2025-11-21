@@ -21,7 +21,7 @@ public class BlockRegistry : IBlockRegistry
 
     private ushort _nextId = 1; // Start IDs from 1, reserving 0 for "air" or "empty" blocks
 
-    private readonly Dictionary<ushort, BlockType> _blocksById = new();
+    private readonly List<BlockType> _blocksById = new();
     private readonly Dictionary<string, BlockType> _blocksByName = new();
 
     /// <summary>
@@ -30,7 +30,7 @@ public class BlockRegistry : IBlockRegistry
     public BlockRegistry()
     {
         Air = new BlockType(0, "air");
-        _blocksById[0] = Air;
+        _blocksById.Add(Air); // ID 0 is Air
         _blocksByName["air"] = Air;
         Air.IsSolid = false;
         Air.IsTransparent = true;
@@ -44,7 +44,11 @@ public class BlockRegistry : IBlockRegistry
     /// <returns>The block type, or Air if not found.</returns>
     public BlockType GetById(ushort id)
     {
-        return _blocksById.GetValueOrDefault(id, Air);
+        if (id < _blocksById.Count)
+        {
+            return _blocksById[id];
+        }
+        return Air;
     }
 
     /// <summary>
@@ -62,7 +66,7 @@ public class BlockRegistry : IBlockRegistry
     /// </summary>
     /// <returns>An enumerable of all block types.</returns>
     public IEnumerable<BlockType> GetAllBlocks()
-        => _blocksById.Values;
+        => _blocksById;
 
     /// <summary>
     /// Creates and registers a new block type with the specified name.
@@ -75,7 +79,17 @@ public class BlockRegistry : IBlockRegistry
         name = name.ToSnakeCase();
         var block = new BlockType(nextId, name);
 
-        _blocksById[nextId] = block;
+        if (_blocksById.Count == nextId)
+        {
+            _blocksById.Add(block);
+        }
+        else
+        {
+            // Fallback just in case IDs get out of sync, though shouldn't happen with sequential generation
+            while (_blocksById.Count <= nextId) _blocksById.Add(Air);
+            _blocksById[nextId] = block;
+        }
+
         _blocksByName[name] = block;
 
         _logger.Information("Registered new block: {BlockName} with ID {BlockId}", name, nextId);

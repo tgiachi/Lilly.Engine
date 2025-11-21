@@ -109,10 +109,14 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         return copy;
     }
 
+    public bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk)
+    {
+        var chunkPosition = ChunkUtils.NormalizeToChunkPosition(position);
+        return _chunkCache.TryGet(chunkPosition, out chunk);
+    }
+
     public async Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position)
     {
-        _logger.Debug("Requested chunk at world position {Position}", position);
-
         // Normalize position to chunk coordinates
         var chunkPosition = ChunkUtils.NormalizeToChunkPosition(position);
 
@@ -120,7 +124,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         if (_chunkCache.TryGet(chunkPosition, out var cachedChunk) && cachedChunk != null)
         {
             Interlocked.Increment(ref _cacheHits);
-            _logger.Debug("Returning cached chunk at {Position}", chunkPosition);
+            _logger.Verbose("Returning cached chunk at {Position}", chunkPosition);
 
             return cachedChunk;
         }

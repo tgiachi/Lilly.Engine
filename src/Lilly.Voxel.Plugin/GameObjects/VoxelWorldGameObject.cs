@@ -334,11 +334,6 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             return false;
         }
 
-        if (!_requestedChunks.TryAdd(coordinates, 0))
-        {
-            return false;
-        }
-
         var worldOrigin = ChunkUtils.ChunkCoordinatesToWorldPosition(
             coordinates.X,
             coordinates.Y,
@@ -346,6 +341,24 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         );
 
         var worldPosition = new Vector3(worldOrigin.X, worldOrigin.Y, worldOrigin.Z);
+
+        // Optimization: Check if chunk is already cached before scheduling a job
+        // This avoids overhead of creating jobs for chunks that are already generated
+        if (_chunkGeneratorService.TryGetCachedChunk(worldPosition, out var cachedChunk) && cachedChunk != null)
+        {
+            if (_pendingChunkCoordinates.TryAdd(coordinates, 0))
+            {
+                _pendingChunks.Enqueue((coordinates, cachedChunk));
+                return true;
+            }
+            return false;
+        }
+
+        if (!_requestedChunks.TryAdd(coordinates, 0))
+        {
+            return false;
+        }
+
         var job = new ChunkGenerationJob(this, coordinates, worldPosition);
         _jobSystemService.Schedule(job, JobPriority.Normal);
 

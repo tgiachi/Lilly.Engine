@@ -328,7 +328,7 @@ public class LillyBoostrap : ILillyBootstrap
 
     private void RegisterDefaults()
     {
-        _container.RegisterInstance(new JobServiceConfig(Environment.ProcessorCount));
+        _container.RegisterInstance(new JobServiceConfig(4));
 
         _container
             .Register<PluginRegistry>(Reuse.Singleton);

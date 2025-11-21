@@ -59,7 +59,7 @@ public class ChunkCache
                 MoveToFront(entry);
                 chunk = entry.Chunk;
 
-                _logger.Debug("Cache hit for chunk at {Position}", position);
+                _logger.Verbose("Cache hit for chunk at {Position}", position);
 
                 return true;
             }

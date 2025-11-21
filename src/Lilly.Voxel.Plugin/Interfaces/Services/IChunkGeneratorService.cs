@@ -10,6 +10,8 @@ public interface IChunkGeneratorService
 
     Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position);
 
+    bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk);
+
     Task StartAsync(CancellationToken cancellationToken = default);
 
     Task<ChunkEntity> GetChunkByWorldPosition(int chunkX, int chunkY, int chunkZ);

@@ -25,6 +25,42 @@ public sealed class ChunkMeshBuilder
     private readonly IAssetManager _assetManager;
     private readonly ILogger _logger = Log.ForContext<ChunkMeshBuilder>();
 
+    [ThreadStatic]
+    private static MeshBuilderContext? _threadContext;
+
+    private class MeshBuilderContext
+    {
+        public readonly List<ChunkVertex> SolidVertices = new(8192);
+        public readonly List<int> SolidIndices = new(16384);
+        public readonly List<ChunkVertex> BillboardVertices = new(2048);
+        public readonly List<int> BillboardIndices = new(4096);
+        public readonly List<ChunkItemVertex> ItemVertices = new(1024);
+        public readonly List<int> ItemIndices = new(2048);
+        public readonly List<ChunkFluidVertex> FluidVertices = new(2048);
+        public readonly List<int> FluidIndices = new(4096);
+        public readonly FaceRenderInfo[] MaskBuffer;
+
+        public MeshBuilderContext()
+        {
+            // Max face size is Height * Size (64 * 32 = 2048)
+            int maxFaceSize = Math.Max(ChunkEntity.Size * ChunkEntity.Size, ChunkEntity.Size * ChunkEntity.Height);
+            MaskBuffer = new FaceRenderInfo[maxFaceSize];
+        }
+
+        public void Clear()
+        {
+            SolidVertices.Clear();
+            SolidIndices.Clear();
+            BillboardVertices.Clear();
+            BillboardIndices.Clear();
+            ItemVertices.Clear();
+            ItemIndices.Clear();
+            FluidVertices.Clear();
+            FluidIndices.Clear();
+            Array.Clear(MaskBuffer, 0, MaskBuffer.Length);
+        }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ChunkMeshBuilder"/> class.
     /// </summary>
@@ -50,17 +86,13 @@ public sealed class ChunkMeshBuilder
 
         try
         {
-            var solidVertices = new List<ChunkVertex>(8192);
-            var solidIndices = new List<int>(16384);
+            if (_threadContext == null)
+            {
+                _threadContext = new MeshBuilderContext();
+            }
 
-            var billboardVertices = new List<ChunkVertex>(2048);
-            var billboardIndices = new List<int>(4096);
-
-            var itemVertices = new List<ChunkItemVertex>(1024);
-            var itemIndices = new List<int>(2048);
-
-            var fluidVertices = new List<ChunkFluidVertex>(2048);
-            var fluidIndices = new List<int>(4096);
+            var context = _threadContext;
+            context.Clear();
 
             var neighbors = BuildNeighborCache(chunk, getNeighborChunk);
 
@@ -68,27 +100,27 @@ public sealed class ChunkMeshBuilder
             ProcessSpecialGeometry(
                 chunk,
                 neighbors,
-                billboardVertices,
-                billboardIndices,
-                itemVertices,
-                itemIndices,
-                fluidVertices,
-                fluidIndices
+                context.BillboardVertices,
+                context.BillboardIndices,
+                context.ItemVertices,
+                context.ItemIndices,
+                context.FluidVertices,
+                context.FluidIndices
             );
 
             // Process solid geometry with greedy meshing
-            BuildSolidFacesGreedy(chunk, neighbors, solidVertices, solidIndices);
+            BuildSolidFacesGreedy(chunk, neighbors, context.SolidVertices, context.SolidIndices, context.MaskBuffer);
 
             return new ChunkMeshData
             {
-                Vertices = solidVertices.ToArray(),
-                Indices = solidIndices.ToArray(),
-                BillboardVertices = billboardVertices.ToArray(),
-                BillboardIndices = billboardIndices.ToArray(),
-                ItemVertices = itemVertices.ToArray(),
-                ItemIndices = itemIndices.ToArray(),
-                FluidVertices = fluidVertices.ToArray(),
-                FluidIndices = fluidIndices.ToArray(),
+                Vertices = context.SolidVertices.ToArray(),
+                Indices = context.SolidIndices.ToArray(),
+                BillboardVertices = context.BillboardVertices.ToArray(),
+                BillboardIndices = context.BillboardIndices.ToArray(),
+                ItemVertices = context.ItemVertices.ToArray(),
+                ItemIndices = context.ItemIndices.ToArray(),
+                FluidVertices = context.FluidVertices.ToArray(),
+                FluidIndices = context.FluidIndices.ToArray(),
             };
         }
         catch (Exception ex)
@@ -194,15 +226,16 @@ public sealed class ChunkMeshBuilder
         ChunkEntity chunk,
         in NeighborChunkCache neighbors,
         List<ChunkVertex> vertices,
-        List<int> indices
+        List<int> indices,
+        FaceRenderInfo[] maskBuffer
     )
     {
-        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Top, vertices, indices);
-        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Bottom, vertices, indices);
-        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Front, vertices, indices);
-        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Back, vertices, indices);
-        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Right, vertices, indices);
-        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Left, vertices, indices);
+        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Top, vertices, indices, maskBuffer);
+        ProcessHorizontalFaces(chunk, neighbors, BlockFace.Bottom, vertices, indices, maskBuffer);
+        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Front, vertices, indices, maskBuffer);
+        ProcessDepthAlignedFaces(chunk, neighbors, BlockFace.Back, vertices, indices, maskBuffer);
+        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Right, vertices, indices, maskBuffer);
+        ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Left, vertices, indices, maskBuffer);
     }
 
     /// <summary>
@@ -213,16 +246,17 @@ public sealed class ChunkMeshBuilder
         in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
-        List<int> indices
+        List<int> indices,
+        FaceRenderInfo[] mask
     )
     {
         var width = ChunkEntity.Size;
         var depth = ChunkEntity.Size;
-        var mask = new FaceRenderInfo[width * depth];
+        // var mask = new FaceRenderInfo[width * depth]; // Replaced by buffer
 
         for (int y = 0; y < ChunkEntity.Height; y++)
         {
-            Array.Clear(mask);
+            Array.Clear(mask, 0, width * depth);
 
             for (int z = 0; z < depth; z++)
             {
@@ -262,16 +296,17 @@ public sealed class ChunkMeshBuilder
         in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
-        List<int> indices
+        List<int> indices,
+        FaceRenderInfo[] mask
     )
     {
         var width = ChunkEntity.Size;
         var height = ChunkEntity.Height;
-        var mask = new FaceRenderInfo[width * height];
+        // var mask = new FaceRenderInfo[width * height]; // Replaced by buffer
 
         for (int z = 0; z < ChunkEntity.Size; z++)
         {
-            Array.Clear(mask);
+            Array.Clear(mask, 0, width * height);
 
             for (int y = 0; y < height; y++)
             {
@@ -310,16 +345,17 @@ public sealed class ChunkMeshBuilder
         in NeighborChunkCache neighbors,
         BlockFace face,
         List<ChunkVertex> vertices,
-        List<int> indices
+        List<int> indices,
+        FaceRenderInfo[] mask
     )
     {
         var depth = ChunkEntity.Size;
         var height = ChunkEntity.Height;
-        var mask = new FaceRenderInfo[depth * height];
+        // var mask = new FaceRenderInfo[depth * height]; // Replaced by buffer
 
         for (int x = 0; x < ChunkEntity.Size; x++)
         {
-            Array.Clear(mask);
+            Array.Clear(mask, 0, depth * height);
 
             for (int y = 0; y < height; y++)
             {
