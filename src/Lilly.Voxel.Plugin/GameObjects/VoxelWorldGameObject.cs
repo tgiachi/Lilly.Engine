@@ -38,7 +38,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     private readonly ConcurrentDictionary<ChunkCoordinates, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _requestedChunks = new();
-    private readonly ConcurrentDictionary<ChunkCoordinates, byte> _prefetchedChunks = new();
+    private readonly ConcurrentDictionary<ChunkCoordinates, ChunkEntity> _prefetchedChunks = new();
     private readonly ConcurrentQueue<(ChunkCoordinates Coordinates, ChunkEntity Chunk)> _pendingChunks = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _pendingChunkCoordinates = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, ChunkFailureInfo> _chunkFailures = new();
@@ -121,7 +121,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     public int MaxPendingChunkRequests { get; set; } = 64;
 
-    public int MaxPrefetchedChunks { get; set; } = 512;
+    public int MaxPrefetchedChunks { get; set; } = 128;
 
     public int MaxChunksToProcessPerFrame { get; set; } = 2;
 
@@ -231,7 +231,16 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
                     if (withinLoad)
                     {
                         loadSet.Add(coords);
-                        _prefetchedChunks.TryRemove(coords, out _);
+
+                        if (_prefetchedChunks.TryRemove(coords, out var prefetchedChunk))
+                        {
+                            if (!_activeChunks.ContainsKey(coords))
+                            {
+                                AttachChunk(coords, prefetchedChunk);
+                            }
+
+                            continue;
+                        }
                     }
 
                     if (_activeChunks.ContainsKey(coords) ||
@@ -396,7 +405,11 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
             if (!IsWithinLoadDistance(pending.Coordinates))
             {
-                _prefetchedChunks.TryAdd(pending.Coordinates, 0);
+                _prefetchedChunks.AddOrUpdate(
+                    pending.Coordinates,
+                    pending.Chunk,
+                    (_, _) => pending.Chunk
+                );
 
                 continue;
             }
