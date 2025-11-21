@@ -106,6 +106,15 @@ public class ChunkEntity
     public bool IsLightingDirty { get; set; } = true;
 
     /// <summary>
+    /// Retrieves the block stored at the specified coordinates without bounds checking.
+    /// USE ONLY when you are certain x, y, z are valid (0 to Size/Height-1).
+    /// </summary>
+    public ushort GetBlockFast(int x, int y, int z)
+    {
+        return Blocks[x + y * Size + z * Size * Height];
+    }
+
+    /// <summary>
     /// Retrieves the block stored at the specified coordinates.
     /// </summary>
     /// <param name="x">Block coordinate along X.</param>

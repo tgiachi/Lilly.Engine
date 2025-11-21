@@ -176,7 +176,7 @@ public sealed class ChunkMeshBuilder
             {
                 for (int x = 0; x < ChunkEntity.Size; x++)
                 {
-                    var blockId = chunk.GetBlock(x, y, z);
+                    var blockId = chunk.GetBlockFast(x, y, z);
 
                     if (blockId == 0)
                     {
@@ -262,7 +262,7 @@ public sealed class ChunkMeshBuilder
             {
                 for (int x = 0; x < width; x++)
                 {
-                    var blockId = chunk.GetBlock(x, y, z);
+                    var blockId = chunk.GetBlockFast(x, y, z);
 
                     if (blockId == 0)
                         continue;
@@ -312,7 +312,7 @@ public sealed class ChunkMeshBuilder
             {
                 for (int x = 0; x < width; x++)
                 {
-                    var blockId = chunk.GetBlock(x, y, z);
+                    var blockId = chunk.GetBlockFast(x, y, z);
 
                     if (blockId == 0)
                         continue;
@@ -361,7 +361,7 @@ public sealed class ChunkMeshBuilder
             {
                 for (int z = 0; z < depth; z++)
                 {
-                    var blockId = chunk.GetBlock(x, y, z);
+                    var blockId = chunk.GetBlockFast(x, y, z);
 
                     if (blockId == 0)
                         continue;

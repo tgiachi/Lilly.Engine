@@ -257,11 +257,29 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             }
         }
 
-        var orderedCandidates = candidates
-                                .OrderBy(c => c.WithinLoad ? 0 : 1)
-                                .ThenBy(c => c.Priority)
-                                .ThenBy(c => Math.Abs(c.Coordinates.Y - center.Y))
-                                .ToList();
+        // Optimize sorting to avoid LINQ allocations per frame
+        candidates.Sort((a, b) =>
+        {
+            // Primary: Candidates within load distance come first
+            if (a.WithinLoad != b.WithinLoad)
+            {
+                return b.WithinLoad.CompareTo(a.WithinLoad); // True (1) comes before False (0)
+            }
+
+            // Secondary: Priority (Manhattan distance roughly)
+            int priorityCompare = a.Priority.CompareTo(b.Priority);
+            if (priorityCompare != 0)
+            {
+                return priorityCompare;
+            }
+
+            // Tertiary: Vertical distance from center
+            int distYA = Math.Abs(a.Coordinates.Y - center.Y);
+            int distYB = Math.Abs(b.Coordinates.Y - center.Y);
+            return distYA.CompareTo(distYB);
+        });
+
+        var orderedCandidates = candidates;
 
         var pendingRequests = _requestedChunks.Count;
         var requestsThisFrame = 0;
