@@ -299,6 +299,7 @@ public class LillyBoostrap : ILillyBootstrap
         }
         _renderPipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDiagnosticsDebugger>());
         _renderPipeline.AddGameObject(gameObjectFactory.Create<JobSystemDebugger>());
+
     }
 
     private void InizializeGameObjectFromPlugins()

@@ -76,11 +76,12 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         _camera3dService = camera3dService ?? throw new ArgumentNullException(nameof(camera3dService));
         _jobSystemService = jobSystemService ?? throw new ArgumentNullException(nameof(jobSystemService));
 
+        var blockoutline = gameObjectFactory.Create<BlockOutlineGameObject>();
+        blockoutline.VoxelWorld = this;
+        AddChild(blockoutline);
         _rainEffect = gameObjectFactory.Create<RainEffectGameObject>();
         _snowEffect = gameObjectFactory.Create<SnowEffectGameObject>();
         SkyGameObject = gameObjectFactory.Create<SkyGameObject>();
-
-
 
         IsRaining = false;
         IsSnowing = false;

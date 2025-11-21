@@ -113,6 +113,7 @@ public class LillyVoxelPlugin : ILillyPlugin
                  .RegisterGameObject<RainEffectGameObject>()
                  .RegisterGameObject<VoxelWorldGameObject>()
                  .RegisterGameObject<ChunkGameObject>()
+                 .RegisterGameObject<BlockOutlineGameObject>()
             ;
 
         container.RegisterService<IBlockRegistry, BlockRegistry>();
