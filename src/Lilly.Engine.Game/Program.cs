@@ -23,10 +23,11 @@ await ConsoleApp.RunAsync(
         string rootDirectory = null,
         bool logToFile = false,
         LogLevelType logLevel = LogLevelType.Debug,
-        int width = 1280,
+        int width = 1280 ,
         int height = 720
     ) =>
     {
+
         //--root-directory /Users/squid/lilly --width 3272 --height 1277
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
@@ -81,8 +82,9 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.MinimumLevel.Is(logEventLevel);
 
-    logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
 
+
+    logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
     //logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
 
     if (logToFile)

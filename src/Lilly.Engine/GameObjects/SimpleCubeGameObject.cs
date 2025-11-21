@@ -23,8 +23,8 @@ public class SimpleCubeGameObject : BaseGameObject3D
     public override void Initialize()
     {
         // Initialize cube vertices with positions (colors will be set randomly)
-        cubeVertices =
-        [
+        cubeVertices = new VertexColor[]
+        {
             new VertexColor(new Vector3(-0.5f, -0.5f, -0.5f), Color4b.LightBlue), //4
             new VertexColor(new Vector3(-0.5f, -0.5f, 0.5f), Color4b.Lime),       //3
             new VertexColor(new Vector3(-0.5f, 0.5f, -0.5f), Color4b.White),      //7
@@ -38,8 +38,8 @@ public class SimpleCubeGameObject : BaseGameObject3D
             new VertexColor(new Vector3(0.5f, 0.5f, -0.5f), Color4b.Pink),        //6
             new VertexColor(new Vector3(0.5f, 0.5f, 0.5f), Color4b.Blue),         //5
             new VertexColor(new Vector3(0.5f, -0.5f, -0.5f), Color4b.Yellow),     //2
-            new VertexColor(new Vector3(0.5f, -0.5f, 0.5f), Color4b.Red)          //1
-        ];
+            new VertexColor(new Vector3(0.5f, -0.5f, 0.5f), Color4b.Red),         //1
+        };
 
         // Generate initial random colors
         UpdateRandomColors();

@@ -9,7 +9,6 @@ in vec2 vTileBase;
 in vec2 vTileSize;
 in vec3 vBlockCoord;
 in vec3 vVertexLight;
-in float vVertexAlpha;
 
 // Output
 out vec4 FragColor;
@@ -45,15 +44,7 @@ void main()
         color = mix(uFogColor, color, vFogFactor);
     }
 
-    // Support transparency from vertex color alpha (for fluids only)
-    // Fluids have aColor.a = 100 (~0.39), solid blocks have aColor.a = 0-6 (~0-0.02)
-    float finalAlpha = texResult.a;
-    if (vVertexAlpha > 0.1)
-    {
-        finalAlpha = 0.5;  // 50% transparent for fluids
-    }
-
-    FragColor = vec4(color, finalAlpha);
+    FragColor = vec4(color, texResult.a);
 }
 
 #shader vertex
@@ -83,7 +74,6 @@ out vec2 vTileBase;
 out vec2 vTileSize;
 out vec3 vBlockCoord;
 out vec3 vVertexLight;
-out float vVertexAlpha;
 
 // Array of possible normals based on direction
 const vec3 normals[7] = vec3[7](
@@ -107,7 +97,6 @@ void main()
     vTileSize = aTileSize;
     vBlockCoord = aBlockCoord;
     vVertexLight = aColor.rgb;
-    vVertexAlpha = aColor.a;
 
     // Extract direction from color.a and use it to get normal
     int direction = int(round(aColor.a * 255.0));

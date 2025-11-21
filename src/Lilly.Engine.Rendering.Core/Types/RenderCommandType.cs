@@ -56,11 +56,6 @@ public enum RenderCommandType : byte
     SetCullMode,
 
     /// <summary>
-    /// Set blend state for transparency.
-    /// </summary>
-    SetBlendState,
-
-    /// <summary>
     /// Set shader uniforms for a specific program.
     /// </summary>
     SetUniforms,
