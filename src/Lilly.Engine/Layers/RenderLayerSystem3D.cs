@@ -9,6 +9,7 @@ using Lilly.Engine.Rendering.Core.Payloads;
 using Lilly.Engine.Rendering.Core.Types;
 using Serilog;
 using Silk.NET.OpenGL;
+using TrippyGL;
 
 namespace Lilly.Engine.Layers;
 
@@ -33,6 +34,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
             RenderCommandType.DrawArray,
             RenderCommandType.SetDepthState,
             RenderCommandType.SetCullMode,
+            RenderCommandType.SetBlendState,
             RenderCommandType.SetUniforms
         };
 
@@ -138,6 +140,12 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
 
                     break;
 
+                case RenderCommandType.SetBlendState:
+                    var blendState = cmd.GetPayload<SetBlendStatePayload>();
+                    ProcessBlendState(blendState);
+
+                    break;
+
                 case RenderCommandType.SetUniforms:
                     var uniformsPayload = cmd.GetPayload<SetUniformsPayload>();
                     uniformsPayload.Apply();
@@ -208,6 +216,21 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                 _renderContext.Gl.CullFace(GLEnum.Back);
 
                 break;
+        }
+    }
+
+    private void ProcessBlendState(SetBlendStatePayload blendState)
+    {
+        _renderContext.GraphicsDevice.BlendState = blendState.BlendState;
+
+        if (blendState.BlendState == BlendState.AlphaBlend)
+        {
+            _renderContext.Gl.Enable(GLEnum.Blend);
+            _renderContext.Gl.BlendFunc(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha);
+        }
+        else if (blendState.BlendState == BlendState.Opaque)
+        {
+            _renderContext.Gl.Disable(GLEnum.Blend);
         }
     }
 

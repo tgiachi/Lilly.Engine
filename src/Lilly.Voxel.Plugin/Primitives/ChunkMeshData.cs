@@ -58,7 +58,7 @@ public sealed class ChunkMeshData
     /// <summary>
     /// Gets or sets the vertex data for fluid geometry.
     /// </summary>
-    public ChunkFluidVertex[] FluidVertices { get; set; } = [];
+    public ChunkVertex[] FluidVertices { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the index data for fluid geometry.

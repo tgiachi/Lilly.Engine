@@ -56,9 +56,10 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
     /// <param name="renderCommands">The list of render commands to process.</param>
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
-        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
-        _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
-        _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
+        // _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        // _renderContext.GraphicsDevice.BlendingEnabled = true;
+        // _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+        // _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
         _renderContext.Gl.Enable(GLEnum.Multisample);
 
         foreach (var cmd in renderCommands)

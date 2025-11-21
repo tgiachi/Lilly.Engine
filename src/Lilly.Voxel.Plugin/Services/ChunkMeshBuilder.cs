@@ -59,7 +59,7 @@ public sealed class ChunkMeshBuilder
             var itemVertices = new List<ChunkItemVertex>(1024);
             var itemIndices = new List<int>(2048);
 
-            var fluidVertices = new List<ChunkFluidVertex>(2048);
+            var fluidVertices = new List<ChunkVertex>(2048);
             var fluidIndices = new List<int>(4096);
 
             var neighbors = BuildNeighborCache(chunk, getNeighborChunk);
@@ -134,7 +134,7 @@ public sealed class ChunkMeshBuilder
         List<int> billboardIndices,
         List<ChunkItemVertex> itemVertices,
         List<int> itemIndices,
-        List<ChunkFluidVertex> fluidVertices,
+        List<ChunkVertex> fluidVertices,
         List<int> fluidIndices
     )
     {
@@ -888,7 +888,7 @@ public sealed class ChunkMeshBuilder
         int z,
         Vector3D<float> origin,
         BlockType blockType,
-        List<ChunkFluidVertex> vertices,
+        List<ChunkVertex> vertices,
         List<int> indices
     )
     {
@@ -899,8 +899,9 @@ public sealed class ChunkMeshBuilder
                 continue;
 
             var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, face);
-            var color = new Vector4D<byte>(lighting.X, lighting.Y, lighting.Z, 200);
-            AppendFluidFace(vertices, indices, origin, face, color, blockType);
+            var color = new Vector4D<byte>(lighting.X, lighting.Y, lighting.Z, 100);
+            var blockCoord = new Vector3D<float>(x, y, z);
+            AppendFluidFace(vertices, indices, origin, face, color, blockType, blockCoord);
         }
     }
 
@@ -946,12 +947,13 @@ public sealed class ChunkMeshBuilder
     /// Appends a fluid face.
     /// </summary>
     private void AppendFluidFace(
-        List<ChunkFluidVertex> vertices,
+        List<ChunkVertex> vertices,
         List<int> indices,
         Vector3D<float> origin,
         BlockFace face,
         Vector4D<byte> color,
-        BlockType blockType
+        BlockType blockType,
+        Vector3D<float> blockCoord
     )
     {
         const float scale = 1f;
@@ -1023,13 +1025,10 @@ public sealed class ChunkMeshBuilder
         t2 = new Vector2D<float>(1f, 1f);
         t3 = new Vector2D<float>(1f, 0f);
 
-        var direction = (float)GetDirectionIndex(face);
-        var isTop = face == BlockFace.Top ? 1f : 0f;
-
-        vertices.Add(new ChunkFluidVertex(v0, color, t0, tileBase, tileSize, direction, isTop));
-        vertices.Add(new ChunkFluidVertex(v1, color, t1, tileBase, tileSize, direction, isTop));
-        vertices.Add(new ChunkFluidVertex(v2, color, t2, tileBase, tileSize, direction, isTop));
-        vertices.Add(new ChunkFluidVertex(v3, color, t3, tileBase, tileSize, direction, isTop));
+        vertices.Add(new ChunkVertex(v0, color, t0, tileBase, tileSize, blockCoord));
+        vertices.Add(new ChunkVertex(v1, color, t1, tileBase, tileSize, blockCoord));
+        vertices.Add(new ChunkVertex(v2, color, t2, tileBase, tileSize, blockCoord));
+        vertices.Add(new ChunkVertex(v3, color, t3, tileBase, tileSize, blockCoord));
 
         indices.Add(baseIndex);
         indices.Add(baseIndex + 1);

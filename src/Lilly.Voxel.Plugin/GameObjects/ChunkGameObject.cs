@@ -14,6 +14,7 @@ using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
+using RenderingCoreTypes = Lilly.Engine.Rendering.Core.Types;
 using Lilly.Voxel.Plugin.Types;
 using Serilog;
 using Silk.NET.Maths;
@@ -47,7 +48,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     // GPU Resources for each geometry type
     private VertexBuffer<ChunkVertex>? _solidVertexBuffer;
     private VertexBuffer<ChunkVertex>? _billboardVertexBuffer;
-    private VertexBuffer<ChunkFluidVertex>? _fluidVertexBuffer;
+    private VertexBuffer<ChunkVertex>? _fluidVertexBuffer;
     private VertexBuffer<ChunkItemVertex>? _itemVertexBuffer;
     private VertexBuffer<VertexColor>? _boundaryVertexBuffer;
 
@@ -60,7 +61,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     // Shader programs
     private ShaderProgram? _blockShader;
     private ShaderProgram? _billboardShader;
-    private ShaderProgram? _fluidShader;
     private ShaderProgram? _itemBillboardShader;
     private SimpleShaderProgram? _boundaryShader;
 
@@ -139,7 +139,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         {
             _blockShader = _assetManager.GetShaderProgram("chunk_block");
             _billboardShader = _assetManager.GetShaderProgram("chunk_billboard");
-            _fluidShader = _assetManager.GetShaderProgram("chunk_fluid");
             _itemBillboardShader = _assetManager.GetShaderProgram("chunk_item_billboard");
         }
         catch (Exception ex)
@@ -460,7 +459,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         // Upload fluid geometry
         if (expandedFluidVertices.Length > 0)
         {
-            _fluidVertexBuffer = new VertexBuffer<ChunkFluidVertex>(
+            _fluidVertexBuffer = new VertexBuffer<ChunkVertex>(
                 GraphicsDevice,
                 expandedFluidVertices,
                 BufferUsage.StaticCopy
@@ -563,6 +562,47 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             );
         }
 
+        // Fluid geometry (render AFTER solids so depth buffer is populated)
+        if (_fluidVertexBuffer != null && _blockShader != null)
+        {
+            var shader = _blockShader;
+            var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
+            var lightIntensity = LightIntensity;
+            var atlasName = _fluidAtlasName;
+
+            yield return RenderCommandHelpers.SetBlendState(SetBlendStatePayload.AlphaBlend());
+
+            yield return RenderCommandHelpers.SetDepthState(
+                new SetDepthStatePayload(
+                    depthTestEnabled: true,
+                    depthWriteEnabled: false,
+                    depthFunction: RenderingCoreTypes.DepthFunction.Less
+                )
+            );
+
+            yield return RenderCommandHelpers.SetUniforms(
+                shader,
+                s =>
+                {
+                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
+                    ApplySolidUniforms(s, lightDirection, lightIntensity, atlasName, assetManager);
+                }
+            );
+
+            yield return new RenderCommand(
+                RenderCommandType.DrawArray,
+                new DrawArrayPayload(
+                    shader,
+                    _fluidVertexBuffer,
+                    _fluidVertexCount,
+                    PrimitiveType.Triangles
+                )
+            );
+
+            yield return RenderCommandHelpers.SetDepthState(SetDepthStatePayload.DefaultDepthState());
+            yield return RenderCommandHelpers.SetBlendState(SetBlendStatePayload.Opaque());
+        }
+
         // Billboard geometry
         if (_billboardVertexBuffer != null && _billboardShader != null)
         {
@@ -589,44 +629,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                 )
             );
             yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.Back());
-        }
-
-        // Fluid geometry
-        if (_fluidVertexBuffer != null && _fluidShader != null)
-        {
-            var shader = _fluidShader;
-            var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
-            var atlasName = _fluidAtlasName;
-            var animationTime = _animationTime;
-            var waterTransparency = WaterTransparency;
-
-            yield return RenderCommandHelpers.SetDepthState(
-                new SetDepthStatePayload(
-                    depthTestEnabled: true,
-                    depthWriteEnabled: false
-                )
-            );
-
-            yield return RenderCommandHelpers.SetUniforms(
-                shader,
-                s =>
-                {
-                    ApplyCommonUniforms(s, modelTranslation, commonUniforms);
-                    ApplyFluidUniforms(s, lightDirection, animationTime, waterTransparency, atlasName, assetManager);
-                }
-            );
-
-            yield return new RenderCommand(
-                RenderCommandType.DrawArray,
-                new DrawArrayPayload(
-                    shader,
-                    _fluidVertexBuffer,
-                    _fluidVertexCount,
-                    PrimitiveType.Triangles
-                )
-            );
-
-            yield return RenderCommandHelpers.SetDepthState(SetDepthStatePayload.DefaultDepthState());
         }
 
         // Item geometry
@@ -737,22 +739,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         IAssetManager assetManager
     )
     {
-        SetTextureUniform(shader, atlasName, assetManager);
-        shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
-    }
-
-    private static void ApplyFluidUniforms(
-        ShaderProgram shader,
-        Vector3 lightDirection,
-        float animationTime,
-        float waterTransparency,
-        string atlasName,
-        IAssetManager assetManager
-    )
-    {
-        shader.TrySetUniform("uLightDirection", uniform => uniform.SetValueVec3(lightDirection));
-        shader.TrySetUniform("uTime", uniform => uniform.SetValueFloat(animationTime));
-        shader.TrySetUniform("uWaterTransparency", uniform => uniform.SetValueFloat(waterTransparency));
         SetTextureUniform(shader, atlasName, assetManager);
         shader.TrySetUniform("uTexMultiplier", uniform => uniform.SetValueFloat(1.0f));
     }

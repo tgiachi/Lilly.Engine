@@ -106,6 +106,14 @@ public static class RenderCommandHelpers
         => new(RenderCommandType.SetCullMode, cullMode);
 
     /// <summary>
+    /// Creates a command to set blend state.
+    /// </summary>
+    /// <param name="blendState">The blend state configuration.</param>
+    /// <returns>A render command to set blend state.</returns>
+    public static RenderCommand SetBlendState(SetBlendStatePayload blendState)
+        => new(RenderCommandType.SetBlendState, blendState);
+
+    /// <summary>
     /// Creates a command to apply shader uniforms before a draw call.
     /// </summary>
     /// <param name="shaderProgram">The shader program whose uniforms will be updated.</param>
