@@ -465,6 +465,11 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
         foreach (var gameObject in Children.EnumerateAsGeneric<IGameObject3D>())
         {
+            if (!gameObject.IsVisible)
+            {
+                continue;
+            }
+
             bool shouldRender = gameObject switch
             {
                 ChunkGameObject chunk => IsChunkInFrustum(chunk, currentCamera),
@@ -496,6 +501,13 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             origin.Y + ChunkEntity.Height * 0.5f,
             origin.Z + ChunkEntity.Size * 0.5f
         );
+
+        // Check if the chunk is behind the camera
+        var toChunk = center - camera.Position;
+        if (Vector3D.Dot(toChunk, camera.Forward) < -ChunkBoundingSphereRadius)
+        {
+            return false;
+        }
 
         return camera.Frustum.Intersects(center, ChunkBoundingSphereRadius);
     }
