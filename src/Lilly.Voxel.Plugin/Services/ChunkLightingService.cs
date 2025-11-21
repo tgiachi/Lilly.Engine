@@ -50,6 +50,12 @@ public sealed class ChunkLightingService
         // Sky light (AO modulated, damped if underground)
         float skyLight = openSky ? averageAO : averageAO * 0.08f;
 
+        // If the column above is blocked, allow some skylight when neighboring columns are exposed.
+        if (!openSky && IsSideFace(face) && HasAdjacentSky(chunk, x, y, z, face))
+        {
+            skyLight = Math.Max(skyLight, averageAO * 0.45f);
+        }
+
         // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
         // so we don't wash out caves before lighting is computed.
         var lightLevel = chunk.GetLightLevel(x, y, z);
@@ -177,6 +183,11 @@ public sealed class ChunkLightingService
 
     private bool HasOpenSky(ChunkEntity chunk, int x, int y, int z)
     {
+        return ColumnHasOpenSky(chunk, x, y, z);
+    }
+
+    private bool ColumnHasOpenSky(ChunkEntity chunk, int x, int y, int z)
+    {
         // Already at the top of this chunk – assume open sky.
         if (y >= ChunkEntity.Height - 1)
         {
@@ -207,6 +218,50 @@ public sealed class ChunkLightingService
         }
 
         return true;
+    }
+
+    private bool HasAdjacentSky(ChunkEntity chunk, int x, int y, int z, BlockFace face)
+    {
+        Span<(int dx, int dz)> offsets = stackalloc (int, int)[]
+        {
+            (0, 1), (0, 2), (1, 1), (-1, 1)
+        };
+
+        if (face == BlockFace.Back)
+        {
+            offsets = stackalloc (int, int)[] { (0, -1), (0, -2), (1, -1), (-1, -1) };
+        }
+        else if (face == BlockFace.Left)
+        {
+            offsets = stackalloc (int, int)[] { (-1, 0), (-2, 0), (-1, 1), (-1, -1) };
+        }
+        else if (face == BlockFace.Right)
+        {
+            offsets = stackalloc (int, int)[] { (1, 0), (2, 0), (1, 1), (1, -1) };
+        }
+
+        foreach (var (dx, dz) in offsets)
+        {
+            int sx = x + dx;
+            int sz = z + dz;
+
+            if (!IsWithinChunkBounds(sx, sz) || ColumnHasOpenSky(chunk, sx, y, sz))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsWithinChunkBounds(int x, int z)
+    {
+        return x >= 0 && x < ChunkEntity.Size && z >= 0 && z < ChunkEntity.Size;
+    }
+
+    private static bool IsSideFace(BlockFace face)
+    {
+        return face is BlockFace.Front or BlockFace.Back or BlockFace.Left or BlockFace.Right;
     }
 
     /// <summary>

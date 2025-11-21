@@ -298,6 +298,7 @@ public class LillyBoostrap : ILillyBootstrap
             _renderPipeline.AddGameObject(cube);
         }
         _renderPipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDiagnosticsDebugger>());
+        _renderPipeline.AddGameObject(gameObjectFactory.Create<JobSystemDebugger>());
     }
 
     private void InizializeGameObjectFromPlugins()
@@ -359,13 +360,14 @@ public class LillyBoostrap : ILillyBootstrap
             .RegisterRenderSystem<SpriteBatchRenderSystem>()
             .RegisterRenderSystem<UpdatableRenderSystem>()
             .RegisterRenderSystem<InputRenderSystem>()
-            .RegisterRenderSystem<RenderLayerSystem3D>(s)
+            .RegisterRenderSystem<RenderLayerSystem3D>()
             ;
 
         _container
             .RegisterGameObject<ImGuiActionDebugger>()
             .RegisterGameObject<CameraDebugger>()
             .RegisterGameObject<InputDebugger>()
+            .RegisterGameObject<JobSystemDebugger>()
             ;
 
         _container.AddLuaUserData<Vector2D<int>>();

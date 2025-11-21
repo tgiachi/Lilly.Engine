@@ -38,6 +38,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _prefetchedChunks = new();
     private readonly ConcurrentQueue<(ChunkCoordinates Coordinates, ChunkEntity Chunk)> _pendingChunks = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _pendingChunkCoordinates = new();
+    private readonly ConcurrentDictionary<ChunkCoordinates, ChunkFailureInfo> _chunkFailures = new();
     private readonly ConcurrentQueue<ChunkCoordinates> _neighborInvalidateQueue = new();
     private readonly ConcurrentDictionary<ChunkCoordinates, byte> _queuedNeighborInvalidations = new();
     private readonly CancellationTokenSource _chunkCancellation = new();
@@ -312,6 +313,11 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     private bool RequestChunkAsync(ChunkCoordinates coordinates)
     {
+        if (IsInFailureCooldown(coordinates))
+        {
+            return false;
+        }
+
         if (!_requestedChunks.TryAdd(coordinates, 0))
         {
             return false;
@@ -343,6 +349,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             }
 
             var chunk = await _chunkGeneratorService.GetChunkByWorldPosition(worldPosition).ConfigureAwait(false);
+            _chunkFailures.TryRemove(coordinates, out _);
 
             if (token.IsCancellationRequested || _disposed)
             {
@@ -363,6 +370,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         catch (Exception ex)
         {
             _logger.Error(ex, "Chunk generation failed at {Coordinates}", coordinates);
+            RegisterChunkFailure(coordinates, ex);
         }
         finally
         {
@@ -517,6 +525,43 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         }
     }
 
+    private bool IsInFailureCooldown(ChunkCoordinates coordinates)
+    {
+        if (_chunkFailures.TryGetValue(coordinates, out var failure))
+        {
+            var now = DateTime.UtcNow;
+            var backoffSeconds = Math.Min(30, 1 + failure.Attempts * 2);
+
+            if (now - failure.LastFailureUtc < TimeSpan.FromSeconds(backoffSeconds))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void RegisterChunkFailure(ChunkCoordinates coordinates, Exception ex)
+    {
+        var now = DateTime.UtcNow;
+
+        var updated = _chunkFailures.AddOrUpdate(
+            coordinates,
+            _ => new ChunkFailureInfo(now, 1, ex.Message),
+            (_, prev) => new ChunkFailureInfo(now, prev.Attempts + 1, ex.Message)
+        );
+
+        var backoffSeconds = Math.Min(30, 1 + updated.Attempts * 2);
+
+        _logger.Warning(
+            "Chunk {Coordinates} failed ({Attempts}x). Next retry in ~{DelaySeconds}s. Last error: {Error}",
+            coordinates,
+            updated.Attempts,
+            backoffSeconds,
+            ex.Message
+        );
+    }
+
     private void QueueNeighborInvalidations(ChunkCoordinates coordinates)
     {
         foreach (var offset in NeighborOffsets)
@@ -627,4 +672,6 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             return _owner.GenerateChunkAsync(_coordinates, _worldPosition, cancellationToken);
         }
     }
+
+    private readonly record struct ChunkFailureInfo(DateTime LastFailureUtc, int Attempts, string? LastError);
 }

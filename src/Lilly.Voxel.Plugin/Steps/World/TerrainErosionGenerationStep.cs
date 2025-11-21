@@ -12,7 +12,7 @@ public class TerrainErosionGenerationStep : IGeneratorStep
     private readonly int _iterations;
     private readonly float _smoothingFactor;
 
-    public TerrainErosionGenerationStep(int iterations = 1, float smoothingFactor = 0.35f)
+    public TerrainErosionGenerationStep(int iterations = 1, float smoothingFactor = 0.2f)
     {
         _iterations = Math.Max(0, iterations);
         _smoothingFactor = Math.Clamp(smoothingFactor, 0f, 1f);

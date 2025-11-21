@@ -33,6 +33,9 @@ public class JobSystemService : IJobSystemService, IDisposable
     private int _activeWorkerCount;
     private int _totalWorkerCount;
     private readonly Lock _metricsLock = new();
+    private readonly Queue<JobExecutionRecord> _recentJobs = new();
+    private readonly object _recentLock = new();
+    private readonly int _maxRecentJobs = 64;
     private bool _disposed;
 
     public JobSystemService(JobServiceConfig config)
@@ -100,6 +103,17 @@ public class JobSystemService : IJobSystemService, IDisposable
     public double MinExecutionTimeMs { get; private set; } = double.MaxValue;
 
     public double MaxExecutionTimeMs { get; private set; }
+
+    public IReadOnlyList<JobExecutionRecord> RecentJobs
+    {
+        get
+        {
+            lock (_recentLock)
+            {
+                return _recentJobs.ToArray();
+            }
+        }
+    }
 
     public IJobHandle ExecuteAsync(
         IJob job,
@@ -389,6 +403,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                         job.ExecuteAsync(token).GetAwaiter().GetResult();
                         var elapsed = Stopwatch.GetElapsedTime(stopwatch);
                         UpdateMetrics(elapsed, isCancelled: false, isFailed: false);
+                        RecordRecentJob(job, elapsed, JobExecutionStatus.Succeeded);
 
                         _logger.Debug(
                             "Executed job {jobName} (priority: {priority}) in {elapsedMilliseconds} ms from thread: {threadId}",
@@ -402,6 +417,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                     {
                         var elapsed = Stopwatch.GetElapsedTime(stopwatch);
                         Interlocked.Increment(ref _cancelledJobsCount);
+                        RecordRecentJob(job, elapsed, JobExecutionStatus.Cancelled);
 
                         if (!token.IsCancellationRequested)
                         {
@@ -418,6 +434,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                     {
                         var elapsed = Stopwatch.GetElapsedTime(stopwatch);
                         Interlocked.Increment(ref _failedJobsCount);
+                        RecordRecentJob(job, elapsed, JobExecutionStatus.Failed);
 
                         _logger.Error(
                             ex,
@@ -469,6 +486,28 @@ public class JobSystemService : IJobSystemService, IDisposable
 
             if (elapsedMs > MaxExecutionTimeMs)
                 MaxExecutionTimeMs = elapsedMs;
+        }
+    }
+
+    private void RecordRecentJob(QueuedJob job, TimeSpan elapsed, JobExecutionStatus status)
+    {
+        var record = new JobExecutionRecord(
+            job.Name,
+            job.Priority,
+            status,
+            elapsed.TotalMilliseconds,
+            DateTime.UtcNow,
+            Environment.CurrentManagedThreadId
+        );
+
+        lock (_recentLock)
+        {
+            if (_recentJobs.Count >= _maxRecentJobs)
+            {
+                _recentJobs.Dequeue();
+            }
+
+            _recentJobs.Enqueue(record);
         }
     }
 

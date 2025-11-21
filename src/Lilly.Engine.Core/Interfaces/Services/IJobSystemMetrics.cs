@@ -1,5 +1,7 @@
 namespace Lilly.Engine.Core.Interfaces.Services;
 
+using Lilly.Engine.Core.Data.Services;
+
 /// <summary>
 /// Provides diagnostic metrics about the job system.
 /// </summary>
@@ -49,4 +51,9 @@ public interface IJobSystemMetrics
     /// Gets the number of jobs that failed with exceptions.
     /// </summary>
     long FailedJobsCount { get; }
+
+    /// <summary>
+    /// Gets a snapshot of the most recently finished jobs.
+    /// </summary>
+    IReadOnlyList<JobExecutionRecord> RecentJobs { get; }
 }

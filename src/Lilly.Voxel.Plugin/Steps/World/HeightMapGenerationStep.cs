@@ -12,15 +12,25 @@ public class HeightMapGenerationStep : IGeneratorStep
     private readonly float _baseHeight;
     private readonly float _heightVariance;
     private readonly float _baseFrequency;
+    private readonly float _continentFrequency;
+    private readonly float _mountainFrequency;
+    private readonly float _mountainAmplitude;
+    private readonly float _mountainThreshold;
+    private readonly float _mountainSharpness;
     private readonly int _octaves;
     private readonly float _gain;
     private readonly float _lacunarity;
     private readonly int _seedOffset;
 
     public HeightMapGenerationStep(
-        float baseHeight = 58f,
-        float heightVariance = 10f,
-        float baseFrequency = 0.008f,
+        float baseHeight = 44f,
+        float heightVariance = 18f,
+        float baseFrequency = 0.009f,
+        float continentFrequency = 0.002f,
+        float mountainFrequency = 0.018f,
+        float mountainAmplitude = 22f,
+        float mountainThreshold = 0.45f,
+        float mountainSharpness = 2.2f,
         int octaves = 4,
         float gain = 0.45f,
         float lacunarity = 2f,
@@ -30,6 +40,11 @@ public class HeightMapGenerationStep : IGeneratorStep
         _baseHeight = baseHeight;
         _heightVariance = heightVariance;
         _baseFrequency = baseFrequency;
+        _continentFrequency = continentFrequency;
+        _mountainFrequency = mountainFrequency;
+        _mountainAmplitude = mountainAmplitude;
+        _mountainThreshold = Math.Clamp(mountainThreshold, 0f, 0.99f);
+        _mountainSharpness = Math.Max(0.01f, mountainSharpness);
         _octaves = Math.Max(1, octaves);
         _gain = gain;
         _lacunarity = lacunarity;
@@ -45,7 +60,9 @@ public class HeightMapGenerationStep : IGeneratorStep
         var chunkSize = ChunkEntity.Size;
         var heightMap = new int[chunkSize * chunkSize];
 
-        var noise = CreateNoise(context.Seed);
+        var baseNoise = CreateBaseNoise(context.Seed);
+        var continentNoise = CreateContinentNoise(context.Seed);
+        var mountainNoise = CreateMountainNoise(context.Seed);
         var chunkOriginX = context.WorldPosition.X;
         var chunkOriginZ = context.WorldPosition.Z;
 
@@ -56,8 +73,16 @@ public class HeightMapGenerationStep : IGeneratorStep
                 var worldX = chunkOriginX + x;
                 var worldZ = chunkOriginZ + z;
 
-                var noiseValue = noise.GetNoise(worldX, worldZ);
-                var height = _baseHeight + noiseValue * _heightVariance;
+                var baseValue = baseNoise.GetNoise(worldX, worldZ);
+                var continentValue = continentNoise.GetNoise(worldX, worldZ);
+                var continentMask = Math.Clamp((continentValue + 1f) * 0.5f, 0f, 1f);
+                var mountainMask = GetMountainMask(continentMask);
+                var ridgedValue = 1f - MathF.Abs(mountainNoise.GetNoise(worldX, worldZ));
+                ridgedValue = MathF.Max(0f, ridgedValue * ridgedValue);
+
+                var height = _baseHeight +
+                             baseValue * _heightVariance +
+                             ridgedValue * _mountainAmplitude * mountainMask;
                 height = Math.Clamp(height, 1f, ChunkEntity.Height - 2f);
 
                 heightMap[z * chunkSize + x] = (int)MathF.Round(height);
@@ -69,7 +94,7 @@ public class HeightMapGenerationStep : IGeneratorStep
         return Task.CompletedTask;
     }
 
-    private FastNoiseLite CreateNoise(int seed)
+    private FastNoiseLite CreateBaseNoise(int seed)
     {
         var noise = new FastNoiseLite(seed + _seedOffset);
         noise.SetNoiseType(NoiseType.OpenSimplex2);
@@ -80,5 +105,38 @@ public class HeightMapGenerationStep : IGeneratorStep
         noise.SetFractalLacunarity(_lacunarity);
 
         return noise;
+    }
+
+    private FastNoiseLite CreateContinentNoise(int seed)
+    {
+        var noise = new FastNoiseLite(seed + (_seedOffset * 2));
+        noise.SetNoiseType(NoiseType.OpenSimplex2);
+        noise.SetFrequency(_continentFrequency);
+        noise.SetFractalType(FractalType.FBm);
+        noise.SetFractalOctaves(Math.Max(2, _octaves - 1));
+        noise.SetFractalGain(_gain * 0.85f);
+        noise.SetFractalLacunarity(_lacunarity * 0.65f);
+
+        return noise;
+    }
+
+    private FastNoiseLite CreateMountainNoise(int seed)
+    {
+        var noise = new FastNoiseLite(seed + (_seedOffset * 3));
+        noise.SetNoiseType(NoiseType.OpenSimplex2);
+        noise.SetFrequency(_mountainFrequency);
+        noise.SetFractalType(FractalType.Ridged);
+        noise.SetFractalOctaves(_octaves + 1);
+        noise.SetFractalGain(_gain * 0.9f);
+        noise.SetFractalLacunarity(_lacunarity);
+
+        return noise;
+    }
+
+    private float GetMountainMask(float continentMask)
+    {
+        var normalized = MathF.Max(0f, continentMask - _mountainThreshold) / MathF.Max(0.0001f, 1f - _mountainThreshold);
+
+        return MathF.Pow(normalized, _mountainSharpness);
     }
 }

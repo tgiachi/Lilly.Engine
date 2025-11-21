@@ -19,7 +19,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
 
     public TerrainFillGenerationStep(
         IBlockRegistry blockRegistry,
-        float waterLevel = 55f,
+        float waterLevel = 38f,
         int soilDepth = 3
     )
     {
