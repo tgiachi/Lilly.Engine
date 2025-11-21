@@ -10,6 +10,7 @@ using Lilly.Engine.Rendering.Core.Commands;
 using Lilly.Engine.Rendering.Core.Interfaces.Camera;
 using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.GameObjects.Environment;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
@@ -45,6 +46,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     private static readonly float ChunkBoundingSphereRadius =
         0.5f * MathF.Sqrt(ChunkEntity.Size * ChunkEntity.Size * 2 + ChunkEntity.Height * ChunkEntity.Height);
+
     private static readonly ChunkCoordinates[] NeighborOffsets =
     [
         ChunkCoordinates.Left,
@@ -77,6 +79,8 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         _rainEffect = gameObjectFactory.Create<RainEffectGameObject>();
         _snowEffect = gameObjectFactory.Create<SnowEffectGameObject>();
         SkyGameObject = gameObjectFactory.Create<SkyGameObject>();
+
+
 
         IsRaining = false;
         IsSnowing = false;
@@ -139,6 +143,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     public float LightIntensity { get; set; } = 1.5f;
 
     private float _waterTransparency = 0.1f;
+
     public float WaterTransparency
     {
         get => _waterTransparency;
@@ -192,7 +197,6 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         ProcessPendingChunks();
         ProcessNeighborInvalidations();
     }
-
 
     private void UpdateChunkLoading(ICamera3D camera)
     {
@@ -536,6 +540,9 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             {
                 return true;
             }
+
+            // Cooldown has expired - remove from failure tracking
+            _chunkFailures.TryRemove(coordinates, out _);
         }
 
         return false;
@@ -626,6 +633,153 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         var elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
         return elapsed.TotalMilliseconds >= budgetMs;
+    }
+
+    /// <summary>
+    /// Gets a block at the specified world coordinates.
+    /// </summary>
+    /// <param name="worldX">World X coordinate.</param>
+    /// <param name="worldY">World Y coordinate.</param>
+    /// <param name="worldZ">World Z coordinate.</param>
+    /// <returns>The block ID at the position, or 0 (air) if the chunk is not loaded.</returns>
+    public ushort GetBlock(int worldX, int worldY, int worldZ)
+    {
+        var chunkCoords = ChunkUtils.GetChunkCoordinates(new Vector3(worldX, worldY, worldZ));
+        var coords = new ChunkCoordinates((int)chunkCoords.X, (int)chunkCoords.Y, (int)chunkCoords.Z);
+
+        if (!_activeChunks.TryGetValue(coords, out var chunkGameObject) || chunkGameObject.Chunk == null)
+        {
+            return 0; // Return air if chunk not loaded
+        }
+
+        var (localX, localY, localZ) = ChunkUtils.GetLocalIndices(new Vector3(worldX, worldY, worldZ));
+
+        return chunkGameObject.Chunk.GetBlock(localX, localY, localZ);
+    }
+
+    /// <summary>
+    /// Debug method: Tests if there are any loaded chunks with blocks
+    /// </summary>
+    public void DebugLogBlocksInfo()
+    {
+        _logger.Information("=== Voxel World Debug Info ===");
+        _logger.Information("Active chunks: {Count}", _activeChunks.Count);
+
+        if (_activeChunks.Count == 0)
+        {
+            _logger.Warning("No chunks loaded!");
+
+            return;
+        }
+
+        foreach (var chunk in _activeChunks.Values.Take(3))
+        {
+            if (chunk?.Chunk == null)
+                continue;
+
+            var solidBlockCount = 0;
+
+            foreach (var blockId in chunk.Chunk.Blocks)
+            {
+                if (blockId != 0)
+                    solidBlockCount++;
+            }
+
+            _logger.Information(
+                "Chunk at {Position}: {SolidBlocks} solid blocks out of {Total}",
+                chunk.Transform.Position,
+                solidBlockCount,
+                chunk.Chunk.Blocks.Length
+            );
+        }
+    }
+
+    /// <summary>
+    /// Performs raycasting from a ray and returns the first solid block hit.
+    /// Uses voxel traversal algorithm (DDA-based) for accurate block detection.
+    /// </summary>
+    /// <param name="ray">The ray to cast.</param>
+    /// <param name="maxDistance">Maximum distance to raycast.</param>
+    /// <param name="blockPosition">The position of the hit block (if any).</param>
+    /// <param name="skipFirstBlock">If true, skips the starting voxel (useful if camera is inside a block).</param>
+    /// <returns>True if a block was hit, false otherwise.</returns>
+    public bool Raycast(Ray ray, float maxDistance, out Vector3D<int> blockPosition, bool skipFirstBlock = true)
+    {
+        blockPosition = default;
+
+        var origin = ray.Origin;
+        var direction = Vector3D.Normalize(ray.Direction);
+
+        // Current voxel position
+        var voxel = new Vector3D<int>(
+            (int)MathF.Floor(origin.X),
+            (int)MathF.Floor(origin.Y),
+            (int)MathF.Floor(origin.Z)
+        );
+
+        // Calculate step direction (1 or -1 for each axis)
+        var step = new Vector3D<int>(
+            direction.X >= 0 ? 1 : -1,
+            direction.Y >= 0 ? 1 : -1,
+            direction.Z >= 0 ? 1 : -1
+        );
+
+        // Calculate t parameter for each axis (distance to next voxel boundary)
+        var tMax = new Vector3D<float>(
+            direction.X != 0 ? (voxel.X + (direction.X > 0 ? 1 : 0) - origin.X) / direction.X : float.MaxValue,
+            direction.Y != 0 ? (voxel.Y + (direction.Y > 0 ? 1 : 0) - origin.Y) / direction.Y : float.MaxValue,
+            direction.Z != 0 ? (voxel.Z + (direction.Z > 0 ? 1 : 0) - origin.Z) / direction.Z : float.MaxValue
+        );
+
+        // Calculate t delta (distance between voxel boundaries)
+        var tDelta = new Vector3D<float>(
+            direction.X != 0 ? 1.0f / MathF.Abs(direction.X) : float.MaxValue,
+            direction.Y != 0 ? 1.0f / MathF.Abs(direction.Y) : float.MaxValue,
+            direction.Z != 0 ? 1.0f / MathF.Abs(direction.Z) : float.MaxValue
+        );
+
+        // Current distance along ray
+        float t = 0;
+        bool firstVoxel = true;
+
+        while (t < maxDistance)
+        {
+            // Check current voxel (skip first if requested)
+            if (!firstVoxel || !skipFirstBlock)
+            {
+                var block = GetBlock(voxel.X, voxel.Y, voxel.Z);
+
+                if (block != 0)
+                {
+                    blockPosition = voxel;
+
+                    return true;
+                }
+            }
+            firstVoxel = false;
+
+            // Find the next voxel to check (step along the axis with smallest t)
+            if (tMax.X < tMax.Y && tMax.X < tMax.Z)
+            {
+                t = tMax.X;
+                voxel.X += step.X;
+                tMax.X += tDelta.X;
+            }
+            else if (tMax.Y < tMax.Z)
+            {
+                t = tMax.Y;
+                voxel.Y += step.Y;
+                tMax.Y += tDelta.Y;
+            }
+            else
+            {
+                t = tMax.Z;
+                voxel.Z += step.Z;
+                tMax.Z += tDelta.Z;
+            }
+        }
+
+        return false;
     }
 
     public void Dispose()
