@@ -25,8 +25,7 @@ public sealed class ChunkMeshBuilder
     private readonly IAssetManager _assetManager;
     private readonly ILogger _logger = Log.ForContext<ChunkMeshBuilder>();
 
-    [ThreadStatic]
-    private static MeshBuilderContext? _threadContext;
+    [ThreadStatic] private static MeshBuilderContext? _threadContext;
 
     private class MeshBuilderContext
     {
@@ -86,10 +85,7 @@ public sealed class ChunkMeshBuilder
 
         try
         {
-            if (_threadContext == null)
-            {
-                _threadContext = new MeshBuilderContext();
-            }
+            _threadContext ??= new MeshBuilderContext();
 
             var context = _threadContext;
             context.Clear();
@@ -252,6 +248,7 @@ public sealed class ChunkMeshBuilder
     {
         var width = ChunkEntity.Size;
         var depth = ChunkEntity.Size;
+
         // var mask = new FaceRenderInfo[width * depth]; // Replaced by buffer
 
         for (int y = 0; y < ChunkEntity.Height; y++)
@@ -302,6 +299,7 @@ public sealed class ChunkMeshBuilder
     {
         var width = ChunkEntity.Size;
         var height = ChunkEntity.Height;
+
         // var mask = new FaceRenderInfo[width * height]; // Replaced by buffer
 
         for (int z = 0; z < ChunkEntity.Size; z++)
@@ -351,6 +349,7 @@ public sealed class ChunkMeshBuilder
     {
         var depth = ChunkEntity.Size;
         var height = ChunkEntity.Height;
+
         // var mask = new FaceRenderInfo[depth * height]; // Replaced by buffer
 
         for (int x = 0; x < ChunkEntity.Size; x++)
@@ -756,12 +755,18 @@ public sealed class ChunkMeshBuilder
         try
         {
             var region = _assetManager.GetAtlasRegion(texture.AtlasName, texture.Index);
+
             return (region.Position, region.Size);
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to get atlas region for texture {AtlasName}:{Index}, using default",
-                texture.AtlasName, texture.Index);
+            _logger.Warning(
+                ex,
+                "Failed to get atlas region for texture {AtlasName}:{Index}, using default",
+                texture.AtlasName,
+                texture.Index
+            );
+
             return (Vector2D<float>.Zero, Vector2D<float>.One);
         }
     }

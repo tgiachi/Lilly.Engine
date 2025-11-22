@@ -62,7 +62,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
 
                     if (worldY == 0)
                     {
-                        chunk.SetBlock(x, y, z, _bedrockId);
+                        chunk.SetBlockFast(x, y, z, _bedrockId);
                         continue;
                     }
 
@@ -70,11 +70,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
                     {
                         if (worldY <= _waterLevel)
                         {
-                            chunk.SetBlock(x, y, z, _waterId);
-                        }
-                        else
-                        {
-                            chunk.SetBlock(x, y, z, 0);
+                            chunk.SetBlockFast(x, y, z, _waterId);
                         }
 
                         continue;
@@ -84,15 +80,15 @@ public class TerrainFillGenerationStep : IGeneratorStep
 
                     if (depth == 0)
                     {
-                        chunk.SetBlock(x, y, z, _grassId);
+                        chunk.SetBlockFast(x, y, z, _grassId);
                     }
                     else if (depth <= _soilDepth)
                     {
-                        chunk.SetBlock(x, y, z, _dirtId);
+                        chunk.SetBlockFast(x, y, z, _dirtId);
                     }
                     else
                     {
-                        chunk.SetBlock(x, y, z, _stoneId);
+                        chunk.SetBlockFast(x, y, z, _stoneId);
                     }
                 }
             }

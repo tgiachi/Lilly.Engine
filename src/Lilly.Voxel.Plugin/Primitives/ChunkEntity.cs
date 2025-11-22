@@ -127,6 +127,15 @@ public class ChunkEntity
     }
 
     /// <summary>
+    /// Sets the block at the specified coordinates without bounds checking.
+    /// USE ONLY when you are certain x, y, z are valid.
+    /// </summary>
+    public void SetBlockFast(int x, int y, int z, ushort blockId)
+    {
+        Blocks[x + y * Size + z * Size * Height] = blockId;
+    }
+
+    /// <summary>
     /// Stores a block at the specified coordinates, replacing any previous value.
     /// </summary>
     /// <param name="x">Block coordinate along X.</param>

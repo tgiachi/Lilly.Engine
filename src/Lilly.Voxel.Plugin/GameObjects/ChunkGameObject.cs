@@ -279,13 +279,15 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private void ScheduleMeshRebuild()
     {
         if (Chunk == null)
+        {
             return;
+        }
 
         _isMeshBuilding = true;
         _meshDirty = false;
 
         _jobSystemService.ExecuteAsync(
-            "BuildChunkMesh",
+            "BuildChunkMesh_" + Transform.Position,
             async () =>
             {
                 try
@@ -404,8 +406,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     /// </summary>
     private void UploadMeshData(ChunkMeshData meshData)
     {
-        DisposeBuffers();
-
         var hasSolid = meshData.Vertices.Length > 0 && meshData.Indices.Length > 0;
         var hasBillboard = meshData.BillboardVertices.Length > 0 && meshData.BillboardIndices.Length > 0;
         var hasFluid = meshData.FluidVertices.Length > 0 && meshData.FluidIndices.Length > 0;
@@ -413,6 +413,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 
         if (!hasSolid && !hasBillboard && !hasFluid && !hasItem)
         {
+            DisposeBuffers();
             _logger.Debug("Skipping mesh upload - all geometry is empty");
 
             return;
@@ -436,48 +437,16 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         );
 
         // Upload solid geometry
-        if (expandedSolidVertices.Length > 0)
-        {
-            _solidVertexBuffer = new VertexBuffer<ChunkVertex>(
-                GraphicsDevice,
-                expandedSolidVertices,
-                BufferUsage.StaticCopy
-            );
-            _solidVertexCount = (uint)expandedSolidVertices.Length;
-        }
+        UpdateBuffer(ref _solidVertexBuffer, ref _solidVertexCount, expandedSolidVertices);
 
         // Upload billboard geometry
-        if (expandedBillboardVertices.Length > 0)
-        {
-            _billboardVertexBuffer = new VertexBuffer<ChunkVertex>(
-                GraphicsDevice,
-                expandedBillboardVertices,
-                BufferUsage.StaticCopy
-            );
-            _billboardVertexCount = (uint)expandedBillboardVertices.Length;
-        }
+        UpdateBuffer(ref _billboardVertexBuffer, ref _billboardVertexCount, expandedBillboardVertices);
 
         // Upload fluid geometry
-        if (expandedFluidVertices.Length > 0)
-        {
-            _fluidVertexBuffer = new VertexBuffer<ChunkFluidVertex>(
-                GraphicsDevice,
-                expandedFluidVertices,
-                BufferUsage.StaticCopy
-            );
-            _fluidVertexCount = (uint)expandedFluidVertices.Length;
-        }
+        UpdateBuffer(ref _fluidVertexBuffer, ref _fluidVertexCount, expandedFluidVertices);
 
         // Upload item geometry
-        if (expandedItemVertices.Length > 0)
-        {
-            _itemVertexBuffer = new VertexBuffer<ChunkItemVertex>(
-                GraphicsDevice,
-                expandedItemVertices,
-                BufferUsage.StaticCopy
-            );
-            _itemVertexCount = (uint)expandedItemVertices.Length;
-        }
+        UpdateBuffer(ref _itemVertexBuffer, ref _itemVertexCount, expandedItemVertices);
 
         _logger.Information(
             "Mesh uploaded to GPU - Solid: {SolidVertices} vertices, Billboard: {BillboardVertices} vertices, Fluid: {FluidVertices} vertices, Item: {ItemVertices} vertices",
@@ -486,6 +455,23 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             _fluidVertexCount,
             _itemVertexCount
         );
+    }
+
+    private void UpdateBuffer<T>(
+        ref VertexBuffer<T>? buffer,
+        ref uint vertexCount,
+        T[] newVertices
+    ) where T : unmanaged, IVertex
+    {
+        buffer?.Dispose();
+        buffer = null;
+        vertexCount = 0;
+
+        if (newVertices.Length > 0)
+        {
+            buffer = new VertexBuffer<T>(GraphicsDevice, newVertices, BufferUsage.StaticCopy);
+            vertexCount = (uint)newVertices.Length;
+        }
     }
 
     public bool IsEmpty()

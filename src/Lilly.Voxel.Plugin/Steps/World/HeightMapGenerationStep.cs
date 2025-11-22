@@ -77,12 +77,18 @@ public class HeightMapGenerationStep : IGeneratorStep
                 var continentValue = continentNoise.GetNoise(worldX, worldZ);
                 var continentMask = Math.Clamp((continentValue + 1f) * 0.5f, 0f, 1f);
                 var mountainMask = GetMountainMask(continentMask);
-                var ridgedValue = 1f - MathF.Abs(mountainNoise.GetNoise(worldX, worldZ));
-                ridgedValue = MathF.Max(0f, ridgedValue * ridgedValue);
+                
+                float mountainOffset = 0f;
+                if (mountainMask > 0.001f)
+                {
+                    var ridgedValue = 1f - MathF.Abs(mountainNoise.GetNoise(worldX, worldZ));
+                    ridgedValue = MathF.Max(0f, ridgedValue * ridgedValue);
+                    mountainOffset = ridgedValue * _mountainAmplitude * mountainMask;
+                }
 
                 var height = _baseHeight +
                              baseValue * _heightVariance +
-                             ridgedValue * _mountainAmplitude * mountainMask;
+                             mountainOffset;
                 height = Math.Clamp(height, 1f, ChunkEntity.Height - 2f);
 
                 heightMap[z * chunkSize + x] = (int)MathF.Round(height);

@@ -71,7 +71,7 @@ public class CaveGenerationStep : IGeneratorStep
 
                     if (noiseValue > _threshold)
                     {
-                        chunk.SetBlock(x, y, z, 0);
+                        chunk.SetBlockFast(x, y, z, 0);
                     }
                 }
             }
