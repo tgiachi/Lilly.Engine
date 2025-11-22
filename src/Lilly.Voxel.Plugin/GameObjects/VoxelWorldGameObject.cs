@@ -121,7 +121,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
     public int MaxPendingChunkRequests { get; set; } = 64;
 
-    public int MaxPrefetchedChunks { get; set; } = 128;
+    public int MaxPrefetchedChunks { get; set; } = 32;
 
     public int MaxChunksToProcessPerFrame { get; set; } = 2;
 

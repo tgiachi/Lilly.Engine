@@ -17,7 +17,7 @@ public class ChunkEntity
     /// <summary>
     /// Number of blocks along the Y axis.
     /// </summary>
-    public const int Height = 64;
+    public const int Height = 256;
 
     /// <summary>
     /// Gets the world position at which the chunk is anchored.
@@ -47,7 +47,7 @@ public class ChunkEntity
     {
         Blocks = new ushort[Size * Size * Height];
         LightLevels = new byte[Size * Size * Height];
-        LightColors = new Color4b[Size * Size * Height];
+        // LightColors is lazy loaded
         Position = position;
         ChunkCoordinates = new ChunkCoordinates(
             (int)(position.X / Size),
@@ -55,11 +55,7 @@ public class ChunkEntity
             (int)(position.Z / Size)
         );
 
-        for (int i = 0; i < LightLevels.Length; i++)
-        {
-            LightLevels[i] = 15;
-            LightColors[i] = Color4b.White;
-        }
+        Array.Fill(LightLevels, (byte)15);
     }
 
     /// <summary>
@@ -70,7 +66,7 @@ public class ChunkEntity
     {
         Blocks = new ushort[Size * Size * Height];
         LightLevels = new byte[Size * Size * Height];
-        LightColors = new Color4b[Size * Size * Height];
+        // LightColors is lazy loaded
         ChunkCoordinates = coordinates;
         Position = new Vector3D<float>(
             coordinates.X * Size,
@@ -78,11 +74,7 @@ public class ChunkEntity
             coordinates.Z * Size
         );
 
-        for (int i = 0; i < LightLevels.Length; i++)
-        {
-            LightLevels[i] = 15;
-            LightColors[i] = Color4b.White;
-        }
+        Array.Fill(LightLevels, (byte)15);
     }
 
     /// <summary>
@@ -97,8 +89,9 @@ public class ChunkEntity
 
     /// <summary>
     /// Gets the raw backing array that stores light colors for the chunk (for colored light propagation).
+    /// Null if no colored lights are present (defaults to White).
     /// </summary>
-    public Color4b[] LightColors { get; }
+    public Color4b[]? LightColors { get; private set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the lighting needs to be recalculated.
@@ -256,6 +249,10 @@ public class ChunkEntity
     /// </summary>
     public Color4b GetLightColor(int x, int y, int z)
     {
+        if (LightColors == null)
+        {
+            return Color4b.White;
+        }
         return LightColors[GetIndex(x, y, z)];
     }
 
@@ -264,7 +261,16 @@ public class ChunkEntity
     /// </summary>
     public void SetLightColor(int x, int y, int z, Color4b color)
     {
-        LightColors[GetIndex(x, y, z)] = color;
+        if (LightColors == null)
+        {
+            // Optimization: If setting to white and array is null, do nothing
+            if (color == Color4b.White)
+            {
+                return;
+            }
+            InitializeLightColors();
+        }
+        LightColors![GetIndex(x, y, z)] = color;
     }
 
     /// <summary>
@@ -272,12 +278,25 @@ public class ChunkEntity
     /// </summary>
     public void SetLightColors(Color4b[] colors)
     {
-        if (colors.Length != LightColors.Length)
+        int length = Size * Size * Height;
+        if (colors.Length != length)
         {
-            throw new ArgumentException($"Light colors array must have length {LightColors.Length}", nameof(colors));
+            throw new ArgumentException($"Light colors array must have length {length}", nameof(colors));
+        }
+
+        if (LightColors == null)
+        {
+            LightColors = new Color4b[length];
         }
 
         Array.Copy(colors, LightColors, colors.Length);
+    }
+
+    private void InitializeLightColors()
+    {
+        int length = Size * Size * Height;
+        LightColors = new Color4b[length];
+        Array.Fill(LightColors, Color4b.White);
     }
 
     public bool IsInBounds(int x, int y, int z)

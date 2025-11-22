@@ -45,7 +45,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     // Configuration
     private readonly int _maxConcurrentGenerations;
-    private int _maxCachedChunks = 256;
+    private int _maxCachedChunks = 64;
     private bool _useJobSystem = false;
 
     // Metrics counters
@@ -80,8 +80,8 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         InitializeNoiseGenerator();
 
         // Initialize cache with expiration time
-        _chunkCache = new ChunkCache(timerService, TimeSpan.FromMinutes(10), _maxCachedChunks);
-        _logger.Information("Chunk cache initialized with {Minutes} minute expiration", 10);
+        _chunkCache = new ChunkCache(timerService, TimeSpan.FromMinutes(5), _maxCachedChunks);
+        _logger.Information("Chunk cache initialized with {Minutes} minute expiration", 5);
     }
 
     /// <summary>

@@ -23,12 +23,12 @@ public class HeightMapGenerationStep : IGeneratorStep
     private readonly int _seedOffset;
 
     public HeightMapGenerationStep(
-        float baseHeight = 44f,
-        float heightVariance = 18f,
+        float baseHeight = 64f,
+        float heightVariance = 20f,
         float baseFrequency = 0.009f,
         float continentFrequency = 0.002f,
         float mountainFrequency = 0.018f,
-        float mountainAmplitude = 22f,
+        float mountainAmplitude = 80f,
         float mountainThreshold = 0.45f,
         float mountainSharpness = 2.2f,
         int octaves = 4,
@@ -59,10 +59,22 @@ public class HeightMapGenerationStep : IGeneratorStep
 
         var chunkSize = ChunkEntity.Size;
         var heightMap = new int[chunkSize * chunkSize];
+        var tempMap = new float[chunkSize * chunkSize];
+        var humMap = new float[chunkSize * chunkSize];
 
         var baseNoise = CreateBaseNoise(context.Seed);
         var continentNoise = CreateContinentNoise(context.Seed);
         var mountainNoise = CreateMountainNoise(context.Seed);
+        
+        // Biome noise generators (very low frequency for large areas)
+        var tempNoise = new FastNoiseLite(context.Seed + _seedOffset + 100);
+        tempNoise.SetNoiseType(NoiseType.OpenSimplex2);
+        tempNoise.SetFrequency(0.005f); // Large biomes
+
+        var humNoise = new FastNoiseLite(context.Seed + _seedOffset + 200);
+        humNoise.SetNoiseType(NoiseType.OpenSimplex2);
+        humNoise.SetFrequency(0.005f);
+
         var chunkOriginX = context.WorldPosition.X;
         var chunkOriginZ = context.WorldPosition.Z;
 
@@ -73,6 +85,15 @@ public class HeightMapGenerationStep : IGeneratorStep
                 var worldX = chunkOriginX + x;
                 var worldZ = chunkOriginZ + z;
 
+                // 1. Calculate Biome Data
+                // Normalize noise from [-1, 1] to [0, 1]
+                var temperature = (tempNoise.GetNoise(worldX, worldZ) + 1f) * 0.5f;
+                var humidity = (humNoise.GetNoise(worldX, worldZ) + 1f) * 0.5f;
+                
+                tempMap[z * chunkSize + x] = temperature;
+                humMap[z * chunkSize + x] = humidity;
+
+                // 2. Calculate Height
                 var baseValue = baseNoise.GetNoise(worldX, worldZ);
                 var continentValue = continentNoise.GetNoise(worldX, worldZ);
                 var continentMask = Math.Clamp((continentValue + 1f) * 0.5f, 0f, 1f);
@@ -86,8 +107,16 @@ public class HeightMapGenerationStep : IGeneratorStep
                     mountainOffset = ridgedValue * _mountainAmplitude * mountainMask;
                 }
 
+                // Apply biome influence to height (optional but good for variety)
+                // e.g., Deserts (High Temp, Low Hum) are flatter
+                float biomeHeightMod = 1.0f;
+                if (temperature > 0.7f && humidity < 0.3f) 
+                {
+                    biomeHeightMod = 0.6f; // Flatten deserts
+                }
+
                 var height = _baseHeight +
-                             baseValue * _heightVariance +
+                             (baseValue * _heightVariance * biomeHeightMod) +
                              mountainOffset;
                 height = Math.Clamp(height, 1f, ChunkEntity.Height - 2f);
 
@@ -96,6 +125,8 @@ public class HeightMapGenerationStep : IGeneratorStep
         }
 
         context.CustomData[GenerationKeys.HeightMap] = heightMap;
+        context.CustomData[GenerationKeys.TemperatureMap] = tempMap;
+        context.CustomData[GenerationKeys.HumidityMap] = humMap;
 
         return Task.CompletedTask;
     }
