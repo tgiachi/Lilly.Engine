@@ -12,6 +12,53 @@ public sealed class ChunkLightingService
 {
     private readonly IBlockRegistry _blockRegistry;
 
+    // [Face, Corner, Neighbor, Coordinate(x,y,z)]
+    private static readonly sbyte[,,,] CornerOffsets = new sbyte[6, 4, 3, 3]
+    {
+        // Top (0)
+        {
+            { { -1, 0, -1 }, { -1, 0, 0 }, { 0, 0, -1 } },
+            { { -1, 0, 0 }, { -1, 0, 1 }, { 0, 0, 1 } },
+            { { 0, 0, 1 }, { 1, 0, 1 }, { 1, 0, 0 } },
+            { { 1, 0, 0 }, { 1, 0, -1 }, { 0, 0, -1 } }
+        },
+        // Bottom (1)
+        {
+            { { -1, 0, -1 }, { -1, 0, 0 }, { 0, 0, -1 } },
+            { { -1, 0, 0 }, { -1, 0, 1 }, { 0, 0, 1 } },
+            { { 0, 0, 1 }, { 1, 0, 1 }, { 1, 0, 0 } },
+            { { 1, 0, 0 }, { 1, 0, -1 }, { 0, 0, -1 } }
+        },
+        // Front (2)
+        {
+            { { -1, -1, 0 }, { -1, 0, 0 }, { 0, -1, 0 } },
+            { { -1, 0, 0 }, { -1, 1, 0 }, { 0, 1, 0 } },
+            { { 0, 1, 0 }, { 1, 1, 0 }, { 1, 0, 0 } },
+            { { 1, 0, 0 }, { 1, -1, 0 }, { 0, -1, 0 } }
+        },
+        // Back (3)
+        {
+            { { 1, -1, 0 }, { 1, 0, 0 }, { 0, -1, 0 } },
+            { { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 } },
+            { { 0, 1, 0 }, { -1, 1, 0 }, { -1, 0, 0 } },
+            { { -1, 0, 0 }, { -1, -1, 0 }, { 0, -1, 0 } }
+        },
+        // Left (4)
+        {
+            { { 0, -1, -1 }, { 0, -1, 0 }, { 0, 0, -1 } },
+            { { 0, -1, 0 }, { 0, -1, 1 }, { 0, 0, 1 } },
+            { { 0, 0, 1 }, { 0, 1, 1 }, { 0, 1, 0 } },
+            { { 0, 1, 0 }, { 0, 1, -1 }, { 0, 0, -1 } }
+        },
+        // Right (5)
+        {
+            { { 0, -1, 1 }, { 0, -1, 0 }, { 0, 0, 1 } },
+            { { 0, -1, 0 }, { 0, -1, -1 }, { 0, 0, -1 } },
+            { { 0, 0, -1 }, { 0, 1, -1 }, { 0, 1, 0 } },
+            { { 0, 1, 0 }, { 0, 1, 1 }, { 0, 0, 1 } }
+        }
+    };
+
     public ChunkLightingService(IBlockRegistry blockRegistry)
     {
         _blockRegistry = blockRegistry;
@@ -90,17 +137,19 @@ public sealed class ChunkLightingService
     {
         // Each corner checks 3 adjacent blocks for occlusion
         int solidCount = 0;
+        int faceIndex = (int)face;
 
-        // Offsets for the 3 blocks that contribute to each corner
-        var offsets = GetCornerOffsets(face, corner);
-
-        foreach (var (dx, dy, dz) in offsets)
+        for (int i = 0; i < 3; i++)
         {
+            int dx = CornerOffsets[faceIndex, corner, i, 0];
+            int dy = CornerOffsets[faceIndex, corner, i, 1];
+            int dz = CornerOffsets[faceIndex, corner, i, 2];
+
             int checkX = x + dx;
             int checkY = y + dy;
             int checkZ = z + dz;
 
-            // Check bounds
+            // Check bounds manually
             if (checkX < 0 || checkX >= ChunkEntity.Size ||
                 checkY < 0 || checkY >= ChunkEntity.Height ||
                 checkZ < 0 || checkZ >= ChunkEntity.Size)
@@ -110,7 +159,8 @@ public sealed class ChunkLightingService
                 continue;
             }
 
-            ushort neighborBlockId = chunk.GetBlock(checkX, checkY, checkZ);
+            // Safe to use GetBlockFast as we just checked bounds
+            ushort neighborBlockId = chunk.GetBlockFast(checkX, checkY, checkZ);
             if (neighborBlockId > 0) // Any non-air block
             {
                 solidCount++;
@@ -121,65 +171,7 @@ public sealed class ChunkLightingService
         return 1.0f - (solidCount / 3.0f * 0.7f);
     }
 
-    /// <summary>
-    /// Gets the three block offsets for a specific corner of a specific face.
-    /// Each corner of a face is influenced by 3 adjacent blocks.
-    /// </summary>
-    private static (int dx, int dy, int dz)[] GetCornerOffsets(BlockFace face, int corner)
-    {
-        return face switch
-        {
-            BlockFace.Top => corner switch
-            {
-                0 => new[] { (-1, 0, -1), (-1, 0, 0), (0, 0, -1) }, // Corner at (x, y+1, z)
-                1 => new[] { (-1, 0, 0), (-1, 0, 1), (0, 0, 1) },   // Corner at (x, y+1, z+1)
-                2 => new[] { (0, 0, 1), (1, 0, 1), (1, 0, 0) },     // Corner at (x+1, y+1, z+1)
-                3 => new[] { (1, 0, 0), (1, 0, -1), (0, 0, -1) },   // Corner at (x+1, y+1, z)
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            BlockFace.Bottom => corner switch
-            {
-                0 => new[] { (-1, 0, -1), (-1, 0, 0), (0, 0, -1) },
-                1 => new[] { (-1, 0, 0), (-1, 0, 1), (0, 0, 1) },
-                2 => new[] { (0, 0, 1), (1, 0, 1), (1, 0, 0) },
-                3 => new[] { (1, 0, 0), (1, 0, -1), (0, 0, -1) },
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            BlockFace.Front => corner switch
-            {
-                0 => new[] { (-1, -1, 0), (-1, 0, 0), (0, -1, 0) },  // Corner at (x, y, z+1)
-                1 => new[] { (-1, 0, 0), (-1, 1, 0), (0, 1, 0) },    // Corner at (x, y+1, z+1)
-                2 => new[] { (0, 1, 0), (1, 1, 0), (1, 0, 0) },      // Corner at (x+1, y+1, z+1)
-                3 => new[] { (1, 0, 0), (1, -1, 0), (0, -1, 0) },    // Corner at (x+1, y, z+1)
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            BlockFace.Back => corner switch
-            {
-                0 => new[] { (1, -1, 0), (1, 0, 0), (0, -1, 0) },
-                1 => new[] { (1, 0, 0), (1, 1, 0), (0, 1, 0) },
-                2 => new[] { (0, 1, 0), (-1, 1, 0), (-1, 0, 0) },
-                3 => new[] { (-1, 0, 0), (-1, -1, 0), (0, -1, 0) },
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            BlockFace.Left => corner switch
-            {
-                0 => new[] { (0, -1, -1), (0, -1, 0), (0, 0, -1) },
-                1 => new[] { (0, -1, 0), (0, -1, 1), (0, 0, 1) },
-                2 => new[] { (0, 0, 1), (0, 1, 1), (0, 1, 0) },
-                3 => new[] { (0, 1, 0), (0, 1, -1), (0, 0, -1) },
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            BlockFace.Right => corner switch
-            {
-                0 => new[] { (0, -1, 1), (0, -1, 0), (0, 0, 1) },
-                1 => new[] { (0, -1, 0), (0, -1, -1), (0, 0, -1) },
-                2 => new[] { (0, 0, -1), (0, 1, -1), (0, 1, 0) },
-                3 => new[] { (0, 1, 0), (0, 1, 1), (0, 0, 1) },
-                _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-            },
-            _ => new[] { (0, 0, 0), (0, 0, 0), (0, 0, 0) }
-        };
-    }
+
 
     private bool HasOpenSky(ChunkEntity chunk, int x, int y, int z)
     {
@@ -196,7 +188,8 @@ public sealed class ChunkLightingService
 
         for (int ty = y + 1; ty < ChunkEntity.Height; ty++)
         {
-            var blockId = chunk.GetBlock(x, ty, z);
+            // Safe to use GetBlockFast as ty is bounded by ChunkEntity.Height
+            var blockId = chunk.GetBlockFast(x, ty, z);
 
             if (blockId == 0)
             {
