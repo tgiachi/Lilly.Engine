@@ -34,7 +34,6 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private readonly IMainThreadDispatcher _mainThreadDispatcher;
     private readonly ILogger _logger = Log.ForContext<ChunkGameObject>();
 
-    private ChunkMeshData? _cachedMeshData;
     private bool _meshDirty = true;
     private bool _isMeshBuilding;
     private float _animationTime;

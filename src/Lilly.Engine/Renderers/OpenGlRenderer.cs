@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Rendering.Core.Contexts;
 using Lilly.Engine.Rendering.Core.Data.Config;
@@ -29,8 +28,6 @@ public class OpenGlRenderer : IGraphicRenderer
     /// Gets or sets the target frames per second for rendering.
     /// </summary>
     public double TargetFramesPerSecond { get; set; } = 60.0;
-
-    private double _targetDelta => 1.0 / TargetFramesPerSecond;
 
     /// <summary>
     /// Gets the type of renderer.
@@ -81,6 +78,9 @@ public class OpenGlRenderer : IGraphicRenderer
 
         windowOptions.Size = options.GraphicOptions.WindowSize;
         windowOptions.VSync = options.GraphicOptions.VSync;
+        var targetFps = options.GraphicOptions.VSync ? 0.0 : TargetFramesPerSecond;
+        windowOptions.FramesPerSecond = targetFps;
+        windowOptions.UpdatesPerSecond = targetFps;
 
         _logger.Information(
             "Initializing with OpenGL Version {Major}.{Minor}",
@@ -91,6 +91,7 @@ public class OpenGlRenderer : IGraphicRenderer
         _logger.Information("OS: {OS}", PlatformUtils.GetCurrentPlatform());
 
         Context.Window = Window.Create(windowOptions);
+        ApplyFrameCap(windowOptions.VSync);
 
         Context.Window.Load += WindowOnLoad;
         Context.Window.FramebufferResize += WindowOnFramebufferResize;
@@ -155,30 +156,10 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <param name="obj">The elapsed time since the last render.</param>
     private void WindowOnRender(double obj)
     {
-        var start = Stopwatch.GetTimestamp();
-
-        Context.GameTime = Context.GameTime.Update(obj);
+        // GameTime gets advanced in WindowOnUpdate; here we just render with the latest value.
         _dpiManager.Initialize();
         Render?.Invoke(Context.GameTime);
         PostRender?.Invoke(Context.GameTime);
-
-        var targetTicks = (long)(Stopwatch.Frequency * _targetDelta);
-        var remainingTicks = targetTicks - (Stopwatch.GetTimestamp() - start);
-
-        if (remainingTicks > 0)
-        {
-            var sleepMs = (int)(remainingTicks * 1000 / Stopwatch.Frequency) - 1;
-
-            if (sleepMs > 0)
-            {
-                Thread.Sleep(sleepMs);
-            }
-
-            while (Stopwatch.GetTimestamp() - start < targetTicks)
-            {
-                Thread.SpinWait(10);
-            }
-        }
     }
 
     /// <summary>
@@ -189,5 +170,19 @@ public class OpenGlRenderer : IGraphicRenderer
     {
         Context.GameTime = Context.GameTime.Update(obj);
         Update?.Invoke(Context.GameTime);
+    }
+
+    private void ApplyFrameCap(bool vsyncEnabled)
+    {
+        if (Context.Window == null)
+        {
+            return;
+        }
+
+        // With VSync enabled, buffer swaps block naturally; otherwise rely on the window's frame cap.
+        var targetFps = vsyncEnabled ? 0.0 : TargetFramesPerSecond;
+
+        Context.Window.FramesPerSecond = targetFps;
+        Context.Window.UpdatesPerSecond = targetFps;
     }
 }

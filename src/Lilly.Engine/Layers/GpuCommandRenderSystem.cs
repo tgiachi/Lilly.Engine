@@ -118,6 +118,9 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                 if (payload.Data is bool isVSync)
                 {
                     _renderContext.Window.VSync = isVSync;
+                    var targetFps = isVSync ? 0.0 : _renderContext.Renderer.TargetFramesPerSecond;
+                    _renderContext.Window.FramesPerSecond = targetFps;
+                    _renderContext.Window.UpdatesPerSecond = targetFps;
                 }
 
                 break;
@@ -125,6 +128,11 @@ public class GpuCommandRenderSystem : BaseRenderLayerSystem<IGameObject>
                 if (payload.Data is int refreshRate)
                 {
                     _renderContext.Renderer.TargetFramesPerSecond = refreshRate;
+                    if (!_renderContext.Window.VSync)
+                    {
+                        _renderContext.Window.FramesPerSecond = refreshRate;
+                        _renderContext.Window.UpdatesPerSecond = refreshRate;
+                    }
                 }
 
                 break;
