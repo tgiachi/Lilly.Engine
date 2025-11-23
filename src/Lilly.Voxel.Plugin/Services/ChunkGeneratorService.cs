@@ -40,13 +40,13 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     private readonly IJobSystemService _jobSystemService;
 
-    private readonly int _initialChunkRadius = 5;
+    private readonly int _initialChunkRadius = 3;
     private Vector3 _initialPosition = Vector3.Zero;
 
     // Configuration
     private readonly int _maxConcurrentGenerations;
     private int _maxCachedChunks = 64;
-    private bool _useJobSystem = false;
+    private bool _useJobSystem = true;
 
     // Metrics counters
     private long _totalChunksGenerated;
@@ -68,8 +68,8 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         _jobSystemService = jobSystemService;
         ArgumentNullException.ThrowIfNull(timerService);
 
-        // Initialize concurrency limit (use CPU count * 2 as a reasonable default)
-        _maxConcurrentGenerations = Math.Max(Environment.ProcessorCount * 2, 4);
+        // Initialize concurrency limit (use CPU count as a reasonable default)
+        _maxConcurrentGenerations = Environment.ProcessorCount;
         _generationSemaphore = new SemaphoreSlim(_maxConcurrentGenerations, _maxConcurrentGenerations);
         _logger.Information(
             "Chunk generator initialized with max {MaxConcurrent} concurrent chunk generations",
@@ -208,7 +208,9 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     private async Task<ChunkEntity> GenerateChunkWrap(Vector3 chunkPosition)
     {
-        if (_useJobSystem)
+        var shouldUseJobSystem = _useJobSystem && !IsRunningInJobWorker();
+
+        if (shouldUseJobSystem)
         {
             var handle = _jobSystemService.ExecuteTaskAsync(
                 "ChunkGeneration",
@@ -219,6 +221,13 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         }
 
         return await GenerateChunkAsync(chunkPosition);
+    }
+
+    private static bool IsRunningInJobWorker()
+    {
+        var threadName = Thread.CurrentThread.Name;
+
+        return threadName != null && threadName.StartsWith("LillyEngine-JobWorker", StringComparison.Ordinal);
     }
 
     /// <summary>

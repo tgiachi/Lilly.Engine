@@ -110,7 +110,7 @@ public class CaveGenerationStep : IGeneratorStep
         noise.SetNoiseType(NoiseType.OpenSimplex2);
         noise.SetFrequency(_frequency);
         noise.SetFractalType(FractalType.FBm); // Fractal adds detail/roughness to tunnels
-        noise.SetFractalOctaves(2); 
+        noise.SetFractalOctaves(1); 
 
         return noise;
     }

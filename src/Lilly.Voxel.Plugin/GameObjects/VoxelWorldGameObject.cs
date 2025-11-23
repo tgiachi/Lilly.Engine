@@ -107,25 +107,25 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         set => _snowEffect.IsVisible = value;
     }
 
-    public int ChunkLoadDistance { get; set; } = 5;
+    public int ChunkLoadDistance { get; set; } = 3;
 
     public int ChunkVerticalLoadDistance { get; set; } = 2;
 
     public int ChunkVerticalBelowLoadDistance { get; set; } = 1;
 
-    public int ChunkGenerationDistance { get; set; } = 6;
+    public int ChunkGenerationDistance { get; set; } = 4;
 
-    public int ChunkVerticalGenerationDistance { get; set; } = 3;
+    public int ChunkVerticalGenerationDistance { get; set; } = 2;
 
     public int ChunkVerticalBelowGenerationDistance { get; set; } = 1;
 
-    public int MaxPendingChunkRequests { get; set; } = 64;
+    public int MaxPendingChunkRequests { get; set; } = 48;
 
-    public int MaxPrefetchedChunks { get; set; } = 32;
+    public int MaxPrefetchedChunks { get; set; } = 24;
 
-    public int MaxChunksToProcessPerFrame { get; set; } = 2;
+    public int MaxChunksToProcessPerFrame { get; set; } = 1;
 
-    public int MaxChunkRequestsPerFrame { get; set; } = 12;
+    public int MaxChunkRequestsPerFrame { get; set; } = 6;
 
     public int MaxNeighborInvalidationsPerFrame { get; set; } = 1;
 

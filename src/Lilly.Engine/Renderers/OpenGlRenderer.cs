@@ -27,7 +27,7 @@ public class OpenGlRenderer : IGraphicRenderer
     /// <summary>
     /// Gets or sets the target frames per second for rendering.
     /// </summary>
-    public double TargetFramesPerSecond { get; set; } = 60.0;
+    public double TargetFramesPerSecond { get; set; } = 70.0;
 
     /// <summary>
     /// Gets the type of renderer.
@@ -68,7 +68,7 @@ public class OpenGlRenderer : IGraphicRenderer
 
         var windowOptions = WindowOptions.Default;
         windowOptions.Title = options.WindowTitle;
-        windowOptions.Samples = 4;
+        //windowOptions.Samples = 4;
         windowOptions.API = new(
             ContextAPI.OpenGL,
             ContextProfile.Core,

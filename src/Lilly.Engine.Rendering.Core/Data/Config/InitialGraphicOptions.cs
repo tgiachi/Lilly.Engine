@@ -10,7 +10,7 @@ public class InitialGraphicOptions
     /// <summary>
     /// Gets or sets whether vertical synchronization is enabled.
     /// </summary>
-    public bool VSync { get; set; } = true;
+    public bool VSync { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the initial window size in pixels.
