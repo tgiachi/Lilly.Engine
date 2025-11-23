@@ -39,6 +39,10 @@ public enum RenderCommandType : byte
     ///  Draw a mesh or 3D model.
     /// </summary>
     DrawArray,
+    /// <summary>
+    ///  Draw an indexed mesh or 3D model.
+    /// </summary>
+    DrawElements,
 
     /// <summary>
     ///  Use a specific shader program.

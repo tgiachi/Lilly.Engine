@@ -68,8 +68,8 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         _jobSystemService = jobSystemService;
         ArgumentNullException.ThrowIfNull(timerService);
 
-        // Initialize concurrency limit (use CPU count as a reasonable default)
-        _maxConcurrentGenerations = Environment.ProcessorCount;
+        // Initialize concurrency limit (cap at half logical cores to avoid pegging CPU)
+        _maxConcurrentGenerations = Math.Max(1, Environment.ProcessorCount / 2);
         _generationSemaphore = new SemaphoreSlim(_maxConcurrentGenerations, _maxConcurrentGenerations);
         _logger.Information(
             "Chunk generator initialized with max {MaxConcurrent} concurrent chunk generations",

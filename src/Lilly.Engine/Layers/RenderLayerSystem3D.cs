@@ -31,6 +31,7 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         => new HashSet<RenderCommandType>()
         {
             RenderCommandType.DrawArray,
+            RenderCommandType.DrawElements,
             RenderCommandType.SetDepthState,
             RenderCommandType.SetCullMode,
             RenderCommandType.SetUniforms
@@ -108,6 +109,13 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
         _renderContext.GraphicsDevice.DrawArrays(payload.PrimitiveType, 0, payload.VertexCount);
     }
 
+    private void ProcessDrawElementsCommand(DrawElementsPayload payload)
+    {
+        _renderContext.GraphicsDevice.ShaderProgram = payload.ShaderProgram;
+        _renderContext.GraphicsDevice.VertexArray = payload.VertexArray;
+        _renderContext.GraphicsDevice.DrawElements(payload.PrimitiveType, (int)payload.StartIndex, payload.IndexCount);
+    }
+
     public override void ProcessRenderCommands(ref List<RenderCommand> renderCommands)
     {
         foreach (var cmd in renderCommands)
@@ -117,6 +125,12 @@ public class RenderLayerSystem3D : BaseRenderLayerSystem<IGameObject3D>
                 case RenderCommandType.DrawArray:
                     var drawArrayPayload = cmd.GetPayload<DrawArrayPayload>();
                     ProcessDrawArrayCommand(drawArrayPayload);
+
+                    break;
+
+                case RenderCommandType.DrawElements:
+                    var drawElementsPayload = cmd.GetPayload<DrawElementsPayload>();
+                    ProcessDrawElementsCommand(drawElementsPayload);
 
                     break;
 

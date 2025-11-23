@@ -1,4 +1,7 @@
+using System;
+using System.Buffers;
 using System.Numerics;
+using System.Threading;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
@@ -18,6 +21,7 @@ using Lilly.Voxel.Plugin.Types;
 using Serilog;
 using Silk.NET.Maths;
 using TrippyGL;
+using ElementType = TrippyGL.ElementType;
 
 namespace Lilly.Voxel.Plugin.GameObjects;
 
@@ -27,6 +31,8 @@ namespace Lilly.Voxel.Plugin.GameObjects;
 /// </summary>
 public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 {
+    private static readonly SemaphoreSlim MeshBuildSemaphore = new(Math.Max(1, System.Environment.ProcessorCount / 2));
+
     private readonly ChunkMeshBuilder _meshBuilder;
     private readonly IAssetManager _assetManager;
     private readonly IBlockRegistry _blockRegistry;
@@ -51,9 +57,25 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
     private VertexBuffer<VertexColor>? _boundaryVertexBuffer;
 
     private uint _solidVertexCount;
+    private uint _solidIndexCount;
+    private uint _solidVertexCapacity;
+    private uint _solidIndexCapacity;
+    private ElementType _solidIndexElementType = ElementType.UnsignedShort;
     private uint _billboardVertexCount;
+    private uint _billboardIndexCount;
+    private uint _billboardVertexCapacity;
+    private uint _billboardIndexCapacity;
+    private ElementType _billboardIndexElementType = ElementType.UnsignedShort;
     private uint _fluidVertexCount;
+    private uint _fluidIndexCount;
+    private uint _fluidVertexCapacity;
+    private uint _fluidIndexCapacity;
+    private ElementType _fluidIndexElementType = ElementType.UnsignedShort;
     private uint _itemVertexCount;
+    private uint _itemIndexCount;
+    private uint _itemVertexCapacity;
+    private uint _itemIndexCapacity;
+    private ElementType _itemIndexElementType = ElementType.UnsignedShort;
     private uint _boundaryVertexCount;
 
     // Shader programs
@@ -291,6 +313,10 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             {
                 try
                 {
+                    await MeshBuildSemaphore.WaitAsync().ConfigureAwait(false);
+
+                    try
+                    {
                     _logger.Verbose("Starting background mesh build for chunk at {Position}", Transform.Position);
 
                     // Extract atlas names used by different render types
@@ -313,6 +339,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
                             }
                         }
                     );
+                    }
+                    finally
+                    {
+                        MeshBuildSemaphore.Release();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -418,34 +449,65 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             return;
         }
 
-        var expandedSolidVertices = ExpandIndexedGeometry(meshData.Vertices, meshData.Indices);
-        var expandedBillboardVertices = ExpandIndexedGeometry(meshData.BillboardVertices, meshData.BillboardIndices);
-        var expandedFluidVertices = ExpandIndexedGeometry(meshData.FluidVertices, meshData.FluidIndices);
-        var expandedItemVertices = ExpandIndexedGeometry(meshData.ItemVertices, meshData.ItemIndices);
-
         _logger.Debug(
             "Uploading mesh data - Solid: {SolidVerts}/{SolidIndices}, Billboard: {BbVerts}/{BbIndices}, Fluid: {FluidVerts}/{FluidIndices}, Item: {ItemVerts}/{ItemIndices}",
-            expandedSolidVertices.Length,
+            meshData.Vertices.Length,
             meshData.Indices.Length,
-            expandedBillboardVertices.Length,
+            meshData.BillboardVertices.Length,
             meshData.BillboardIndices.Length,
-            expandedFluidVertices.Length,
+            meshData.FluidVertices.Length,
             meshData.FluidIndices.Length,
-            expandedItemVertices.Length,
+            meshData.ItemVertices.Length,
             meshData.ItemIndices.Length
         );
 
         // Upload solid geometry
-        UpdateBuffer(ref _solidVertexBuffer, ref _solidVertexCount, expandedSolidVertices);
+        UpdateIndexedBuffer(
+            ref _solidVertexBuffer,
+            ref _solidVertexCount,
+            ref _solidIndexCount,
+            ref _solidVertexCapacity,
+            ref _solidIndexCapacity,
+            ref _solidIndexElementType,
+            meshData.Vertices,
+            meshData.Indices
+        );
 
         // Upload billboard geometry
-        UpdateBuffer(ref _billboardVertexBuffer, ref _billboardVertexCount, expandedBillboardVertices);
+        UpdateIndexedBuffer(
+            ref _billboardVertexBuffer,
+            ref _billboardVertexCount,
+            ref _billboardIndexCount,
+            ref _billboardVertexCapacity,
+            ref _billboardIndexCapacity,
+            ref _billboardIndexElementType,
+            meshData.BillboardVertices,
+            meshData.BillboardIndices
+        );
 
         // Upload fluid geometry
-        UpdateBuffer(ref _fluidVertexBuffer, ref _fluidVertexCount, expandedFluidVertices);
+        UpdateIndexedBuffer(
+            ref _fluidVertexBuffer,
+            ref _fluidVertexCount,
+            ref _fluidIndexCount,
+            ref _fluidVertexCapacity,
+            ref _fluidIndexCapacity,
+            ref _fluidIndexElementType,
+            meshData.FluidVertices,
+            meshData.FluidIndices
+        );
 
         // Upload item geometry
-        UpdateBuffer(ref _itemVertexBuffer, ref _itemVertexCount, expandedItemVertices);
+        UpdateIndexedBuffer(
+            ref _itemVertexBuffer,
+            ref _itemVertexCount,
+            ref _itemIndexCount,
+            ref _itemVertexCapacity,
+            ref _itemIndexCapacity,
+            ref _itemIndexElementType,
+            meshData.ItemVertices,
+            meshData.ItemIndices
+        );
 
         _logger.Information(
             "Mesh uploaded to GPU - Solid: {SolidVertices} vertices, Billboard: {BillboardVertices} vertices, Fluid: {FluidVertices} vertices, Item: {ItemVertices} vertices",
@@ -456,56 +518,138 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         );
     }
 
-    private void UpdateBuffer<T>(
+    private void UpdateIndexedBuffer<T>(
         ref VertexBuffer<T>? buffer,
         ref uint vertexCount,
-        T[] newVertices
+        ref uint indexCount,
+        ref uint vertexCapacity,
+        ref uint indexCapacity,
+        ref ElementType currentElementType,
+        T[] vertices,
+        int[] indices
+    ) where T : unmanaged, IVertex
+    {
+        if (vertices.Length == 0 || indices.Length == 0)
+        {
+            DisposeBuffer(ref buffer, ref vertexCount, ref indexCount, ref vertexCapacity, ref indexCapacity);
+            return;
+        }
+
+        vertexCount = (uint)vertices.Length;
+        indexCount = (uint)indices.Length;
+
+        var maxIndex = 0;
+        for (int i = 0; i < indices.Length; i++)
+        {
+            if (indices[i] > maxIndex)
+            {
+                maxIndex = indices[i];
+            }
+        }
+
+        var elementType = maxIndex <= ushort.MaxValue ? ElementType.UnsignedShort : ElementType.UnsignedInt;
+        var needsRecreate =
+            buffer == null ||
+            vertexCount > vertexCapacity ||
+            indexCount > indexCapacity ||
+            !HasIndexSubset(buffer) ||
+            currentElementType != elementType;
+
+        if (needsRecreate)
+        {
+            buffer?.Dispose();
+            buffer = new VertexBuffer<T>(
+                GraphicsDevice,
+                vertexCount,
+                indexCount,
+                elementType,
+                BufferUsage.StaticCopy,
+                vertices,
+                0
+            );
+            vertexCapacity = vertexCount;
+            indexCapacity = indexCount;
+            currentElementType = elementType;
+        }
+        var vb = buffer ?? throw new InvalidOperationException("Vertex buffer creation failed");
+
+        SetVertexData(vb, vertices);
+
+        SetIndexData<T>(vb, elementType, indices);
+    }
+
+    private static void DisposeBuffer<T>(
+        ref VertexBuffer<T>? buffer,
+        ref uint vertexCount,
+        ref uint indexCount,
+        ref uint vertexCapacity,
+        ref uint indexCapacity
     ) where T : unmanaged, IVertex
     {
         buffer?.Dispose();
         buffer = null;
         vertexCount = 0;
+        indexCount = 0;
+        vertexCapacity = 0;
+        indexCapacity = 0;
+    }
 
-        if (newVertices.Length > 0)
+    private static bool HasIndexSubset<T>(VertexBuffer<T>? buffer) where T : unmanaged, IVertex
+        => buffer?.IndexSubset != null;
+
+    private static void SetVertexData<T>(VertexBuffer<T> buffer, T[] vertices) where T : unmanaged, IVertex
+        => buffer.DataSubset.SetData(vertices.AsSpan(), 0);
+
+    private static void SetIndexData<T>(VertexBuffer<T> buffer, ElementType elementType, int[] indices) where T : unmanaged, IVertex
+    {
+        var indexSubset = buffer.IndexSubset;
+        if (indexSubset == null)
         {
-            buffer = new VertexBuffer<T>(GraphicsDevice, newVertices, BufferUsage.StaticCopy);
-            vertexCount = (uint)newVertices.Length;
+            return;
+        }
+
+        if (elementType == ElementType.UnsignedShort)
+        {
+            var rented = ArrayPool<ushort>.Shared.Rent(indices.Length);
+            try
+            {
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    rented[i] = (ushort)indices[i];
+                }
+
+                indexSubset.SetData(rented.AsSpan(0, indices.Length), 0);
+            }
+            finally
+            {
+                ArrayPool<ushort>.Shared.Return(rented);
+            }
+        }
+        else
+        {
+            var rented = ArrayPool<uint>.Shared.Rent(indices.Length);
+            try
+            {
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    rented[i] = (uint)indices[i];
+                }
+
+                indexSubset.SetData(rented.AsSpan(0, indices.Length), 0);
+            }
+            finally
+            {
+                ArrayPool<uint>.Shared.Return(rented);
+            }
         }
     }
 
     public bool IsEmpty()
     {
-        return _solidVertexCount == 0 &&
-               _billboardVertexCount == 0 &&
-               _fluidVertexCount == 0 &&
-               _itemVertexCount == 0;
-    }
-
-    private static T[] ExpandIndexedGeometry<T>(T[] vertices, int[] indices) where T : struct
-    {
-        if (vertices.Length == 0 || indices.Length == 0)
-        {
-            return Array.Empty<T>();
-        }
-
-        var expanded = new T[indices.Length];
-
-        for (int i = 0; i < indices.Length; i++)
-        {
-            int index = indices[i];
-
-            if ((uint)index >= (uint)vertices.Length)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(indices),
-                    $"Index {index} is out of range for vertex array length {vertices.Length}"
-                );
-            }
-
-            expanded[i] = vertices[index];
-        }
-
-        return expanded;
+        return _solidIndexCount == 0 &&
+               _billboardIndexCount == 0 &&
+               _fluidIndexCount == 0 &&
+               _itemIndexCount == 0;
     }
 
     /// <inheritdoc />
@@ -521,7 +665,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         var assetManager = _assetManager;
 
         // Solid geometry
-        if (_solidVertexBuffer != null && _blockShader != null)
+        if (_solidVertexBuffer != null && _blockShader != null && _solidIndexCount > 0)
         {
             var shader = _blockShader;
             var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
@@ -538,18 +682,18 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             );
 
             yield return new RenderCommand(
-                RenderCommandType.DrawArray,
-                new DrawArrayPayload(
+                RenderCommandType.DrawElements,
+                new DrawElementsPayload(
                     shader,
                     _solidVertexBuffer,
-                    _solidVertexCount,
+                    _solidIndexCount,
                     PrimitiveType.Triangles
                 )
             );
         }
 
         // Billboard geometry
-        if (_billboardVertexBuffer != null && _billboardShader != null)
+        if (_billboardVertexBuffer != null && _billboardShader != null && _billboardIndexCount > 0)
         {
             var shader = _billboardShader;
             var atlasName = _billboardAtlasName;
@@ -565,11 +709,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
 
             yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.None());
             yield return new RenderCommand(
-                RenderCommandType.DrawArray,
-                new DrawArrayPayload(
+                RenderCommandType.DrawElements,
+                new DrawElementsPayload(
                     shader,
                     _billboardVertexBuffer,
-                    _billboardVertexCount,
+                    _billboardIndexCount,
                     PrimitiveType.Triangles
                 )
             );
@@ -577,7 +721,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         }
 
         // Fluid geometry
-        if (_fluidVertexBuffer != null && _fluidShader != null)
+        if (_fluidVertexBuffer != null && _fluidShader != null && _fluidIndexCount > 0)
         {
             var shader = _fluidShader;
             var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
@@ -602,11 +746,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             );
 
             yield return new RenderCommand(
-                RenderCommandType.DrawArray,
-                new DrawArrayPayload(
+                RenderCommandType.DrawElements,
+                new DrawElementsPayload(
                     shader,
                     _fluidVertexBuffer,
-                    _fluidVertexCount,
+                    _fluidIndexCount,
                     PrimitiveType.Triangles
                 )
             );
@@ -615,7 +759,7 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         }
 
         // Item geometry
-        if (_itemVertexBuffer != null && _itemBillboardShader != null)
+        if (_itemVertexBuffer != null && _itemBillboardShader != null && _itemIndexCount > 0)
         {
             var shader = _itemBillboardShader;
             var lightDirection = Vector3D.Normalize(LightDirection).ToSystem();
@@ -632,11 +776,11 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
             );
 
             yield return new RenderCommand(
-                RenderCommandType.DrawArray,
-                new DrawArrayPayload(
+                RenderCommandType.DrawElements,
+                new DrawElementsPayload(
                     shader,
                     _itemVertexBuffer,
-                    _itemVertexCount,
+                    _itemIndexCount,
                     PrimitiveType.Triangles
                 )
             );
@@ -685,9 +829,21 @@ public sealed class ChunkGameObject : BaseGameObject3D, IDisposable
         _itemVertexBuffer = null;
 
         _solidVertexCount = 0;
+        _solidIndexCount = 0;
+        _solidVertexCapacity = 0;
+        _solidIndexCapacity = 0;
         _billboardVertexCount = 0;
+        _billboardIndexCount = 0;
+        _billboardVertexCapacity = 0;
+        _billboardIndexCapacity = 0;
         _fluidVertexCount = 0;
+        _fluidIndexCount = 0;
+        _fluidVertexCapacity = 0;
+        _fluidIndexCapacity = 0;
         _itemVertexCount = 0;
+        _itemIndexCount = 0;
+        _itemVertexCapacity = 0;
+        _itemIndexCapacity = 0;
     }
 
     private static void ApplyCommonUniforms(ShaderProgram shader, Vector3 modelTranslation, CommonUniformData data)
