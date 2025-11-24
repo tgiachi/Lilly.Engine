@@ -41,7 +41,6 @@
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj"/>
     </ItemGroup>
 
 

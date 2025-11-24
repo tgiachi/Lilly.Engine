@@ -5,17 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Core", "src\Lilly.Engine.Core\Lilly.Engine.Core.csproj", "{F5BE23E0-D9A4-4550-B107-933659EACF65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine", "src\Lilly.Engine\Lilly.Engine.csproj", "{320AC7F6-9C1E-4FC1-AE7E-253C55E7B16E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Rendering.Core", "src\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj", "{25F25E9A-14A2-4ED0-9E83-FF8DB9D3C071}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Game", "src\Lilly.Engine.Game\Lilly.Engine.Game.csproj", "{DA33D3D7-5B2F-47E5-8AEE-55450A521870}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Lua.Scripting", "src\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj", "{DC984A46-5CBC-4D35-A2B8-F0B897049549}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.GameObjects", "src\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj", "{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Voxel.Plugin", "src\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj", "{3E448032-1E9A-4459-BC52-99F688D1DB40}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,14 +22,6 @@ Global
 		{F5BE23E0-D9A4-4550-B107-933659EACF65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5BE23E0-D9A4-4550-B107-933659EACF65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5BE23E0-D9A4-4550-B107-933659EACF65}.Release|Any CPU.Build.0 = Release|Any CPU
-		{320AC7F6-9C1E-4FC1-AE7E-253C55E7B16E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{320AC7F6-9C1E-4FC1-AE7E-253C55E7B16E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{320AC7F6-9C1E-4FC1-AE7E-253C55E7B16E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{320AC7F6-9C1E-4FC1-AE7E-253C55E7B16E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{25F25E9A-14A2-4ED0-9E83-FF8DB9D3C071}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{25F25E9A-14A2-4ED0-9E83-FF8DB9D3C071}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{25F25E9A-14A2-4ED0-9E83-FF8DB9D3C071}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{25F25E9A-14A2-4ED0-9E83-FF8DB9D3C071}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DA33D3D7-5B2F-47E5-8AEE-55450A521870}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DA33D3D7-5B2F-47E5-8AEE-55450A521870}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA33D3D7-5B2F-47E5-8AEE-55450A521870}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,13 +30,5 @@ Global
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F3FF744A-64B2-4A5E-9D7D-1B90C47334E2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3E448032-1E9A-4459-BC52-99F688D1DB40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3E448032-1E9A-4459-BC52-99F688D1DB40}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3E448032-1E9A-4459-BC52-99F688D1DB40}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3E448032-1E9A-4459-BC52-99F688D1DB40}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

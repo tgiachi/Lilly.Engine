@@ -1,18 +1,11 @@
 using ConsoleAppFramework;
 using DryIoc;
-using Lilly.Engine.Bootstrap;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
-using Lilly.Engine.Core.Utils;
-using Lilly.Engine.Extensions;
-using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
-using Lilly.Engine.Renderers;
-using Lilly.Engine.Rendering.Core.Data.Config;
-using Lilly.Voxel.Plugin;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -43,35 +36,11 @@ await ConsoleApp.RunAsync(
 
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
 
-        container.RegisterPlugin(typeof(DefaultGameObjectPlugin).Assembly);
 
-        var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
 
-        var initialEngineOptions = new InitialEngineOptions
-        {
-            GraphicOptions =
-            {
-                WindowSize = new(width, height)
-            }
-        };
 
-        if (PlatformUtils.IsRunningOnLinux())
-        {
-            initialEngineOptions.TargetRenderVersion = new(4, 5, 0, 0);
-        }
 
-        bootstrap.OnConfiguring += container1 =>
-                                   {
-                                       container1.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
-                                   };
 
-        ///https: //github.com/aemeny/Custom-OpenGL-GameEngine
-
-        await bootstrap.InitializeAsync(initialEngineOptions);
-
-        await bootstrap.RunAsync();
-
-        await bootstrap.ShutdownAsync();
     }
 );
 
