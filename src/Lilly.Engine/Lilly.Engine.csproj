@@ -4,20 +4,47 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Data\" />
+        <Folder Include="Data\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj" />
-      <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj" />
+        <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.0" />
-      <PackageReference Include="System.Reactive" Version="6.1.0" />
+        <PackageReference Include="FontStashSharp.Base" Version="1.2.2"/>
+        <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.2"/>
+        <PackageReference Include="ImGui.NET" Version="1.91.6.1"/>
+        <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.0"/>
+        <PackageReference Include="Serilog" Version="4.3.0"/>
+        <PackageReference Include="Silk.NET.GLFW" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.Input" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.Input.Extensions" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.Maths" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.OpenAL" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.22.0"/>
+
+        <PackageReference Include="NVorbis" Version="0.10.5"/>
+        <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
+        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.22.0"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12"/>
+        <PackageReference Include="System.Reactive" Version="6.1.0"/>
+        <PackageReference Include="TrippyGL" Version="1.2.2"/>
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
+        <PackageReference Include="TrippyGL.ImageSharp" Version="1.2.2"/>
+
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Assets\**\*"/>
+        <EmbeddedResource Include="Assets\**\*"/>
+
     </ItemGroup>
 
 </Project>
