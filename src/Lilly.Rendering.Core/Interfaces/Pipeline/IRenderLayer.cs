@@ -4,7 +4,7 @@ using Lilly.Rendering.Core.Types;
 
 namespace Lilly.Rendering.Core.Interfaces.Pipeline;
 
-public interface IRenderPipelineLayer
+public interface IRenderLayer
 {
     string Name { get; }
 

@@ -22,4 +22,8 @@
       <PackageReference Include="TrippyGL" Version="1.2.2" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj" />
+    </ItemGroup>
+
 </Project>
