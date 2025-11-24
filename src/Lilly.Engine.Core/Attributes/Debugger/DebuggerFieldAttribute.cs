@@ -4,8 +4,6 @@ namespace Lilly.Engine.Core.Attributes.Debugger;
 /// Marks a field or property for debugger display.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-
-dd
 /// <summary>
 /// Attribute that marks a field or property for inclusion in debugger display.
 /// </summary>
