@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Game", "src\Li
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.Lua.Scripting", "src\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj", "{DC984A46-5CBC-4D35-A2B8-F0B897049549}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Rendering.Core", "src\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj", "{7C282129-86B8-4154-90C2-69C829A948C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine", "src\Lilly.Engine\Lilly.Engine.csproj", "{AC398F58-9DD8-400E-982D-4B2D2738FED6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC984A46-5CBC-4D35-A2B8-F0B897049549}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C282129-86B8-4154-90C2-69C829A948C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C282129-86B8-4154-90C2-69C829A948C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C282129-86B8-4154-90C2-69C829A948C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C282129-86B8-4154-90C2-69C829A948C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
