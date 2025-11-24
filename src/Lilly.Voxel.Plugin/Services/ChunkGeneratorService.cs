@@ -45,7 +45,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     // Configuration
     private readonly int _maxConcurrentGenerations;
-    private int _maxCachedChunks = 64;
+    private int _maxCachedChunks = 128;
     private bool _useJobSystem = true;
 
     // Metrics counters

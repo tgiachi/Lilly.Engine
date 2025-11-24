@@ -29,6 +29,8 @@ await ConsoleApp.RunAsync(
     {
 
         //--root-directory /Users/squid/lilly --width 3272 --height 1277
+
+
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
 

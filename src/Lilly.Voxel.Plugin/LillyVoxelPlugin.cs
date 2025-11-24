@@ -97,6 +97,13 @@ public class LillyVoxelPlugin : ILillyPlugin
             ["aPosition", "aCorner", "aLength", "aAlpha"],
             typeof(LillyVoxelPlugin).Assembly
         );
+
+        assetManager.LoadShaderFromResource<CloudsVertex>(
+            "clouds_legacy",
+            "Assets/Shaders/Environment/clouds_legacy.shader",
+            ["aPosition", "aNormal"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
     }
 
     public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
@@ -109,6 +116,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
 
         container.RegisterGameObject<SkyGameObject>()
+                 .RegisterGameObject<CloudsGameObject>()
                  .RegisterGameObject<SnowEffectGameObject>()
                  .RegisterGameObject<RainEffectGameObject>()
                  .RegisterGameObject<VoxelWorldGameObject>()

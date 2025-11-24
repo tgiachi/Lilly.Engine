@@ -1,3 +1,4 @@
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Rendering.Core.Base.GameObjects;
 using Lilly.Engine.Rendering.Core.Commands;
@@ -36,6 +37,16 @@ public sealed class CloudsGameObject : BaseGameObject3D
     /// Gets or sets the primary light direction.
     /// </summary>
     public Vector3D<float> LightDirection { get; set; } = new(0f, -1f, 0f);
+
+    /// <summary>
+    /// Gets or sets the base color applied to all clouds.
+    /// </summary>
+    public Vector3D<float> CloudColor { get; set; } = Vector3D<float>.One;
+
+    /// <summary>
+    /// Gets or sets the planar velocity (x/z) used to drift clouds over time.
+    /// </summary>
+    public Vector2D<float> WindVelocity { get; set; } = new(0.35f, 0.12f);
 
     /// <summary>
     /// Gets the number of clouds currently registered.
@@ -142,6 +153,9 @@ public sealed class CloudsGameObject : BaseGameObject3D
         _cloudsShader.Uniforms["uProjection"].SetValueMat4(camera.Projection.ToSystem());
         _cloudsShader.Uniforms["ambient"].SetValueVec3(AmbientLight.ToSystem());
         _cloudsShader.Uniforms["lightDirection"].SetValueVec3(lightDir.ToSystem());
+        _cloudsShader.Uniforms["uTime"].SetValueFloat(_time);
+        _cloudsShader.Uniforms["uWindVelocity"].SetValueVec2(new Vector2(WindVelocity.X, WindVelocity.Y));
+        _cloudsShader.Uniforms["uCloudColor"].SetValueVec3(CloudColor.ToSystem());
 
         base.Draw(camera, gameTime);
     }
@@ -154,15 +168,18 @@ public sealed class CloudsGameObject : BaseGameObject3D
             yield break;
         }
 
+        // Disable face culling so cube-based clouds render all faces.
+        yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.None());
+
         // Render each cloud instance
         foreach (var cloud in _clouds)
         {
             // Create transformation matrix for this cloud instance
-            var scale = System.Numerics.Matrix4x4.CreateScale(
-                new System.Numerics.Vector3(cloud.Size.X, cloud.Size.Y, cloud.Size.Z)
+            var scale = Matrix4x4.CreateScale(
+                new Vector3(cloud.Size.X, cloud.Size.Y, cloud.Size.Z)
             );
-            var translation = System.Numerics.Matrix4x4.CreateTranslation(
-                new System.Numerics.Vector3(
+            var translation = Matrix4x4.CreateTranslation(
+                new(
                     cloud.Position.X + Transform.Position.X,
                     cloud.Position.Y + Transform.Position.Y,
                     cloud.Position.Z + Transform.Position.Z
@@ -183,6 +200,9 @@ public sealed class CloudsGameObject : BaseGameObject3D
                 )
             );
         }
+
+        // Restore default culling.
+        yield return RenderCommandHelpers.SetCullMode(SetCullModePayload.Back());
     }
 
     private void CreateGeometry()

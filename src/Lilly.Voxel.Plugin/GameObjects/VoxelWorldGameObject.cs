@@ -33,6 +33,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
     private readonly IGameObjectFactory _gameObjectFactory;
     private readonly ICamera3dService _camera3dService;
     private readonly BlockOutlineGameObject _blockOutline;
+    private readonly CloudsGameObject _cloudsGameObject;
     private readonly IJobSystemService _jobSystemService;
     private readonly ILogger _logger = Log.ForContext<VoxelWorldGameObject>();
 
@@ -78,17 +79,29 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         _camera3dService = camera3dService ?? throw new ArgumentNullException(nameof(camera3dService));
         _jobSystemService = jobSystemService ?? throw new ArgumentNullException(nameof(jobSystemService));
 
+        _cloudsGameObject = gameObjectFactory.Create<CloudsGameObject>();
         _blockOutline = gameObjectFactory.Create<BlockOutlineGameObject>();
 
         _rainEffect = gameObjectFactory.Create<RainEffectGameObject>();
         _snowEffect = gameObjectFactory.Create<SnowEffectGameObject>();
+
         SkyGameObject = gameObjectFactory.Create<SkyGameObject>();
 
         IsRaining = false;
         IsSnowing = false;
 
+        _cloudsGameObject.GenerateRandomClouds(
+            count: 40,
+            minPosition: new(-80f, 50f, -80f),
+            maxPosition: new(80f, 65f, 80f),
+            minSize: new(8f, 4f, 8f),
+            maxSize: new(20f, 10f, 20f)
+        );
+
         AddChild(SkyGameObject);
+        AddChild(_cloudsGameObject);
         AddChild(_blockOutline);
+
         AddChild(_rainEffect);
         AddChild(_snowEffect);
     }
@@ -258,26 +271,30 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
         }
 
         // Optimize sorting to avoid LINQ allocations per frame
-        candidates.Sort((a, b) =>
-        {
-            // Primary: Candidates within load distance come first
-            if (a.WithinLoad != b.WithinLoad)
+        candidates.Sort(
+            (a, b) =>
             {
-                return b.WithinLoad.CompareTo(a.WithinLoad); // True (1) comes before False (0)
-            }
+                // Primary: Candidates within load distance come first
+                if (a.WithinLoad != b.WithinLoad)
+                {
+                    return b.WithinLoad.CompareTo(a.WithinLoad); // True (1) comes before False (0)
+                }
 
-            // Secondary: Priority (Manhattan distance roughly)
-            int priorityCompare = a.Priority.CompareTo(b.Priority);
-            if (priorityCompare != 0)
-            {
-                return priorityCompare;
-            }
+                // Secondary: Priority (Manhattan distance roughly)
+                int priorityCompare = a.Priority.CompareTo(b.Priority);
 
-            // Tertiary: Vertical distance from center
-            int distYA = Math.Abs(a.Coordinates.Y - center.Y);
-            int distYB = Math.Abs(b.Coordinates.Y - center.Y);
-            return distYA.CompareTo(distYB);
-        });
+                if (priorityCompare != 0)
+                {
+                    return priorityCompare;
+                }
+
+                // Tertiary: Vertical distance from center
+                int distYA = Math.Abs(a.Coordinates.Y - center.Y);
+                int distYB = Math.Abs(b.Coordinates.Y - center.Y);
+
+                return distYA.CompareTo(distYB);
+            }
+        );
 
         var orderedCandidates = candidates;
 
@@ -367,8 +384,10 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
             if (_pendingChunkCoordinates.TryAdd(coordinates, 0))
             {
                 _pendingChunks.Enqueue((coordinates, cachedChunk));
+
                 return true;
             }
+
             return false;
         }
 
@@ -522,6 +541,7 @@ public class VoxelWorldGameObject : BaseGameObject3D, IDisposable
 
         // Check if the chunk is behind the camera
         var toChunk = center - camera.Position;
+
         if (Vector3D.Dot(toChunk, camera.Forward) < -ChunkBoundingSphereRadius)
         {
             return false;
