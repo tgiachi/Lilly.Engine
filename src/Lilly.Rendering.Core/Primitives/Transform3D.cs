@@ -1,0 +1,31 @@
+using Silk.NET.Maths;
+
+namespace Lilly.Rendering.Core.Primitives;
+
+/// <summary>
+/// Represents a 3D transformation with position, rotation, and scale.
+/// </summary>
+public class Transform3D
+{
+    public Vector3D<float> Position { get; set; } = Vector3D<float>.Zero;
+    public Quaternion<float> Rotation { get; set; } = Quaternion<float>.Identity;
+    public Vector3D<float> Scale { get; set; } = Vector3D<float>.One;
+
+    /// <summary>
+    /// Gets the transformation matrix combining translation, rotation, and scaling.
+    /// </summary>
+    /// <returns>The combined transformation matrix.</returns>
+    public Matrix4X4<float> GetTransformationMatrix()
+    {
+        var translation = Matrix4X4.CreateTranslation(Position);
+        var rotation = Matrix4X4.CreateFromQuaternion(Rotation);
+        var scaling = Matrix4X4.CreateScale(Scale);
+
+        return scaling * rotation * translation;
+    }
+
+    public override string ToString()
+    {
+        return $"Position: {Position}, Rotation: {Rotation}, Scale: {Scale}";
+    }
+}

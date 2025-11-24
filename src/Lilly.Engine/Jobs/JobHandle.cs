@@ -7,49 +7,22 @@ namespace Lilly.Engine.Jobs;
 /// </summary>
 internal sealed class JobHandle : IJobHandle
 {
-    private readonly QueuedJob _queuedJob;
-    private readonly TaskCompletionSource<bool> _completionSource;
+    private readonly ScheduledJob _job;
+    private readonly TaskCompletionSource<bool> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public JobHandle(QueuedJob queuedJob)
-    {
-        _queuedJob = queuedJob;
-        _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public JobHandle(ScheduledJob job) => _job = job;
 
-        // Link the underlying job's completion to this handle
-        LinkCompletion();
-    }
+    public Task CompletionTask => _tcs.Task;
+    public Guid Id => _job.Id;
+    public string JobName => _job.Name;
+    public JobPriority Priority => _job.Priority;
+    public bool IsCompleted => _tcs.Task.IsCompleted;
 
-    public Task CompletionTask => _completionSource.Task;
-    public Guid Id => _queuedJob.Id;
-    public string JobName => _queuedJob.Name;
-    public JobPriority Priority => _queuedJob.Priority;
-    public bool IsCompleted => _completionSource.Task.IsCompleted;
+    public bool Cancel() => _job.TryCancel();
 
-    public bool Cancel()
-    {
-        return _queuedJob.TryCancel();
-    }
-
-    internal void SetResult()
-    {
-        _completionSource.TrySetResult(true);
-    }
-
-    internal void SetCanceled(CancellationToken token)
-    {
-        _completionSource.TrySetCanceled(token);
-    }
-
-    internal void SetException(Exception ex)
-    {
-        _completionSource.TrySetException(ex);
-    }
-
-    private void LinkCompletion()
-    {
-        // This will be called from the job system after execution
-        // The job system will call SetResult, SetCanceled, or SetException
-    }
+    internal void SetResult() => _tcs.TrySetResult(true);
+    internal void SetCanceled() => _tcs.TrySetCanceled();
+    internal void SetException(Exception ex) => _tcs.TrySetException(ex);
 }
 
 /// <summary>
@@ -58,39 +31,21 @@ internal sealed class JobHandle : IJobHandle
 /// <typeparam name="TResult">The type of result produced by the job.</typeparam>
 internal sealed class JobHandle<TResult> : IJobHandle<TResult>
 {
-    private readonly QueuedJob _queuedJob;
-    private readonly TaskCompletionSource<TResult> _completionSource;
+    private readonly ScheduledJob _job;
+    private readonly TaskCompletionSource<TResult> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public JobHandle(QueuedJob queuedJob)
-    {
-        _queuedJob = queuedJob;
-        _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    }
+    public JobHandle(ScheduledJob job) => _job = job;
 
-    Task IJobHandle.CompletionTask => _completionSource.Task.ContinueWith(_ => (object?)null)!;
-    public Task<TResult> CompletionTask => _completionSource.Task;
-    public Guid Id => _queuedJob.Id;
-    public string JobName => _queuedJob.Name;
-    public JobPriority Priority => _queuedJob.Priority;
-    public bool IsCompleted => _completionSource.Task.IsCompleted;
+    Task IJobHandle.CompletionTask => _tcs.Task.ContinueWith(object? (_) => null);
+    public Task<TResult> CompletionTask => _tcs.Task;
+    public Guid Id => _job.Id;
+    public string JobName => _job.Name;
+    public JobPriority Priority => _job.Priority;
+    public bool IsCompleted => _tcs.Task.IsCompleted;
 
-    public bool Cancel()
-    {
-        return _queuedJob.TryCancel();
-    }
+    public bool Cancel() => _job.TryCancel();
 
-    internal void SetResult(TResult result)
-    {
-        _completionSource.TrySetResult(result);
-    }
-
-    internal void SetCanceled(CancellationToken token)
-    {
-        _completionSource.TrySetCanceled(token);
-    }
-
-    internal void SetException(Exception ex)
-    {
-        _completionSource.TrySetException(ex);
-    }
+    internal void SetResult(TResult result) => _tcs.TrySetResult(result);
+    internal void SetCanceled() => _tcs.TrySetCanceled();
+    internal void SetException(Exception ex) => _tcs.TrySetException(ex);
 }

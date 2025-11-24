@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Interfaces.Jobs;
@@ -9,71 +8,47 @@ using Serilog;
 namespace Lilly.Engine.Services;
 
 /// <summary>
-/// Provides a worker-thread job system capable of executing synchronous and asynchronous jobs with priority support.
+/// Provides a worker-thread job system capable of executing jobs with priority support.
 /// </summary>
 public class JobSystemService : IJobSystemService, IDisposable
 {
     private readonly ILogger _logger = Log.ForContext<JobSystemService>();
-
-    // Thread-safe priority queue for job scheduling
-    private readonly PriorityQueue<QueuedJob, QueuedJob> _jobQueue = new();
-    private readonly ReaderWriterLockSlim _queueLock = new();
-
     private readonly JobServiceConfig _config;
+
+    // Priority queue for job scheduling (higher priority values come first)
+    private readonly PriorityQueue<ScheduledJob, JobPriority> _jobQueue = new(Comparer<JobPriority>.Create((x, y) => y.CompareTo(x)));
+    private readonly Lock _queueLock = new();
 
     // Signaling
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _queueSignal = new(0);
 
-    // Metrics tracking
+    // Metrics
     private long _totalJobsExecuted;
     private long _cancelledJobsCount;
     private long _failedJobsCount;
     private double _totalExecutionTimeMs;
+    private double _minExecutionTimeMs = double.MaxValue;
+    private double _maxExecutionTimeMs;
     private int _activeWorkerCount;
     private int _totalWorkerCount;
     private readonly Lock _metricsLock = new();
     private readonly Queue<JobExecutionRecord> _recentJobs = new();
     private readonly Lock _recentLock = new();
-    private readonly int _maxRecentJobs = 64;
+    private const int MaxRecentJobs = 64;
     private bool _disposed;
 
-    public JobSystemService(JobServiceConfig config)
-    {
-        _config = config;
-    }
+    public JobSystemService(JobServiceConfig config) => _config = config;
 
-    /// <summary>
-    /// Releases resources used by the job system service.
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        _cts.Cancel();
-        _cts.Dispose();
-        _queueSignal.Dispose();
-        _queueLock.Dispose();
-        GC.SuppressFinalize(this);
-    }
+    #region IJobSystemMetrics
 
     public int PendingJobCount
     {
         get
         {
-            _queueLock.EnterReadLock();
-
-            try
+            lock (_queueLock)
             {
                 return _jobQueue.Count;
-            }
-            finally
-            {
-                _queueLock.ExitReadLock();
             }
         }
     }
@@ -89,9 +64,7 @@ public class JobSystemService : IJobSystemService, IDisposable
         get
         {
             var executed = Interlocked.Read(ref _totalJobsExecuted);
-
-            if (executed == 0)
-                return 0;
+            if (executed == 0) return 0;
 
             lock (_metricsLock)
             {
@@ -100,9 +73,27 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    public double MinExecutionTimeMs { get; private set; } = double.MaxValue;
+    public double MinExecutionTimeMs
+    {
+        get
+        {
+            lock (_metricsLock)
+            {
+                return _minExecutionTimeMs;
+            }
+        }
+    }
 
-    public double MaxExecutionTimeMs { get; private set; }
+    public double MaxExecutionTimeMs
+    {
+        get
+        {
+            lock (_metricsLock)
+            {
+                return _maxExecutionTimeMs;
+            }
+        }
+    }
 
     public IReadOnlyList<JobExecutionRecord> RecentJobs
     {
@@ -115,207 +106,103 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    public IJobHandle ExecuteAsync(
-        IJob job,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
+    #endregion
+
+    #region IJobSystemService
+
+    public IJobHandle Schedule(IJob job, JobPriority priority = JobPriority.Normal, Action? onComplete = null)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
 
-        var queuedJob = new SynchronousAwaitableJob(job, priority, cancellationToken);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
+        var scheduled = new ScheduledJob
+        {
+            Name = job.Name,
+            Priority = priority,
+            OnComplete = onComplete,
+            CancellationToken = default
+        };
+        var handle = new JobHandle(scheduled);
 
+        scheduled.ExecuteAction = async ct =>
+        {
+            await Task.Run(() => job.Execute(), ct);
+            handle.SetResult();
+        };
+
+        EnqueueJob(scheduled);
         return handle;
     }
 
-    public IJobHandle<TResult> ExecuteAsync<TResult>(
-        IJob<TResult> job,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
+    public IJobHandle Schedule(IAsyncJob job, JobPriority priority = JobPriority.Normal, Action? onComplete = null, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
 
-        var queuedJob = new SynchronousResultJob<TResult>(job, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
+        var scheduled = new ScheduledJob
+        {
+            Name = job.Name,
+            Priority = priority,
+            OnComplete = onComplete,
+            CancellationToken = cancellationToken
+        };
+        var handle = new JobHandle(scheduled);
 
+        scheduled.ExecuteAction = async ct =>
+        {
+            await job.ExecuteAsync(ct);
+            handle.SetResult();
+        };
+
+        EnqueueJob(scheduled);
         return handle;
     }
 
-    public IJobHandle ExecuteAsync(
-        IAsyncJob job,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
+    public IJobHandle<TResult> Schedule<TResult>(IJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
 
-        var queuedJob = new AsyncJobWrapper(job, priority, true, cancellationToken);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
+        var scheduled = new ScheduledJob
+        {
+            Name = job.Name,
+            Priority = priority,
+            CancellationToken = default
+        };
+        var handle = new JobHandle<TResult>(scheduled);
 
+        scheduled.ExecuteAction = async ct =>
+        {
+            var result = await Task.Run(job.Execute, ct);
+            handle.SetResult(result);
+            onComplete?.Invoke(result);
+        };
+
+        EnqueueJob(scheduled);
         return handle;
     }
 
-    public IJobHandle<TResult> ExecuteAsync<TResult>(
-        IAsyncJob<TResult> job,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
+    public IJobHandle<TResult> Schedule<TResult>(IAsyncJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
 
-        var queuedJob = new AsyncJobWrapper<TResult>(job, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
+        var scheduled = new ScheduledJob
+        {
+            Name = job.Name,
+            Priority = priority,
+            CancellationToken = cancellationToken
+        };
+        var handle = new JobHandle<TResult>(scheduled);
 
-        return handle;
-    }
+        scheduled.ExecuteAction = async ct =>
+        {
+            var result = await job.ExecuteAsync(ct);
+            handle.SetResult(result);
+            onComplete?.Invoke(result);
+        };
 
-    public IJobHandle<TResult> ExecuteTaskAsync<TResult>(
-        string name,
-        Func<CancellationToken, Task<TResult>> taskFactory,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(taskFactory);
-
-        var queuedJob = new TaskResultJob<TResult>(name, taskFactory, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle<TResult> ExecuteTaskAsync<TResult>(
-        string name,
-        Func<Task<TResult>> taskFactory,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(taskFactory);
-
-        var queuedJob = new TaskResultJob<TResult>(name, taskFactory, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle ExecuteAsync(
-        string name,
-        Action action,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(action);
-
-        var job = new ActionJob(name, action);
-        var queuedJob = new SynchronousAwaitableJob(job, priority, cancellationToken);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle<TResult> ExecuteAsync<TResult>(
-        string name,
-        Func<TResult> action,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(action);
-
-        var job = new FuncJob<TResult>(name, action);
-        var queuedJob = new SynchronousResultJob<TResult>(job, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle ExecuteAsync(
-        string name,
-        Func<Task> asyncAction,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(asyncAction);
-
-        var job = new AsyncActionJob(name, asyncAction);
-        var queuedJob = new AsyncJobWrapper(job, priority, true, cancellationToken);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle<TResult> ExecuteAsync<TResult>(
-        string name,
-        Func<Task<TResult>> asyncAction,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(asyncAction);
-
-        var job = new AsyncFuncJob<TResult>(name, asyncAction);
-        var queuedJob = new AsyncJobWrapper<TResult>(job, priority, cancellationToken);
-        var handle = new JobHandle<TResult>(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle Schedule(IJob job, JobPriority priority = JobPriority.Normal)
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(job);
-
-        var queuedJob = new SynchronousFireAndForgetJob(job, priority);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
-
-        return handle;
-    }
-
-    public IJobHandle Schedule(
-        IAsyncJob job,
-        JobPriority priority = JobPriority.Normal,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(job);
-
-        var queuedJob = new AsyncJobWrapper(job, priority, false, cancellationToken);
-        var handle = new JobHandle(queuedJob);
-        EnqueueJob(queuedJob);
-
+        EnqueueJob(scheduled);
         return handle;
     }
 
@@ -340,40 +227,50 @@ public class JobSystemService : IJobSystemService, IDisposable
 
     public void Shutdown()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         _logger.Information("Shutting down job system");
         _cts.Cancel();
     }
 
+    public async Task StartAsync() => Initialize(_config.WorkerCount);
+
+    public async Task ShutdownAsync() => Shutdown();
+
+    #endregion
+
+    #region IDisposable
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+        _cts.Cancel();
+        _cts.Dispose();
+        _queueSignal.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
+
+    #region Private Methods
+
     private void ThrowIfDisposed()
     {
         if (_disposed)
-        {
             throw new ObjectDisposedException(nameof(JobSystemService));
-        }
     }
 
-    private void EnqueueJob(QueuedJob job)
+    private void EnqueueJob(ScheduledJob job)
     {
-        _queueLock.EnterWriteLock();
-
-        try
+        lock (_queueLock)
         {
             if (_disposed)
-            {
                 throw new ObjectDisposedException(nameof(JobSystemService));
-            }
 
-            _jobQueue.Enqueue(job, job);
+            _jobQueue.Enqueue(job, job.Priority);
             _queueSignal.Release();
-        }
-        finally
-        {
-            _queueLock.ExitWriteLock();
         }
     }
 
@@ -383,7 +280,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         try
         {
-            while (true)
+            while (!token.IsCancellationRequested)
             {
                 try
                 {
@@ -396,58 +293,7 @@ public class JobSystemService : IJobSystemService, IDisposable
 
                 while (!token.IsCancellationRequested && TryDequeueJob(out var job))
                 {
-                    var stopwatch = Stopwatch.GetTimestamp();
-
-                    try
-                    {
-                        job.ExecuteAsync(token).GetAwaiter().GetResult();
-                        var elapsed = Stopwatch.GetElapsedTime(stopwatch);
-                        UpdateMetrics(elapsed, isCancelled: false, isFailed: false);
-                        RecordRecentJob(job, elapsed, JobExecutionStatus.Succeeded);
-
-                        _logger.Debug(
-                            "Executed job {jobName} (priority: {priority}) in {elapsedMilliseconds} ms from thread: {threadId}",
-                            job.Name,
-                            job.Priority,
-                            elapsed.TotalMilliseconds,
-                            Environment.CurrentManagedThreadId
-                        );
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        var elapsed = Stopwatch.GetElapsedTime(stopwatch);
-                        Interlocked.Increment(ref _cancelledJobsCount);
-                        RecordRecentJob(job, elapsed, JobExecutionStatus.Cancelled);
-
-                        if (!token.IsCancellationRequested)
-                        {
-                            _logger.Debug(
-                                "Job {jobName} (priority: {priority}) cancelled after {elapsedMilliseconds} ms on thread {threadId}",
-                                job.Name,
-                                job.Priority,
-                                elapsed.TotalMilliseconds,
-                                Environment.CurrentManagedThreadId
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        var elapsed = Stopwatch.GetElapsedTime(stopwatch);
-                        Interlocked.Increment(ref _failedJobsCount);
-                        RecordRecentJob(job, elapsed, JobExecutionStatus.Failed);
-
-                        _logger.Error(
-                            ex,
-                            "Error executing job {jobName} (priority: {priority}) from thread: {threadId}",
-                            job.Name,
-                            job.Priority,
-                            Environment.CurrentManagedThreadId
-                        );
-                    }
-                    finally
-                    {
-                        job.Dispose();
-                    }
+                    ExecuteJob(job, token);
                 }
             }
         }
@@ -457,21 +303,75 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    private bool TryDequeueJob(out QueuedJob job)
+    private bool TryDequeueJob(out ScheduledJob job)
     {
-        _queueLock.EnterWriteLock();
-
-        try
+        lock (_queueLock)
         {
             return _jobQueue.TryDequeue(out job, out _);
         }
-        finally
+    }
+
+    private void ExecuteJob(ScheduledJob job, CancellationToken serviceToken)
+    {
+        var stopwatch = Stopwatch.GetTimestamp();
+        TimeSpan elapsed;
+
+        try
         {
-            _queueLock.ExitWriteLock();
+            if (job.IsCancelled)
+            {
+                elapsed = Stopwatch.GetElapsedTime(stopwatch);
+                Interlocked.Increment(ref _cancelledJobsCount);
+                RecordRecentJob(job, elapsed, JobExecutionStatus.Cancelled);
+                _logger.Debug("Job {jobName} was cancelled before execution", job.Name);
+                return;
+            }
+
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(serviceToken, job.CancellationToken);
+
+            job.ExecuteAction!(linkedCts.Token).GetAwaiter().GetResult();
+            elapsed = Stopwatch.GetElapsedTime(stopwatch);
+            UpdateMetrics(elapsed);
+            RecordRecentJob(job, elapsed, JobExecutionStatus.Succeeded);
+
+            job.OnComplete?.Invoke();
+
+            _logger.Debug(
+                "Executed job {jobName} (priority: {priority}) in {elapsedMilliseconds} ms",
+                job.Name,
+                job.Priority,
+                elapsed.TotalMilliseconds
+            );
+        }
+        catch (OperationCanceledException)
+        {
+            elapsed = Stopwatch.GetElapsedTime(stopwatch);
+            Interlocked.Increment(ref _cancelledJobsCount);
+            RecordRecentJob(job, elapsed, JobExecutionStatus.Cancelled);
+
+            _logger.Debug(
+                "Job {jobName} (priority: {priority}) cancelled after {elapsedMilliseconds} ms",
+                job.Name,
+                job.Priority,
+                elapsed.TotalMilliseconds
+            );
+        }
+        catch (Exception ex)
+        {
+            elapsed = Stopwatch.GetElapsedTime(stopwatch);
+            Interlocked.Increment(ref _failedJobsCount);
+            RecordRecentJob(job, elapsed, JobExecutionStatus.Failed);
+
+            _logger.Error(
+                ex,
+                "Error executing job {jobName} (priority: {priority})",
+                job.Name,
+                job.Priority
+            );
         }
     }
 
-    private void UpdateMetrics(TimeSpan elapsed, bool isCancelled, bool isFailed)
+    private void UpdateMetrics(TimeSpan elapsed)
     {
         Interlocked.Increment(ref _totalJobsExecuted);
 
@@ -481,15 +381,15 @@ public class JobSystemService : IJobSystemService, IDisposable
         {
             _totalExecutionTimeMs += elapsedMs;
 
-            if (elapsedMs < MinExecutionTimeMs)
-                MinExecutionTimeMs = elapsedMs;
+            if (elapsedMs < _minExecutionTimeMs)
+                _minExecutionTimeMs = elapsedMs;
 
-            if (elapsedMs > MaxExecutionTimeMs)
-                MaxExecutionTimeMs = elapsedMs;
+            if (elapsedMs > _maxExecutionTimeMs)
+                _maxExecutionTimeMs = elapsedMs;
         }
     }
 
-    private void RecordRecentJob(QueuedJob job, TimeSpan elapsed, JobExecutionStatus status)
+    private void RecordRecentJob(ScheduledJob job, TimeSpan elapsed, JobExecutionStatus status)
     {
         var record = new JobExecutionRecord(
             job.Name,
@@ -502,86 +402,12 @@ public class JobSystemService : IJobSystemService, IDisposable
 
         lock (_recentLock)
         {
-            if (_recentJobs.Count >= _maxRecentJobs)
-            {
+            if (_recentJobs.Count >= MaxRecentJobs)
                 _recentJobs.Dequeue();
-            }
 
             _recentJobs.Enqueue(record);
         }
     }
 
-    /// <summary>Helper job class that wraps an Action.</summary>
-    private sealed class ActionJob : IJob
-    {
-        private readonly Action _action;
-        public string Name { get; }
-
-        public ActionJob(string name, Action action)
-        {
-            Name = name;
-            _action = action;
-        }
-
-        public void Execute()
-            => _action();
-    }
-
-    /// <summary>Helper job class that wraps a Func{T}.</summary>
-    private sealed class FuncJob<TResult> : IJob<TResult>
-    {
-        private readonly Func<TResult> _func;
-        public string Name { get; }
-
-        public FuncJob(string name, Func<TResult> func)
-        {
-            Name = name;
-            _func = func;
-        }
-
-        public TResult Execute()
-            => _func();
-    }
-
-    /// <summary>Helper job class that wraps a Func{Task}.</summary>
-    private sealed class AsyncActionJob : IAsyncJob
-    {
-        private readonly Func<Task> _asyncAction;
-        public string Name { get; }
-
-        public AsyncActionJob(string name, Func<Task> asyncAction)
-        {
-            Name = name;
-            _asyncAction = asyncAction;
-        }
-
-        public Task ExecuteAsync(CancellationToken cancellationToken)
-            => _asyncAction();
-    }
-
-    /// <summary>Helper job class that wraps a Func{Task{T}}.</summary>
-    private sealed class AsyncFuncJob<TResult> : IAsyncJob<TResult>
-    {
-        private readonly Func<Task<TResult>> _asyncFunc;
-        public string Name { get; }
-
-        public AsyncFuncJob(string name, Func<Task<TResult>> asyncFunc)
-        {
-            Name = name;
-            _asyncFunc = asyncFunc;
-        }
-
-        public Task<TResult> ExecuteAsync(CancellationToken cancellationToken)
-            => _asyncFunc();
-    }
-
-    public async Task StartAsync()
-    {
-        Initialize(_config.WorkerCount);
-    }
-
-    public async Task ShutdownAsync()
-    {
-        Shutdown();
-    }
+    #endregion
 }
