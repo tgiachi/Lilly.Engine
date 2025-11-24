@@ -17,9 +17,10 @@ public class RenderWindowConfig
         Fullscreen = fullscreen;
         Title = title;
         VSync = vSync;
+
     }
 
-    public RenderWindowConfig() : this(1280, 1024, false, "Squid Lilly Engine", true) { }
+    public RenderWindowConfig() : this(1280, 768, false, "Squid Lilly Engine", true) { }
 
     public override string ToString()
         => $"RenderWindowConfig: {{ Width: {Width}, Height: {Height}, Fullscreen: {Fullscreen}, Title: {Title}, VSync: {VSync}, MaxFramerate: {MaxFramerate} }}";

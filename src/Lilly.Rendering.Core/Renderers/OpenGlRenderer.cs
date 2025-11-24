@@ -7,6 +7,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using TrippyGL;
 
 namespace Lilly.Rendering.Core.Renderers;
 
@@ -56,7 +57,13 @@ public class OpenGlRenderer : ILillyRenderer
 
         _renderContext.Window.FramebufferResize += WindowOnFramebufferResize;
 
-        _renderContext.Window.Closing += () => OnClosing?.Invoke();
+        _renderContext.Window.Closing += WindowOnClosing;
+    }
+
+    private void WindowOnClosing()
+    {
+        _logger.Information("Window is closing");
+        OnClosing?.Invoke();
     }
 
     private void WindowOnLoad()
@@ -67,6 +74,7 @@ public class OpenGlRenderer : ILillyRenderer
         );
         _renderContext.Input = _renderContext.Window.CreateInput();
         _renderContext.OpenGl = GL.GetApi(_renderContext.Window);
+        _renderContext.GraphicsDevice = new(_renderContext.OpenGl);
 
         OnReady?.Invoke(_renderContext);
     }

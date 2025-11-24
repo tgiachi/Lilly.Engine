@@ -1,6 +1,7 @@
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using TrippyGL;
 
 namespace Lilly.Rendering.Core.Context;
 
@@ -11,4 +12,6 @@ public class RenderContext
     public IWindow Window { get; set; }
 
     public IInputContext Input { get; set; }
+
+    public GraphicsDevice GraphicsDevice { get; set; }
 }
