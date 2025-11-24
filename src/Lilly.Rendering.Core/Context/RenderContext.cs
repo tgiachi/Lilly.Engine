@@ -3,7 +3,7 @@ using Silk.NET.Windowing;
 
 namespace Lilly.Rendering.Core.Context;
 
-public class LillyRenderContext
+public class RenderContext
 {
     public GL OpenGl { get; init; }
 

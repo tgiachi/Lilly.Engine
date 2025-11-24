@@ -1,4 +1,4 @@
-namespace Lilly.Rendering.Core.Data;
+namespace Lilly.Rendering.Core.Data.Config;
 
 public class RenderWindowConfig
 {
@@ -7,6 +7,8 @@ public class RenderWindowConfig
     public bool Fullscreen { get; init; }
     public string Title { get; init; }
     public bool VSync { get; init; }
+
+    public int MaxFramerate { get; init; } = 70;
 
     public RenderWindowConfig(int width, int height, bool fullscreen, string title, bool vSync)
     {
@@ -17,5 +19,5 @@ public class RenderWindowConfig
         VSync = vSync;
     }
 
-    public RenderWindowConfig() : this(800, 600, false, "Lilly Engine", true) { }
+    public RenderWindowConfig() : this(1280, 1024, false, "Lilly Engine", true) { }
 }
