@@ -1,3 +1,4 @@
+using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 
@@ -5,7 +6,9 @@ namespace Lilly.Rendering.Core.Context;
 
 public class RenderContext
 {
-    public GL OpenGl { get; init; }
+    public GL OpenGl { get; set; }
 
-    public IWindow Window { get; init; }
+    public IWindow Window { get; set; }
+
+    public IInputContext Input { get; set; }
 }

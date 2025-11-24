@@ -6,6 +6,8 @@ using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
 using Lilly.Engine.Lua.Scripting.Context;
+using Lilly.Rendering.Core.Data.Config;
+using Lilly.Rendering.Core.Renderers;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -36,6 +38,11 @@ await ConsoleApp.RunAsync(
 
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
 
+
+
+        var render = new OpenGlRenderer(new RenderConfig());
+
+        render.Run();
 
 
 

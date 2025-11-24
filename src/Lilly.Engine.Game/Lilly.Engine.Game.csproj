@@ -31,6 +31,8 @@
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj" />
+        <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,9 +1,7 @@
-using System.Runtime.InteropServices;
 
 namespace Lilly.Rendering.Core.Data.Game;
 
-[StructLayout(LayoutKind.Auto)]
-public struct GameTime
+public class GameTime
 {
     public double Elapsed { get; set; }
     public double Total { get; set; }
