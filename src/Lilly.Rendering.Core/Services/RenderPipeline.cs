@@ -1,4 +1,5 @@
 using DryIoc;
+using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Data.Game;
 using Lilly.Rendering.Core.Data.Internal;
 using Lilly.Rendering.Core.Interfaces.Entities;
@@ -14,21 +15,31 @@ public class RenderPipeline : IRenderPipeline
     private readonly IContainer _container;
 
     private readonly List<RenderLayerRegistration> _renderLayerRegistrations;
+
     private readonly ILogger _logger = Log.ForContext<RenderPipeline>();
 
     private readonly Lock _renderLayersLock = new();
 
     private readonly Dictionary<RenderPriority, List<IRenderLayer>> _renderLayers = new();
 
-    public RenderPipeline(IContainer container, List<RenderLayerRegistration> renderLayerRegistrations)
+    public IEnumerable<IRenderLayer> RenderLayers => _renderLayers.Values.SelectMany(layerList => layerList);
+
+    public RenderPipeline(
+        IContainer container,
+        List<RenderLayerRegistration> renderLayerRegistrations,
+        RenderContext renderContext
+    )
 
     {
         _container = container;
         _renderLayerRegistrations = renderLayerRegistrations;
-        AddDefaultRenderLayers();
+        AddRegisteredRenderLayer();
+
+        renderContext.Renderer.OnUpdate += Update;
+        renderContext.Renderer.OnRender += Render;
     }
 
-    private void AddDefaultRenderLayers()
+    private void AddRegisteredRenderLayer()
     {
         foreach (var renderLayerRegistration in _renderLayerRegistrations)
         {
@@ -89,6 +100,7 @@ public class RenderPipeline : IRenderPipeline
     public void AddGameObject<TEntity>(TEntity entity) where TEntity : IGameObject
     {
         var addedToLayer = new List<string>();
+
         lock (_renderLayersLock)
         {
             foreach (var renderLayerList in _renderLayers.Values)

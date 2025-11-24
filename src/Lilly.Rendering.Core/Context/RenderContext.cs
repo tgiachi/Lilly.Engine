@@ -1,3 +1,4 @@
+using Lilly.Rendering.Core.Interfaces.Renderers;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -14,4 +15,6 @@ public class RenderContext
     public IInputContext Input { get; set; }
 
     public GraphicsDevice GraphicsDevice { get; set; }
+
+    public ILillyRenderer Renderer { get; set; }
 }

@@ -6,6 +6,8 @@ namespace Lilly.Rendering.Core.Interfaces.Services;
 
 public interface IRenderPipeline
 {
+
+    IEnumerable<IRenderLayer> RenderLayers { get; }
     void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer;
 
     void Update(GameTime gameTime);
