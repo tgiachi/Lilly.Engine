@@ -36,9 +36,17 @@ public readonly struct GameTime
         ElapsedGameTime = elapsedGameTime;
     }
 
+    /// <summary>
+    /// Gets the elapsed game time in seconds.
+    /// </summary>
+    /// <returns>The elapsed time in seconds.</returns>
     public float GetElapsedSeconds()
         => (float)(ElapsedGameTime / 1000.0);
 
+    /// <summary>
+    /// Gets the total game time in seconds.
+    /// </summary>
+    /// <returns>The total time in seconds.</returns>
     public float GetTotalGameTimeSeconds()
         => (float)(TotalGameTime / 1000.0);
 

@@ -7,18 +7,14 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using TrippyGL;
 
 namespace Lilly.Rendering.Core.Renderers;
 
 public class OpenGlRenderer : ILillyRenderer
 {
     private readonly ILogger _logger = Log.ForContext<OpenGlRenderer>();
-
     private readonly WindowOptions _windowOptions;
-
     private readonly RenderContext _renderContext = new();
-
     private readonly GameTime _gameTime = new();
 
     public void Run()

@@ -2,6 +2,9 @@ using Lilly.Engine.Core.Interfaces.Events;
 
 namespace Lilly.Engine.Core.Interfaces.Services;
 
+/// <summary>
+/// Provides an event bus for publishing and subscribing to events.
+/// </summary>
 public interface IEventBusService
 {
     /// <summary>

@@ -1,5 +1,9 @@
 namespace Lilly.Engine.Core.Interfaces.Events;
 
+/// <summary>
+/// Defines a listener for events of type TEvent.
+/// </summary>
+/// <typeparam name="TEvent">The type of event to listen for.</typeparam>
 public interface IEventBusListener<in TEvent>
 {
     /// <summary>

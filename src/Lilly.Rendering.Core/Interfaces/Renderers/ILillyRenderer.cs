@@ -9,7 +9,6 @@ public interface ILillyRenderer
     delegate void UpdateDelegate(GameTime gameTime);
     delegate void ReadyDelegate(RenderContext context);
     delegate void ResizeDelegate(int width, int height);
-
     delegate void ClosingDelegate();
 
 
