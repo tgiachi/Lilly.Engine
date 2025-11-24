@@ -3,17 +3,17 @@ namespace Lilly.Engine.Core.Data.Privimitives;
 /// <summary>
 /// Represents game timing information for frame updates and rendering.
 /// </summary>
-public readonly struct GameTime
+public class GameTime
 {
     /// <summary>
     /// Gets the total elapsed game time since the start of the game in milliseconds.
     /// </summary>
-    public double TotalGameTime { get; init; }
+    public double TotalGameTime { get; set; }
 
     /// <summary>
     /// Gets the time elapsed since the last update in milliseconds.
     /// </summary>
-    public double ElapsedGameTime { get; init; }
+    public double ElapsedGameTime { get; set; }
 
     /// <summary>
     /// Gets the elapsed game time as a TimeSpan.
@@ -25,16 +25,7 @@ public readonly struct GameTime
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
-    /// <summary>
-    /// Initializes a new instance of the GameTime struct.
-    /// </summary>
-    /// <param name="totalGameTime">The total elapsed game time in milliseconds.</param>
-    /// <param name="elapsedGameTime">The time elapsed since the last update in milliseconds.</param>
-    public GameTime(double totalGameTime, double elapsedGameTime)
-    {
-        TotalGameTime = totalGameTime;
-        ElapsedGameTime = elapsedGameTime;
-    }
+
 
     /// <summary>
     /// Gets the elapsed game time in seconds.
@@ -62,10 +53,11 @@ public readonly struct GameTime
     /// </summary>
     /// <param name="elapsedSeconds">The time elapsed since the last frame in seconds.</param>
     /// <returns>A new GameTime instance with updated values.</returns>
-    public GameTime Update(double elapsedSeconds)
+    public void Update(double elapsedSeconds)
     {
         var elapsedMs = elapsedSeconds * 1000.0; // Convert to milliseconds
 
-        return new(TotalGameTime + elapsedMs, elapsedMs);
+         ElapsedGameTime = elapsedMs;
+         TotalGameTime += elapsedMs;
     }
 }

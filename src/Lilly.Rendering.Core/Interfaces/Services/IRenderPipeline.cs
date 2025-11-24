@@ -1,4 +1,4 @@
-using Lilly.Rendering.Core.Data.Game;
+using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Pipeline;
 

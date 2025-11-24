@@ -1,6 +1,6 @@
+using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Data.Config;
-using Lilly.Rendering.Core.Data.Game;
 using Lilly.Rendering.Core.Interfaces.Renderers;
 using Serilog;
 using Silk.NET.Input;
