@@ -6,6 +6,7 @@ using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
+using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Rendering.Core.Data.Config;
@@ -40,7 +41,14 @@ await ConsoleApp.RunAsync(
 
         var bootstrap = new LillyBootstrap(container);
 
-        await bootstrap.InitializeAsync(new InitialEngineOptions());
+        var config = new InitialEngineOptions();
+
+        if (PlatformUtils.IsRunningOnLinux())
+        {
+            config.RenderConfig.OpenGlApiLevel = new RenderOpenGlApiLevel(4, 6);
+        }
+
+        await bootstrap.InitializeAsync(config);
 
         Log.Logger.Information("Starting Lilly Engine...");
 
