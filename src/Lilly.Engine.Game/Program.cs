@@ -1,10 +1,12 @@
 using ConsoleAppFramework;
 using DryIoc;
+using Lilly.Engine.Bootstrap;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
+using Lilly.Engine.Data.Config;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Rendering.Core.Data.Config;
 using Lilly.Rendering.Core.Renderers;
@@ -15,16 +17,14 @@ using Serilog.Sinks.SystemConsole.Themes;
 await ConsoleApp.RunAsync(
     args,
     async (
-        string rootDirectory = null,
+        string? rootDirectory = null,
         bool logToFile = false,
         LogLevelType logLevel = LogLevelType.Debug,
-        int width = 1280 ,
+        int width = 1280,
         int height = 720
     ) =>
     {
-
         //--root-directory /Users/squid/lilly --width 3272 --height 1277
-
 
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
@@ -38,16 +38,18 @@ await ConsoleApp.RunAsync(
 
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
 
+        var bootstrap = new LillyBootstrap(container);
 
+        await bootstrap.InitializeAsync(new InitialEngineOptions());
 
-        var render = new OpenGlRenderer(new RenderConfig());
+        Log.Logger.Information("Starting Lilly Engine...");
 
-        render.Run();
+        await bootstrap.RunAsync();
 
+        await bootstrap.ShutdownAsync();
 
-
-
-
+        Log.Logger.Information("Shutting down Lilly Engine...");
+        Log.CloseAndFlush();
     }
 );
 
@@ -60,9 +62,8 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.MinimumLevel.Is(logEventLevel);
 
-
-
     logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
+
     //logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
 
     if (logToFile)

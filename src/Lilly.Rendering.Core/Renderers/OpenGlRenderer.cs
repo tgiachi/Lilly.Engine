@@ -10,7 +10,7 @@ using Silk.NET.Windowing;
 
 namespace Lilly.Rendering.Core.Renderers;
 
-public class OpenGlRenderer : ILillyRenderer
+public class OpenGlRenderer : IGraphicRenderer
 {
     private readonly ILogger _logger = Log.ForContext<OpenGlRenderer>();
     private readonly WindowOptions _windowOptions;
@@ -25,11 +25,11 @@ public class OpenGlRenderer : ILillyRenderer
 
         _renderContext.Window.Dispose();
     }
-    public event ILillyRenderer.RenderDelegate? OnRender;
-    public event ILillyRenderer.UpdateDelegate? OnUpdate;
-    public event ILillyRenderer.ResizeDelegate? OnResize;
-    public event ILillyRenderer.ReadyDelegate? OnReady;
-    public event ILillyRenderer.ClosingDelegate? OnClosing;
+    public event IGraphicRenderer.RenderDelegate? OnRender;
+    public event IGraphicRenderer.UpdateDelegate? OnUpdate;
+    public event IGraphicRenderer.ResizeDelegate? OnResize;
+    public event IGraphicRenderer.ReadyDelegate? OnReady;
+    public event IGraphicRenderer.ClosingDelegate? OnClosing;
 
 
     public OpenGlRenderer(RenderConfig config)

@@ -40,8 +40,6 @@ public class JobSystemService : IJobSystemService, IDisposable
 
     public JobSystemService(JobServiceConfig config) => _config = config;
 
-    #region IJobSystemMetrics
-
     public int PendingJobCount
     {
         get
@@ -105,10 +103,6 @@ public class JobSystemService : IJobSystemService, IDisposable
             }
         }
     }
-
-    #endregion
-
-    #region IJobSystemService
 
     public IJobHandle Schedule(IJob job, JobPriority priority = JobPriority.Normal, Action? onComplete = null)
     {
@@ -237,10 +231,6 @@ public class JobSystemService : IJobSystemService, IDisposable
 
     public async Task ShutdownAsync() => Shutdown();
 
-    #endregion
-
-    #region IDisposable
-
     public void Dispose()
     {
         if (_disposed) return;
@@ -251,10 +241,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         _queueSignal.Dispose();
         GC.SuppressFinalize(this);
     }
-
-    #endregion
-
-    #region Private Methods
 
     private void ThrowIfDisposed()
     {
@@ -408,6 +394,4 @@ public class JobSystemService : IJobSystemService, IDisposable
             _recentJobs.Enqueue(record);
         }
     }
-
-    #endregion
 }

@@ -18,13 +18,13 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
 
     private readonly ILogger _logger = Log.ForContext<MainThreadDispatcher>();
 
-    private readonly ILillyRenderer _renderer;
+    private readonly IGraphicRenderer _renderer;
 
     /// <summary>
     /// Initializes a new instance of the MainThreadDispatcher class.
     /// </summary>
     /// <param name="renderer">The graphic renderer to hook updates to.</param>
-    public MainThreadDispatcher(ILillyRenderer renderer)
+    public MainThreadDispatcher(IGraphicRenderer renderer)
     {
         _renderer = renderer;
         _mainThreadId = Environment.CurrentManagedThreadId;

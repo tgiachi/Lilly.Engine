@@ -8,10 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Data\"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
         <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj"/>
     </ItemGroup>
@@ -37,6 +33,10 @@
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
         <PackageReference Include="TrippyGL.ImageSharp" Version="1.2.2"/>
+        <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
 
 
     </ItemGroup>

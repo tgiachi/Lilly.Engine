@@ -3,7 +3,7 @@ using Lilly.Rendering.Core.Context;
 
 namespace Lilly.Rendering.Core.Interfaces.Renderers;
 
-public interface ILillyRenderer
+public interface IGraphicRenderer
 {
     delegate void RenderDelegate(GameTime gameTime);
     delegate void UpdateDelegate(GameTime gameTime);

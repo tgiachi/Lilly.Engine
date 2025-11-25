@@ -355,8 +355,6 @@ public class OrthographicCamera : Base3dCamera
         _projectionDirty = true;
     }
 
-#region Static Factory Methods
-
     /// <summary>
     /// Creates an orthographic camera configured for 2D top-down view.
     /// </summary>
@@ -472,5 +470,4 @@ public class OrthographicCamera : Base3dCamera
         return camera;
     }
 
-#endregion
 }

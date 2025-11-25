@@ -16,5 +16,5 @@ public class RenderContext
 
     public GraphicsDevice GraphicsDevice { get; set; }
 
-    public ILillyRenderer Renderer { get; set; }
+    public IGraphicRenderer Renderer { get; set; }
 }
