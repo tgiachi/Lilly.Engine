@@ -1,9 +1,17 @@
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Extensions.Container;
+using Lilly.Engine.Core.Interfaces.Dispatchers;
+using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Engine.Data.Config;
+using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
+using Lilly.Engine.Lua.Scripting.Services;
+using Lilly.Engine.Modules;
 using Lilly.Engine.Pipelines;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Services;
@@ -14,6 +22,7 @@ using Lilly.Rendering.Core.Interfaces.Renderers;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Renderers;
 using Lilly.Rendering.Core.Services;
+using Serilog;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -21,7 +30,11 @@ public class LillyBootstrap : ILillyBootstrap
 {
     private readonly IContainer _container;
 
-    private bool _isInitialized = false;
+    private readonly ILogger _logger = Log.ForContext<LillyBootstrap>();
+
+    private bool _isInitialized;
+    private bool _isServiceInitialized;
+    private bool _isServiceStarted;
 
     public IGraphicRenderer Renderer { get; private set; }
     public event IGraphicRenderer.RenderDelegate? OnRender;
@@ -36,6 +49,7 @@ public class LillyBootstrap : ILillyBootstrap
     public async Task InitializeAsync(InitialEngineOptions options)
     {
         RegisterServices();
+        RegisterScriptModules();
 
         RegisterRenderLayers();
         OnConfiguring?.Invoke(_container);
@@ -79,6 +93,18 @@ public class LillyBootstrap : ILillyBootstrap
             IntializeRenders();
             _isInitialized = true;
         }
+
+        if (!_isServiceInitialized)
+        {
+            InitializeServicesAsync().GetAwaiter().GetResult();
+            _isServiceInitialized = true;
+        }
+
+        if (!_isServiceStarted)
+        {
+            StartServicesAsync().GetAwaiter().GetResult();
+            _isServiceStarted = true;
+        }
         OnRender?.Invoke(gameTime);
     }
 
@@ -95,14 +121,67 @@ public class LillyBootstrap : ILillyBootstrap
     private void RegisterServices()
     {
         _container
+            .RegisterService<IEventBusService, EventBusService>()
+            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
+            .RegisterService<INotificationService, NotificationService>()
             .RegisterService<IRenderPipeline, RenderPipeline>()
             .RegisterService<IAssetManager, AssetManager>()
             .RegisterService<IInputManagerService, InputManagerService>()
+            .RegisterService<IVersionService, VersionService>()
+            .RegisterService<IJobSystemService, JobSystemService>()
+            .RegisterService<ICommandSystemService, CommandSystemService>()
+            .RegisterService<IAudioService, AudioService>()
+            .RegisterService<ITimerService, TimerService>()
+            .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             ;
+
+        _container.RegisterInstance(new JobServiceConfig(Environment.ProcessorCount - 1));
+    }
+
+    private void RegisterScriptModules()
+    {
+        _container
+            .RegisterScriptModule<ConsoleModule>()
+            .RegisterScriptModule<AssetsModule>()
+            .RegisterScriptModule<EngineModule>()
+            .RegisterScriptModule<NotificationsModule>()
+            .RegisterScriptModule<JobSystemModule>()
+            .RegisterScriptModule<InputManagerModule>()
+            .RegisterScriptModule<WindowModule>()
+            ;
+
+        _container.RegisterLuaUserData<GameTime>();
     }
 
     private void IntializeRenders()
     {
         _container.Resolve<IRenderPipeline>();
+    }
+
+    private async Task InitializeServicesAsync()
+    {
+        var services = _container.Resolve<List<AutostartRegistration>>();
+
+        foreach (var service in services)
+        {
+            _logger.Debug("Initializing {Name}", service.GetType().Name);
+            _container.Resolve(service.ServiceType);
+        }
+    }
+
+    private async Task StartServicesAsync()
+    {
+        var services = _container.Resolve<List<AutostartRegistration>>();
+
+        foreach (var service in services)
+        {
+            _logger.Debug("Starting {Name}", service.GetType().Name);
+
+            if (_container.Resolve(service.ServiceType) is ILillyService instance)
+            {
+                _logger.Debug("Starting {Name}", instance.GetType().Name);
+                await instance.StartAsync();
+            }
+        }
     }
 }

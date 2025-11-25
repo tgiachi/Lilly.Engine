@@ -17,6 +17,7 @@ public class InputLayer : BaseRenderLayer<IInputReceiver>
 
     public override void Update(GameTime gameTime)
     {
+        _inputManagerService.Update(gameTime);
         _inputManagerService.DistributeInput(gameTime);
     }
 

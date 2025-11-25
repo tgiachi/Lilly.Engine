@@ -81,10 +81,10 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     public LuaScriptEngineService(
         DirectoriesConfig directoriesConfig,
         List<ScriptModuleData> scriptModules,
-        List<ScriptUserData> loadedUserData,
         IContainer serviceProvider,
         IVersionService versionService,
-        IJobSystemService jobSystemService
+        IJobSystemService jobSystemService,
+        List<ScriptUserData> loadedUserData = null
     )
     {
         ArgumentNullException.ThrowIfNull(directoriesConfig);
@@ -96,7 +96,7 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         _serviceProvider = serviceProvider;
         _versionService = versionService;
         _jobSystemService = jobSystemService;
-        _loadedUserData = loadedUserData;
+        _loadedUserData = loadedUserData ?? new();
         _initScripts = ["bootstrap.lua", "init.lua", "main.lua"];
 
         CreateNameResolver();
@@ -1235,6 +1235,11 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
 
     private void LoadToUserData()
     {
+        if (_loadedUserData == null)
+        {
+            return;
+        }
+
         foreach (var scriptUserData in _loadedUserData)
         {
             // Register the type to allow MoonSharp to access its members and methods

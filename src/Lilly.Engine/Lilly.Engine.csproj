@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj" />
         <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj"/>
     </ItemGroup>
 
@@ -45,6 +46,10 @@
         <None Remove="Assets\**\*"/>
         <EmbeddedResource Include="Assets\**\*"/>
 
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Wrappers\" />
     </ItemGroup>
 
 </Project>
