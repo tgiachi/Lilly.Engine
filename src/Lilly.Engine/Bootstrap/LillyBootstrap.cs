@@ -1,4 +1,5 @@
 using DryIoc;
+using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Extensions.Container;
@@ -48,6 +49,10 @@ public class LillyBootstrap : ILillyBootstrap
 
     public async Task InitializeAsync(InitialEngineOptions options)
     {
+        var directoriesConfig = _container.Resolve<DirectoriesConfig>();
+
+        _logger.Information("Root Directory: {RootDirectory}", directoriesConfig.Root);
+
         RegisterServices();
         RegisterScriptModules();
 
