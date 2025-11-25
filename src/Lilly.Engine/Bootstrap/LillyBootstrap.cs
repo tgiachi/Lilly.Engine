@@ -34,7 +34,6 @@ public class LillyBootstrap : ILillyBootstrap
     {
         RegisterServices();
 
-
         RegisterRenderLayers();
         OnConfiguring?.Invoke(_container);
 
@@ -53,15 +52,17 @@ public class LillyBootstrap : ILillyBootstrap
         _container.RegisterInstance(context.Input);
         _container.RegisterInstance(context.OpenGl);
         _container.RegisterInstance(context.Window);
-
+        _container.RegisterInstance(context.DpiManager);
 
         IntializeRenders();
-
     }
 
     private void RegisterRenderLayers()
     {
-        _container.RegisterRenderLayer<UpdateableLayer>();
+        _container
+            .RegisterRenderLayer<UpdateableLayer>()
+            .RegisterRenderLayer<SpriteBatcherLayer>()
+            ;
     }
 
     private void RendererOnOnUpdate(GameTime gameTime)
@@ -76,7 +77,6 @@ public class LillyBootstrap : ILillyBootstrap
 
     public async Task RunAsync()
     {
-
         Renderer.Run();
     }
 

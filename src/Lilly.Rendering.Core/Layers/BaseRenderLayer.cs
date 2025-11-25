@@ -19,8 +19,8 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
         Priority = priority;
     }
 
+    public virtual void Initialize() { }
     public virtual void Update(GameTime gameTime) { }
-
     public virtual void Render(GameTime gameTime) { }
 
     public virtual bool CanAdd<TEntity>()

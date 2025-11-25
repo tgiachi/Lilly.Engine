@@ -10,7 +10,6 @@ using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Rendering.Core.Data.Config;
-using Lilly.Rendering.Core.Renderers;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -43,9 +42,12 @@ await ConsoleApp.RunAsync(
 
         var config = new InitialEngineOptions();
 
+        config.RenderConfig.WindowConfig.Height = height;
+        config.RenderConfig.WindowConfig.Width = width;
+
         if (PlatformUtils.IsRunningOnLinux())
         {
-            config.RenderConfig.OpenGlApiLevel = new RenderOpenGlApiLevel(4, 6);
+            config.RenderConfig.OpenGlApiLevel = new(4, 6);
         }
 
         await bootstrap.InitializeAsync(config);

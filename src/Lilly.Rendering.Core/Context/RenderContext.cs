@@ -17,4 +17,7 @@ public class RenderContext
     public GraphicsDevice GraphicsDevice { get; set; }
 
     public IGraphicRenderer Renderer { get; set; }
+
+
+    public IDpiManager DpiManager { get; set; }
 }

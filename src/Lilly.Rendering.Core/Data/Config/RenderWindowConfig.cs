@@ -2,11 +2,11 @@ namespace Lilly.Rendering.Core.Data.Config;
 
 public class RenderWindowConfig
 {
-    public int Width { get; init; }
-    public int Height { get; init; }
-    public bool Fullscreen { get; init; }
-    public string Title { get; init; }
-    public bool VSync { get; init; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public bool Fullscreen { get; set; }
+    public string Title { get; set; }
+    public bool VSync { get; set; }
 
     public int MaxFramerate { get; init; } = 70;
 

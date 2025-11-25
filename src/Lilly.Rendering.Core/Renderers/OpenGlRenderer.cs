@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Data.Config;
 using Lilly.Rendering.Core.Interfaces.Renderers;
+using Lilly.Rendering.Core.Managers;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -19,22 +20,20 @@ public class OpenGlRenderer : IGraphicRenderer
 
     public void Run()
     {
-
         _logger.Information("Starting render loop");
         _renderContext.Window.Run();
 
         _renderContext.Window.Dispose();
     }
+
     public event IGraphicRenderer.RenderDelegate? OnRender;
     public event IGraphicRenderer.UpdateDelegate? OnUpdate;
     public event IGraphicRenderer.ResizeDelegate? OnResize;
     public event IGraphicRenderer.ReadyDelegate? OnReady;
     public event IGraphicRenderer.ClosingDelegate? OnClosing;
 
-
     public OpenGlRenderer(RenderConfig config)
     {
-
         _windowOptions = WindowOptions.Default;
 
         _windowOptions.Size = new(config.WindowConfig.Width, config.WindowConfig.Height);
@@ -71,6 +70,11 @@ public class OpenGlRenderer : IGraphicRenderer
         _renderContext.Input = _renderContext.Window.CreateInput();
         _renderContext.OpenGl = GL.GetApi(_renderContext.Window);
         _renderContext.GraphicsDevice = new(_renderContext.OpenGl);
+        _renderContext.DpiManager = new DpiManager(
+            _renderContext.Window,
+            _renderContext.OpenGl,
+            _renderContext.GraphicsDevice
+        );
         _renderContext.Renderer = this;
 
         OnReady?.Invoke(_renderContext);
