@@ -71,6 +71,7 @@ public class OpenGlRenderer : IGraphicRenderer
         _renderContext.Input = _renderContext.Window.CreateInput();
         _renderContext.OpenGl = GL.GetApi(_renderContext.Window);
         _renderContext.GraphicsDevice = new(_renderContext.OpenGl);
+        _renderContext.Renderer = this;
 
         OnReady?.Invoke(_renderContext);
     }
