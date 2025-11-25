@@ -78,6 +78,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterRenderLayer<UpdateableLayer>()
             .RegisterRenderLayer<SpriteBatcherLayer>()
             .RegisterRenderLayer<InputLayer>()
+            .RegisterRenderLayer<ImGuiRenderSystem>()
             ;
     }
 

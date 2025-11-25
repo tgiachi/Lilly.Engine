@@ -56,4 +56,10 @@ public interface IRenderLayer
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <param name="entity">The entity to remove.</param>
     void RemoveEntity<TEntity>(TEntity entity) where TEntity : IGameObject;
+
+
+    /// <summary>
+    ///  Gets the count of entities in the render layer.
+    /// </summary>
+    int EntityCount { get; }
 }

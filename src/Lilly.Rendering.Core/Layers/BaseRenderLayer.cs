@@ -11,6 +11,8 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
     public string Name { get; }
     public RenderPriority Priority { get; }
 
+    public int EntityCount => Entities.Count;
+
     protected GameObjectCollection<TGameObject> Entities { get; } = [];
 
     public BaseRenderLayer(string name, RenderPriority priority)
