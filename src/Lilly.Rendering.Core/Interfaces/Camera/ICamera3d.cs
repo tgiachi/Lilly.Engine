@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
@@ -182,4 +183,10 @@ public interface ICamera3D
     /// <param name="yaw">Rotation around Y axis in radians (look left/right).</param>
     /// <param name="roll">Rotation around Z axis in radians (tilt head left/right).</param>
     void Rotate(float pitch, float yaw, float roll);
+
+    /// <summary>
+    ///  Updates the camera state based on elapsed game time.
+    /// </summary>
+    /// <param name="gameTime"></param>
+    void Update(GameTime gameTime);
 }

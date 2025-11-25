@@ -133,6 +133,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterService<ICommandSystemService, CommandSystemService>()
             .RegisterService<IAudioService, AudioService>()
             .RegisterService<ITimerService, TimerService>()
+            .RegisterService<ICamera3dService, Camera3dService>()
             .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             ;
 

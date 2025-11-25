@@ -12,22 +12,22 @@ namespace Lilly.Engine.Cameras.Base;
 /// </summary>
 public abstract class Base3dCamera : ICamera3D
 {
-    private const float Epsilon = 1e-6f; // Epsilon per confronti float
+    //private const float Epsilon = 1e-6f; // Epsilon per confronti float
 
-    protected Vector3 _position = Vector3.Zero;
-    protected Quaternion _rotation = Quaternion.Identity;
-    protected Vector3 _target = new(0, 0, 1); // Forward
-    protected float _fieldOfView = MathF.PI / 4f;     // 45 degrees
-    protected float _aspectRatio;
-    protected float _nearPlane = 0.1f;
-    protected float _farPlane = 1000f;
+    private Vector3 _position = Vector3.Zero;
+    private Quaternion _rotation = Quaternion.Identity;
+    private Vector3 _target = new(0, 0, 1);   // Forward
+    private float _fieldOfView = MathF.PI / 4f; // 45 degrees
+    private float _aspectRatio;
+    private float _nearPlane = 0.1f;
+    private float _farPlane = 1000f;
 
-    protected Matrix4x4 _view = Matrix4x4.Identity;
-    protected Matrix4x4 _projection = Matrix4x4.Identity;
-    protected BoundingFrustum? _frustum;
+    private Matrix4x4 _view = Matrix4x4.Identity;
+    private Matrix4x4 _projection = Matrix4x4.Identity;
+    private BoundingFrustum? _frustum;
 
-    protected bool _viewDirty = true;
-    protected bool _projectionDirty = true;
+    private bool _viewDirty = true;
+    private bool _projectionDirty = true;
 
     // IGameObject members
     public uint Id { get; set; }
@@ -48,6 +48,11 @@ public abstract class Base3dCamera : ICamera3D
                 _viewDirty = true;
             }
         }
+    }
+
+    protected void SetProjectionDirty()
+    {
+        _projectionDirty = true;
     }
 
     public Quaternion Rotation
@@ -103,7 +108,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _fieldOfView;
         set
         {
-            if (MathF.Abs(_fieldOfView - value) > Epsilon)
+            if (MathF.Abs(_fieldOfView - value) > MathF.E)
             {
                 _fieldOfView = Math.Clamp(value, 0.01f, MathF.PI - 0.01f);
                 _projectionDirty = true;
@@ -116,7 +121,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _aspectRatio;
         set
         {
-            if (MathF.Abs(_aspectRatio - value) > Epsilon)
+            if (MathF.Abs(_aspectRatio - value) > float.Epsilon)
             {
                 _aspectRatio = Math.Max(value, 0.01f);
                 _projectionDirty = true;
@@ -129,7 +134,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _nearPlane;
         set
         {
-            if (MathF.Abs(_nearPlane - value) > Epsilon)
+            if (MathF.Abs(_nearPlane - value) > float.Epsilon)
             {
                 _nearPlane = Math.Max(value, 0.01f);
                 _projectionDirty = true;
@@ -142,7 +147,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _farPlane;
         set
         {
-            if (MathF.Abs(_farPlane - value) > Epsilon)
+            if (MathF.Abs(_farPlane - value) > float.Epsilon)
             {
                 _farPlane = Math.Max(value, _nearPlane + 0.01f);
                 _projectionDirty = true;
@@ -176,6 +181,7 @@ public abstract class Base3dCamera : ICamera3D
 
             return _projection;
         }
+        protected set;
     }
 
     public BoundingFrustum Frustum
@@ -269,6 +275,5 @@ public abstract class Base3dCamera : ICamera3D
     {
         _view = Matrix4x4.CreateLookAt(_position, _target, Up);
     }
-
 
 }

@@ -317,7 +317,7 @@ public class OrthographicCamera : Base3dCamera
         var effectiveWidth = _orthoWidth / _zoom;
         var effectiveHeight = _orthoHeight / _zoom;
 
-        _projection = Matrix4x4.CreateOrthographic(
+        Projection = Matrix4x4.CreateOrthographic(
             effectiveWidth,
             effectiveHeight,
             NearPlane,
@@ -352,7 +352,7 @@ public class OrthographicCamera : Base3dCamera
     /// </summary>
     private void MarkProjectionDirty()
     {
-        _projectionDirty = true;
+        SetProjectionDirty();
     }
 
     /// <summary>
@@ -469,5 +469,4 @@ public class OrthographicCamera : Base3dCamera
 
         return camera;
     }
-
 }
