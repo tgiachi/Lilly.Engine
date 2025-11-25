@@ -6,6 +6,7 @@ using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Interfaces.Services.Base;
+using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Interfaces.Bootstrap;
@@ -57,12 +58,46 @@ public class LillyBootstrap : ILillyBootstrap
         RegisterScriptModules();
 
         RegisterRenderLayers();
+
         OnConfiguring?.Invoke(_container);
 
         Renderer = new OpenGlRenderer(options.RenderConfig);
         Renderer.OnRender += RendererOnOnRender;
         Renderer.OnUpdate += RendererOnOnUpdate;
         Renderer.OnReady += RendererOnOnReady;
+    }
+
+    private void LoadDefaultAssets()
+    {
+        var assetManager = _container.Resolve<IAssetManager>();
+
+        assetManager.LoadFontFromMemory(
+            "default",
+            ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Fonts/DefaultMonoFont.ttf")
+        );
+        assetManager.LoadFontFromMemory(
+            "default_alternative",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Fonts/DefaultMonoFontAlternative.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
+            "monocraft",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Fonts/Monocraft.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
+            "hud",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Fonts/HornetDisplay-Regular.ttf"
+            )
+        );
     }
 
     private void RendererOnOnReady(RenderContext context)
@@ -97,6 +132,7 @@ public class LillyBootstrap : ILillyBootstrap
         if (!_isInitialized)
         {
             IntializeRenders();
+            LoadDefaultAssets();
             _isInitialized = true;
         }
 
