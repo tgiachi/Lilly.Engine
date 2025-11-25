@@ -150,6 +150,8 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterScriptModule<JobSystemModule>()
             .RegisterScriptModule<InputManagerModule>()
             .RegisterScriptModule<WindowModule>()
+            .RegisterScriptModule<CameraModule>()
+            .RegisterScriptModule<ImGuiModule>()
             ;
 
         _container.RegisterLuaUserData<GameTime>();
