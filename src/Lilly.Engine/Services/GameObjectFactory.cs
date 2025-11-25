@@ -30,11 +30,10 @@ public class GameObjectFactory : IGameObjectFactory
 
     public GameObjectFactory(
         IContainer container,
-        IScriptEngineService scriptEngineService,
-        List<GameObjectRegistration>? registrations
+        IScriptEngineService scriptEngineService
     )
     {
-        _registrations = registrations ?? new();
+        _registrations = new();
         _container = container;
         _scriptEngineService = scriptEngineService;
 

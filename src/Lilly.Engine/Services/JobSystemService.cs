@@ -16,7 +16,9 @@ public class JobSystemService : IJobSystemService, IDisposable
     private readonly JobServiceConfig _config;
 
     // Priority queue for job scheduling (higher priority values come first)
-    private readonly PriorityQueue<ScheduledJob, JobPriority> _jobQueue = new(Comparer<JobPriority>.Create((x, y) => y.CompareTo(x)));
+    private readonly PriorityQueue<ScheduledJob, JobPriority> _jobQueue =
+        new(Comparer<JobPriority>.Create((x, y) => y.CompareTo(x)));
+
     private readonly Lock _queueLock = new();
 
     // Signaling
@@ -38,7 +40,8 @@ public class JobSystemService : IJobSystemService, IDisposable
     private const int MaxRecentJobs = 64;
     private bool _disposed;
 
-    public JobSystemService(JobServiceConfig config) => _config = config;
+    public JobSystemService(JobServiceConfig config)
+        => _config = config;
 
     public int PendingJobCount
     {
@@ -62,7 +65,9 @@ public class JobSystemService : IJobSystemService, IDisposable
         get
         {
             var executed = Interlocked.Read(ref _totalJobsExecuted);
-            if (executed == 0) return 0;
+
+            if (executed == 0)
+                return 0;
 
             lock (_metricsLock)
             {
@@ -119,16 +124,22 @@ public class JobSystemService : IJobSystemService, IDisposable
         var handle = new JobHandle(scheduled);
 
         scheduled.ExecuteAction = async ct =>
-        {
-            await Task.Run(() => job.Execute(), ct);
-            handle.SetResult();
-        };
+                                  {
+                                      await Task.Run(job.Execute, ct);
+                                      handle.SetResult();
+                                  };
 
         EnqueueJob(scheduled);
+
         return handle;
     }
 
-    public IJobHandle Schedule(IAsyncJob job, JobPriority priority = JobPriority.Normal, Action? onComplete = null, CancellationToken cancellationToken = default)
+    public IJobHandle Schedule(
+        IAsyncJob job,
+        JobPriority priority = JobPriority.Normal,
+        Action? onComplete = null,
+        CancellationToken cancellationToken = default
+    )
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
@@ -143,16 +154,21 @@ public class JobSystemService : IJobSystemService, IDisposable
         var handle = new JobHandle(scheduled);
 
         scheduled.ExecuteAction = async ct =>
-        {
-            await job.ExecuteAsync(ct);
-            handle.SetResult();
-        };
+                                  {
+                                      await job.ExecuteAsync(ct);
+                                      handle.SetResult();
+                                  };
 
         EnqueueJob(scheduled);
+
         return handle;
     }
 
-    public IJobHandle<TResult> Schedule<TResult>(IJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null)
+    public IJobHandle<TResult> Schedule<TResult>(
+        IJob<TResult> job,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null
+    )
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
@@ -166,17 +182,23 @@ public class JobSystemService : IJobSystemService, IDisposable
         var handle = new JobHandle<TResult>(scheduled);
 
         scheduled.ExecuteAction = async ct =>
-        {
-            var result = await Task.Run(job.Execute, ct);
-            handle.SetResult(result);
-            onComplete?.Invoke(result);
-        };
+                                  {
+                                      var result = await Task.Run(job.Execute, ct);
+                                      handle.SetResult(result);
+                                      onComplete?.Invoke(result);
+                                  };
 
         EnqueueJob(scheduled);
+
         return handle;
     }
 
-    public IJobHandle<TResult> Schedule<TResult>(IAsyncJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default)
+    public IJobHandle<TResult> Schedule<TResult>(
+        IAsyncJob<TResult> job,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null,
+        CancellationToken cancellationToken = default
+    )
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(job);
@@ -190,13 +212,14 @@ public class JobSystemService : IJobSystemService, IDisposable
         var handle = new JobHandle<TResult>(scheduled);
 
         scheduled.ExecuteAction = async ct =>
-        {
-            var result = await job.ExecuteAsync(ct);
-            handle.SetResult(result);
-            onComplete?.Invoke(result);
-        };
+                                  {
+                                      var result = await job.ExecuteAsync(ct);
+                                      handle.SetResult(result);
+                                      onComplete?.Invoke(result);
+                                  };
 
         EnqueueJob(scheduled);
+
         return handle;
     }
 
@@ -221,19 +244,23 @@ public class JobSystemService : IJobSystemService, IDisposable
 
     public void Shutdown()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _logger.Information("Shutting down job system");
         _cts.Cancel();
     }
 
-    public async Task StartAsync() => Initialize(_config.WorkerCount);
+    public async Task StartAsync()
+        => Initialize(_config.WorkerCount);
 
-    public async Task ShutdownAsync() => Shutdown();
+    public async Task ShutdownAsync()
+        => Shutdown();
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _disposed = true;
         _cts.Cancel();
@@ -310,6 +337,7 @@ public class JobSystemService : IJobSystemService, IDisposable
                 Interlocked.Increment(ref _cancelledJobsCount);
                 RecordRecentJob(job, elapsed, JobExecutionStatus.Cancelled);
                 _logger.Debug("Job {jobName} was cancelled before execution", job.Name);
+
                 return;
             }
 

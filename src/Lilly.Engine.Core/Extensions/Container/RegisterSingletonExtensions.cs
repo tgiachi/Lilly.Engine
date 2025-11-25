@@ -28,10 +28,7 @@ public static class RegisterSingletonExtensions
                 )
             );
 
-            if (autoStart)
-            {
-                container.AddToRegisterTypedList(new AutostartRegistration(typeof(TService)));
-            }
+            container.AddToRegisterTypedList(new AutostartRegistration(typeof(TService), autoStart));
 
             return container;
         }

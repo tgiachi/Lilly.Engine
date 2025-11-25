@@ -221,7 +221,7 @@ public class LillyBootstrap : ILillyBootstrap
 
         foreach (var service in services)
         {
-            _logger.Debug("Starting {Name}", service.GetType().Name);
+            _logger.Debug("Starting {Name}", service.ServiceType.Name);
 
             if (_container.Resolve(service.ServiceType) is ILillyService instance)
             {

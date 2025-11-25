@@ -6,4 +6,3 @@ public record struct AtlasRegion(
     Vector2D<float> Position,
     Vector2D<float> Size
 );
-
