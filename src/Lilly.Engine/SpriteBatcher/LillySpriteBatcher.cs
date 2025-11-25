@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Fonts;
@@ -56,5 +57,85 @@ public class LillySpriteBatcher : ILillySpriteBatcher
             rotation: rotation,
             scale: scale * _dpiManager.DPIScale ?? Vector2.One * _dpiManager.DPIScale
         );
+    }
+
+    public void DrawTexure(
+        string texture,
+        Vector2? position = null,
+        Rectangle? destination = null,
+        Rectangle? source = null,
+        Color4b? color = null,
+        Vector2? origin = null,
+        Vector2? scale = null,
+        float? rotation = null,
+        float depth = 0.0f
+    )
+    {
+        var tex = _assetManager.GetTexture<Texture2D>(texture);
+
+        if (tex == null)
+        {
+            throw new InvalidOperationException($"Texture '{texture}' not found.");
+        }
+
+        var finalColor = color ?? Color4b.White;
+
+        // If there's a destination rectangle, use that
+        if (destination.HasValue)
+        {
+            var dest = destination.Value;
+            var finalPosition = new Vector2(dest.X, dest.Y);
+            var finalScale = new Vector2(dest.Width, dest.Height);
+
+            // If there's a source rectangle, calculate scale based on the ratio
+            if (source.HasValue)
+            {
+                var src = source.Value;
+                finalScale = new Vector2(dest.Width / (float)src.Width, dest.Height / (float)src.Height);
+            }
+            else
+            {
+                // Use the texture dimensions
+                finalScale = new Vector2(dest.Width / (float)tex.Width, dest.Height / (float)tex.Height);
+            }
+
+            // Apply DPI scaling
+            finalPosition *= _dpiManager.DPIScale;
+            finalScale *= _dpiManager.DPIScale;
+
+            _spriteBatcher.Draw(
+                tex,
+                finalPosition,
+                source,
+                finalColor,
+                finalScale,
+                0f,
+                Vector2.Zero,
+                depth
+            );
+        }
+        // Otherwise use position + rotation + scale + origin
+        else
+        {
+            var finalPosition = position ?? Vector2.Zero;
+            var finalOrigin = origin ?? Vector2.Zero;
+            var finalScale = scale ?? Vector2.One;
+            var finalRotation = rotation ?? 0f;
+
+            // Apply DPI scaling
+            finalPosition *= _dpiManager.DPIScale;
+            finalScale *= _dpiManager.DPIScale;
+
+            _spriteBatcher.Draw(
+                tex,
+                finalPosition,
+                source,
+                finalColor,
+                finalScale,
+                finalRotation,
+                finalOrigin,
+                depth
+            );
+        }
     }
 }

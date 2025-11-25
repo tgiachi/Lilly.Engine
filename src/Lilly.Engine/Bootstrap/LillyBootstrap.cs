@@ -134,6 +134,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterService<IAudioService, AudioService>()
             .RegisterService<ITimerService, TimerService>()
             .RegisterService<ICamera3dService, Camera3dService>()
+            .RegisterService<IGameObjectFactory, GameObjectFactory>()
             .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             ;
 

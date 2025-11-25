@@ -8,6 +8,7 @@ namespace Lilly.Engine.GameObjects.Base;
 
 public abstract class Base2dGameObject : IGameObject2d, IUpdateble
 {
+    public uint Id { get; set; }
     public string Name { get; set; }
     public uint ZIndex { get; set; }
     public bool IsActive { get; set; }

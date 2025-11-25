@@ -11,7 +11,7 @@ namespace Lilly.Engine.Pipelines;
 /// <summary>
 /// Provides a render system for ImGui-based user interface debugging tools.
 /// </summary>
-public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>
+public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
 {
     private ImGuiController _imGuiController;
     private readonly RenderContext _renderContext;
@@ -27,7 +27,6 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>
 
         base.Initialize();
     }
-
 
     public override void Render(GameTime gameTime)
     {
@@ -45,5 +44,11 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>
         _imGuiController.Render();
 
         base.Render(gameTime);
+    }
+
+    public void Dispose()
+    {
+        _imGuiController.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

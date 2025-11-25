@@ -14,7 +14,7 @@ using TrippyGL;
 
 namespace Lilly.Engine.Pipelines;
 
-public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>
+public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
 {
     private readonly RenderContext _renderContext;
     private SimpleShaderProgram? _shaderProgram;
@@ -138,5 +138,13 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>
         );
 
         _renderContext.GraphicsDevice.ScissorTestEnabled = true;
+    }
+
+    public void Dispose()
+    {
+        _shaderProgram?.Dispose();
+        _fontRenderer.Dispose();
+        _spriteBatcher.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
