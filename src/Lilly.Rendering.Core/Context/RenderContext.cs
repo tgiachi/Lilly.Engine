@@ -18,6 +18,7 @@ public class RenderContext
 
     public IGraphicRenderer Renderer { get; set; }
 
-
     public IDpiManager DpiManager { get; set; }
+
+    public Color4b ClearColor { get; set; } = Color4b.BlanchedAlmond;
 }

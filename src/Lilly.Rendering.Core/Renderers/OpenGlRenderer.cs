@@ -8,6 +8,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using TrippyGL;
 
 namespace Lilly.Rendering.Core.Renderers;
 
@@ -86,6 +87,9 @@ public class OpenGlRenderer : IGraphicRenderer
         {
             return;
         }
+        _renderContext.GraphicsDevice.ClearColor = _renderContext.ClearColor;
+        _renderContext.GraphicsDevice.Clear(ClearBuffers.Color | ClearBuffers.Depth);
+
         _gameTime.Update(obj);
         OnRender?.Invoke(_gameTime);
     }

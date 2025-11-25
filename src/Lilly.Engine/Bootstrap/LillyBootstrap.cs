@@ -5,10 +5,11 @@ using Lilly.Engine.Data.Config;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Pipelines;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Services;
+using Lilly.Engine.Services.Input;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Extensions;
-using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Renderers;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Renderers;
@@ -62,6 +63,7 @@ public class LillyBootstrap : ILillyBootstrap
         _container
             .RegisterRenderLayer<UpdateableLayer>()
             .RegisterRenderLayer<SpriteBatcherLayer>()
+            .RegisterRenderLayer<InputLayer>()
             ;
     }
 
@@ -95,6 +97,7 @@ public class LillyBootstrap : ILillyBootstrap
         _container
             .RegisterService<IRenderPipeline, RenderPipeline>()
             .RegisterService<IAssetManager, AssetManager>()
+            .RegisterService<IInputManagerService, InputManagerService>()
             ;
     }
 
