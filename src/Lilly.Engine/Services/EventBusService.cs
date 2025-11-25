@@ -325,9 +325,9 @@ public class EventBusService : IEventBusService, IDisposable
             _handler = handler;
         }
 
-        public Task HandleAsync(TEvent eventData, CancellationToken cancellationToken)
+        public Task HandleAsync(TEvent evt, CancellationToken cancellationToken)
         {
-            return _handler(eventData, cancellationToken);
+            return _handler(evt, cancellationToken);
         }
 
         public bool HasSameHandler(Func<TEvent, CancellationToken, Task> handler)

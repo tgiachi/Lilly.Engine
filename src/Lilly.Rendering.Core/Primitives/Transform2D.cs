@@ -1,4 +1,4 @@
-using Silk.NET.Maths;
+using System.Numerics;
 
 namespace Lilly.Rendering.Core.Primitives;
 
@@ -7,8 +7,8 @@ namespace Lilly.Rendering.Core.Primitives;
 /// </summary>
 public class Transform2D
 {
-    public Vector2D<float> Position { get; set; } = Vector2D<float>.Zero;
+    public Vector2 Position { get; set; } = Vector2.Zero;
     public float Rotation { get; set; }
-    public Vector2D<float> Scale { get; set; } = Vector2D<float>.One;
-    public Vector2D<float> Size { get; set; } = Vector2D<float>.Zero;
+    public Vector2 Scale { get; set; } = Vector2.One;
+    public Vector2 Size { get; set; } = Vector2.Zero;
 }

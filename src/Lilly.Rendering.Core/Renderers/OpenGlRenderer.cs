@@ -82,6 +82,10 @@ public class OpenGlRenderer : IGraphicRenderer
 
     private void WindowOnRender(double obj)
     {
+        if (_renderContext.Window.Size == Vector2D<int>.Zero)
+        {
+            return;
+        }
         _gameTime.Update(obj);
         OnRender?.Invoke(_gameTime);
     }

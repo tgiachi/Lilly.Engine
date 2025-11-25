@@ -66,6 +66,8 @@ public class RenderPipeline : IRenderPipeline
             }
 
             value.Add(renderLayer);
+
+            renderLayer.Initialize();
         }
     }
 

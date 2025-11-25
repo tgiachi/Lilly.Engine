@@ -15,6 +15,7 @@
       <PackageReference Include="Silk.NET.Core" Version="2.22.0" />
       <PackageReference Include="Silk.NET.GLFW" Version="2.22.0" />
       <PackageReference Include="Silk.NET.Input" Version="2.22.0" />
+      <PackageReference Include="Silk.NET.Input.Extensions" Version="2.22.0" />
       <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
       <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
       <PackageReference Include="Silk.NET.Windowing" Version="2.22.0" />

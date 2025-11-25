@@ -3,7 +3,9 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Interfaces.Bootstrap;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Pipelines;
+using Lilly.Engine.Services;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Entities;
@@ -53,8 +55,6 @@ public class LillyBootstrap : ILillyBootstrap
         _container.RegisterInstance(context.OpenGl);
         _container.RegisterInstance(context.Window);
         _container.RegisterInstance(context.DpiManager);
-
-        IntializeRenders();
     }
 
     private void RegisterRenderLayers()
@@ -72,6 +72,11 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void RendererOnOnRender(GameTime gameTime)
     {
+        if (!_isInitialized)
+        {
+            IntializeRenders();
+            _isInitialized = true;
+        }
         OnRender?.Invoke(gameTime);
     }
 
@@ -87,7 +92,10 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void RegisterServices()
     {
-        _container.RegisterService<IRenderPipeline, RenderPipeline>();
+        _container
+            .RegisterService<IRenderPipeline, RenderPipeline>()
+            .RegisterService<IAssetManager, AssetManager>()
+            ;
     }
 
     private void IntializeRenders()

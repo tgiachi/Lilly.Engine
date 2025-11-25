@@ -65,4 +65,7 @@ public static class ColorExtensions
     /// <returns>A Color4b with the RGBA components of the source color.</returns>
     public static Color4b ToTrippy(this FSColor c)
         => new(c.R, c.G, c.B, c.A);
+
+    public static FSColor ToFsColor(this Color4b c)
+        => new FSColor(c.R, c.G, c.B, c.A);
 }

@@ -23,14 +23,14 @@ public class FunctionSignalListener<TEvent> : IEventBusListener<TEvent>
     /// <summary>
     /// Handles the event asynchronously.
     /// </summary>
-    /// <param name="signalEvent">The event to handle.</param>
+    /// <param name="evt">The event to handle.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public Task HandleAsync(TEvent signalEvent, CancellationToken cancellationToken = default)
+    public Task HandleAsync(TEvent evt, CancellationToken cancellationToken = default)
     {
         try
         {
-            return _handler(signalEvent);
+            return _handler(evt);
         }
         catch (Exception ex)
         {
