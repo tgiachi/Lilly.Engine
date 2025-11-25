@@ -8,7 +8,7 @@ namespace Lilly.Engine.Modules;
 /// Comprehensive ImGui module for Lua scripting.
 /// Exposes ImGui functions with Lua-friendly signatures and proper parameter handling.
 /// </summary>
-[ScriptModule("imGui", "Complete ImGui drawing and interaction library")]
+[ScriptModule("im_gui", "Complete ImGui drawing and interaction library")]
 public class ImGuiModule
 {
     [ScriptFunction("arrow_button")]

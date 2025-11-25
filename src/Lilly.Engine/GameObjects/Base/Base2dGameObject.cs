@@ -16,7 +16,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
     public IGameObject? Parent { get; set; }
     public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject2d>();
 
-    private ILillySpriteBatcher? _spriteBatcher;
+    protected ILillySpriteBatcher? SpriteBatcher { get; private set; }
 
     public Transform2D Transform { get; } = new Transform2D();
 
@@ -34,7 +34,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
             return;
         }
 
-        _spriteBatcher = spriteBatcher;
+        SpriteBatcher = spriteBatcher;
 
         OnDraw(gameTime);
 
@@ -71,7 +71,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
         }
     }
 
-    protected void OnDraw(GameTime gameTime) { }
+    protected virtual void OnDraw(GameTime gameTime) { }
 
     public virtual void Update(GameTime gameTime) { }
 }

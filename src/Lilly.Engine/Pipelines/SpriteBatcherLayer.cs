@@ -69,6 +69,8 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
 
     public override void Render(GameTime gameTime)
     {
+        _renderContext.GraphicsDevice.BlendingEnabled = true;
+        _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         BeginSpriteBatch();
 
         foreach (var entity in Entities)

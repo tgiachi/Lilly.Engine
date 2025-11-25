@@ -1,3 +1,4 @@
+using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Data.Privimitives;
@@ -9,6 +10,7 @@ using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Dispatchers;
+using Lilly.Engine.GameObjects;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
@@ -25,6 +27,7 @@ using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Renderers;
 using Lilly.Rendering.Core.Services;
 using Serilog;
+using TrippyGL;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -96,6 +99,14 @@ public class LillyBootstrap : ILillyBootstrap
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBootstrap).Assembly,
                 "Assets/Fonts/HornetDisplay-Regular.ttf"
+            )
+        );
+
+        assetManager.LoadFontFromMemory(
+            "hud_bold",
+            ResourceUtils.GetEmbeddedResourceStream(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Fonts/HornetDisplay-Bold.ttf"
             )
         );
     }
@@ -201,7 +212,21 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void IntializeRenders()
     {
-        _container.Resolve<IRenderPipeline>();
+        var pipeline = _container.Resolve<IRenderPipeline>();
+
+        var text = new TextGameObject
+        {
+            Text = "Lilly Engine",
+            FontSize = 48,
+            Color = Color4b.Black,
+            FontName = "hud_bold",
+            Transform =
+            {
+                Position = new(200, 200)
+            }
+        };
+
+        pipeline.AddGameObject(text);
     }
 
     private async Task InitializeServicesAsync()
@@ -210,7 +235,7 @@ public class LillyBootstrap : ILillyBootstrap
 
         foreach (var service in services)
         {
-            _logger.Debug("Initializing {Name}", service.GetType().Name);
+            _logger.Debug("Initializing {Name}", service.ServiceType.Name);
             _container.Resolve(service.ServiceType);
         }
     }

@@ -32,7 +32,7 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         _dpiManager = dpiManager;
     }
 
-    public void Draw(
+    public void DrawText(
         string fontName,
         int size,
         string text,
