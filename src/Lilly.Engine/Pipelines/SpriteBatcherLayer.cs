@@ -24,6 +24,7 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
     private readonly IAssetManager _assetManager;
 
     private ILillySpriteBatcher _lillySpriteBatcher;
+    private Rectangle<int>? _currentScissor;
 
     public SpriteBatcherLayer(RenderContext renderContext, IAssetManager assetManager) : base(
         "SpriteBatcher",
@@ -77,8 +78,11 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         {
             if (entity.Transform.Size != Vector2.Zero)
             {
-                FlushSpriteBatch();
-                ApplyScissor(entity.Transform);
+                ApplyScissorIfChanged(entity.Transform);
+            }
+            else
+            {
+                DisableScissorIfEnabled();
             }
             entity.Draw(gameTime, _lillySpriteBatcher);
         }
@@ -108,6 +112,7 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         _spriteBatcher.End();
 
         _renderContext.GraphicsDevice.ScissorTestEnabled = false;
+        _currentScissor = null;
 
         _isBatchActive = false;
     }
@@ -123,23 +128,46 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         _spriteBatcher.Begin();
     }
 
-    private void ApplyScissor(Transform2D tranform)
+    private void ApplyScissorIfChanged(Transform2D transform)
     {
-        var rectangle = new Rectangle<float>(tranform.Position.X, tranform.Position.Y, tranform.Size.X, tranform.Size.Y);
-        var width = Math.Max(0, rectangle.Size.X);
-        var height = Math.Max(0, rectangle.Size.Y);
+        var rectangle = new Rectangle<float>(transform.Position.X, transform.Position.Y, transform.Size.X, transform.Size.Y);
+        var width = Math.Max(0, (int)rectangle.Size.X);
+        var height = Math.Max(0, (int)rectangle.Size.Y);
 
         var viewportHeight = _renderContext.GraphicsDevice.Viewport.Height;
-        var flippedY = (int)viewportHeight - rectangle.Origin.Y - height;
+        var flippedY = (int)viewportHeight - (int)rectangle.Origin.Y - height;
+
+        var newScissor = new Rectangle<int>((int)rectangle.Origin.X, flippedY, width, height);
+
+        // Solo flush se lo scissor è cambiato
+        if (_currentScissor.HasValue && _currentScissor.Value == newScissor)
+        {
+            return;
+        }
+
+        FlushSpriteBatch();
+        _currentScissor = newScissor;
 
         _renderContext.GraphicsDevice.ScissorRectangle = new(
-            (int)rectangle.Origin.X,
-            (int)flippedY,
-            (uint)width,
-            (uint)height
+            newScissor.Origin.X,
+            newScissor.Origin.Y,
+            (uint)newScissor.Size.X,
+            (uint)newScissor.Size.Y
         );
 
         _renderContext.GraphicsDevice.ScissorTestEnabled = true;
+    }
+
+    private void DisableScissorIfEnabled()
+    {
+        if (!_currentScissor.HasValue)
+        {
+            return;
+        }
+
+        FlushSpriteBatch();
+        _currentScissor = null;
+        _renderContext.GraphicsDevice.ScissorTestEnabled = false;
     }
 
     public void Dispose()
