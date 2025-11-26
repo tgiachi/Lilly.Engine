@@ -104,11 +104,49 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         float depth = 0.0f
     )
     {
-        var tex = _assetManager.GetTexture<Texture2D>(texture);
+        // Parse atlas@index syntax
+        string actualTextureName = texture;
+        Rectangle? atlasSource = null;
+
+        if (!string.IsNullOrEmpty(texture) && texture.Contains('@'))
+        {
+            var parts = texture.Split('@', 2);
+            var atlasName = parts[0];
+
+            // Validate and parse tile index
+            if (!int.TryParse(parts[1], out int tileIndex))
+            {
+                throw new ArgumentException(
+                    $"Invalid tile index in '{texture}'. Expected format: 'atlasName@tileIndex'");
+            }
+
+            // Get atlas region (throws if atlas not found or index out of range)
+            var region = _assetManager.GetAtlasRegion(atlasName, tileIndex);
+
+            // Get underlying atlas texture name
+            actualTextureName = atlasName + "_atlas";
+
+            // Get texture to convert UV to pixels
+            var atlasTex = _assetManager.GetTexture<Texture2D>(actualTextureName);
+
+            // Convert UV coordinates to pixel coordinates
+            int x = (int)(region.Position.X * atlasTex.Width);
+            int y = (int)(region.Position.Y * atlasTex.Height);
+            int width = (int)(region.Size.X * atlasTex.Width);
+            int height = (int)(region.Size.Y * atlasTex.Height);
+
+            // Create source rectangle for this tile (only if user hasn't specified one)
+            atlasSource = new Rectangle(x, y, width, height);
+        }
+
+        // Use atlas source if available and user hasn't specified their own
+        var finalSource = source ?? atlasSource;
+
+        var tex = _assetManager.GetTexture<Texture2D>(actualTextureName);
 
         if (tex == null)
         {
-            throw new InvalidOperationException($"Texture '{texture}' not found.");
+            throw new InvalidOperationException($"Texture '{actualTextureName}' not found.");
         }
 
         var finalColor = color ?? Color4b.White;
@@ -121,9 +159,9 @@ public class LillySpriteBatcher : ILillySpriteBatcher
             var finalScale = new Vector2(dest.Width, dest.Height);
 
             // If there's a source rectangle, calculate scale based on the ratio
-            if (source.HasValue)
+            if (finalSource.HasValue)
             {
-                var src = source.Value;
+                var src = finalSource.Value;
                 finalScale = new Vector2(dest.Width / (float)src.Width, dest.Height / (float)src.Height);
             }
             else
@@ -139,7 +177,7 @@ public class LillySpriteBatcher : ILillySpriteBatcher
             _spriteBatcher.Draw(
                 tex,
                 finalPosition,
-                source,
+                finalSource,
                 finalColor,
                 finalScale,
                 0f,
@@ -162,7 +200,7 @@ public class LillySpriteBatcher : ILillySpriteBatcher
             _spriteBatcher.Draw(
                 tex,
                 finalPosition,
-                source,
+                finalSource,
                 finalColor,
                 finalScale,
                 finalRotation,

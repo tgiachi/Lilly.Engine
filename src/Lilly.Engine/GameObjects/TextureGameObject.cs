@@ -12,7 +12,7 @@ namespace Lilly.Engine.GameObjects;
 /// </summary>
 public class TextureGameObject : Base2dGameObject
 {
-    private string _textureName = string.Empty;
+    private string _textureName;
     private Vector2 _size = Vector2.Zero;
 
     /// <summary>
