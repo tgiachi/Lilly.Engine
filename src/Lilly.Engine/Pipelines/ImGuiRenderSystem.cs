@@ -50,8 +50,6 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
             ImGui.End();
         }
 
-        ImGui.ShowDemoWindow();
-
         _imGuiController.Render();
 
         base.Render(gameTime);

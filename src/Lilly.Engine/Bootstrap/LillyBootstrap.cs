@@ -14,6 +14,7 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.TwoD;
+using Lilly.Engine.GameObjects.ThreeD;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Interfaces.Services;
@@ -185,6 +186,11 @@ public class LillyBootstrap : ILillyBootstrap
 
             pipeline.AddGameObject(versionGameObject);
 
+
+            var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
+
+            pipeline.AddGameObject(cube);
+
             // var text = new TextGameObject(_container.Resolve<IAssetManager>())
             // {
             //     Text = "Lilly Engine",
@@ -236,6 +242,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<TextureGameObject>()
             .RegisterGameObject<StackLayoutGameObject>()
             .RegisterGameObject<VersionGameObject>()
+            .RegisterGameObject<SimpleCubeGameObject>()
             ;
     }
 

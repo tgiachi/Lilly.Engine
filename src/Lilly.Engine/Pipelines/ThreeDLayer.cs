@@ -30,6 +30,12 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         _camera3dService = camera3dService;
     }
 
+    public override void Initialize()
+    {
+        _camera3dService.UpdateViewport(_renderContext.GraphicsDevice.Viewport);
+        base.Initialize();
+    }
+
     public override void Render(GameTime gameTime)
     {
         if (_camera3dService.ActiveCamera == null)
@@ -37,11 +43,14 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             return;
         }
 
+        EntitiesInCullingFrustum.Clear();
+        EntitiesOutsideCullingFrustum.Clear();
+
         CheckWireframe();
 
         foreach (var entity in Entities.Flatten())
         {
-            if (_camera3dService.ActiveCamera.IsInFrustum(entity))
+            if (_camera3dService.ActiveCamera.IsInFrustum(entity) && entity.IsActive)
             {
                 entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
                 EntitiesInCullingFrustum.Add(entity);
@@ -52,10 +61,10 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             }
         }
 
-        _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
+        RestoreState();
     }
 
-    public void CheckWireframe()
+    private void CheckWireframe()
     {
         if (IsWireframe)
         {
@@ -63,5 +72,10 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             _renderContext.OpenGl.Disable(GLEnum.CullFace);
             _renderContext.OpenGl.LineWidth(WireframeLineWidth);
         }
+    }
+
+    private void RestoreState()
+    {
+        _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
     }
 }

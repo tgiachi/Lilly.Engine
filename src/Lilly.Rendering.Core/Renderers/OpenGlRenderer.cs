@@ -78,6 +78,13 @@ public class OpenGlRenderer : IGraphicRenderer
         );
         _renderContext.Renderer = this;
 
+        _renderContext.GraphicsDevice.SetViewport(
+            0,
+            0,
+            (uint)_renderContext.Window.Size.X,
+            (uint)_renderContext.Window.Size.Y
+        );
+
         OnReady?.Invoke(_renderContext);
     }
 

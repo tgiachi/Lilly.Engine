@@ -54,7 +54,5 @@ public class VersionGameObject : Base2dGameObject
         AddGameObject2d(rectangle, textGameObject, logoTexture, fpsCounter);
     }
 
-    public override void Update(GameTime gameTime)
-    {
-    }
+
 }

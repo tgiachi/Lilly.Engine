@@ -75,7 +75,7 @@ public class GameObjectFactory : IGameObjectFactory
 
         _logger.Debug(
             "Created game object of type {GameObjectType} with ID {GameObjectId}",
-            type.FullName,
+            instance.Name,
             objectId
         );
 
