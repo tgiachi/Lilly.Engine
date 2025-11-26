@@ -1,8 +1,9 @@
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Wrappers.Commands;
 using MoonSharp.Interpreter;
 
-namespace Lilly.Engine.Wrappers.Commands;
+namespace Lilly.Engine.Modules;
 
 [ScriptModule("commands", "Provides access to the command system.")]
 public class CommandsModule

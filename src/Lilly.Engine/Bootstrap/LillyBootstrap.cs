@@ -12,6 +12,7 @@ using Lilly.Engine.Data.Config;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Interfaces.Bootstrap;
+using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Lua.Scripting.Services;
@@ -219,6 +220,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterService<ITimerService, TimerService>()
             .RegisterService<ICamera3dService, Camera3dService>()
             .RegisterService<IGameObjectFactory, GameObjectFactory>()
+            .RegisterService<ISceneManager, SceneManager>()
             .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             ;
 
@@ -236,6 +238,8 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterScriptModule<InputManagerModule>()
             .RegisterScriptModule<WindowModule>()
             .RegisterScriptModule<CameraModule>()
+            .RegisterScriptModule<ScenesModule>()
+            .RegisterScriptModule<CommandsModule>()
             .RegisterScriptModule<ImGuiModule>()
             ;
 
