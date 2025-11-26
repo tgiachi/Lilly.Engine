@@ -374,7 +374,7 @@ public class AssetManager : IAssetManager, IDisposable
         {
             var font = fontSystem.GetFont(size);
 
-            _logger.Debug("  - Added size {FontSize}", size);
+            _logger.Verbose("  - Added size {FontSize}", size);
             _dynamicSpriteFonts[$"{fontName}_{size}"] = font;
         }
     }

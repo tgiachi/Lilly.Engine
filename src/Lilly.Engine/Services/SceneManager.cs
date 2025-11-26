@@ -43,6 +43,7 @@ public class SceneManager : ISceneManager, IGameObject
         _registeredSceneObjects = registeredSceneObjects;
         _renderPipeline = renderPipeline;
 
+        _logger.Information("Initializing Scene Manager");
         if (registeredSceneObjects != null)
         {
             foreach (var sceneObject in _registeredSceneObjects)
