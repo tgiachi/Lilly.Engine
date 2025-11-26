@@ -124,6 +124,12 @@ public class RenderPipeline : IRenderPipeline
         }
         else
         {
+            if (entity is IInitializable initializable)
+            {
+                _logger.Debug("Initializing entity {EntityType}", entity.Name);
+                initializable.Initialize();
+            }
+
             _logger.Information(
                 "Entity of type {EntityType} was added to render layers: {RenderLayers}",
                 typeof(TEntity).Name,

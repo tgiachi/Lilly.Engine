@@ -10,20 +10,23 @@ namespace Lilly.Engine.GameObjects.Base;
 /// <summary>
 /// Base class for 2D game objects, providing common functionality for drawing, updating, and transform management.
 /// </summary>
-public abstract class Base2dGameObject : IGameObject2d, IUpdateble
+public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializable
 {
     /// <summary>
     /// Gets or sets the unique identifier for this game object.
     /// </summary>
     public uint Id { get; set; }
+
     /// <summary>
     /// Gets or sets the name of this game object.
     /// </summary>
     public string Name { get; set; }
+
     /// <summary>
     /// Gets or sets the Z-index for rendering order.
     /// </summary>
     public uint ZIndex { get; set; }
+
     /// <summary>
     /// Gets or sets whether the game object is active and should be updated and drawn.
     /// </summary>
@@ -33,6 +36,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
     /// Gets or sets the parent game object in the hierarchy.
     /// </summary>
     public IGameObject? Parent { get; set; }
+
     /// <summary>
     /// Gets the collection of child game objects.
     /// </summary>
@@ -89,14 +93,17 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
     /// Adds a 2D game object as a child.
     /// </summary>
     /// <param name="gameObject">The game object to add.</param>
-    protected void AddGameObject2d(IGameObject2d gameObject)
+    protected void AddGameObject2d(params IGameObject2d[] gameObjects)
     {
-        ArgumentNullException.ThrowIfNull(gameObject);
+        ArgumentNullException.ThrowIfNull(gameObjects);
 
-        if (Children is GameObjectCollection<IGameObject2d> collection)
+        foreach (var gameObject in gameObjects)
         {
-            collection.Add(gameObject);
-            gameObject.Parent = this;
+            if (Children is GameObjectCollection<IGameObject2d> collection)
+            {
+                collection.Add(gameObject);
+                gameObject.Parent = this;
+            }
         }
     }
 
@@ -127,7 +134,21 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
     /// Updates the game object. Override to implement custom update logic.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
-    public virtual void Update(GameTime gameTime) { }
+    public virtual void Update(GameTime gameTime)
+    {
+        if (!IsActive)
+        {
+            return;
+        }
+
+        foreach (var child in Children)
+        {
+            if (child is IUpdateble child2d)
+            {
+                child2d.Update(gameTime);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the world position by accumulating all parent transforms.
@@ -153,6 +174,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
                     scaledPos.X * cos - scaledPos.Y * sin,
                     scaledPos.X * sin + scaledPos.Y * cos
                 );
+
                 return parentWorldPos + rotatedPos;
             }
 
@@ -195,4 +217,9 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
     {
         return Transform.Size * GetWorldScale();
     }
+
+    /// <summary>
+    ///  Initializes the game object. Override to implement custom initialization logic.
+    /// </summary>
+    public virtual void Initialize() { }
 }

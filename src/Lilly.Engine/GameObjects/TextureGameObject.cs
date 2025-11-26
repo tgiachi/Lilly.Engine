@@ -66,10 +66,9 @@ public class TextureGameObject : Base2dGameObject
     /// <param name="textureName">The name of the texture to render.</param>
     /// <param name="name">The name of the game object (default: "TextureGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
-    public TextureGameObject(string textureName, string name = "TextureGameObject", uint zIndex = 0)
-        : base(name, zIndex)
+    public TextureGameObject()
+        : base("TextureGameObject")
     {
-        _textureName = textureName;
     }
 
     /// <summary>

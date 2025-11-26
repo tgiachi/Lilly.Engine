@@ -11,10 +11,8 @@ using Serilog.Events;
 namespace Lilly.Engine.Services;
 
 /// <summary>
-/// Factory for creating instances of game objects using dependency injection.
-/// This factory provides simple, direct object creation. For performance-critical scenarios
-/// with high object creation/destruction rates (e.g., bullets, particles), consider using
-/// IGameObjectPool for manual pooling management.
+/// Factory class responsible for creating and managing game objects.
+/// It handles registration, instantiation, and integration with the script engine.
 /// </summary>
 public class GameObjectFactory : IGameObjectFactory
 {
@@ -30,10 +28,11 @@ public class GameObjectFactory : IGameObjectFactory
 
     public GameObjectFactory(
         IContainer container,
-        IScriptEngineService scriptEngineService
+        IScriptEngineService scriptEngineService,
+        List<GameObjectRegistration> registrations
     )
     {
-        _registrations = new();
+        _registrations = registrations;
         _container = container;
         _scriptEngineService = scriptEngineService;
 

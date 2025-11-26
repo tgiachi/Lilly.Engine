@@ -10,6 +10,7 @@ using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Dispatchers;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Scenes;
@@ -64,6 +65,8 @@ public class LillyBootstrap : ILillyBootstrap
 
         RegisterRenderLayers();
 
+        RegisterGameObjects();
+
         OnConfiguring?.Invoke(_container);
 
         Renderer = new OpenGlRenderer(options.RenderConfig);
@@ -75,6 +78,11 @@ public class LillyBootstrap : ILillyBootstrap
     private void LoadDefaultAssets()
     {
         var assetManager = _container.Resolve<IAssetManager>();
+
+        assetManager.LoadTextureFromMemory(
+            "logo",
+            ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Textures/logo.png")
+        );
 
         assetManager.LoadFontFromMemory(
             "default",
@@ -162,34 +170,40 @@ public class LillyBootstrap : ILillyBootstrap
 
             var pipeline = _container.Resolve<IRenderPipeline>();
 
-            var text = new TextGameObject(_container.Resolve<IAssetManager>())
-            {
-                Text = "Lilly Engine",
-                FontSize = 48,
-                Color = Color4b.Black,
-                FontName = DefaultFonts.DefaultFontHudBoldName,
-                Transform =
-                {
-                    Position = new(200, 200)
-                }
-            };
+            var gameObjectFactory = _container.Resolve<IGameObjectFactory>();
 
-            var fps = new FpsGameObject(_container.Resolve<IAssetManager>());
-            fps.Color = Color4b.Black;
-            fps.Transform.Position = new(100, 100);
+            var versionGameObject = gameObjectFactory.Create<VersionGameObject>();
 
-            var rectagle = new RectangleGameObject()
-            {
-                Size = new Vector2(200, 400),
-                Color = Color4b.Aqua,
-                Transform = { Position = new Vector2(400, 500) }
-            };
+            pipeline.AddGameObject(versionGameObject);
 
-            pipeline.AddGameObject(fps);
+            // var text = new TextGameObject(_container.Resolve<IAssetManager>())
+            // {
+            //     Text = "Lilly Engine",
+            //     FontSize = 48,
+            //     Color = Color4b.Black,
+            //     FontName = DefaultFonts.DefaultFontHudBoldName,
+            //     Transform =
+            //     {
+            //         Position = new(200, 200)
+            //     }
+            // };
 
-            pipeline.AddGameObject(text);
-
-            pipeline.AddGameObject(rectagle);
+            // var fps = new FpsGameObject(_container.Resolve<IAssetManager>());
+            // fps.Color = Color4b.Black;
+            // fps.Transform.Position = new(100, 100);
+            //
+            // var rectagle = new RectangleGameObject()
+            // {
+            //     Size = new Vector2(200, 400),
+            //     Color = Color4b.Aqua,
+            //     Transform = { Position = new Vector2(400, 500) }
+            // };
+            //
+            // pipeline.AddGameObject(fps);
+            //
+            // pipeline.AddGameObject(text);
+            //
+            // pipeline.AddGameObject(rectagle);
         }
         OnRender?.Invoke(gameTime);
     }
@@ -202,6 +216,17 @@ public class LillyBootstrap : ILillyBootstrap
     public Task ShutdownAsync()
     {
         return Task.CompletedTask;
+    }
+
+    private void RegisterGameObjects()
+    {
+        _container
+            .RegisterGameObject<TextGameObject>()
+            .RegisterGameObject<RectangleGameObject>()
+            .RegisterGameObject<FpsGameObject>()
+            .RegisterGameObject<TextureGameObject>()
+            .RegisterGameObject<VersionGameObject>()
+            ;
     }
 
     private void RegisterServices()
