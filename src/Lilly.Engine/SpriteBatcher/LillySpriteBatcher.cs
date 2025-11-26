@@ -10,6 +10,9 @@ using TrippyGL;
 
 namespace Lilly.Engine.SpriteBatcher;
 
+/// <summary>
+/// Provides high-level sprite batching functionality for drawing textures, text, and shapes.
+/// </summary>
 public class LillySpriteBatcher : ILillySpriteBatcher
 {
     private readonly IAssetManager _assetManager;
@@ -20,6 +23,13 @@ public class LillySpriteBatcher : ILillySpriteBatcher
 
     private readonly IDpiManager _dpiManager;
 
+    /// <summary>
+    /// Initializes a new instance of the LillySpriteBatcher class.
+    /// </summary>
+    /// <param name="assetManager">The asset manager for loading textures and fonts.</param>
+    /// <param name="spriteBatcher">The underlying texture batcher.</param>
+    /// <param name="fontRenderer">The font renderer for text drawing.</param>
+    /// <param name="dpiManager">The DPI manager for scaling.</param>
     public LillySpriteBatcher(
         IAssetManager assetManager,
         TextureBatcher spriteBatcher,
@@ -33,6 +43,16 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         _dpiManager = dpiManager;
     }
 
+    /// <summary>
+    /// Draws text at the specified position.
+    /// </summary>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="text">The text to draw.</param>
+    /// <param name="position">The position to draw the text.</param>
+    /// <param name="color">The color of the text.</param>
+    /// <param name="rotation">The rotation angle in radians.</param>
+    /// <param name="scale">The scale factor.</param>
     public void DrawText(
         string fontName,
         int size,
@@ -60,6 +80,18 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         );
     }
 
+    /// <summary>
+    /// Draws a texture at the specified position or destination rectangle.
+    /// </summary>
+    /// <param name="texture">The name of the texture.</param>
+    /// <param name="position">The position to draw the texture (ignored if destination is set).</param>
+    /// <param name="destination">The destination rectangle.</param>
+    /// <param name="source">The source rectangle.</param>
+    /// <param name="color">The color tint.</param>
+    /// <param name="origin">The origin point for rotation and scaling.</param>
+    /// <param name="scale">The scale factor.</param>
+    /// <param name="rotation">The rotation angle in radians.</param>
+    /// <param name="depth">The depth for layering.</param>
     public void DrawTexure(
         string texture,
         Vector2? position = null,
@@ -140,6 +172,15 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         }
     }
 
+    /// <summary>
+    /// Draws a filled rectangle.
+    /// </summary>
+    /// <param name="position">The position of the rectangle.</param>
+    /// <param name="size">The size of the rectangle.</param>
+    /// <param name="color">The color of the rectangle.</param>
+    /// <param name="rotation">The rotation angle in radians.</param>
+    /// <param name="origin">The origin point for rotation.</param>
+    /// <param name="depth">The depth for layering.</param>
     public void DrawRectangle(
         Vector2 position,
         Vector2 size,
@@ -172,6 +213,14 @@ public class LillySpriteBatcher : ILillySpriteBatcher
         );
     }
 
+    /// <summary>
+    /// Draws a hollow rectangle (border only).
+    /// </summary>
+    /// <param name="position">The position of the rectangle.</param>
+    /// <param name="size">The size of the rectangle.</param>
+    /// <param name="color">The color of the border.</param>
+    /// <param name="thickness">The thickness of the border.</param>
+    /// <param name="depth">The depth for layering.</param>
     public void DrawHollowRectangle(
         Vector2 position,
         Vector2 size,

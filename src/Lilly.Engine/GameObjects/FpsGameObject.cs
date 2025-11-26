@@ -35,6 +35,10 @@ public class FpsGameObject : TextGameObject
         Text = string.Format(FpsFormat, 0);
     }
 
+    /// <summary>
+    /// Updates the FPS calculation and display.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);

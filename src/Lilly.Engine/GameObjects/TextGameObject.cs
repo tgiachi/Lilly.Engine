@@ -6,6 +6,9 @@ using TrippyGL;
 
 namespace Lilly.Engine.GameObjects;
 
+/// <summary>
+/// A game object that renders text using a specified font and size.
+/// </summary>
 public class TextGameObject : Base2dGameObject
 {
     private string _text = string.Empty;
@@ -15,6 +18,9 @@ public class TextGameObject : Base2dGameObject
 
     private readonly IAssetManager? _assetManager;
 
+    /// <summary>
+    /// Gets or sets the text to display.
+    /// </summary>
     public string Text
     {
         get => _text;
@@ -28,6 +34,9 @@ public class TextGameObject : Base2dGameObject
         }
     }
 
+    /// <summary>
+    /// Gets or sets the font size for the text.
+    /// </summary>
     public int FontSize
     {
         get => _fontSize;
@@ -41,8 +50,14 @@ public class TextGameObject : Base2dGameObject
         }
     }
 
+    /// <summary>
+    /// Gets or sets the color of the text.
+    /// </summary>
     public Color4b Color { get; set; } = Color4b.White;
 
+    /// <summary>
+    /// Gets or sets the name of the font to use.
+    /// </summary>
     public string FontName
     {
         get => _fontName;
@@ -56,13 +71,24 @@ public class TextGameObject : Base2dGameObject
         }
     }
 
+    /// <summary>
+    /// Gets or sets an optional action to invoke during update.
+    /// </summary>
     public Action<GameTime>? OnUpdateAction { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the TextGameObject class.
+    /// </summary>
+    /// <param name="assetManager">The asset manager for loading fonts.</param>
     public TextGameObject(IAssetManager? assetManager) : base("TextGameObject")
     {
         _assetManager = assetManager;
     }
 
+    /// <summary>
+    /// Draws the text using the specified font and size.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     protected override void OnDraw(GameTime gameTime)
     {
         var worldPosition = GetWorldPosition();
@@ -72,6 +98,10 @@ public class TextGameObject : Base2dGameObject
         SpriteBatcher.DrawText(FontName, FontSize, Text, worldPosition, Color, worldRotation, worldScale);
     }
 
+    /// <summary>
+    /// Updates the game object and invokes the optional update action.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public override void Update(GameTime gameTime)
     {
         OnUpdateAction?.Invoke(gameTime);

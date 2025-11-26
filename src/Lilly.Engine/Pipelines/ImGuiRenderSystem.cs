@@ -16,11 +16,18 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
     private ImGuiController _imGuiController;
     private readonly RenderContext _renderContext;
 
+    /// <summary>
+    /// Initializes a new instance of the ImGuiRenderSystem class.
+    /// </summary>
+    /// <param name="renderContext">The render context.</param>
     public ImGuiRenderSystem(RenderContext renderContext) : base("ImGUI", RenderPriority.Debug)
     {
         _renderContext = renderContext;
     }
 
+    /// <summary>
+    /// Initializes the ImGui controller.
+    /// </summary>
     public override void Initialize()
     {
         _imGuiController = new ImGuiController(_renderContext.OpenGl, _renderContext.Window, _renderContext.Input);
@@ -28,6 +35,10 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
         base.Initialize();
     }
 
+    /// <summary>
+    /// Renders the ImGui debug windows.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public override void Render(GameTime gameTime)
     {
         _imGuiController.Update((float)gameTime.ElapsedGameTime);
@@ -46,6 +57,9 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
         base.Render(gameTime);
     }
 
+    /// <summary>
+    /// Disposes the ImGui controller.
+    /// </summary>
     public void Dispose()
     {
         _imGuiController.Dispose();

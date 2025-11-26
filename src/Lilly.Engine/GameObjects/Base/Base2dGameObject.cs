@@ -7,20 +7,52 @@ using Lilly.Rendering.Core.Primitives;
 
 namespace Lilly.Engine.GameObjects.Base;
 
+/// <summary>
+/// Base class for 2D game objects, providing common functionality for drawing, updating, and transform management.
+/// </summary>
 public abstract class Base2dGameObject : IGameObject2d, IUpdateble
 {
+    /// <summary>
+    /// Gets or sets the unique identifier for this game object.
+    /// </summary>
     public uint Id { get; set; }
+    /// <summary>
+    /// Gets or sets the name of this game object.
+    /// </summary>
     public string Name { get; set; }
+    /// <summary>
+    /// Gets or sets the Z-index for rendering order.
+    /// </summary>
     public uint ZIndex { get; set; }
+    /// <summary>
+    /// Gets or sets whether the game object is active and should be updated and drawn.
+    /// </summary>
     public bool IsActive { get; set; }
 
+    /// <summary>
+    /// Gets or sets the parent game object in the hierarchy.
+    /// </summary>
     public IGameObject? Parent { get; set; }
+    /// <summary>
+    /// Gets the collection of child game objects.
+    /// </summary>
     public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject2d>();
 
+    /// <summary>
+    /// Gets the sprite batcher used for rendering.
+    /// </summary>
     protected ILillySpriteBatcher? SpriteBatcher { get; private set; }
 
+    /// <summary>
+    /// Gets the 2D transform containing position, rotation, scale, and size.
+    /// </summary>
     public Transform2D Transform { get; } = new Transform2D();
 
+    /// <summary>
+    /// Initializes a new instance of the Base2dGameObject class.
+    /// </summary>
+    /// <param name="name">The name of the game object.</param>
+    /// <param name="zIndex">The Z-index for rendering order.</param>
     protected Base2dGameObject(string name, uint zIndex = 0)
     {
         Name = name;
@@ -28,6 +60,11 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
         IsActive = true;
     }
 
+    /// <summary>
+    /// Draws the game object and its children if active.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    /// <param name="spriteBatcher">The sprite batcher for rendering.</param>
     public void Draw(GameTime gameTime, ILillySpriteBatcher spriteBatcher)
     {
         if (!IsActive)
@@ -48,6 +85,10 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
         }
     }
 
+    /// <summary>
+    /// Adds a 2D game object as a child.
+    /// </summary>
+    /// <param name="gameObject">The game object to add.</param>
     protected void AddGameObject2d(IGameObject2d gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
@@ -59,6 +100,10 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
         }
     }
 
+    /// <summary>
+    /// Removes a 2D game object from the children collection.
+    /// </summary>
+    /// <param name="gameObject">The game object to remove.</param>
     protected void RemoveGameObject2d(IGameObject2d gameObject)
     {
         ArgumentNullException.ThrowIfNull(gameObject);
@@ -72,8 +117,16 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble
         }
     }
 
+    /// <summary>
+    /// Called when the game object is drawn. Override to implement custom drawing logic.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     protected virtual void OnDraw(GameTime gameTime) { }
 
+    /// <summary>
+    /// Updates the game object. Override to implement custom update logic.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
     public virtual void Update(GameTime gameTime) { }
 
     /// <summary>
