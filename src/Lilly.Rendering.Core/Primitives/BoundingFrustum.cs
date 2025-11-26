@@ -1,4 +1,4 @@
-using Silk.NET.Maths;
+using System.Numerics;
 
 namespace Lilly.Rendering.Core.Primitives;
 
@@ -7,45 +7,45 @@ namespace Lilly.Rendering.Core.Primitives;
 /// </summary>
 public class BoundingFrustum
 {
-    private readonly Plane<float>[] _planes;
+    private readonly Plane[] _planes;
 
     /// <summary>
     /// Gets the near plane of the frustum.
     /// </summary>
-    public Plane<float> Near => _planes[0];
+    public Plane Near => _planes[0];
 
     /// <summary>
     /// Gets the far plane of the frustum.
     /// </summary>
-    public Plane<float> Far => _planes[1];
+    public Plane Far => _planes[1];
 
     /// <summary>
     /// Gets the left plane of the frustum.
     /// </summary>
-    public Plane<float> Left => _planes[2];
+    public Plane Left => _planes[2];
 
     /// <summary>
     /// Gets the right plane of the frustum.
     /// </summary>
-    public Plane<float> Right => _planes[3];
+    public Plane Right => _planes[3];
 
     /// <summary>
     /// Gets the top plane of the frustum.
     /// </summary>
-    public Plane<float> Top => _planes[4];
+    public Plane Top => _planes[4];
 
     /// <summary>
     /// Gets the bottom plane of the frustum.
     /// </summary>
-    public Plane<float> Bottom => _planes[5];
+    public Plane Bottom => _planes[5];
 
     /// <summary>
     /// Initializes a new instance of the BoundingFrustum class.
     /// </summary>
     /// <param name="viewProjectionMatrix">The combined view-projection matrix.</param>
-    public BoundingFrustum(Matrix4X4<float> viewProjectionMatrix)
+    public BoundingFrustum(Matrix4x4 viewProjectionMatrix)
     {
-        _planes = new Plane<float>[6];
+        _planes = new Plane[6];
         ExtractPlanes(viewProjectionMatrix);
     }
 
@@ -54,7 +54,7 @@ public class BoundingFrustum
     /// </summary>
     /// <param name="point">The point to test.</param>
     /// <returns>True if the point is inside the frustum, false otherwise.</returns>
-    public bool Contains(Vector3D<float> point)
+    public bool Contains(Vector3 point)
     {
         foreach (var plane in _planes)
         {
@@ -73,7 +73,7 @@ public class BoundingFrustum
     /// <param name="center">The center of the sphere.</param>
     /// <param name="radius">The radius of the sphere.</param>
     /// <returns>True if the sphere intersects or is inside the frustum, false otherwise.</returns>
-    public bool Intersects(Vector3D<float> center, float radius)
+    public bool Intersects(Vector3 center, float radius)
     {
         foreach (var plane in _planes)
         {
@@ -94,12 +94,12 @@ public class BoundingFrustum
     /// <param name="min">The minimum corner of the bounding box.</param>
     /// <param name="max">The maximum corner of the bounding box.</param>
     /// <returns>True if the box intersects or is inside the frustum, false otherwise.</returns>
-    public bool Intersects(Vector3D<float> min, Vector3D<float> max)
+    public bool Intersects(Vector3 min, Vector3 max)
     {
         foreach (var plane in _planes)
         {
             // Get the positive vertex (furthest point in the direction of the plane normal)
-            var positiveVertex = new Vector3D<float>(
+            var positiveVertex = new Vector3(
                 plane.Normal.X >= 0 ? max.X : min.X,
                 plane.Normal.Y >= 0 ? max.Y : min.Y,
                 plane.Normal.Z >= 0 ? max.Z : min.Z
@@ -125,12 +125,12 @@ public class BoundingFrustum
     /// Updates the frustum planes from a new view-projection matrix.
     /// </summary>
     /// <param name="viewProjectionMatrix">The combined view-projection matrix.</param>
-    public void Update(Matrix4X4<float> viewProjectionMatrix)
+    public void Update(Matrix4x4 viewProjectionMatrix)
     {
         ExtractPlanes(viewProjectionMatrix);
     }
 
-    private void ExtractPlanes(Matrix4X4<float> matrix)
+    private void ExtractPlanes(Matrix4x4 matrix)
     {
         // Left plane
         _planes[2] = NormalizePlane(
@@ -193,13 +193,13 @@ public class BoundingFrustum
         );
     }
 
-    private static Plane<float> NormalizePlane(Plane<float> plane)
+    private static Plane NormalizePlane(Plane plane)
     {
-        var length = plane.Normal.Length;
+        var length = plane.Normal.Length();
 
-        return new(
+        return new Plane(
             plane.Normal / length,
-            plane.Distance / length
+            plane.D / length
         );
     }
 }

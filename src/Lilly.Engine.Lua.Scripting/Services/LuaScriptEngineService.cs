@@ -51,7 +51,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     private readonly ConcurrentDictionary<string, object> _loadedModules = new();
     private readonly ILogger _logger = Log.ForContext<LuaScriptEngineService>();
 
-    private readonly IJobSystemService _jobSystemService;
 
     // Script caching - using hash to avoid re-parsing identical scripts
     private readonly ConcurrentDictionary<string, string> _scriptCache = new();
@@ -83,7 +82,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         List<ScriptModuleData> scriptModules,
         IContainer serviceProvider,
         IVersionService versionService,
-        IJobSystemService jobSystemService,
         List<ScriptUserData> loadedUserData = null
     )
     {
@@ -95,7 +93,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         _directoriesConfig = directoriesConfig;
         _serviceProvider = serviceProvider;
         _versionService = versionService;
-        _jobSystemService = jobSystemService;
         _loadedUserData = loadedUserData ?? new();
         _initScripts = ["bootstrap.lua", "init.lua", "main.lua"];
 

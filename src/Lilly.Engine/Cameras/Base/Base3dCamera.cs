@@ -2,6 +2,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
@@ -12,11 +13,9 @@ namespace Lilly.Engine.Cameras.Base;
 /// </summary>
 public abstract class Base3dCamera : ICamera3D
 {
-    //private const float Epsilon = 1e-6f; // Epsilon per confronti float
-
     private Vector3 _position = Vector3.Zero;
     private Quaternion _rotation = Quaternion.Identity;
-    private Vector3 _target = new(0, 0, 1);   // Forward
+    private Vector3 _target = new(0, 0, 1);     // Forward
     private float _fieldOfView = MathF.PI / 4f; // 45 degrees
     private float _aspectRatio;
     private float _nearPlane = 0.1f;
@@ -191,7 +190,7 @@ public abstract class Base3dCamera : ICamera3D
             if (_frustum == null || _viewDirty || _projectionDirty)
             {
                 var viewProjection = View * Projection;
-                _frustum = new(viewProjection.ToSilk());
+                _frustum = new(viewProjection);
             }
 
             return _frustum;
@@ -249,6 +248,24 @@ public abstract class Base3dCamera : ICamera3D
         Move(new Vector3(0, 1, 0) * distance);
     }
 
+    public bool IsInFrustum(IGameObject3d gameObject)
+    {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
+        var position = gameObject.Transform.Position;
+        var scale = gameObject.Transform.Scale;
+
+        // Calculate bounding sphere radius for a unit cube (vertices from -0.5 to +0.5)
+        // Corner is at (0.5*sx, 0.5*sy, 0.5*sz), so:
+        // radius = sqrt((0.5*sx)² + (0.5*sy)² + (0.5*sz)²) = 0.5 * sqrt(sx² + sy² + sz²)
+        var scaleLength = MathF.Sqrt(scale.X * scale.X + scale.Y * scale.Y + scale.Z * scale.Z);
+        var estimatedRadius = scaleLength * 0.5f;
+
+        return Frustum.Intersects(position, estimatedRadius);
+    }
 
     public virtual void Rotate(float pitch, float yaw, float roll)
     {
@@ -275,5 +292,4 @@ public abstract class Base3dCamera : ICamera3D
     {
         _view = Matrix4x4.CreateLookAt(_position, _target, Up);
     }
-
 }

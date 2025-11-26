@@ -142,6 +142,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterRenderLayer<SpriteBatcherLayer>()
             .RegisterRenderLayer<InputLayer>()
             .RegisterRenderLayer<ImGuiRenderSystem>()
+            .RegisterRenderLayer<ThreeDLayer>()
             ;
     }
 
@@ -161,13 +162,17 @@ public class LillyBootstrap : ILillyBootstrap
 
         if (!_isServiceInitialized)
         {
+
             InitializeServicesAsync().GetAwaiter().GetResult();
             _isServiceInitialized = true;
         }
 
         if (!_isServiceStarted)
         {
+
             StartServicesAsync().GetAwaiter().GetResult();
+
+
             _isServiceStarted = true;
 
             var pipeline = _container.Resolve<IRenderPipeline>();
@@ -175,6 +180,8 @@ public class LillyBootstrap : ILillyBootstrap
             var gameObjectFactory = _container.Resolve<IGameObjectFactory>();
 
             var versionGameObject = gameObjectFactory.Create<VersionGameObject>();
+
+            _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
 

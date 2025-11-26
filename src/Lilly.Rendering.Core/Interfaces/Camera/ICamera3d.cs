@@ -1,5 +1,6 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
@@ -175,6 +176,13 @@ public interface ICamera3D
     /// </summary>
     /// <param name="distance">Distance to move (positive = up, negative = down).</param>
     void MoveUp(float distance);
+
+    /// <summary>
+    ///  Determines if a 3D game object is within the camera's frustum
+    /// </summary>
+    /// <param name="gameObject"></param>
+    /// <returns></returns>
+    bool IsInFrustum(IGameObject3d gameObject);
 
     /// <summary>
     /// Rotates the camera by pitch, yaw, and roll angles.
