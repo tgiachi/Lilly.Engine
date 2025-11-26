@@ -7,7 +7,6 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using Lilly.Rendering.Core.Layers;
-using Lilly.Rendering.Core.Primitives;
 using Lilly.Rendering.Core.Types;
 using Silk.NET.Maths;
 using TrippyGL;
@@ -141,7 +140,6 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
 
         var newScissor = new Rectangle<int>((int)worldPosition.X, flippedY, width, height);
 
-        // Solo flush se lo scissor è cambiato
         if (_currentScissor.HasValue && _currentScissor.Value == newScissor)
         {
             return;
