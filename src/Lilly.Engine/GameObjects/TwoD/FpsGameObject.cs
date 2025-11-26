@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
 
-namespace Lilly.Engine.GameObjects;
+namespace Lilly.Engine.GameObjects.TwoD;
 
 /// <summary>
 /// A text game object that displays the current FPS (Frames Per Second).

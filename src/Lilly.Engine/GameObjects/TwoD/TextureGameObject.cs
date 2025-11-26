@@ -4,7 +4,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using TrippyGL;
 
-namespace Lilly.Engine.GameObjects;
+namespace Lilly.Engine.GameObjects.TwoD;
 
 /// <summary>
 /// A game object that renders a texture/sprite.

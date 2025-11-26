@@ -4,7 +4,7 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
 using TrippyGL;
 
-namespace Lilly.Engine.GameObjects;
+namespace Lilly.Engine.GameObjects.TwoD;
 
 /// <summary>
 /// A game object that renders text using a specified font and size.

@@ -7,7 +7,7 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
-namespace Lilly.Engine.GameObjects;
+namespace Lilly.Engine.GameObjects.TwoD;
 
 public class VersionGameObject : Base2dGameObject
 {

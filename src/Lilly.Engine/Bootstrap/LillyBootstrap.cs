@@ -13,6 +13,7 @@ using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Interfaces.Services;

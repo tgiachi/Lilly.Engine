@@ -1,10 +1,9 @@
 using System.Numerics;
-using System.Linq;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Entities;
 
-namespace Lilly.Engine.GameObjects;
+namespace Lilly.Engine.GameObjects.TwoD;
 
 public enum StackOrientation
 {
