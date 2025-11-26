@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
@@ -51,6 +52,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// Gets the 2D transform containing position, rotation, scale, and size.
     /// </summary>
     public Transform2D Transform { get; } = new Transform2D();
+
 
     /// <summary>
     /// Initializes a new instance of the Base2dGameObject class.

@@ -1,7 +1,9 @@
 using System.Numerics;
+using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
@@ -13,21 +15,22 @@ public class VersionGameObject : Base2dGameObject
 
     private readonly IVersionService _versionService;
 
-    public VersionGameObject(IGameObjectFactory gameObjectFactory, IVersionService versionService) : base(
-        "VersionGameObject"
-    )
+    private readonly RenderContext _renderContext;
+
+    public VersionGameObject(
+        IGameObjectFactory gameObjectFactory,
+        IVersionService versionService,
+        RenderContext renderContext
+    ) : base("VersionGameObject")
     {
         _gameObjectFactory = gameObjectFactory;
         _versionService = versionService;
+        _renderContext = renderContext;
     }
 
     public override void Initialize()
     {
-        Transform.Position = new(130, 0);
-
-
-
-
+        Transform.Position = new(0, 0);
 
         var textGameObject = _gameObjectFactory.Create<TextGameObject>();
         textGameObject.Text = $"Lilly Engine v{_versionService.GetVersionInfo().Version}";
@@ -40,7 +43,6 @@ public class VersionGameObject : Base2dGameObject
         logoTexture.TextureName = "logo";
         logoTexture.Size = new Vector2(64, 64);
 
-
         var fpsCounter = _gameObjectFactory.Create<FpsGameObject>();
         fpsCounter.Color = Color4b.White;
         fpsCounter.Transform.Position = new Vector2(65, textGameObject.Transform.Size.Y + 1);
@@ -49,7 +51,10 @@ public class VersionGameObject : Base2dGameObject
         rectangle.Size = new Vector2(textGameObject.Transform.Size.X + 65, 65);
         rectangle.Color = Color4b.Black;
 
-
         AddGameObject2d(rectangle, textGameObject, logoTexture, fpsCounter);
+    }
+
+    public override void Update(GameTime gameTime)
+    {
     }
 }

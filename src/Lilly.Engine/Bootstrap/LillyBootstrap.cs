@@ -12,6 +12,7 @@ using Lilly.Engine.Data.Config;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Interfaces.Services;
@@ -225,6 +226,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<RectangleGameObject>()
             .RegisterGameObject<FpsGameObject>()
             .RegisterGameObject<TextureGameObject>()
+            .RegisterGameObject<StackLayoutGameObject>()
             .RegisterGameObject<VersionGameObject>()
             ;
     }
