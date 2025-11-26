@@ -78,7 +78,7 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         {
             if (entity.Transform.Size != Vector2.Zero)
             {
-                ApplyScissorIfChanged(entity.Transform);
+                ApplyScissorIfChanged(entity);
             }
             else
             {
@@ -128,16 +128,18 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         _spriteBatcher.Begin();
     }
 
-    private void ApplyScissorIfChanged(Transform2D transform)
+    private void ApplyScissorIfChanged(IGameObject2d entity)
     {
-        var rectangle = new Rectangle<float>(transform.Position.X, transform.Position.Y, transform.Size.X, transform.Size.Y);
-        var width = Math.Max(0, (int)rectangle.Size.X);
-        var height = Math.Max(0, (int)rectangle.Size.Y);
+        var worldPosition = entity.GetWorldPosition();
+        var worldSize = entity.GetWorldSize();
+
+        var width = Math.Max(0, (int)worldSize.X);
+        var height = Math.Max(0, (int)worldSize.Y);
 
         var viewportHeight = _renderContext.GraphicsDevice.Viewport.Height;
-        var flippedY = (int)viewportHeight - (int)rectangle.Origin.Y - height;
+        var flippedY = (int)viewportHeight - (int)worldPosition.Y - height;
 
-        var newScissor = new Rectangle<int>((int)rectangle.Origin.X, flippedY, width, height);
+        var newScissor = new Rectangle<int>((int)worldPosition.X, flippedY, width, height);
 
         // Solo flush se lo scissor è cambiato
         if (_currentScissor.HasValue && _currentScissor.Value == newScissor)

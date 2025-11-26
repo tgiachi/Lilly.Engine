@@ -65,7 +65,11 @@ public class TextGameObject : Base2dGameObject
 
     protected override void OnDraw(GameTime gameTime)
     {
-        SpriteBatcher.DrawText(FontName, FontSize, Text, Transform.Position, Color, Transform.Rotation, Transform.Scale);
+        var worldPosition = GetWorldPosition();
+        var worldRotation = GetWorldRotation();
+        var worldScale = GetWorldScale();
+
+        SpriteBatcher.DrawText(FontName, FontSize, Text, worldPosition, Color, worldRotation, worldScale);
     }
 
     public override void Update(GameTime gameTime)

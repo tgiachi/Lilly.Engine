@@ -57,6 +57,7 @@ public class RectangleGameObject : Base2dGameObject
     /// Draws the rectangle using the SpriteBatcher.
     /// Filled rectangles support rotation via Transform.Rotation.
     /// Hollow rectangles do not support rotation.
+    /// Uses world transforms for hierarchical positioning.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
     protected override void OnDraw(GameTime gameTime)
@@ -66,12 +67,17 @@ public class RectangleGameObject : Base2dGameObject
             return;
         }
 
+        var worldPosition = GetWorldPosition();
+        var worldRotation = GetWorldRotation();
+        var worldScale = GetWorldScale();
+        var worldSize = Size * worldScale;
+
         if (IsHollow)
         {
             // Draw hollow rectangle (border only) - rotation not supported
             SpriteBatcher.DrawHollowRectangle(
-                Transform.Position,
-                Size,
+                worldPosition,
+                worldSize,
                 Color,
                 BorderThickness,
                 depth: ZIndex
@@ -81,10 +87,10 @@ public class RectangleGameObject : Base2dGameObject
         {
             // Draw filled rectangle - supports rotation
             SpriteBatcher.DrawRectangle(
-                Transform.Position,
-                Size,
+                worldPosition,
+                worldSize,
                 Color,
-                Transform.Rotation,
+                worldRotation,
                 origin: Vector2.Zero,
                 depth: ZIndex
             );
