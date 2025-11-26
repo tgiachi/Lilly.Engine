@@ -20,6 +20,7 @@ using Lilly.Engine.Pipelines;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Services.Input;
+using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Renderers;
@@ -79,7 +80,7 @@ public class LillyBootstrap : ILillyBootstrap
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Fonts/DefaultMonoFont.ttf")
         );
         assetManager.LoadFontFromMemory(
-            "default_alternative",
+            DefaultFonts.DefaultFontAlternateName,
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBootstrap).Assembly,
                 "Assets/Fonts/DefaultMonoFontAlternative.ttf"
@@ -87,7 +88,7 @@ public class LillyBootstrap : ILillyBootstrap
         );
 
         assetManager.LoadFontFromMemory(
-            "monocraft",
+            DefaultFonts.DefaultMonocraftFontName,
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBootstrap).Assembly,
                 "Assets/Fonts/Monocraft.ttf"
@@ -95,7 +96,7 @@ public class LillyBootstrap : ILillyBootstrap
         );
 
         assetManager.LoadFontFromMemory(
-            "hud",
+            DefaultFonts.DefaultFontHudName,
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBootstrap).Assembly,
                 "Assets/Fonts/HornetDisplay-Regular.ttf"
@@ -103,7 +104,7 @@ public class LillyBootstrap : ILillyBootstrap
         );
 
         assetManager.LoadFontFromMemory(
-            "hud_bold",
+            DefaultFonts.DefaultFontHudBoldName,
             ResourceUtils.GetEmbeddedResourceStream(
                 typeof(LillyBootstrap).Assembly,
                 "Assets/Fonts/HornetDisplay-Bold.ttf"
@@ -157,6 +158,37 @@ public class LillyBootstrap : ILillyBootstrap
         {
             StartServicesAsync().GetAwaiter().GetResult();
             _isServiceStarted = true;
+
+            var pipeline = _container.Resolve<IRenderPipeline>();
+
+            var text = new TextGameObject(_container.Resolve<IAssetManager>())
+            {
+                Text = "Lilly Engine",
+                FontSize = 48,
+                Color = Color4b.Black,
+                FontName = DefaultFonts.DefaultFontHudBoldName,
+                Transform =
+                {
+                    Position = new(200, 200)
+                }
+            };
+
+            var fps = new FpsGameObject(_container.Resolve<IAssetManager>());
+            fps.Color = Color4b.Black;
+            fps.Transform.Position = new(100, 100);
+
+            var rectagle = new RectangleGameObject()
+            {
+                Size = new Vector2(200, 400),
+                Color = Color4b.Aqua,
+                Transform = { Position = new Vector2(400, 500) }
+            };
+
+            pipeline.AddGameObject(fps);
+
+            pipeline.AddGameObject(text);
+
+            pipeline.AddGameObject(rectagle);
         }
         OnRender?.Invoke(gameTime);
     }
@@ -212,21 +244,7 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void IntializeRenders()
     {
-        var pipeline = _container.Resolve<IRenderPipeline>();
-
-        var text = new TextGameObject
-        {
-            Text = "Lilly Engine",
-            FontSize = 48,
-            Color = Color4b.Black,
-            FontName = "hud_bold",
-            Transform =
-            {
-                Position = new(200, 200)
-            }
-        };
-
-        pipeline.AddGameObject(text);
+        _container.Resolve<IRenderPipeline>();
     }
 
     private async Task InitializeServicesAsync()

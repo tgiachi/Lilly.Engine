@@ -3,6 +3,7 @@ using System.Numerics;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Fonts;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.Renderers;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using TrippyGL;
@@ -137,5 +138,105 @@ public class LillySpriteBatcher : ILillySpriteBatcher
                 depth
             );
         }
+    }
+
+    public void DrawRectangle(
+        Vector2 position,
+        Vector2 size,
+        Color4b color,
+        float rotation = 0f,
+        Vector2? origin = null,
+        float depth = 0.0f
+    )
+    {
+        var whiteTexture = _assetManager.GetTexture<Texture2D>(DefaultTextures.WhiteTextureKey);
+
+        if (whiteTexture == null)
+        {
+            throw new InvalidOperationException($"White texture '{DefaultTextures.WhiteTextureKey}' not found.");
+        }
+
+        var scaledPosition = position * _dpiManager.DPIScale;
+        var scaledSize = size * _dpiManager.DPIScale;
+        var scaledOrigin = (origin ?? Vector2.Zero) * _dpiManager.DPIScale;
+
+        _spriteBatcher.Draw(
+            whiteTexture,
+            scaledPosition,
+            null,
+            color,
+            scaledSize,
+            rotation,
+            scaledOrigin,
+            depth
+        );
+    }
+
+    public void DrawHollowRectangle(
+        Vector2 position,
+        Vector2 size,
+        Color4b color,
+        float thickness = 2.0f,
+        float depth = 0.0f
+    )
+    {
+        var whiteTexture = _assetManager.GetTexture<Texture2D>(DefaultTextures.WhiteTextureKey);
+
+        if (whiteTexture == null)
+        {
+            throw new InvalidOperationException($"White texture '{DefaultTextures.WhiteTextureKey}' not found.");
+        }
+
+        var scaledPosition = position * _dpiManager.DPIScale;
+        var scaledSize = size * _dpiManager.DPIScale;
+        var scaledThickness = thickness * _dpiManager.DPIScale;
+
+        // Top border
+        _spriteBatcher.Draw(
+            whiteTexture,
+            scaledPosition,
+            null,
+            color,
+            new Vector2(scaledSize.X, scaledThickness),
+            0f,
+            Vector2.Zero,
+            depth
+        );
+
+        // Bottom border
+        _spriteBatcher.Draw(
+            whiteTexture,
+            new Vector2(scaledPosition.X, scaledPosition.Y + scaledSize.Y - scaledThickness),
+            null,
+            color,
+            new Vector2(scaledSize.X, scaledThickness),
+            0f,
+            Vector2.Zero,
+            depth
+        );
+
+        // Left border
+        _spriteBatcher.Draw(
+            whiteTexture,
+            scaledPosition,
+            null,
+            color,
+            new Vector2(scaledThickness, scaledSize.Y),
+            0f,
+            Vector2.Zero,
+            depth
+        );
+
+        // Right border
+        _spriteBatcher.Draw(
+            whiteTexture,
+            new Vector2(scaledPosition.X + scaledSize.X - scaledThickness, scaledPosition.Y),
+            null,
+            color,
+            new Vector2(scaledThickness, scaledSize.Y),
+            0f,
+            Vector2.Zero,
+            depth
+        );
     }
 }
