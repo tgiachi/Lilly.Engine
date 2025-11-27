@@ -275,7 +275,8 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void IntializeRenders()
     {
-        _container.Resolve<IRenderPipeline>();
+        var renderPipeLine = _container.Resolve<IRenderPipeline>();
+        _container.RegisterInstance<IGameObjectManager>(renderPipeLine);
     }
 
     private async Task InitializeServicesAsync()

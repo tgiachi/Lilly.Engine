@@ -1,6 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.TwoD;
@@ -47,8 +48,8 @@ public class RectangleGameObject : Base2dGameObject
     /// </summary>
     /// <param name="name">The name of the game object (default: "RectangleGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
-    public RectangleGameObject(string name = "RectangleGameObject", uint zIndex = 0)
-        : base(name, zIndex)
+    public RectangleGameObject(IRenderPipeline gameObjectManager, string name = "RectangleGameObject", uint zIndex = 0)
+        : base(name, gameObjectManager, zIndex)
     {
         Transform.Size = _size;
     }

@@ -15,17 +15,14 @@ public class VersionGameObject : Base2dGameObject
 
     private readonly IVersionService _versionService;
 
-    private readonly RenderContext _renderContext;
-
     public VersionGameObject(
         IGameObjectFactory gameObjectFactory,
         IVersionService versionService,
-        RenderContext renderContext
-    ) : base("VersionGameObject")
+        IGameObjectManager gameObjectManager
+    ) : base("VersionGameObject", gameObjectManager)
     {
         _gameObjectFactory = gameObjectFactory;
         _versionService = versionService;
-        _renderContext = renderContext;
     }
 
     public override void Initialize()
@@ -53,6 +50,4 @@ public class VersionGameObject : Base2dGameObject
 
         AddGameObject2d(rectangle, textGameObject, logoTexture, fpsCounter);
     }
-
-
 }

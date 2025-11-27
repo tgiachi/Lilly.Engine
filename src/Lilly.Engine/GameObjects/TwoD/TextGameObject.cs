@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.TwoD;
@@ -80,7 +81,7 @@ public class TextGameObject : Base2dGameObject
     /// Initializes a new instance of the TextGameObject class.
     /// </summary>
     /// <param name="assetManager">The asset manager for loading fonts.</param>
-    public TextGameObject(IAssetManager? assetManager) : base("TextGameObject")
+    public TextGameObject(IAssetManager? assetManager, IGameObjectManager gameObjectManager) : base("TextGameObject", gameObjectManager)
     {
         _assetManager = assetManager;
     }

@@ -20,7 +20,6 @@ public class RenderPipeline : IRenderPipeline
 
     private readonly IGameObjectFactory _gameObjectFactory;
 
-
     public IEnumerable<IRenderLayer> RenderLayers
     {
         get
@@ -161,8 +160,9 @@ public class RenderPipeline : IRenderPipeline
             }
 
             _logger.Information(
-                "Entity of type {EntityType} was added to render layers: {RenderLayers}",
-                typeof(TEntity).Name,
+                "Entity of type {EntityType} (Parent: {Parent}) was added to render layers: {RenderLayers}",
+                entity.Name,
+                entity.Parent?.Name ?? "None",
                 string.Join(", ", addedToLayer)
             );
         }
@@ -188,6 +188,8 @@ public class RenderPipeline : IRenderPipeline
                         renderLayer.RemoveEntity(entity);
                     }
                 }
+
+                entity.OnRemoved();
             }
         }
     }

@@ -6,6 +6,7 @@ using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
@@ -86,8 +87,9 @@ public class NotificationHudGameObject : Base2dGameObject
     public NotificationHudGameObject(
         UITheme theme,
         IAssetManager assetManager,
-        INotificationService notificationService
-    ) : base("NotificationHud", 9000) // High Z-index to render on top
+        INotificationService notificationService,
+        IRenderPipeline gameObjectManager
+    ) : base("NotificationHud", gameObjectManager, 9000) // High Z-index to render on top
     {
         _assetManager = assetManager;
         _fontFamily = theme.FontName;

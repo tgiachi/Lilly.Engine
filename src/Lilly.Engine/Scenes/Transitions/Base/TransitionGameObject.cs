@@ -14,6 +14,10 @@ public abstract class TransitionGameObject : Transition, IGameObject
     public IGameObject? Parent { get; set; }
 
     public IEnumerable<IGameObject> Children => Enumerable.Empty<IGameObject>();
+    public void OnRemoved()
+    {
+
+    }
 
     public uint Id { get; set; }
 

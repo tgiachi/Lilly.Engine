@@ -12,6 +12,10 @@ public abstract class BaseImGuiDebuggerGameObject : IImGuiDebugger
     public bool IsActive { get; set; }
     public IGameObject? Parent { get; set; }
     public IEnumerable<IGameObject> Children { get; } = [];
+    public void OnRemoved()
+    {
+
+    }
     public string Title { get; set; }
 
     protected BaseImGuiDebuggerGameObject(string title)

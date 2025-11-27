@@ -2,6 +2,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.GameObjects.TwoD;
 
@@ -66,8 +67,8 @@ public class StackLayoutGameObject : Base2dGameObject
         }
     }
 
-    public StackLayoutGameObject(string name = "StackLayoutGameObject", uint zIndex = 0)
-        : base(name, zIndex)
+    public StackLayoutGameObject(IRenderPipeline gameObjectManager, string name = "StackLayoutGameObject", uint zIndex = 0)
+        : base(name, gameObjectManager, zIndex)
     {
     }
 

@@ -1,5 +1,6 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.GameObjects.TwoD;
 
@@ -26,7 +27,7 @@ public class FpsGameObject : TextGameObject
     /// </summary>
     /// <param name="assetManager">Optional AssetManager for automatic text size calculation.</param>
     /// <param name="updateInterval">The interval in seconds at which to update the FPS display. Default is 0.5 seconds.</param>
-    public FpsGameObject(IAssetManager? assetManager, double updateInterval = 0.5) : base(assetManager)
+    public FpsGameObject(IAssetManager? assetManager, IGameObjectManager gameObjectManager,  double updateInterval = 0.5) : base(assetManager, gameObjectManager)
     {
         _updateInterval = updateInterval;
         _fpsUpdateTimer = 0;

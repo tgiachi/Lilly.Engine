@@ -20,8 +20,8 @@ public class AudioService : IAudioService
     private Vector3 _listenerForward = new(0, 0, -1);
     private Vector3 _listenerUp = new(0, 1, 0);
 
-    private readonly Dictionary<string, Audio.AudioEffect> _soundEffects = new();
-    private readonly Dictionary<string, Audio.AudioStream> _streams = new();
+    private readonly Dictionary<string, AudioEffect> _soundEffects = new();
+    private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly Dictionary<string, AlBuffer> _cachedBuffers = new();
 
     public AudioService()

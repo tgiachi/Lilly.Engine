@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
@@ -13,19 +14,45 @@ public abstract class Base3dGameObject : IGameObject3d
     public string Name { get; set; }
     public uint ZIndex { get; set; }
 
-    public bool IsActive { get; set; }
+    private bool _isActive;
+
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            _isActive = value;
+
+            foreach (var child in Children)
+            {
+                child.IsActive = value;
+            }
+        }
+    }
+
     public IGameObject? Parent { get; set; }
-    public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject3d>();
+    public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject>();
+
+    public void OnRemoved()
+    {
+        foreach (var child in Children)
+        {
+            _gameObjectManager.RemoveGameObject(child);
+        }
+    }
 
     public bool IgnoreFrustumCulling { get; set; }
 
-    public Transform3D Transform { get; set; } = new ();
+    public Transform3D Transform { get; set; } = new();
+
+    private readonly IGameObjectManager _gameObjectManager;
 
     public virtual void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera) { }
 
-    protected Base3dGameObject(string name, uint zIndex = 0)
+    protected Base3dGameObject(string name, IGameObjectManager gameObjectManager, uint zIndex = 0)
     {
         Name = name;
+        _gameObjectManager = gameObjectManager;
         ZIndex = zIndex;
         IsActive = true;
     }
@@ -40,10 +67,12 @@ public abstract class Base3dGameObject : IGameObject3d
 
         foreach (var gameObject in gameObjects)
         {
-            if (Children is GameObjectCollection<IGameObject3d> collection)
+            if (Children is GameObjectCollection<IGameObject> collection)
             {
                 collection.Add(gameObject);
                 gameObject.Parent = this;
+
+                _gameObjectManager.AddGameObject(gameObject);
             }
         }
     }
@@ -56,11 +85,12 @@ public abstract class Base3dGameObject : IGameObject3d
     {
         ArgumentNullException.ThrowIfNull(gameObject);
 
-        if (Children is GameObjectCollection<IGameObject3d> collection)
+        if (Children is GameObjectCollection<IGameObject> collection)
         {
             if (collection.Remove(gameObject))
             {
                 gameObject.Parent = null;
+                _gameObjectManager.RemoveGameObject(gameObject);
             }
         }
     }
@@ -75,14 +105,5 @@ public abstract class Base3dGameObject : IGameObject3d
         {
             return;
         }
-
-        foreach (var child in Children)
-        {
-            if (child is IUpdateble child2d)
-            {
-                child2d.Update(gameTime);
-            }
-        }
     }
-
 }

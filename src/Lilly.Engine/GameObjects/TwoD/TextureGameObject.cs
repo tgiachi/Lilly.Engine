@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.TwoD;
@@ -66,8 +67,8 @@ public class TextureGameObject : Base2dGameObject
     /// <param name="textureName">The name of the texture to render.</param>
     /// <param name="name">The name of the game object (default: "TextureGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
-    public TextureGameObject()
-        : base("TextureGameObject")
+    public TextureGameObject(IGameObjectManager gameObjectManager)
+        : base("TextureGameObject", gameObjectManager)
     {
     }
 

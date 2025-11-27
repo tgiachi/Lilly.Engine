@@ -4,6 +4,7 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.ThreeD;
@@ -23,7 +24,9 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     public float YRotationSpeed { get; set; } = 0.01f;
     public float ZRotationSpeed { get; set; }
 
-    public SimpleCubeGameObject(GraphicsDevice graphicsDevice) : base("SimpleCube")
+
+
+    public SimpleCubeGameObject(GraphicsDevice graphicsDevice, IRenderPipeline gameObjectManager) : base("SimpleCube", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
     }

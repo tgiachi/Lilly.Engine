@@ -9,4 +9,5 @@ public interface IGameObject
     IGameObject? Parent { get; set; }
     IEnumerable<IGameObject> Children { get; }
 
+    void OnRemoved();
 }

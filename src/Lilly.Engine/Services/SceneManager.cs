@@ -27,6 +27,7 @@ public class SceneManager : ISceneManager, IGameObject
 
     public IGameObject? Parent { get; set; }
     public IEnumerable<IGameObject> Children => Enumerable.Empty<IGameObject>();
+
     public uint Id { get; set; }
     public string Name { get; set; } = "SceneManager";
     public uint ZIndex { get; set; }
@@ -309,4 +310,6 @@ public class SceneManager : ISceneManager, IGameObject
             _nextScene.Load();
         }
     }
+
+    public void OnRemoved() { }
 }

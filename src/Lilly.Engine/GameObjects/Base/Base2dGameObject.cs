@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
@@ -6,6 +5,7 @@ using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using Lilly.Rendering.Core.Primitives;
 using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.GameObjects.Base;
 
@@ -29,10 +29,24 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// </summary>
     public uint ZIndex { get; set; }
 
+    private bool _isActive;
+
     /// <summary>
     /// Gets or sets whether the game object is active and should be updated and drawn.
     /// </summary>
-    public bool IsActive { get; set; }
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            _isActive = value;
+
+            foreach (var child in Children)
+            {
+                child.IsActive = value;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or sets the parent game object in the hierarchy.
@@ -42,7 +56,15 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// <summary>
     /// Gets the collection of child game objects.
     /// </summary>
-    public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject2d>();
+    public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject>();
+
+    public void OnRemoved()
+    {
+        foreach (var child in Children)
+        {
+            _gameObjectManager.RemoveGameObject(child);
+        }
+    }
 
     /// <summary>
     /// Gets the sprite batcher used for rendering.
@@ -64,16 +86,17 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     private float _horizontalOffset;
     private float _verticalOffset;
     private Vector2 _manualViewportSize = Vector2.Zero;
-
+    private readonly IGameObjectManager _gameObjectManager;
 
     /// <summary>
     /// Initializes a new instance of the Base2dGameObject class.
     /// </summary>
     /// <param name="name">The name of the game object.</param>
     /// <param name="zIndex">The Z-index for rendering order.</param>
-    protected Base2dGameObject(string name, uint zIndex = 0)
+    protected Base2dGameObject(string name, IGameObjectManager gameObjectManager, uint zIndex = 0)
     {
         Name = name;
+        _gameObjectManager = gameObjectManager;
         ZIndex = zIndex;
         IsActive = true;
     }
@@ -91,6 +114,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         }
 
         SpriteBatcher = spriteBatcher;
+
         ApplyAnchoredLayout();
 
         OnDraw(gameTime);
@@ -114,10 +138,11 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
 
         foreach (var gameObject in gameObjects)
         {
-            if (Children is GameObjectCollection<IGameObject2d> collection)
+            if (Children is GameObjectCollection<IGameObject> collection)
             {
                 collection.Add(gameObject);
                 gameObject.Parent = this;
+                _gameObjectManager.AddGameObject(gameObject);
             }
         }
     }
@@ -130,11 +155,12 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     {
         ArgumentNullException.ThrowIfNull(gameObject);
 
-        if (Children is GameObjectCollection<IGameObject2d> collection)
+        if (Children is GameObjectCollection<IGameObject> collection)
         {
             if (collection.Remove(gameObject))
             {
                 gameObject.Parent = null;
+                _gameObjectManager.RemoveGameObject(gameObject);
             }
         }
     }
@@ -342,12 +368,15 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         {
             case HorizontalAnchor.Left:
                 position.X = _horizontalOffset;
+
                 break;
             case HorizontalAnchor.Center:
                 position.X = (viewportSize.X - scaledSize.X) / 2f + _horizontalOffset;
+
                 break;
             case HorizontalAnchor.Right:
                 position.X = viewportSize.X - scaledSize.X - _horizontalOffset;
+
                 break;
         }
 
@@ -355,12 +384,15 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         {
             case VerticalAnchor.Top:
                 position.Y = _verticalOffset;
+
                 break;
             case VerticalAnchor.Center:
                 position.Y = (viewportSize.Y - scaledSize.Y) / 2f + _verticalOffset;
+
                 break;
             case VerticalAnchor.Bottom:
                 position.Y = viewportSize.Y - scaledSize.Y - _verticalOffset;
+
                 break;
         }
 
@@ -372,6 +404,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         if (RenderContext != null)
         {
             var viewport = RenderContext.GraphicsDevice.Viewport;
+
             return new Vector2(viewport.Width, viewport.Height);
         }
 
@@ -382,6 +415,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     {
         var size = Transform.Size;
         var scale = Transform.Scale;
+
         return new Vector2(size.X * scale.X, size.Y * scale.Y);
     }
 
