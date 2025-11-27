@@ -25,9 +25,9 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
     public virtual void Update(GameTime gameTime) { }
     public virtual void Render(GameTime gameTime) { }
 
-    public virtual bool CanAdd<TEntity>()
+    public virtual bool CanAdd<TEntity>(TEntity entity)
     {
-        return typeof(TGameObject).IsAssignableFrom(typeof(TEntity));
+        return typeof(TGameObject).IsAssignableFrom(entity.GetType());
     }
 
     public virtual void AddEntity<TEntity>(TEntity entity) where TEntity : IGameObject

@@ -41,7 +41,7 @@ public interface IRenderLayer
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
     /// <returns>True if the entity can be added; otherwise, false.</returns>
-    bool CanAdd<TEntity>();
+    bool CanAdd<TEntity>(TEntity entity);
 
     /// <summary>
     /// Adds the specified entity to the render layer.

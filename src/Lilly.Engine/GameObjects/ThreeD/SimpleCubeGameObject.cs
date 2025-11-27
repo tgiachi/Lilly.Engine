@@ -15,16 +15,13 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
 {
     private readonly GraphicsDevice _graphicsDevice;
 
-    private readonly Random _random = new();
     private VertexBuffer<VertexColor> _vertexBuffer;
     private SimpleShaderProgram? _shaderProgram;
-    private VertexColor[] _cubeVertices = Array.Empty<VertexColor>();
-    private double _lastColorChangeTime;
+    private VertexColor[] _cubeVertices = [];
 
-
-    public float XRotationSpeed { get; set; } = 0.00f;
+    public float XRotationSpeed { get; set; }
     public float YRotationSpeed { get; set; } = 0.01f;
-    public float ZRotationSpeed { get; set; } = 0.00f;
+    public float ZRotationSpeed { get; set; }
 
     public SimpleCubeGameObject(GraphicsDevice graphicsDevice) : base("SimpleCube")
     {
@@ -46,14 +43,11 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             return;
         }
 
-        _shaderProgram.Projection = camera.Projection;
-        _shaderProgram.View = camera.View;
-        _shaderProgram.World = Transform.GetTransformationMatrix();
+        _shaderProgram.UpdateView(this, camera);
 
         graphicsDevice.ShaderProgram = _shaderProgram;
         graphicsDevice.VertexArray = _vertexBuffer;
 
-        // Draw independent triangles so each face can own its color.
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
@@ -63,7 +57,6 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         {
             return;
         }
-
 
         Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, YRotationSpeed);
         Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, ZRotationSpeed);
@@ -75,7 +68,7 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     private static VertexColor[] CreateCubeVertices()
     {
         var frontColor = Color4b.Red;
-        var backColor = Color4b.Blue.ApplyAlpha(0.8f);
+        var backColor = Color4b.Blue.ApplyAlpha(0.3f);
         var leftColor = Color4b.Lime;
         var rightColor = Color4b.Yellow.ApplyAlpha(0.8f);
         var topColor = Color4b.White.ApplyAlpha(0.8f);
@@ -148,8 +141,6 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             new(frontBottomRight, bottomColor)
         ];
     }
-
-
 
     public void Dispose()
     {

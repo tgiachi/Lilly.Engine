@@ -8,6 +8,8 @@ using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
+using Lilly.Engine.Extensions;
+using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Rendering.Core.Data.Config;
 using Serilog;
@@ -49,6 +51,11 @@ await ConsoleApp.RunAsync(
         {
             config.RenderConfig.OpenGlApiLevel = new(4, 6);
         }
+
+        bootstrap.OnConfiguring += _ =>
+                                   {
+                                       container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
+                                   };
 
         await bootstrap.InitializeAsync(config);
 

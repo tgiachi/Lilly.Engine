@@ -109,7 +109,7 @@ public class RenderPipeline : IRenderPipeline
             {
                 foreach (var renderLayer in renderLayerList)
                 {
-                    if (renderLayer.CanAdd<TEntity>())
+                    if (renderLayer.CanAdd(entity))
                     {
                         renderLayer.AddEntity(entity);
                         addedToLayer.Add(renderLayer.Name);
@@ -146,7 +146,7 @@ public class RenderPipeline : IRenderPipeline
             {
                 foreach (var renderLayer in renderLayerList)
                 {
-                    if (renderLayer.CanAdd<TEntity>())
+                    if (renderLayer.CanAdd(entity))
                     {
                         renderLayer.RemoveEntity(entity);
                     }

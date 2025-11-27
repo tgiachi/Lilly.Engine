@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Rendering.Core", "src
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine", "src\Lilly.Engine\Lilly.Engine.csproj", "{AC398F58-9DD8-400E-982D-4B2D2738FED6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.GameObjects", "src\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj", "{7E999549-49EA-4D11-8388-C47D72BE0AF0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC398F58-9DD8-400E-982D-4B2D2738FED6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
