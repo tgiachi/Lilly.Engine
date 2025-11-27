@@ -1,10 +1,9 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Camera;
-using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.ThreeD;
@@ -22,6 +21,11 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     private VertexColor[] _cubeVertices = Array.Empty<VertexColor>();
     private double _lastColorChangeTime;
 
+
+    public float XRotationSpeed { get; set; } = 0.00f;
+    public float YRotationSpeed { get; set; } = 0.01f;
+    public float ZRotationSpeed { get; set; } = 0.00f;
+
     public SimpleCubeGameObject(GraphicsDevice graphicsDevice) : base("SimpleCube")
     {
         _graphicsDevice = graphicsDevice;
@@ -30,7 +34,6 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     public void Initialize()
     {
         _cubeVertices = CreateCubeVertices();
-        ApplyRandomColors();
 
         _vertexBuffer = new VertexBuffer<VertexColor>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
         _shaderProgram = SimpleShaderProgram.Create<VertexColor>(_graphicsDevice);
@@ -50,8 +53,8 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         graphicsDevice.ShaderProgram = _shaderProgram;
         graphicsDevice.VertexArray = _vertexBuffer;
 
-        // The vertex list is arranged as a triangle strip.
-        graphicsDevice.DrawArrays(PrimitiveType.TriangleStrip, 0, _vertexBuffer.StorageLength);
+        // Draw independent triangles so each face can own its color.
+        graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
     public void Update(GameTime gameTime)
@@ -61,67 +64,92 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             return;
         }
 
-        var currentTime = gameTime.GetTotalGameTimeSeconds();
 
-        if (currentTime - _lastColorChangeTime >= 1.0f)
-        {
-            ApplyRandomColors();
-            RecreateBuffer();
-            _lastColorChangeTime = currentTime;
-        }
-
-        var scale = 0.5f + 0.5f * (1f + MathF.Sin(currentTime * 2.0f));
-        Transform.Scale = new(scale, scale, scale);
-        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.01f);
-        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.01f);
+        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, YRotationSpeed);
+        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, ZRotationSpeed);
+        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitX, XRotationSpeed);
 
         base.Update(gameTime);
     }
 
-    private VertexColor[] CreateCubeVertices()
-        => new VertexColor[]
-        {
-            new(new Vector3(-0.5f, -0.5f, -0.5f), Color4b.LightBlue), // 4
-            new(new Vector3(-0.5f, -0.5f, 0.5f), Color4b.Lime),       // 3
-            new(new Vector3(-0.5f, 0.5f, -0.5f), Color4b.White),      // 7
-            new(new Vector3(-0.5f, 0.5f, 0.5f), Color4b.Black),       // 8
-            new(new Vector3(0.5f, 0.5f, 0.5f), Color4b.Blue),         // 5
-            new(new Vector3(-0.5f, -0.5f, 0.5f), Color4b.Lime),       // 3
-            new(new Vector3(0.5f, -0.5f, 0.5f), Color4b.Red),         // 1
-            new(new Vector3(-0.5f, -0.5f, -0.5f), Color4b.LightBlue), // 4
-            new(new Vector3(0.5f, -0.5f, -0.5f), Color4b.Yellow),     // 2
-            new(new Vector3(-0.5f, 0.5f, -0.5f), Color4b.White),      // 7
-            new(new Vector3(0.5f, 0.5f, -0.5f), Color4b.Pink),        // 6
-            new(new Vector3(0.5f, 0.5f, 0.5f), Color4b.Blue),         // 5
-            new(new Vector3(0.5f, -0.5f, -0.5f), Color4b.Yellow),     // 2
-            new(new Vector3(0.5f, -0.5f, 0.5f), Color4b.Red)          // 1
-        };
-
-    private void ApplyRandomColors()
+    private static VertexColor[] CreateCubeVertices()
     {
-        for (var i = 0; i < _cubeVertices.Length; i++)
-        {
-            var r = (byte)_random.Next(256);
-            var g = (byte)_random.Next(256);
-            var b = (byte)_random.Next(256);
-            var a = (byte)_random.Next(256);
+        var frontColor = Color4b.Red;
+        var backColor = Color4b.Blue.ApplyAlpha(0.8f);
+        var leftColor = Color4b.Lime;
+        var rightColor = Color4b.Yellow.ApplyAlpha(0.8f);
+        var topColor = Color4b.White.ApplyAlpha(0.8f);
+        var bottomColor = Color4b.Pink.ApplyAlpha(0.8f);
 
-            _cubeVertices[i] = new VertexColor(_cubeVertices[i].Position, new Color4b(r, g, b, a));
-        }
+        var frontBottomLeft = new Vector3(-0.5f, -0.5f, 0.5f);
+        var frontBottomRight = new Vector3(0.5f, -0.5f, 0.5f);
+        var frontTopLeft = new Vector3(-0.5f, 0.5f, 0.5f);
+        var frontTopRight = new Vector3(0.5f, 0.5f, 0.5f);
+
+        var backBottomLeft = new Vector3(-0.5f, -0.5f, -0.5f);
+        var backBottomRight = new Vector3(0.5f, -0.5f, -0.5f);
+        var backTopLeft = new Vector3(-0.5f, 0.5f, -0.5f);
+        var backTopRight = new Vector3(0.5f, 0.5f, -0.5f);
+
+        return
+        [
+            // Front (+Z)
+            new(frontBottomLeft, frontColor),
+            new(frontBottomRight, frontColor),
+            new(frontTopLeft, frontColor),
+
+            new(frontBottomRight, frontColor),
+            new(frontTopRight, frontColor),
+            new(frontTopLeft, frontColor),
+
+            // Back (-Z)
+            new(backBottomRight, backColor),
+            new(backBottomLeft, backColor),
+            new(backTopRight, backColor),
+
+            new(backBottomLeft, backColor),
+            new(backTopLeft, backColor),
+            new(backTopRight, backColor),
+
+            // Left (-X)
+            new(backBottomLeft, leftColor),
+            new(frontBottomLeft, leftColor),
+            new(backTopLeft, leftColor),
+
+            new(frontBottomLeft, leftColor),
+            new(frontTopLeft, leftColor),
+            new(backTopLeft, leftColor),
+
+            // Right (+X)
+            new(frontBottomRight, rightColor),
+            new(backBottomRight, rightColor),
+            new(frontTopRight, rightColor),
+
+            new(backBottomRight, rightColor),
+            new(backTopRight, rightColor),
+            new(frontTopRight, rightColor),
+
+            // Top (+Y) with 80% alpha
+            new(backTopLeft, topColor),
+            new(frontTopLeft, topColor),
+            new(backTopRight, topColor),
+
+            new(frontTopLeft, topColor),
+            new(frontTopRight, topColor),
+            new(backTopRight, topColor),
+
+            // Bottom (-Y) with 80% alpha
+            new(backBottomLeft, bottomColor),
+            new(backBottomRight, bottomColor),
+            new(frontBottomLeft, bottomColor),
+
+            new(frontBottomLeft, bottomColor),
+            new(backBottomRight, bottomColor),
+            new(frontBottomRight, bottomColor)
+        ];
     }
 
-    private void RecreateBuffer()
-    {
-        if (_vertexBuffer == null)
-        {
-            _vertexBuffer = new VertexBuffer<VertexColor>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
-        }
-        else
-        {
-            // Update in-place to avoid reallocation each frame.
-            _vertexBuffer.DataSubset.SetData(_cubeVertices, 0);
-        }
-    }
+
 
     public void Dispose()
     {

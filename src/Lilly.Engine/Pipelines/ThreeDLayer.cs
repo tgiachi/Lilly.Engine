@@ -6,6 +6,7 @@ using Lilly.Rendering.Core.Layers;
 using Lilly.Rendering.Core.Types;
 using Serilog;
 using Silk.NET.OpenGL;
+using TrippyGL;
 
 namespace Lilly.Engine.Pipelines;
 
@@ -47,6 +48,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         EntitiesOutsideCullingFrustum.Clear();
 
         CheckWireframe();
+        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
 
         foreach (var entity in Entities.Flatten())
         {
@@ -72,10 +74,15 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             _renderContext.OpenGl.Disable(GLEnum.CullFace);
             _renderContext.OpenGl.LineWidth(WireframeLineWidth);
         }
+        else
+        {
+            _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
+        }
     }
 
     private void RestoreState()
     {
         _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
+        _renderContext.GraphicsDevice.DepthState = DepthState.None;
     }
 }
