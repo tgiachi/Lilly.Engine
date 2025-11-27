@@ -34,6 +34,8 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
 
         _vertexBuffer = new VertexBuffer<VertexColor>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
         _shaderProgram = SimpleShaderProgram.Create<VertexColor>(_graphicsDevice);
+
+
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)

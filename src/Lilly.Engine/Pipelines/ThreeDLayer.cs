@@ -60,9 +60,10 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         {
             if (_camera3dService.ActiveCamera.IsInFrustum(entity) && entity.IsActive)
             {
+                // Draw calls are automatically tracked by TrackedGraphicsDevice
                 entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
                 EntitiesInCullingFrustum.Add(entity);
-                ProcessedEntityCount ++;
+                ProcessedEntityCount++;
             }
             else
             {

@@ -82,6 +82,31 @@ public interface IPerformanceProfilerService
     IReadOnlyList<double> FpsHistory { get; }
 
     /// <summary>
+    /// Gets the total draw calls for the current frame
+    /// </summary>
+    int DrawCallsThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total vertices rendered in the current frame
+    /// </summary>
+    int VerticesThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total triangles rendered in the current frame
+    /// </summary>
+    int TrianglesThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total texture bindings for the current frame
+    /// </summary>
+    int TextureBindingsThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total shader switches for the current frame
+    /// </summary>
+    int ShaderSwitchesThisFrame { get; }
+
+    /// <summary>
     /// Gets a summary of current performance metrics
     /// </summary>
     /// <returns>Dictionary of metric name to value</returns>
@@ -92,5 +117,23 @@ public interface IPerformanceProfilerService
     /// </summary>
     void ResetMetrics();
 
+    /// <summary>
+    /// Records a draw call with vertex count
+    /// </summary>
+    void RecordDrawCall(int vertexCount);
 
+    /// <summary>
+    /// Records a texture binding
+    /// </summary>
+    void RecordTextureBinding();
+
+    /// <summary>
+    /// Records a shader switch
+    /// </summary>
+    void RecordShaderSwitch();
+
+    /// <summary>
+    /// Resets per-frame counters (called at start of each frame)
+    /// </summary>
+    void ResetFrameCounters();
 }

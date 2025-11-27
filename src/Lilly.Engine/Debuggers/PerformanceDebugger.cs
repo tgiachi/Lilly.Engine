@@ -53,6 +53,24 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
 
             ImGui.EndTable();
         }
+
+        ImGui.Separator();
+        ImGui.TextUnformatted("OpenGL Metrics (this frame)");
+
+        if (ImGui.BeginTable("opengl_metrics", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        {
+            ImGui.TableSetupColumn("Metric");
+            ImGui.TableSetupColumn("Value");
+            ImGui.TableHeadersRow();
+
+            DrawMetricRow("Draw calls", _profiler.DrawCallsThisFrame.ToString());
+            DrawMetricRow("Vertices", _profiler.VerticesThisFrame.ToString());
+            DrawMetricRow("Triangles", _profiler.TrianglesThisFrame.ToString());
+            DrawMetricRow("Texture bindings", _profiler.TextureBindingsThisFrame.ToString());
+            DrawMetricRow("Shader switches", _profiler.ShaderSwitchesThisFrame.ToString());
+
+            ImGui.EndTable();
+        }
     }
 
     private static void DrawMetricRow(string name, string value)

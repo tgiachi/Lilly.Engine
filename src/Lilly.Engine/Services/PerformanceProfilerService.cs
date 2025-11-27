@@ -26,6 +26,12 @@ public class PerformanceProfilerService : IPerformanceProfilerService
     private double _minFrameTime = double.MaxValue;
     private GraphicsDevice _graphicsDevice;
 
+    // OpenGL metrics (per-frame counters)
+    private int _drawCallsThisFrame;
+    private int _verticesThisFrame;
+    private int _textureBindingsThisFrame;
+    private int _shaderSwitchesThisFrame;
+
     /// <summary>
     /// Gets the current frame rate (FPS)
     /// </summary>
@@ -156,6 +162,31 @@ public class PerformanceProfilerService : IPerformanceProfilerService
     }
 
     /// <summary>
+    /// Gets the total draw calls for the current frame
+    /// </summary>
+    public int DrawCallsThisFrame => _drawCallsThisFrame;
+
+    /// <summary>
+    /// Gets the total vertices rendered in the current frame
+    /// </summary>
+    public int VerticesThisFrame => _verticesThisFrame;
+
+    /// <summary>
+    /// Gets the total triangles rendered in the current frame
+    /// </summary>
+    public int TrianglesThisFrame => _verticesThisFrame / 3;
+
+    /// <summary>
+    /// Gets the total texture bindings for the current frame
+    /// </summary>
+    public int TextureBindingsThisFrame => _textureBindingsThisFrame;
+
+    /// <summary>
+    /// Gets the total shader switches for the current frame
+    /// </summary>
+    public int ShaderSwitchesThisFrame => _shaderSwitchesThisFrame;
+
+    /// <summary>
     /// Gets a summary of current performance metrics
     /// </summary>
     /// <returns>Dictionary of metric name to value</returns>
@@ -174,7 +205,12 @@ public class PerformanceProfilerService : IPerformanceProfilerService
                 ["Current Draw Time"] = Math.Round(CurrentDrawTime, 2),
                 ["Average Draw Time"] = Math.Round(AverageDrawTime, 2),
                 ["Memory Usage (MB)"] = Math.Round(MemoryUsageMb, 2),
-                ["Total Frames"] = TotalFrames
+                ["Total Frames"] = TotalFrames,
+                ["Draw Calls"] = DrawCallsThisFrame,
+                ["Vertices"] = VerticesThisFrame,
+                ["Triangles"] = TrianglesThisFrame,
+                ["Texture Bindings"] = TextureBindingsThisFrame,
+                ["Shader Switches"] = ShaderSwitchesThisFrame
             };
 
             return metrics;
@@ -224,8 +260,45 @@ public class PerformanceProfilerService : IPerformanceProfilerService
 
     public void Update(GameTime gameTime)
     {
+        ResetFrameCounters();
         UpdateFrameTime(gameTime);
         UpdateUpdateTime(gameTime);
+    }
+
+    /// <summary>
+    /// Resets per-frame counters (called at start of each frame)
+    /// </summary>
+    public void ResetFrameCounters()
+    {
+        _drawCallsThisFrame = 0;
+        _verticesThisFrame = 0;
+        _textureBindingsThisFrame = 0;
+        _shaderSwitchesThisFrame = 0;
+    }
+
+    /// <summary>
+    /// Records a draw call with vertex count
+    /// </summary>
+    public void RecordDrawCall(int vertexCount)
+    {
+        _drawCallsThisFrame++;
+        _verticesThisFrame += vertexCount;
+    }
+
+    /// <summary>
+    /// Records a texture binding
+    /// </summary>
+    public void RecordTextureBinding()
+    {
+        _textureBindingsThisFrame++;
+    }
+
+    /// <summary>
+    /// Records a shader switch
+    /// </summary>
+    public void RecordShaderSwitch()
+    {
+        _shaderSwitchesThisFrame++;
     }
 
     /// <summary>
