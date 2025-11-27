@@ -44,10 +44,24 @@ public class RenderPipeline : IRenderPipeline
     {
         _container = container;
         _renderLayerRegistrations = renderLayerRegistrations;
+
+
+        CreateLayers();
         AddRegisteredRenderLayer();
 
         renderContext.Renderer.OnUpdate += Update;
         renderContext.Renderer.OnRender += Render;
+    }
+
+    private void CreateLayers()
+    {
+        foreach (var value in Enum.GetValues<RenderPriority>())
+        {
+            lock (_renderLayersLock)
+            {
+                _renderLayers[value] = [];
+            }
+        }
     }
 
     private void AddRegisteredRenderLayer()

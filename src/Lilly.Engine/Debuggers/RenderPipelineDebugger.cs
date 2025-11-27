@@ -89,7 +89,4 @@ public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
 
 
     }
-
-
-
 }

@@ -5,6 +5,7 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Layers;
 using Lilly.Rendering.Core.Types;
 using Silk.NET.OpenGL.Extensions.ImGui;
+using TrippyGL;
 
 namespace Lilly.Engine.Pipelines;
 
@@ -53,8 +54,15 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
             ImGui.End();
         }
 
+        _renderContext.GraphicsDevice.DepthTestingEnabled = false;
+        _renderContext.GraphicsDevice.DepthState = DepthState.None;
+        _renderContext.GraphicsDevice.Clear(ClearBuffers.Depth);
+
         _imGuiController.Render();
 
+
+        _renderContext.GraphicsDevice.DepthTestingEnabled = true;
+        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         base.Render(gameTime);
 
         EndUpdateTimer();
