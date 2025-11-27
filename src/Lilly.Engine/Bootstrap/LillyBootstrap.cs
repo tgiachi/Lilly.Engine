@@ -185,6 +185,7 @@ public class LillyBootstrap : ILillyBootstrap
             var versionGameObject = gameObjectFactory.Create<VersionGameObject>();
 
             pipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDebugger>());
+            pipeline.AddGameObject(gameObjectFactory.Create<PerformanceDebugger>());
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
@@ -223,7 +224,8 @@ public class LillyBootstrap : ILillyBootstrap
             ;
 
         _container
-            .RegisterGameObject<RenderPipelineDebugger>();
+            .RegisterGameObject<RenderPipelineDebugger>()
+            .RegisterGameObject<PerformanceDebugger>();
     }
 
     private void RegisterServices()
@@ -244,6 +246,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterService<IGameObjectFactory, GameObjectFactory>()
             .RegisterService<ISceneManager, SceneManager>()
             .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
+            .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
             .RegisterService<PluginRegistry>()
             ;
 

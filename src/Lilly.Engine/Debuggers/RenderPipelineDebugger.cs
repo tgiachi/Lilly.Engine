@@ -28,12 +28,6 @@ public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
                                     .ThenBy(l => l.Name)
                                     .ToList();
 
-        foreach (var layer in layers)
-        {
-            AddSample(_renderHistory, layer.Name, (float)layer.RenderTimeMilliseconds);
-            AddSample(_updateHistory, layer.Name, (float)layer.UpdateTimeMilliseconds);
-        }
-
         if (!layers.Any())
         {
             ImGui.TextUnformatted("No layers registered.");
@@ -93,53 +87,9 @@ public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
         ImGui.Separator();
         ImGui.TextUnformatted("Timings (ms) history");
 
-        foreach (var layer in layers)
-        {
-            ImGui.PushID(layer.Name);
-            ImGui.TextUnformatted(layer.Name);
-            PlotHistory("Render", _renderHistory, layer.Name);
-            PlotHistory("Update", _updateHistory, layer.Name);
-            ImGui.PopID();
-        }
+
     }
 
-    private static void AddSample(Dictionary<string, List<float>> history, string key, float value)
-    {
-        if (!history.TryGetValue(key, out var list))
-        {
-            list = new List<float>();
-            history[key] = list;
-        }
 
-        list.Add(value);
 
-        if (list.Count > HistoryLength)
-        {
-            list.RemoveAt(0);
-        }
-    }
-
-    private static void PlotHistory(string label, Dictionary<string, List<float>> history, string key)
-    {
-        if (!history.TryGetValue(key, out var samples) || samples.Count == 0)
-        {
-            ImGui.TextUnformatted($"{label}: no data");
-            return;
-        }
-
-        var span = CollectionsMarshal.AsSpan(samples);
-        var graphSize = new Vector2(-1, 60);
-
-        ImGui.PlotLines(
-            label,
-            ref MemoryMarshal.GetReference(span),
-            span.Length,
-            0,
-            null,
-            0f,
-            float.MaxValue,
-            graphSize,
-            sizeof(float)
-        );
-    }
 }
