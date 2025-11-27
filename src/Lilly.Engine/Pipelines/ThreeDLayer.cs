@@ -39,13 +39,19 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
     public override void Render(GameTime gameTime)
     {
+        StartRenderTimer();
+
         if (_camera3dService.ActiveCamera == null)
         {
+            EndRenderTimer();
+
             return;
         }
 
         EntitiesInCullingFrustum.Clear();
         EntitiesOutsideCullingFrustum.Clear();
+        ProcessedEntityCount = 0;
+        SkippedEntityCount = 0;
 
         CheckWireframe();
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
@@ -56,14 +62,17 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             {
                 entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
                 EntitiesInCullingFrustum.Add(entity);
+                ProcessedEntityCount ++;
             }
             else
             {
                 EntitiesOutsideCullingFrustum.Add(entity);
+                SkippedEntityCount++;
             }
         }
 
         RestoreState();
+        EndRenderTimer();
     }
 
     private void CheckWireframe()

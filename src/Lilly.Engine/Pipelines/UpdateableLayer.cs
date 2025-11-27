@@ -24,11 +24,15 @@ public class UpdateableLayer : BaseRenderLayer<IUpdateble>
     /// <param name="gameTime">The current game time.</param>
     public override void Update(GameTime gameTime)
     {
+        ProcessedEntityCount = 0;
+        StartUpdateTimer();
         foreach (var entity in Entities)
         {
+            ProcessedEntityCount++;
             entity.Update(gameTime);
         }
 
         base.Update(gameTime);
+        EndUpdateTimer();
     }
 }

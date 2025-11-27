@@ -20,6 +20,11 @@ public interface IRenderLayer
     RenderPriority Priority { get; }
 
     /// <summary>
+    ///  Gets or sets whether the render layer is active.
+    /// </summary>
+    bool IsActive { get; set; }
+
+    /// <summary>
     /// Initializes the render layer.
     /// </summary>
     void Initialize();
@@ -57,9 +62,29 @@ public interface IRenderLayer
     /// <param name="entity">The entity to remove.</param>
     void RemoveEntity<TEntity>(TEntity entity) where TEntity : IGameObject;
 
-
     /// <summary>
     ///  Gets the count of entities in the render layer.
     /// </summary>
-    int EntityCount { get; }
+    int ProcessedEntityCount { get; }
+
+
+    /// <summary>
+    ///  Gets the count of entities that were skipped during processing.
+    /// </summary>
+    int SkippedEntityCount { get; }
+
+    /// <summary>
+    ///  Gets the total count of entities ever added to the render layer.
+    /// </summary>
+    int TotalEntityCount { get; }
+
+    /// <summary>
+    ///  Gets the time taken to render the layer in milliseconds.
+    /// </summary>
+    double RenderTimeMilliseconds { get; }
+
+    /// <summary>
+    ///  Gets the time taken to update the layer in milliseconds.
+    /// </summary>
+    double UpdateTimeMilliseconds { get; }
 }

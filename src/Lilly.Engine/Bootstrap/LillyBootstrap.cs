@@ -9,6 +9,7 @@ using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Data.Plugins;
+using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Exceptions;
 using Lilly.Engine.Extensions;
@@ -63,6 +64,7 @@ public class LillyBootstrap : ILillyBootstrap
         _logger.Information("Root Directory: {RootDirectory}", directoriesConfig.Root);
 
         RegisterServices();
+
         RegisterScriptModules();
 
         RegisterRenderLayers();
@@ -182,9 +184,10 @@ public class LillyBootstrap : ILillyBootstrap
 
             var versionGameObject = gameObjectFactory.Create<VersionGameObject>();
 
+            pipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDebugger>());
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
-            //pipeline.AddGameObject(versionGameObject);
+            pipeline.AddGameObject(versionGameObject);
 
             foreach (var index in Enumerable.Range(0, 3))
             {
@@ -193,35 +196,6 @@ public class LillyBootstrap : ILillyBootstrap
                 cube.Transform.Position = new(index);
                 pipeline.AddGameObject(cube);
             }
-
-            // var text = new TextGameObject(_container.Resolve<IAssetManager>())
-            // {
-            //     Text = "Lilly Engine",
-            //     FontSize = 48,
-            //     Color = Color4b.Black,
-            //     FontName = DefaultFonts.DefaultFontHudBoldName,
-            //     Transform =
-            //     {
-            //         Position = new(200, 200)
-            //     }
-            // };
-
-            // var fps = new FpsGameObject(_container.Resolve<IAssetManager>());
-            // fps.Color = Color4b.Black;
-            // fps.Transform.Position = new(100, 100);
-            //
-            // var rectagle = new RectangleGameObject()
-            // {
-            //     Size = new Vector2(200, 400),
-            //     Color = Color4b.Aqua,
-            //     Transform = { Position = new Vector2(400, 500) }
-            // };
-            //
-            // pipeline.AddGameObject(fps);
-            //
-            // pipeline.AddGameObject(text);
-            //
-            // pipeline.AddGameObject(rectagle);
         }
         OnRender?.Invoke(gameTime);
     }
@@ -247,6 +221,9 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<VersionGameObject>()
             .RegisterGameObject<SimpleCubeGameObject>()
             ;
+
+        _container
+            .RegisterGameObject<RenderPipelineDebugger>();
     }
 
     private void RegisterServices()

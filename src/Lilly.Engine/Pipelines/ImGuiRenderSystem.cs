@@ -41,10 +41,13 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
     /// <param name="gameTime">The current game time.</param>
     public override void Render(GameTime gameTime)
     {
+        StartUpdateTimer();
         _imGuiController.Update((float)gameTime.ElapsedGameTime);
 
+        ProcessedEntityCount = 0;
         foreach (var debugger in Entities)
         {
+            ProcessedEntityCount ++;
             ImGui.Begin(debugger.Title);
             debugger.Draw();
             ImGui.End();
@@ -53,6 +56,8 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
         _imGuiController.Render();
 
         base.Render(gameTime);
+
+        EndUpdateTimer();
     }
 
     /// <summary>

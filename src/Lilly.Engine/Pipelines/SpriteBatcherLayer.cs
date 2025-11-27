@@ -69,12 +69,16 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
 
     public override void Render(GameTime gameTime)
     {
+        ProcessedEntityCount = 0;
+        StartRenderTimer();
         _renderContext.GraphicsDevice.BlendingEnabled = true;
         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
         BeginSpriteBatch();
 
         foreach (var entity in Entities)
         {
+            ProcessedEntityCount++;
+
             if (entity.Transform.Size != Vector2.Zero)
             {
                 ApplyScissorIfChanged(entity);
@@ -87,6 +91,7 @@ public class SpriteBatcherLayer : BaseRenderLayer<IGameObject2d>, IDisposable
         }
 
         EndSpriteBatch();
+        EndRenderTimer();
         base.Render(gameTime);
     }
 

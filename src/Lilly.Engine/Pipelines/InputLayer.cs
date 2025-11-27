@@ -25,11 +25,14 @@ public class InputLayer : BaseRenderLayer<IInputReceiver>
 
     public override void Update(GameTime gameTime)
     {
+        StartUpdateTimer();
         _renderContext.Input.Mice[0].Cursor.CursorMode = _inputManagerService.IsMouseVisible
                                                              ? CursorMode.Normal
                                                              : CursorMode.Disabled;
 
         _inputManagerService.Update(gameTime);
         _inputManagerService.DistributeInput(gameTime);
+
+        EndUpdateTimer();
     }
 }

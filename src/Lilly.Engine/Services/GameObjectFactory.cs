@@ -2,8 +2,10 @@ using DryIoc;
 using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Data.Internal;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Context;
 using MoonSharp.Interpreter;
 using Serilog;
 using Serilog.Events;
@@ -69,6 +71,7 @@ public class GameObjectFactory : IGameObjectFactory
         }
 
         var instance = _container.Resolve<IGameObject>(type);
+        AttachRenderContextIfNeeded(instance);
         var objectId = GenerateObjectId();
         instance.Id = objectId;
         instance.Name = GenerateGameObjectName(type, objectId);
@@ -144,4 +147,18 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     private uint GenerateObjectId()
         => (uint)Interlocked.Increment(ref _nextObjectId);
+
+    private void AttachRenderContextIfNeeded(IGameObject instance)
+    {
+        if (instance is not Base2dGameObject base2d)
+        {
+            return;
+        }
+
+        if (_container.IsRegistered<RenderContext>())
+        {
+            var renderContext = _container.Resolve<RenderContext>();
+            base2d.UseRenderContext(renderContext);
+        }
+    }
 }

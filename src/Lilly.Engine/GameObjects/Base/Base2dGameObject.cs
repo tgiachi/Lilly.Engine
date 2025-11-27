@@ -5,6 +5,7 @@ using Lilly.Rendering.Core.Collections;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using Lilly.Rendering.Core.Primitives;
+using Lilly.Rendering.Core.Context;
 
 namespace Lilly.Engine.GameObjects.Base;
 
@@ -53,6 +54,17 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// </summary>
     public Transform2D Transform { get; } = new Transform2D();
 
+    /// <summary>
+    /// Optional render context, used to read the current viewport size for anchoring helpers.
+    /// </summary>
+    protected RenderContext? RenderContext { get; private set; }
+
+    private HorizontalAnchor _horizontalAnchor = HorizontalAnchor.None;
+    private VerticalAnchor _verticalAnchor = VerticalAnchor.None;
+    private float _horizontalOffset;
+    private float _verticalOffset;
+    private Vector2 _manualViewportSize = Vector2.Zero;
+
 
     /// <summary>
     /// Initializes a new instance of the Base2dGameObject class.
@@ -79,6 +91,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         }
 
         SpriteBatcher = spriteBatcher;
+        ApplyAnchoredLayout();
 
         OnDraw(gameTime);
 
@@ -138,6 +151,8 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// <param name="gameTime">The current game time.</param>
     public virtual void Update(GameTime gameTime)
     {
+        ApplyAnchoredLayout();
+
         if (!IsActive)
         {
             return;
@@ -224,4 +239,165 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     ///  Initializes the game object. Override to implement custom initialization logic.
     /// </summary>
     public virtual void Initialize() { }
+
+    /// <summary>
+    /// Sets the render context so the object can react to viewport changes (e.g., ToCenter, ToLeft).
+    /// </summary>
+    public void UseRenderContext(RenderContext renderContext)
+    {
+        RenderContext = renderContext;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Allows manual viewport sizing when a render context is not available (tests or offscreen usage).
+    /// </summary>
+    public void SetViewportSize(Vector2 viewportSize)
+    {
+        _manualViewportSize = viewportSize;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the viewport center, with optional offsets.
+    /// </summary>
+    public void ToCenter(float offsetX = 0f, float offsetY = 0f)
+    {
+        _horizontalAnchor = HorizontalAnchor.Center;
+        _verticalAnchor = VerticalAnchor.Center;
+        _horizontalOffset = offsetX;
+        _verticalOffset = offsetY;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the left edge of the viewport.
+    /// </summary>
+    public void ToLeft(float padding = 0f)
+    {
+        _horizontalAnchor = HorizontalAnchor.Left;
+        _horizontalOffset = padding;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the right edge of the viewport.
+    /// </summary>
+    public void ToRight(float padding = 0f)
+    {
+        _horizontalAnchor = HorizontalAnchor.Right;
+        _horizontalOffset = padding;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the top edge of the viewport.
+    /// </summary>
+    public void ToTop(float padding = 0f)
+    {
+        _verticalAnchor = VerticalAnchor.Top;
+        _verticalOffset = padding;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the bottom edge of the viewport.
+    /// </summary>
+    public void ToBottom(float padding = 0f)
+    {
+        _verticalAnchor = VerticalAnchor.Bottom;
+        _verticalOffset = padding;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Removes any active anchoring so manual positioning is respected again.
+    /// </summary>
+    public void ClearAnchors()
+    {
+        _horizontalAnchor = HorizontalAnchor.None;
+        _verticalAnchor = VerticalAnchor.None;
+        _horizontalOffset = 0f;
+        _verticalOffset = 0f;
+    }
+
+    private void ApplyAnchoredLayout()
+    {
+        if (_horizontalAnchor == HorizontalAnchor.None && _verticalAnchor == VerticalAnchor.None)
+        {
+            return;
+        }
+
+        var viewportSize = GetViewportSize();
+
+        if (viewportSize == Vector2.Zero)
+        {
+            return;
+        }
+
+        var scaledSize = GetLocalScaledSize();
+        var position = Transform.Position;
+
+        switch (_horizontalAnchor)
+        {
+            case HorizontalAnchor.Left:
+                position.X = _horizontalOffset;
+                break;
+            case HorizontalAnchor.Center:
+                position.X = (viewportSize.X - scaledSize.X) / 2f + _horizontalOffset;
+                break;
+            case HorizontalAnchor.Right:
+                position.X = viewportSize.X - scaledSize.X - _horizontalOffset;
+                break;
+        }
+
+        switch (_verticalAnchor)
+        {
+            case VerticalAnchor.Top:
+                position.Y = _verticalOffset;
+                break;
+            case VerticalAnchor.Center:
+                position.Y = (viewportSize.Y - scaledSize.Y) / 2f + _verticalOffset;
+                break;
+            case VerticalAnchor.Bottom:
+                position.Y = viewportSize.Y - scaledSize.Y - _verticalOffset;
+                break;
+        }
+
+        Transform.Position = position;
+    }
+
+    private Vector2 GetViewportSize()
+    {
+        if (RenderContext != null)
+        {
+            var viewport = RenderContext.GraphicsDevice.Viewport;
+            return new Vector2(viewport.Width, viewport.Height);
+        }
+
+        return _manualViewportSize;
+    }
+
+    private Vector2 GetLocalScaledSize()
+    {
+        var size = Transform.Size;
+        var scale = Transform.Scale;
+        return new Vector2(size.X * scale.X, size.Y * scale.Y);
+    }
+
+    private enum HorizontalAnchor
+    {
+        None,
+        Left,
+        Center,
+        Right
+    }
+
+    private enum VerticalAnchor
+    {
+        None,
+        Top,
+        Center,
+        Bottom
+    }
 }

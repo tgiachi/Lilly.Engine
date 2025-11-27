@@ -1,3 +1,4 @@
+using System.Linq;
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
@@ -22,7 +23,17 @@ public class RenderPipeline : IRenderPipeline
 
     private readonly Dictionary<RenderPriority, List<IRenderLayer>> _renderLayers = new();
 
-    public IEnumerable<IRenderLayer> RenderLayers => _renderLayers.Values.SelectMany(layerList => layerList);
+
+    public IEnumerable<IRenderLayer> RenderLayers
+    {
+        get
+        {
+            lock (_renderLayersLock)
+            {
+                return _renderLayers.Values.SelectMany(layerList => layerList).ToList();
+            }
+        }
+    }
 
     public RenderPipeline(
         IContainer container,
@@ -67,6 +78,7 @@ public class RenderPipeline : IRenderPipeline
 
             value.Add(renderLayer);
 
+            renderLayer.IsActive = true;
             renderLayer.Initialize();
         }
     }
@@ -79,7 +91,10 @@ public class RenderPipeline : IRenderPipeline
             {
                 foreach (var renderLayer in renderLayerList)
                 {
-                    renderLayer.Update(gameTime);
+                    if (renderLayer.IsActive)
+                    {
+                        renderLayer.Update(gameTime);
+                    }
                 }
             }
         }
@@ -93,7 +108,10 @@ public class RenderPipeline : IRenderPipeline
             {
                 foreach (var renderLayer in renderLayerList)
                 {
-                    renderLayer.Render(gameTime);
+                    if (renderLayer.IsActive)
+                    {
+                        renderLayer.Render(gameTime);
+                    }
                 }
             }
         }
