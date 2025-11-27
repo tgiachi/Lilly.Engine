@@ -1,4 +1,3 @@
-using System.Linq;
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
@@ -14,14 +13,12 @@ namespace Lilly.Rendering.Core.Services;
 public class RenderPipeline : IRenderPipeline
 {
     private readonly IContainer _container;
-
     private readonly List<RenderLayerRegistration> _renderLayerRegistrations;
-
     private readonly ILogger _logger = Log.ForContext<RenderPipeline>();
-
     private readonly Lock _renderLayersLock = new();
-
     private readonly Dictionary<RenderPriority, List<IRenderLayer>> _renderLayers = new();
+
+    private readonly IGameObjectFactory _gameObjectFactory;
 
 
     public IEnumerable<IRenderLayer> RenderLayers
@@ -38,13 +35,14 @@ public class RenderPipeline : IRenderPipeline
     public RenderPipeline(
         IContainer container,
         List<RenderLayerRegistration> renderLayerRegistrations,
-        RenderContext renderContext
+        RenderContext renderContext,
+        IGameObjectFactory gameObjectFactory
     )
 
     {
         _container = container;
         _renderLayerRegistrations = renderLayerRegistrations;
-
+        _gameObjectFactory = gameObjectFactory;
 
         CreateLayers();
         AddRegisteredRenderLayer();
@@ -168,6 +166,13 @@ public class RenderPipeline : IRenderPipeline
                 string.Join(", ", addedToLayer)
             );
         }
+    }
+
+    public void CreateGameObject<TEntity>() where TEntity : class, IGameObject
+    {
+        var entity = _gameObjectFactory.Create<TEntity>();
+
+        AddGameObject(entity);
     }
 
     public void RemoveGameObject<TEntity>(TEntity entity) where TEntity : IGameObject
