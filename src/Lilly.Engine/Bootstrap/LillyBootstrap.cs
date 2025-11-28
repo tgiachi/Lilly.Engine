@@ -90,6 +90,10 @@ public class LillyBootstrap : ILillyBootstrap
             "logo",
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Textures/logo.png")
         );
+        assetManager.LoadTextureFromMemory(
+            "box",
+            ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Textures/box.png")
+        );
 
         assetManager.LoadFontFromMemory(
             "default",

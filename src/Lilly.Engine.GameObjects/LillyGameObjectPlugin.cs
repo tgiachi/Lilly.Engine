@@ -1,3 +1,4 @@
+using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
@@ -23,18 +24,18 @@ public class LillyGameObjectPlugin : ILillyPlugin
     {
         yield return gameObjectFactory.Create<NotificationHudGameObject>();
         yield return gameObjectFactory.Create<QuakeConsoleGameObject>();
+
     }
 
     public IContainer RegisterModule(IContainer container)
     {
         container.Register<UITheme>(Reuse.Singleton);
-        container.RegisterGameObject<NotificationHudGameObject>();
-        container.RegisterGameObject<QuakeConsoleGameObject>();
-        container.RegisterGameObject<ButtonGameObject>();
-        container.RegisterGameObject<TextEditGameObject>();
-
-        container.RegisterScriptModule<QuakeConsoleModule>();
-
+        container
+            .RegisterGameObject<NotificationHudGameObject>()
+            .RegisterGameObject<QuakeConsoleGameObject>()
+            .RegisterGameObject<ButtonGameObject>()
+            .RegisterGameObject<TextEditGameObject>()
+            .RegisterScriptModule<QuakeConsoleModule>();
 
         return container;
     }
