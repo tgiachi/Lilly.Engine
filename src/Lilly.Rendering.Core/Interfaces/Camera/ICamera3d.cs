@@ -146,6 +146,12 @@ public interface ICamera3D
     /// </remarks>
     Ray GetPickRay(Vector2 screenPosition, Viewport viewport);
 
+
+    /// <summary>
+    ///  Gets or sets the culling distance for objects.
+    /// </summary>
+    float CullingDistance { get; set; }
+
     /// <summary>
     /// Makes the camera look at a specific target point.
     /// </summary>
@@ -183,6 +189,13 @@ public interface ICamera3D
     /// <param name="gameObject"></param>
     /// <returns></returns>
     bool IsInFrustum(IGameObject3d gameObject);
+
+    /// <summary>
+    ///  Calculates the distance from the camera to a 3D game object.
+    /// </summary>
+    /// <param name="gameObject"></param>
+    /// <returns></returns>
+    float Distance(IGameObject3d gameObject);
 
     /// <summary>
     /// Rotates the camera by pitch, yaw, and roll angles.

@@ -221,6 +221,8 @@ public abstract class Base3dCamera : ICamera3D
         return new(nearPoint.ToSilk(), direction.ToSilk());
     }
 
+    public float CullingDistance { get; set; } = 200f;
+
     public virtual void LookAt(Vector3 target, Vector3 up)
     {
         Target = target;
@@ -255,6 +257,11 @@ public abstract class Base3dCamera : ICamera3D
             return true;
         }
 
+        if (Distance(gameObject) > CullingDistance)
+        {
+            return false;
+        }
+
         var position = gameObject.Transform.Position;
         var scale = gameObject.Transform.Scale;
 
@@ -265,6 +272,13 @@ public abstract class Base3dCamera : ICamera3D
         var estimatedRadius = scaleLength * 0.5f;
 
         return Frustum.Intersects(position, estimatedRadius);
+    }
+
+    public float Distance(IGameObject3d gameObject)
+    {
+        var toObject = gameObject.Transform.Position - Position;
+
+        return toObject.Length();
     }
 
     public virtual void Rotate(float pitch, float yaw, float roll)
