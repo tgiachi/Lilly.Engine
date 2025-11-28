@@ -61,9 +61,9 @@ public class FPSCamera : Base3dCamera
         // Update yaw first (rotate around world Y axis)
         if (MathF.Abs(yawDelta) > Epsilon)
         {
-            var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), yawDelta);
+            var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), -yawDelta);
             Rotation = yawRotation * Rotation;
-            CurrentYaw += yawDelta;
+            CurrentYaw += -yawDelta;
         }
 
         // Then update pitch (rotate around camera's Right axis)

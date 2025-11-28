@@ -2,8 +2,11 @@ using DryIoc;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Plugins;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Plugins;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -12,6 +15,7 @@ using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
 using Lilly.Voxel.Plugin.Steps.World;
+using Lilly.Voxel.Plugin.Vertexs;
 
 namespace Lilly.Voxel.Plugin;
 
@@ -33,13 +37,11 @@ public class LillyVoxelPlugin : ILillyPlugin
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
     }
 
-    public void EngineInitialized(IContainer container)
-    {
-
-    }
+    public void EngineInitialized(IContainer container) { }
 
     public void EngineReady(IContainer container)
     {
+        LoadAssets(container.Resolve<IAssetManager>());
         var blockRegistry = container.Resolve<IBlockRegistry>();
         var chunkGeneratorService = container.Resolve<IChunkGeneratorService>();
 
@@ -72,5 +74,66 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterScriptModule<WorldModule>();
 
         return container;
+    }
+
+    private void LoadAssets(IAssetManager assetManager)
+    {
+        // Chunk rendering shaders
+        assetManager.LoadShaderFromResource<ChunkVertex>(
+            "chunk_block",
+            "Assets/Shaders/Chunks/chunk_block.shader",
+            ["aPosition", "aColor", "aTileCoord", "aTileBase", "aTileSize", "aBlockCoord"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkVertex>(
+            "chunk_billboard",
+            "Assets/Shaders/Chunks/chunk_billboard.shader",
+            ["aPosition", "aColor", "aTexCoords", "aTileBase", "aTileSize", "aBlockCoord"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkFluidVertex>(
+            "chunk_fluid",
+            "Assets/Shaders/Chunks/chunk_fluid.shader",
+            ["aPosition", "aColor", "aTexCoord", "aTileBase", "aTileSize", "aDirection", "aTop"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<ChunkItemVertex>(
+            "chunk_item_billboard",
+            "Assets/Shaders/Chunks/chunk_item_billboard.shader",
+            ["aPosition", "aColor", "aTexCoord", "aOffset", "aTileBase", "aTileSize"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        // Environment shaders
+        assetManager.LoadShaderFromResource<PositionVertex>(
+            "dynamicSky",
+            "Assets/Shaders/Environment/dynamic_sky.shader",
+            ["aPosition"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<SnowVertex>(
+            "snow",
+            "Assets/Shaders/Environment/snow.shader",
+            ["aPosition", "aCorner", "aSize", "aAlpha"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<RainVertex>(
+            "rain_legacy",
+            "Assets/Shaders/Environment/rain.shader",
+            ["aPosition", "aCorner", "aLength", "aAlpha"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadShaderFromResource<CloudsVertex>(
+            "clouds_legacy",
+            "Assets/Shaders/Environment/clouds.shader",
+            ["aPosition", "aNormal"],
+            typeof(LillyVoxelPlugin).Assembly
+        );
     }
 }

@@ -16,4 +16,9 @@
       <Folder Include="Interfaces\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="Assets\**\**" />
+      <EmbeddedResource Include="Assets\**\**" />
+    </ItemGroup>
+
 </Project>

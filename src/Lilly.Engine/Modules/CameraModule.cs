@@ -24,32 +24,22 @@ public class CameraModule
     {
         if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
         {
-            // Project forward and right vectors onto XZ plane for horizontal movement
-            var forwardFlat = new Vector3(fpsCamera.Forward.X, 0, fpsCamera.Forward.Z);
+            // Forwards movement now follows the camera's true forward vector, including vertical component.
+            var actualForward = fpsCamera.Forward * forward;
+
+            // Strafing (right/left) movement is still projected onto the XZ plane for horizontal movement.
             var rightFlat = new Vector3(fpsCamera.Right.X, 0, fpsCamera.Right.Z);
-
-            // Normalize projected vectors (they lose length when projected if camera looks up/down)
-            var forwardFlatLen = forwardFlat.Length();
-            var rightFlatLen = rightFlat.Length();
-
-            if (forwardFlatLen > 0.0001f)
-                forwardFlat = Vector3.Normalize(forwardFlat);
-            else
-                forwardFlat = Vector3.Zero;
-
-            if (rightFlatLen > 0.0001f)
+            if (rightFlat.Length() > 0.0001f)
                 rightFlat = Vector3.Normalize(rightFlat);
             else
                 rightFlat = Vector3.Zero;
+            var strafeMove = rightFlat * -right; // Inverted 'right' movement as previously corrected
 
-            // Calculate horizontal movement with normalized projected vectors
-            var horizontalMove = (forwardFlat * forward + rightFlat * right) * 0.5f;
+            // Vertical movement is separate.
+            var verticalMove = new Vector3(0, up, 0);
 
-            // Add vertical movement separately (not normalized with horizontal)
-            var verticalMove = new Vector3(0, up * 0.5f, 0);
-
-            // Combine and apply
-            fpsCamera.Move(horizontalMove + verticalMove);
+            // Combine and apply all movements
+            fpsCamera.Move((actualForward + strafeMove + verticalMove) * 0.5f);
 
             // CRITICAL: Update target to stay in front of camera after moving
             fpsCamera.Target = fpsCamera.Position + fpsCamera.Forward;
@@ -70,7 +60,7 @@ public class CameraModule
         // yawDelta: positive = look right, negative = look left
         if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
         {
-            fpsCamera.Look(pitchDelta, yawDelta);
+            fpsCamera.Look(-pitchDelta, yawDelta);
         }
     }
 

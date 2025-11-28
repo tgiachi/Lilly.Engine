@@ -15,7 +15,7 @@ public abstract class Base3dCamera : ICamera3D
 {
     private Vector3 _position = Vector3.Zero;
     private Quaternion _rotation = Quaternion.Identity;
-    private Vector3 _target = new(0, 0, 1);     // Forward
+    private Vector3 _target = new(0, 0, -1);     // Forward
     private float _fieldOfView = MathF.PI / 4f; // 45 degrees
     private float _aspectRatio;
     private float _nearPlane = 0.1f;
@@ -86,7 +86,7 @@ public abstract class Base3dCamera : ICamera3D
     {
         get
         {
-            var forward = Vector3.Transform(new Vector3(0, 0, 1), _rotation);
+            var forward = Vector3.Transform(new Vector3(0, 0, -1), _rotation);
 
             return Vector3.Normalize(forward);
         }
