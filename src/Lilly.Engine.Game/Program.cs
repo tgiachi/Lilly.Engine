@@ -12,6 +12,7 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Rendering.Core.Data.Config;
+using Lilly.Voxel.Plugin;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -55,6 +56,7 @@ await ConsoleApp.RunAsync(
         bootstrap.OnConfiguring += _ =>
                                    {
                                        container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
+                                       container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
                                    };
 
         await bootstrap.InitializeAsync(config);

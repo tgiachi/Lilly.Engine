@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine", "src\Lilly.E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Engine.GameObjects", "src\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj", "{7E999549-49EA-4D11-8388-C47D72BE0AF0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Voxel.Plugin", "src\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj", "{D049CC7A-E5CB-4EE7-A70D-D5A148499DCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,5 +50,9 @@ Global
 		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E999549-49EA-4D11-8388-C47D72BE0AF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D049CC7A-E5CB-4EE7-A70D-D5A148499DCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D049CC7A-E5CB-4EE7-A70D-D5A148499DCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D049CC7A-E5CB-4EE7-A70D-D5A148499DCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D049CC7A-E5CB-4EE7-A70D-D5A148499DCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

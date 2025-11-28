@@ -34,6 +34,7 @@
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
         <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj" />
         <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj" />
+        <ProjectReference Include="..\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj" />
     </ItemGroup>
 
 </Project>

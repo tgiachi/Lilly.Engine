@@ -49,6 +49,29 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     IJobHandle<TResult> Schedule<TResult>(IAsyncJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Schedules an asynchronous action without a result.
+    /// </summary>
+    /// <param name="name">The name of the job for identification.</param>
+    /// <param name="action">The async action to execute.</param>
+    /// <param name="priority">The execution priority of the job.</param>
+    /// <param name="onComplete">Optional callback invoked when the job completes.</param>
+    /// <param name="cancellationToken">Token used to cancel the job execution.</param>
+    /// <returns>A job handle for tracking and cancellation.</returns>
+    IJobHandle Schedule(string name, Func<CancellationToken, Task> action, JobPriority priority = JobPriority.Normal, Action? onComplete = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Schedules an asynchronous action that produces a result.
+    /// </summary>
+    /// <typeparam name="TResult">The type of result produced by the action.</typeparam>
+    /// <param name="name">The name of the job for identification.</param>
+    /// <param name="action">The async action to execute that returns a result.</param>
+    /// <param name="priority">The execution priority of the job.</param>
+    /// <param name="onComplete">Optional callback invoked when the job completes with the result.</param>
+    /// <param name="cancellationToken">Token used to cancel the job execution.</param>
+    /// <returns>A job handle with result for tracking and cancellation.</returns>
+    IJobHandle<TResult> Schedule<TResult>(string name, Func<CancellationToken, Task<TResult>> action, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Initializes the worker pool.
     /// </summary>
     /// <param name="workerCount">Number of worker threads to create.</param>

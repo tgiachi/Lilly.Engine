@@ -223,6 +223,70 @@ public class JobSystemService : IJobSystemService, IDisposable
         return handle;
     }
 
+    public IJobHandle Schedule(
+        string name,
+        Func<CancellationToken, Task> action,
+        JobPriority priority = JobPriority.Normal,
+        Action? onComplete = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(action);
+
+        var scheduled = new ScheduledJob
+        {
+            Name = name,
+            Priority = priority,
+            OnComplete = onComplete,
+            CancellationToken = cancellationToken
+        };
+        var handle = new JobHandle(scheduled);
+
+        scheduled.ExecuteAction = async ct =>
+                                  {
+                                      await action(ct);
+                                      handle.SetResult();
+                                  };
+
+        EnqueueJob(scheduled);
+
+        return handle;
+    }
+
+    public IJobHandle<TResult> Schedule<TResult>(
+        string name,
+        Func<CancellationToken, Task<TResult>> action,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(action);
+
+        var scheduled = new ScheduledJob
+        {
+            Name = name,
+            Priority = priority,
+            CancellationToken = cancellationToken
+        };
+        var handle = new JobHandle<TResult>(scheduled);
+
+        scheduled.ExecuteAction = async ct =>
+                                  {
+                                      var result = await action(ct);
+                                      handle.SetResult(result);
+                                      onComplete?.Invoke(result);
+                                  };
+
+        EnqueueJob(scheduled);
+
+        return handle;
+    }
+
     public void Initialize(int workerCount)
     {
         ThrowIfDisposed();
