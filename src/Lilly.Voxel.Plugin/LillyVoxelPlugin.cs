@@ -10,11 +10,14 @@ using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Services;
+using Lilly.Voxel.Plugin.Steps;
 
 namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
 {
+    private bool _isWorldFlat = true;
+
     public LillyPluginData LillyData
         => new LillyPluginData(
             "com.tgiachi.lilly.voxel",
@@ -34,13 +37,24 @@ public class LillyVoxelPlugin : ILillyPlugin
         container
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
-            .container
             .RegisterScriptModule<BlockRegistryModule>()
             .RegisterScriptModule<GenerationModule>()
             .RegisterScriptModule<WorldModule>();
     }
 
-    public void EngineReady(IContainer container) { }
+    public void EngineReady(IContainer container)
+    {
+        if (_isWorldFlat)
+        {
+            var chunkGenerator = container.Resolve<IChunkGeneratorService>();
+            chunkGenerator.AddGeneratorStep(new FlatWorldGenerationStep());
+        }
+        else
+        {
+            
+        }
+
+    }
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
