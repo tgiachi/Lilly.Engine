@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Engine.Audio;
 using Lilly.Rendering.Core.Interfaces.Camera;
 
 namespace Lilly.Engine.Interfaces.Services;
@@ -77,5 +78,5 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    void LoadAudioStream(string streamName, string filePath, bool isLooping = true);
+    void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true);
 }

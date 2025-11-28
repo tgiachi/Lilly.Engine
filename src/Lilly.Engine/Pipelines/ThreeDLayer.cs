@@ -57,11 +57,10 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         CheckWireframe();
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
 
-        foreach (var entity in Entities.Flatten())
+        foreach (var entity in Entities)
         {
             if (_camera3dService.ActiveCamera.IsInFrustum(entity) && entity.IsActive)
             {
-                // Draw calls are automatically tracked by TrackedGraphicsDevice
                 entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
                 EntitiesInCullingFrustum.Add(entity);
                 ProcessedEntityCount++;

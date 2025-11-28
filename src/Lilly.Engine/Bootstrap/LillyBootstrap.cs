@@ -1,3 +1,4 @@
+using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Data.Privimitives;
@@ -184,19 +185,24 @@ public class LillyBootstrap : ILillyBootstrap
 
             var versionGameObject = gameObjectFactory.Create<VersionGameObject>();
 
-            pipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDebugger>());
-            pipeline.AddGameObject(gameObjectFactory.Create<PerformanceDebugger>());
+            pipeline.CreateGameObject<RenderPipelineDebugger>();
+            pipeline.CreateGameObject<PerformanceDebugger>();
             pipeline.CreateGameObject<CameraDebugger>();
 
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
 
-            foreach (var index in Enumerable.Range(0, 3))
+            foreach (var index in Enumerable.Range(0, 100))
             {
                 var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
 
-                cube.Transform.Position = new(index);
+                cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
+                cube.Transform.Position = new Vector3(
+                    (index % 5) * 2f - 4f,
+                    0f,
+                    (index / 5) * 2f - 1f
+                );
                 pipeline.AddGameObject(cube);
             }
         }

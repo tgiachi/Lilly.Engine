@@ -238,11 +238,11 @@ stream.Close();
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    public void LoadAudioStream(string streamName, string filePath, bool isLooping = true)
+    public void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true)
     {
         try
         {
-            var stream = new Audio.AudioStream(filePath, isLooping);
+            var stream = new AudioStream(filePath, audioType, isLooping);
             _streams[streamName] = stream;
             _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
         }
