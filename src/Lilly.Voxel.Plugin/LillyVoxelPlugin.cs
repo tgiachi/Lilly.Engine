@@ -11,6 +11,7 @@ using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
+using Lilly.Voxel.Plugin.Steps.World;
 
 namespace Lilly.Voxel.Plugin;
 
@@ -34,26 +35,26 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public void EngineInitialized(IContainer container)
     {
-        container
-            .RegisterService<IBlockRegistry, BlockRegistry>()
-            .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
-            .RegisterScriptModule<BlockRegistryModule>()
-            .RegisterScriptModule<GenerationModule>()
-            .RegisterScriptModule<WorldModule>();
+
     }
 
     public void EngineReady(IContainer container)
     {
+        var blockRegistry = container.Resolve<IBlockRegistry>();
+        var chunkGeneratorService = container.Resolve<IChunkGeneratorService>();
+
         if (_isWorldFlat)
         {
-            var chunkGenerator = container.Resolve<IChunkGeneratorService>();
-            chunkGenerator.AddGeneratorStep(new FlatWorldGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
         }
         else
         {
-            
+            chunkGeneratorService.AddGeneratorStep(new HeightMapGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainErosionGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
+            chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
         }
-
     }
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
@@ -63,6 +64,13 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IContainer RegisterModule(IContainer container)
     {
+        container
+            .RegisterService<IBlockRegistry, BlockRegistry>()
+            .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
+            .RegisterScriptModule<BlockRegistryModule>()
+            .RegisterScriptModule<GenerationModule>()
+            .RegisterScriptModule<WorldModule>();
+
         return container;
     }
 }
