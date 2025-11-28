@@ -39,6 +39,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
     public override void Render(GameTime gameTime)
     {
+        _renderContext.OpenGl.Enable(GLEnum.Multisample);
         StartRenderTimer();
 
         if (_camera3dService.ActiveCamera == null)

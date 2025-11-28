@@ -186,6 +186,8 @@ public class LillyBootstrap : ILillyBootstrap
 
             pipeline.AddGameObject(gameObjectFactory.Create<RenderPipelineDebugger>());
             pipeline.AddGameObject(gameObjectFactory.Create<PerformanceDebugger>());
+            pipeline.CreateGameObject<CameraDebugger>();
+
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
@@ -225,7 +227,9 @@ public class LillyBootstrap : ILillyBootstrap
 
         _container
             .RegisterGameObject<RenderPipelineDebugger>()
-            .RegisterGameObject<PerformanceDebugger>();
+            .RegisterGameObject<PerformanceDebugger>()
+            .RegisterGameObject<CameraDebugger>()
+            ;
     }
 
     private void RegisterServices()

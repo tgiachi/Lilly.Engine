@@ -43,6 +43,7 @@ public class OpenGlRenderer : IGraphicRenderer
         _windowOptions.VSync = config.WindowConfig.VSync;
         _windowOptions.UpdatesPerSecond = config.WindowConfig.MaxFramerate;
 
+        _windowOptions.Samples = 4;
         _windowOptions.API = new(ContextAPI.OpenGL, new(config.OpenGlApiLevel.Major, config.OpenGlApiLevel.Minor));
         _renderContext.Window = Window.Create(_windowOptions);
 
