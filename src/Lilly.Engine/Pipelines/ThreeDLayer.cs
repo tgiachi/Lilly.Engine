@@ -1,3 +1,5 @@
+using System.Numerics;
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
@@ -40,7 +42,10 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     public override void Render(GameTime gameTime)
     {
         _renderContext.OpenGl.Enable(GLEnum.Multisample);
+
+        // Revert to CullFront (though irrelevant if culling is disabled below) to match original state
         _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullFront;
+
         StartRenderTimer();
 
         if (_camera3dService.ActiveCamera == null)
@@ -58,19 +63,38 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         CheckWireframe();
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
 
+        // 1. Filter and Categorize (Culling)
         foreach (var entity in Entities)
         {
-            if (_camera3dService.ActiveCamera.IsInFrustum(entity) && entity.IsActive)
+            if (entity.IsActive && _camera3dService.ActiveCamera.IsInFrustum(entity))
             {
-                entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
                 EntitiesInCullingFrustum.Add(entity);
-                ProcessedEntityCount++;
             }
             else
             {
                 EntitiesOutsideCullingFrustum.Add(entity);
                 SkippedEntityCount++;
             }
+        }
+
+        // 2. Sort (Painter's Algorithm: Back-to-Front)
+        var cameraPos = _camera3dService.ActiveCamera.Position;
+
+        EntitiesInCullingFrustum.Sort(
+            (a, b) =>
+            {
+                var distA = Vector3.DistanceSquared(a.Transform.Position, cameraPos);
+                var distB = Vector3.DistanceSquared(b.Transform.Position, cameraPos);
+
+                return distB.CompareTo(distA); // Descending order (Far -> Near)
+            }
+        );
+
+        // 3. Draw
+        foreach (var entity in EntitiesInCullingFrustum)
+        {
+            entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
+            ProcessedEntityCount++;
         }
 
         RestoreState();
@@ -87,8 +111,8 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         }
         else
         {
+            // Disable culling to prevent "missing faces" if vertices are not strictly wound
             _renderContext.GraphicsDevice.FaceCullingEnabled = false;
-
         }
     }
 
