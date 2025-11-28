@@ -35,6 +35,7 @@ using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Renderers;
 using Lilly.Rendering.Core.Services;
 using Serilog;
+using TrippyGL;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -90,9 +91,22 @@ public class LillyBootstrap : ILillyBootstrap
             "logo",
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Textures/logo.png")
         );
-        assetManager.LoadTextureFromMemory(
-            "box",
-            ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Textures/box.png")
+
+        foreach (var index in Enumerable.Range(1, 5))
+        {
+            assetManager.LoadTextureFromMemory(
+                $"box{index}",
+                ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, $"Assets/Textures/box{index}.png")
+            );
+        }
+
+        assetManager.LoadShaderFromMemory<VertexColorTexture>(
+            "simple_cube",
+            ResourceUtils.GetEmbeddedResourceString(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Shaders/simple_cube_shader.shader"
+            ),
+            ["Position", "Color", "TexCoords"]
         );
 
         assetManager.LoadFontFromMemory(
@@ -202,6 +216,7 @@ public class LillyBootstrap : ILillyBootstrap
                 var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
 
                 cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
+
                 //cube.XRotationSpeed = Random.Shared.NextSingle() * 0.1f;
                 //cube.ZRotationSpeed = Random.Shared.NextSingle() * 0.1f;
                 cube.Transform.Position = new Vector3(

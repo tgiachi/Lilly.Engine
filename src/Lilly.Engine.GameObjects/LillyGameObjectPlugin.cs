@@ -34,6 +34,8 @@ public class LillyGameObjectPlugin : ILillyPlugin
             .RegisterGameObject<NotificationHudGameObject>()
             .RegisterGameObject<QuakeConsoleGameObject>()
             .RegisterGameObject<ButtonGameObject>()
+            .RegisterGameObject<ComboBoxGameObject>()
+            .RegisterGameObject<ListBoxGameObject>()
             .RegisterGameObject<TextEditGameObject>()
             .RegisterScriptModule<QuakeConsoleModule>();
 

@@ -2,6 +2,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -15,42 +16,52 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable
 {
     private readonly GraphicsDevice _graphicsDevice;
+    private readonly IAssetManager _assetManager;
 
-    private VertexBuffer<VertexColor> _vertexBuffer;
-    private SimpleShaderProgram? _shaderProgram;
-    private VertexColor[] _cubeVertices = [];
+    private VertexBuffer<VertexColorTexture> _vertexBuffer;
+    private ShaderProgram? _shaderProgram;
+    private VertexColorTexture[] _cubeVertices = [];
+    private Texture2D? _texture;
 
     public float XRotationSpeed { get; set; }
     public float YRotationSpeed { get; set; } = 0.01f;
     public float ZRotationSpeed { get; set; }
 
-
-
-    public SimpleCubeGameObject(GraphicsDevice graphicsDevice, IRenderPipeline gameObjectManager) : base("SimpleCube", gameObjectManager)
+    public SimpleCubeGameObject(
+        GraphicsDevice graphicsDevice,
+        IRenderPipeline gameObjectManager,
+        IAssetManager assetManager
+    ) : base("SimpleCube", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
+        _assetManager = assetManager;
     }
 
     public void Initialize()
     {
         _cubeVertices = CreateCubeVertices();
+        var randomBoxTexture = Random.Shared.Next(1, 5);
+        _texture = _assetManager.GetTexture<Texture2D>($"box{randomBoxTexture}");
 
-        _vertexBuffer = new VertexBuffer<VertexColor>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
-        _shaderProgram = SimpleShaderProgram.Create<VertexColor>(_graphicsDevice);
+        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
 
-
+        _shaderProgram = _assetManager.GetShaderProgram("simple_cube");
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
     {
-        if (!IsActive || _shaderProgram == null)
+        if (!IsActive || _shaderProgram == null || _texture == null)
         {
             return;
         }
 
-        _shaderProgram.UpdateView(this, camera);
-
         graphicsDevice.ShaderProgram = _shaderProgram;
+
+        _shaderProgram.Uniforms["World"].SetValueMat4(Transform.GetTransformationMatrix());
+        _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
+        _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
+        _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
+
         graphicsDevice.VertexArray = _vertexBuffer;
 
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
@@ -70,14 +81,14 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         base.Update(gameTime);
     }
 
-    private static VertexColor[] CreateCubeVertices()
+    private static VertexColorTexture[] CreateCubeVertices()
     {
-        var frontColor = Color4b.Red;
-        var backColor = Color4b.Blue.ApplyAlpha(0.3f);
-        var leftColor = Color4b.Lime;
-        var rightColor = Color4b.Yellow.ApplyAlpha(0.8f);
-        var topColor = Color4b.White.ApplyAlpha(0.8f);
-        var bottomColor = Color4b.Pink.ApplyAlpha(0.8f);
+        var frontColor = Color4b.White;
+        var backColor = Color4b.White;
+        var leftColor = Color4b.White;
+        var rightColor = Color4b.White;
+        var topColor = Color4b.White;
+        var bottomColor = Color4b.White;
 
         var frontBottomLeft = new Vector3(-0.5f, -0.5f, 0.5f);
         var frontBottomRight = new Vector3(0.5f, -0.5f, 0.5f);
@@ -89,68 +100,74 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         var backTopLeft = new Vector3(-0.5f, 0.5f, -0.5f);
         var backTopRight = new Vector3(0.5f, 0.5f, -0.5f);
 
+        var uvTopLeft = new Vector2(0, 0);
+        var uvTopRight = new Vector2(1, 0);
+        var uvBottomLeft = new Vector2(0, 1);
+        var uvBottomRight = new Vector2(1, 1);
+
         return
         [
             // Front (+Z)
-            new(frontBottomLeft, frontColor),
-            new(frontBottomRight, frontColor),
-            new(frontTopLeft, frontColor),
+            new(frontBottomLeft, frontColor, uvBottomLeft),
+            new(frontBottomRight, frontColor, uvBottomRight),
+            new(frontTopLeft, frontColor, uvTopLeft),
 
-            new(frontBottomRight, frontColor),
-            new(frontTopRight, frontColor),
-            new(frontTopLeft, frontColor),
+            new(frontBottomRight, frontColor, uvBottomRight),
+            new(frontTopRight, frontColor, uvTopRight),
+            new(frontTopLeft, frontColor, uvTopLeft),
 
             // Back (-Z)
-            new(backBottomRight, backColor),
-            new(backBottomLeft, backColor),
-            new(backTopRight, backColor),
+            new(backBottomRight, backColor, uvBottomLeft),
+            new(backBottomLeft, backColor, uvBottomRight),
+            new(backTopRight, backColor, uvTopLeft),
 
-            new(backBottomLeft, backColor),
-            new(backTopLeft, backColor),
-            new(backTopRight, backColor),
+            new(backBottomLeft, backColor, uvBottomRight),
+            new(backTopLeft, backColor, uvTopRight),
+            new(backTopRight, backColor, uvTopLeft),
 
             // Left (-X)
-            new(backBottomLeft, leftColor),
-            new(frontBottomLeft, leftColor),
-            new(backTopLeft, leftColor),
+            new(backBottomLeft, leftColor, uvBottomLeft),
+            new(frontBottomLeft, leftColor, uvBottomRight),
+            new(backTopLeft, leftColor, uvTopLeft),
 
-            new(frontBottomLeft, leftColor),
-            new(frontTopLeft, leftColor),
-            new(backTopLeft, leftColor),
+            new(frontBottomLeft, leftColor, uvBottomRight),
+            new(frontTopLeft, leftColor, uvTopRight),
+            new(backTopLeft, leftColor, uvTopLeft),
 
             // Right (+X)
-            new(frontBottomRight, rightColor),
-            new(backBottomRight, rightColor),
-            new(frontTopRight, rightColor),
+            new(frontBottomRight, rightColor, uvBottomLeft),
+            new(backBottomRight, rightColor, uvBottomRight),
+            new(frontTopRight, rightColor, uvTopLeft),
 
-            new(backBottomRight, rightColor),
-            new(backTopRight, rightColor),
-            new(frontTopRight, rightColor),
+            new(backBottomRight, rightColor, uvBottomRight),
+            new(backTopRight, rightColor, uvTopRight),
+            new(frontTopRight, rightColor, uvTopLeft),
 
-            // Top (+Y) with 80% alpha
-            new(backTopLeft, topColor),
-            new(frontTopLeft, topColor),
-            new(backTopRight, topColor),
+            // Top (+Y)
+            new(backTopLeft, topColor, uvTopLeft),
+            new(frontTopLeft, topColor, uvBottomLeft),
+            new(backTopRight, topColor, uvTopRight),
 
-            new(frontTopLeft, topColor),
-            new(frontTopRight, topColor),
-            new(backTopRight, topColor),
+            new(frontTopLeft, topColor, uvBottomLeft),
+            new(frontTopRight, topColor, uvBottomRight),
+            new(backTopRight, topColor, uvTopRight),
 
-            // Bottom (-Y) with 80% alpha
-            new(backBottomLeft, bottomColor),
-            new(backBottomRight, bottomColor),
-            new(frontBottomLeft, bottomColor),
+            // Bottom (-Y)
+            new(backBottomLeft, bottomColor, uvTopLeft),
+            new(backBottomRight, bottomColor, uvTopRight),
+            new(frontBottomLeft, bottomColor, uvBottomLeft),
 
-            new(frontBottomLeft, bottomColor),
-            new(backBottomRight, bottomColor),
-            new(frontBottomRight, bottomColor)
+            new(frontBottomLeft, bottomColor, uvBottomLeft),
+            new(backBottomRight, bottomColor, uvTopRight),
+            new(frontBottomRight, bottomColor, uvBottomRight)
         ];
     }
 
     public void Dispose()
     {
         _vertexBuffer.Dispose();
-        _shaderProgram?.Dispose();
+
+        // Do not dispose _shaderProgram here as it is managed by AssetManager
         GC.SuppressFinalize(this);
     }
 }
