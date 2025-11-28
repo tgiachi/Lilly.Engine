@@ -30,6 +30,8 @@ public class LillyGameObjectPlugin : ILillyPlugin
         container.Register<UITheme>(Reuse.Singleton);
         container.RegisterGameObject<NotificationHudGameObject>();
         container.RegisterGameObject<QuakeConsoleGameObject>();
+        container.RegisterGameObject<ButtonGameObject>();
+        container.RegisterGameObject<TextEditGameObject>();
 
         container.RegisterScriptModule<QuakeConsoleModule>();
 

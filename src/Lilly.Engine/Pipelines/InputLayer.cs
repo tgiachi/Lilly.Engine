@@ -33,6 +33,8 @@ public class InputLayer : BaseRenderLayer<IInputReceiver>
         _inputManagerService.Update(gameTime);
         _inputManagerService.DistributeInput(gameTime);
 
+        _inputManagerService.UpdateFocusFromMouse(Entities);
+
         EndUpdateTimer();
     }
 }
