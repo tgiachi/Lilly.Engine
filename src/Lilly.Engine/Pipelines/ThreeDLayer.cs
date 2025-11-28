@@ -40,6 +40,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     public override void Render(GameTime gameTime)
     {
         _renderContext.OpenGl.Enable(GLEnum.Multisample);
+        _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullFront;
         StartRenderTimer();
 
         if (_camera3dService.ActiveCamera == null)
@@ -86,7 +87,8 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         }
         else
         {
-            _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullBack;
+            _renderContext.GraphicsDevice.FaceCullingEnabled = false;
+
         }
     }
 

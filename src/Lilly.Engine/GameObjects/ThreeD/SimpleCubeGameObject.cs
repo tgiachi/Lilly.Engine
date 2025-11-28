@@ -63,6 +63,7 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
 
         graphicsDevice.VertexArray = _vertexBuffer;
+        graphicsDevice.BlendState = BlendState.NonPremultiplied;
 
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
@@ -85,7 +86,7 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     {
         var frontColor = Color4b.White;
         var backColor = Color4b.White;
-        var leftColor = Color4b.White;
+        var leftColor = Color4b.White.ApplyAlpha(0.3f);
         var rightColor = Color4b.White;
         var topColor = Color4b.White;
         var bottomColor = Color4b.White;
@@ -125,15 +126,6 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             new(backTopLeft, backColor, uvTopRight),
             new(backTopRight, backColor, uvTopLeft),
 
-            // Left (-X)
-            new(backBottomLeft, leftColor, uvBottomLeft),
-            new(frontBottomLeft, leftColor, uvBottomRight),
-            new(backTopLeft, leftColor, uvTopLeft),
-
-            new(frontBottomLeft, leftColor, uvBottomRight),
-            new(frontTopLeft, leftColor, uvTopRight),
-            new(backTopLeft, leftColor, uvTopLeft),
-
             // Right (+X)
             new(frontBottomRight, rightColor, uvBottomLeft),
             new(backBottomRight, rightColor, uvBottomRight),
@@ -159,7 +151,16 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
 
             new(frontBottomLeft, bottomColor, uvBottomLeft),
             new(backBottomRight, bottomColor, uvTopRight),
-            new(frontBottomRight, bottomColor, uvBottomRight)
+            new(frontBottomRight, bottomColor, uvBottomRight),
+
+            // Left (-X) - Moved to end for transparency
+            new(backBottomLeft, leftColor, uvBottomLeft),
+            new(frontBottomLeft, leftColor, uvBottomRight),
+            new(backTopLeft, leftColor, uvTopLeft),
+
+            new(frontBottomLeft, leftColor, uvBottomRight),
+            new(frontTopLeft, leftColor, uvTopRight),
+            new(backTopLeft, leftColor, uvTopLeft)
         ];
     }
 
