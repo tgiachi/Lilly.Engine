@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Runtime.InteropServices;
+
 using ImGuiNET;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -10,11 +7,9 @@ namespace Lilly.Engine.Debuggers;
 
 public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
 {
-    private const int HistoryLength = 240;
 
     private readonly IRenderPipeline _renderPipeline;
-    private readonly Dictionary<string, List<float>> _renderHistory = new();
-    private readonly Dictionary<string, List<float>> _updateHistory = new();
+
 
     public RenderPipelineDebugger(IRenderPipeline renderPipeline) : base("Render pipeline")
     {
@@ -28,7 +23,7 @@ public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
                                     .ThenBy(l => l.Name)
                                     .ToList();
 
-        if (!layers.Any())
+        if (layers.Count == 0)
         {
             ImGui.TextUnformatted("No layers registered.");
 

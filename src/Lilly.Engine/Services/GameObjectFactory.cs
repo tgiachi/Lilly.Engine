@@ -101,6 +101,24 @@ public class GameObjectFactory : IGameObjectFactory
     public bool IsRegistered(Type type)
         => type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
 
+    public void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject
+    {
+        ArgumentNullException.ThrowIfNull(gameObject);
+
+        _logger.Debug(
+            "Destroying game object of type {GameObjectType} with ID {GameObjectId}",
+            gameObject.Name,
+            gameObject.Id
+        );
+
+        if (gameObject is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        DecrementObjectId();
+    }
+
     private void BuildDynamicScriptModule()
     {
         const string moduleName = "gameObjects";
@@ -147,6 +165,12 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     private uint GenerateObjectId()
         => (uint)Interlocked.Increment(ref _nextObjectId);
+
+    /// <summary>
+    ///  Decrements the object ID counter.
+    /// </summary>
+    private void DecrementObjectId()
+        => Interlocked.Decrement(ref _nextObjectId);
 
     private void AttachRenderContextIfNeeded(IGameObject instance)
     {

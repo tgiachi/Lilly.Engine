@@ -595,17 +595,17 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             _isInitialized = true;
             _logger.Information("Lua engine initialized successfully");
 
-            // if (_watcher == null)
-            // {
-            //     _watcher = new(_directoriesConfig[DirectoryType.Scripts], "*.lua")
-            //     {
-            //         NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
-            //         IncludeSubdirectories = true,
-            //         EnableRaisingEvents = true
-            //     };
-            //
-            //     _watcher.Changed += OnLuaFilesChanged;
-            // }
+            if (_watcher == null)
+            {
+                _watcher = new(_directoriesConfig[DirectoryType.Scripts], "*.lua")
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                    IncludeSubdirectories = true,
+                    EnableRaisingEvents = true
+                };
+
+                _watcher.Changed += OnLuaFilesChanged;
+            }
         }
         catch (Exception ex)
         {

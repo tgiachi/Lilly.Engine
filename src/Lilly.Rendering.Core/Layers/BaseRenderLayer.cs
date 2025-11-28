@@ -38,6 +38,20 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
 
     public virtual void Initialize() { }
     public virtual void Update(GameTime gameTime) { }
+
+    public TEntity? GetEntity<TEntity>() where TEntity : IGameObject
+    {
+        foreach (var entity in Entities)
+        {
+            if (entity is TEntity typedEntity)
+            {
+                return typedEntity;
+            }
+        }
+
+        return default;
+    }
+
     public virtual void Render(GameTime gameTime) { }
 
     public virtual bool CanAdd<TEntity>(TEntity entity)

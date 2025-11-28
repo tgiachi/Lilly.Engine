@@ -193,4 +193,24 @@ public class RenderPipeline : IRenderPipeline
             }
         }
     }
+
+    public TGameObject? GetGameObject<TGameObject>() where TGameObject : IGameObject
+    {
+        lock (_renderLayersLock)
+        {
+            foreach (var renderLayerList in _renderLayers.Values)
+            {
+                foreach (var renderLayer in renderLayerList)
+                {
+                    var entity = renderLayer.GetEntity<TGameObject>();
+                    if (entity != null)
+                    {
+                        return entity;
+                    }
+                }
+            }
+
+            return default;
+        }
+    }
 }

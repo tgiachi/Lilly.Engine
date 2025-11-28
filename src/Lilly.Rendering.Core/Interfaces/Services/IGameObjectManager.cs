@@ -9,4 +9,6 @@ public interface IGameObjectManager
     void CreateGameObject<TEntity>() where TEntity : class, IGameObject;
 
     void RemoveGameObject<TEntity>(TEntity entity) where TEntity : IGameObject;
+
+    TGameObject? GetGameObject<TGameObject>() where TGameObject : IGameObject;
 }

@@ -1,4 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Rendering.Core.Collections;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Types;
 
@@ -34,6 +35,10 @@ public interface IRenderLayer
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
     void Update(GameTime gameTime);
+
+
+    TEntity? GetEntity<TEntity>() where TEntity : IGameObject;
+
 
     /// <summary>
     /// Renders the layer with the given game time.
