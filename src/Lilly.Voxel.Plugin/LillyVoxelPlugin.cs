@@ -63,7 +63,8 @@ public class LillyVoxelPlugin : ILillyPlugin
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
         yield return gameObjectFactory.Create<SkyGameObject>();
-       // yield return gameObjectFactory.Create<RainEffectGameObject>();
+
+        // yield return gameObjectFactory.Create<RainEffectGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)
@@ -144,7 +145,11 @@ public class LillyVoxelPlugin : ILillyPlugin
             typeof(LillyVoxelPlugin).Assembly
         );
 
-        assetManager.LoadTextureFromResource("snowflake", "Assets/Textures/snowflake.png", typeof(LillyVoxelPlugin).Assembly);
+        assetManager.LoadTextureFromResource(
+            "snowflake",
+            "Assets/Textures/snowflake.png",
+            typeof(LillyVoxelPlugin).Assembly
+        );
 
         assetManager.LoadTextureAtlasFromResource(
             "sun_moon",
