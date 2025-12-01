@@ -138,5 +138,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             ["aPosition", "aNormal"],
             typeof(LillyVoxelPlugin).Assembly
         );
+
+        assetManager.LoadTextureFromResource("snowflake", "Assets/Textures/snowflake.png", typeof(LillyVoxelPlugin).Assembly);
     }
 }

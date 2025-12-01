@@ -12,6 +12,7 @@ out vec4 FragColor;
 // Uniforms
 uniform float uIntensity;
 uniform float uTime;
+uniform sampler2D uSnowflakeTexture;
 
 void main()
 {
@@ -19,14 +20,13 @@ void main()
     if (density <= 0.001)
         discard;
 
+    vec4 texColor = texture(uSnowflakeTexture, vCorner);
+    
     vec2 uv = vCorner - 0.5;
-    float dist = dot(uv, uv);
-    float softMask = clamp(1.0 - dist * 4.0, 0.0, 1.0);
-
     float sparkle = 0.65 + 0.35 * sin(uTime * 4.0 + uv.x * 8.0 + uv.y * 6.0);
-    float alpha = clamp(vAlpha * density * softMask, 0.0, 1.0);
+    float alpha = clamp(vAlpha * density * texColor.a, 0.0, 1.0);
 
-    vec3 color = vec3(0.92, 0.95, 1.0) * sparkle;
+    vec3 color = texColor.rgb * vec3(0.92, 0.95, 1.0) * sparkle;
 
     FragColor = vec4(color, alpha);
 }

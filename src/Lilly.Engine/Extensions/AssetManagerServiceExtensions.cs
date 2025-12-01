@@ -29,5 +29,23 @@ public static class AssetManagerServiceExtensions
 
             assetManager.LoadShaderFromMemory<TVertex>(shaderName, shaderContent, attributeNames);
         }
+
+        public void LoadTextureFromResource(
+            string textureName,
+            string resourcePath,
+            Assembly assembly
+        )
+        {
+            using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+            if (textureStream == null)
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'."
+                );
+            }
+
+            assetManager.LoadTextureFromMemory(textureName, textureStream);
+        }
     }
 }

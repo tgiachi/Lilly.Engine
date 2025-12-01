@@ -192,8 +192,8 @@ public class SnowEffectGameObject : Base3dGameObject
         //_snowShader.Uniforms["uParticleRotation"].SetValueFloat(ParticleRotation);
 
         // Set textures
-        //_snowShader.Uniforms["uSnowflakeTexture"]
-        //           .SetValueTexture(SnowflakeTexture ?? _assetManager.GetWhiteTexture<Texture2D>());
+        _snowShader.Uniforms["uSnowflakeTexture"]
+                   .SetValueTexture(SnowflakeTexture ?? _assetManager.GetWhiteTexture<Texture2D>());
         //_snowShader.Uniforms["uDepthTexture"].SetValueTexture(DepthTexture ?? _assetManager.GetWhiteTexture<Texture2D>());
 
         if (ActiveFlakeCount == 0 || _vertexBuffer == null)
