@@ -1,5 +1,6 @@
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Data.Atlas;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Camera;
@@ -7,6 +8,7 @@ using Lilly.Rendering.Core.Interfaces.Services;
 using Serilog;
 using System.Numerics;
 using TrippyGL;
+using Silk.NET.Maths;
 
 namespace Lilly.Voxel.Plugin.GameObjects;
 
@@ -16,15 +18,43 @@ public class SkyGameObject : Base3dGameObject
     private readonly IAssetManager _assetManager;
     private VertexBuffer<PositionVertex>? _vertexBuffer;
     private float _timeOfDay;
+    private float _previousTimeOfDay;
     public Texture2D? SkyTexture { get; set; }
     public Vector3 SunDirection { get; set; } = new Vector3(0.5f, 0.7f, 0.3f);
     public Vector3 MoonDirection { get; set; } = new Vector3(-0.5f, -0.7f, -0.3f);
+
+    private const string SunMoonAtlasKey = "sun_moon";
+    private const string SunMoonAtlasTextureKey = $"{SunMoonAtlasKey}_atlas";
+    private const int MoonPhaseStartIndex = 2;
+    private const int MoonPhaseEndIndex = 9;
+    private int _moonPhaseIndex = MoonPhaseStartIndex;
+    private AtlasRegion _sunDayRegion;
+    private AtlasRegion _sunHorizonRegion;
+    private AtlasRegion _moonRegion;
+    private Texture2D? _sunMoonAtlasTexture;
 
     public bool UseTexture { get; set; }
     public bool EnableAurore { get; set; } = true;
     public float AuroreIntensity { get; set; } = 0.7f;
     public bool EnableCycle { get; set; } = true;
     public float CycleSpeed { get; set; } = 0.01f;
+    public bool AutoCycleMoonPhases { get; set; } = true;
+
+    public int MoonPhaseIndex
+    {
+        get => _moonPhaseIndex;
+        set
+        {
+            var clamped = Math.Clamp(value, MoonPhaseStartIndex, MoonPhaseEndIndex);
+            if (_moonPhaseIndex == clamped)
+            {
+                return;
+            }
+
+            _moonPhaseIndex = clamped;
+            UpdateMoonRegion();
+        }
+    }
 
     public float TimeOfDay
     {
@@ -51,6 +81,7 @@ public class SkyGameObject : Base3dGameObject
     public override void Initialize()
     {
         CreateSkyGeometry();
+        InitializeAtlasRegions();
     }
 
     public override void Update(GameTime gameTime)
@@ -60,10 +91,17 @@ public class SkyGameObject : Base3dGameObject
             return;
         }
 
+        _previousTimeOfDay = _timeOfDay;
+
         if (EnableCycle)
         {
             _timeOfDay += gameTime.GetElapsedSeconds() * CycleSpeed;
             _timeOfDay %= 1.0f;
+        }
+
+        if (AutoCycleMoonPhases && _timeOfDay < _previousTimeOfDay)
+        {
+            AdvanceMoonPhase();
         }
 
         UpdateLighting();
@@ -112,6 +150,13 @@ public class SkyGameObject : Base3dGameObject
         _skyShader.Uniforms["uUseTexture"].SetValueFloat(UseTexture ? 1.0f : 0.0f);
         _skyShader.Uniforms["uTextureStrength"].SetValueFloat(0.5f);
         _skyShader.Uniforms["uSkyTexture"].SetValueTexture(SkyTexture ?? _assetManager.GetWhiteTexture<Texture2D>());
+        _skyShader.Uniforms["uSunMoonAtlas"].SetValueTexture(_sunMoonAtlasTexture ?? _assetManager.GetWhiteTexture<Texture2D>());
+        _skyShader.Uniforms["uSunDayBase"].SetValueVec2(ToVector2(_sunDayRegion.Position));
+        _skyShader.Uniforms["uSunDaySize"].SetValueVec2(ToVector2(_sunDayRegion.Size));
+        _skyShader.Uniforms["uSunHorizonBase"].SetValueVec2(ToVector2(_sunHorizonRegion.Position));
+        _skyShader.Uniforms["uSunHorizonSize"].SetValueVec2(ToVector2(_sunHorizonRegion.Size));
+        _skyShader.Uniforms["uMoonBase"].SetValueVec2(ToVector2(_moonRegion.Position));
+        _skyShader.Uniforms["uMoonSize"].SetValueVec2(ToVector2(_moonRegion.Size));
         _skyShader.Uniforms["uEnableAurora"].SetValueFloat(EnableAurore ? 1.0f : 0.0f);
         _skyShader.Uniforms["uAuroraIntensity"].SetValueFloat(AuroreIntensity);
 
@@ -165,5 +210,51 @@ public class SkyGameObject : Base3dGameObject
             vertices,
             BufferUsage.StaticCopy
         );
+    }
+
+    private void InitializeAtlasRegions()
+    {
+        try
+        {
+            _sunMoonAtlasTexture = _assetManager.GetTexture<Texture2D>(SunMoonAtlasTextureKey);
+            _sunDayRegion = _assetManager.GetAtlasRegion(SunMoonAtlasKey, 0);
+            _sunHorizonRegion = _assetManager.GetAtlasRegion(SunMoonAtlasKey, 1);
+            UpdateMoonRegion();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Unable to initialize sun/moon atlas, sky will fallback to procedural discs.");
+            _sunDayRegion = default;
+            _sunHorizonRegion = default;
+            _moonRegion = default;
+            _sunMoonAtlasTexture = null;
+        }
+    }
+
+    private void AdvanceMoonPhase()
+    {
+        var nextPhase = _moonPhaseIndex + 1;
+        if (nextPhase > MoonPhaseEndIndex)
+        {
+            nextPhase = MoonPhaseStartIndex;
+        }
+
+        _moonPhaseIndex = nextPhase;
+        UpdateMoonRegion();
+    }
+
+    private void UpdateMoonRegion()
+    {
+        if (_sunMoonAtlasTexture == null)
+        {
+            return;
+        }
+
+        _moonRegion = _assetManager.GetAtlasRegion(SunMoonAtlasKey, _moonPhaseIndex);
+    }
+
+    private static Vector2 ToVector2(Vector2D<float> value)
+    {
+        return new Vector2(value.X, value.Y);
     }
 }

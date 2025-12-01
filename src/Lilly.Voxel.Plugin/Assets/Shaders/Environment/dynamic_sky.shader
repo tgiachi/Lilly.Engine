@@ -17,6 +17,13 @@ uniform float uTextureStrength;
 uniform float uEnableAurora;// Enable aurora borealis (1.0 or 0.0)
 uniform float uAuroraIntensity;// Aurora intensity (0.0 to 1.0)
 uniform sampler2D uSkyTexture;
+uniform sampler2D uSunMoonAtlas;
+uniform vec2 uSunDayBase;
+uniform vec2 uSunDaySize;
+uniform vec2 uSunHorizonBase;
+uniform vec2 uSunHorizonSize;
+uniform vec2 uMoonBase;
+uniform vec2 uMoonSize;
 
 const float PI = 3.14159265359;
 
@@ -39,6 +46,28 @@ vec3 SampleSkyTexture(vec3 direction)
     float v = 0.5 - latitude / PI;
 
     return texture(uSkyTexture, vec2(u, v)).rgb;
+}
+
+vec4 SampleAtlas(vec2 baseUV, vec2 sizeUV, vec2 uv)
+{
+    return texture(uSunMoonAtlas, baseUV + uv * sizeUV);
+}
+
+void BuildTangentBasis(vec3 dir, out vec3 right, out vec3 up)
+{
+    vec3 reference = abs(dir.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+    right = normalize(cross(reference, dir));
+    up = cross(dir, right);
+}
+
+vec2 ProjectToSpritePlane(vec3 dir, vec3 targetDir, float radius, out float distanceFromCenter)
+{
+    vec3 right;
+    vec3 up;
+    BuildTangentBasis(targetDir, right, up);
+    vec2 local = vec2(dot(dir, right), dot(dir, up));
+    distanceFromCenter = length(local);
+    return local / radius * 0.5 + 0.5;
 }
 
 // Sky color calculation
@@ -327,47 +356,38 @@ vec3 RenderSun(vec3 direction, vec3 sky_color)
 {
     vec3 dir = normalize(direction);
     vec3 sun_dir = normalize(uSunDirection);
+    float sun_height = sun_dir.y;
 
     // Only render sun when it's above horizon (Y > 0)
-    if (sun_dir.y <= 0.0)
+    if (sun_height <= -0.05)
     return sky_color;
 
-    // Calculate angular distance from sun center using dot product
-    float sun_dot = dot(dir, sun_dir);
+    // Larger disc near horizon, tighter at midday
+    float angular_radius = mix(0.18, 0.075, clamp((sun_height + 0.2) / 0.8, 0.0, 1.0));
 
-    // Sun parameters
-    float sun_threshold = 0.9995;// ~1.8 degrees - main sun disc
-    float glow_threshold = 0.998;// ~3.6 degrees - sun glow
+    float distance_from_center;
+    vec2 sprite_uv = ProjectToSpritePlane(dir, sun_dir, angular_radius, distance_from_center);
 
-    // Sun disc (very bright)
-    if (sun_dot > sun_threshold)
+    if (distance_from_center > angular_radius || any(lessThan(sprite_uv, vec2(0.0))) ||
+        any(greaterThan(sprite_uv, vec2(1.0))))
     {
-        float intensity = (sun_dot - sun_threshold) / (1.0 - sun_threshold);
-        vec3 sun_color = vec3(1.0, 0.98, 0.9) * (1.0 + intensity * 2.0);
-        return mix(sky_color, sun_color, 0.98);
-    }
-    // Sun glow
-    else if (sun_dot > glow_threshold)
-    {
-        float glow_factor = (sun_dot - glow_threshold) / (sun_threshold - glow_threshold);
-        glow_factor = pow(abs(glow_factor), 1.5);
-
-        // Calculate sunset intensity
-        float sunset_intensity = clamp(1.0 - sun_dir.y * 1.5, 0.0, 1.0);
-
-        // Glow color varies based on time (warmer at sunset)
-        vec3 glow_color = mix(
-        vec3(1.0, 0.9, 0.7), // Day glow
-        vec3(1.0, 0.5, 0.2), // Sunset glow (arancio vivido)
-        sunset_intensity
-        );
-
-        // Increase intensity at sunset
-        float glow_intensity = mix(0.6, 0.95, sunset_intensity);
-        return mix(sky_color, glow_color, glow_factor * glow_intensity);
+        return sky_color;
     }
 
-    return sky_color;
+    float day_blend = smoothstep(-0.05, 0.3, sun_height);
+    vec4 sun_day = SampleAtlas(uSunDayBase, uSunDaySize, sprite_uv);
+    vec4 sun_horizon = SampleAtlas(uSunHorizonBase, uSunHorizonSize, sprite_uv);
+    vec4 sun_sample = mix(sun_horizon, sun_day, day_blend);
+
+    float alpha = sun_sample.a * (1.0 - smoothstep(angular_radius * 0.5, angular_radius, distance_from_center));
+
+    vec3 glow_color = mix(vec3(1.0, 0.75, 0.55), vec3(1.0, 0.55, 0.25), 1.0 - day_blend);
+    float glow = exp(-distance_from_center * 60.0) * (0.4 + (1.0 - day_blend) * 0.4);
+
+    vec3 color = mix(sky_color, sun_sample.rgb, alpha);
+    color += glow_color * glow * alpha;
+
+    return color;
 }
 
 // Renders the moon as a silver disc in the night sky
@@ -377,42 +397,29 @@ vec3 RenderMoon(vec3 direction, vec3 sky_color)
     vec3 moon_dir = normalize(uMoonDirection);
 
     // Only render moon when it's above horizon (Y > 0)
-    if (moon_dir.y <= 0.0)
+    if (moon_dir.y <= -0.1)
     return sky_color;
 
-    // Calculate angular distance from moon center using dot product
-    float moon_dot = dot(dir, moon_dir);
+    float angular_radius = 0.12;
+    float distance_from_center;
+    vec2 sprite_uv = ProjectToSpritePlane(dir, moon_dir, angular_radius, distance_from_center);
 
-    // Moon parameters (slightly larger than sun)
-    float moon_threshold = 0.9993;// ~2.0 degrees - main moon disc
-    float moon_glow_threshold = 0.997;// ~4.4 degrees - moon glow
-
-    // Moon disc (silvery-white)
-    if (moon_dot > moon_threshold)
+    if (distance_from_center > angular_radius || any(lessThan(sprite_uv, vec2(0.0))) ||
+        any(greaterThan(sprite_uv, vec2(1.0))))
     {
-        float intensity = (moon_dot - moon_threshold) / (1.0 - moon_threshold);
-
-        // Moon surface with subtle texture (craters simulation)
-        float crater_pattern = hash(floor(dir * 1000.0)) * 0.3;
-
-        // Moon color (bluish-silver)
-        vec3 moon_color = vec3(0.85, 0.87, 0.9) * (0.7 + intensity * 0.3 + crater_pattern);
-
-        return mix(sky_color, moon_color, 0.95);
-    }
-    // Moon glow (halo effect)
-    else if (moon_dot > moon_glow_threshold)
-    {
-        float glow_factor = (moon_dot - moon_glow_threshold) / (moon_threshold - moon_glow_threshold);
-        glow_factor = pow(abs(glow_factor), 1.5);
-
-        // Soft bluish-white glow
-        vec3 moon_glow_color = vec3(0.8, 0.85, 0.95);
-
-        return mix(sky_color, moon_glow_color, glow_factor * 0.55);
+        return sky_color;
     }
 
-    return sky_color;
+    vec4 moon_sample = SampleAtlas(uMoonBase, uMoonSize, sprite_uv);
+    float alpha = moon_sample.a * (1.0 - smoothstep(angular_radius * 0.55, angular_radius, distance_from_center));
+
+    vec3 glow_color = vec3(0.75, 0.8, 0.9);
+    float glow = exp(-distance_from_center * 50.0) * 0.25;
+
+    vec3 color = mix(sky_color, moon_sample.rgb, alpha);
+    color += glow_color * glow * alpha;
+
+    return color;
 }
 
 void main()
