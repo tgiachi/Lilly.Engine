@@ -26,7 +26,7 @@ public class UpdateableLayer : BaseRenderLayer<IUpdateble>
     {
         ProcessedEntityCount = 0;
         StartUpdateTimer();
-        foreach (var entity in Entities)
+        foreach (var entity in Entities.ToArray())
         {
             ProcessedEntityCount++;
             entity.Update(gameTime);

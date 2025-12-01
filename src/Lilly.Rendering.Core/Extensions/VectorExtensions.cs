@@ -36,4 +36,8 @@ public static class VectorExtensions
             new Vector4D<float>(matrix.M31, matrix.M32, matrix.M33, matrix.M34),
             new Vector4D<float>(matrix.M41, matrix.M42, matrix.M43, matrix.M44)
         );
+
+
+    public static string ToHumanReadableString(this Vector3 vector)
+        => $"({vector.X:F2}, {vector.Y:F2}, {vector.Z:F2})";
 }

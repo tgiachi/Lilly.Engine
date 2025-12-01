@@ -12,6 +12,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Extensions;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.GameObjects;
@@ -26,13 +27,14 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly ChunkMeshBuilder _meshBuilder;
     private readonly IJobSystemService _jobSystem;
     private readonly IChunkGeneratorService _chunkGenerator;
+    private readonly IGameObjectManager _gameObjectManager;
 
     private readonly Dictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
 
     public int HorizontalRadiusChunks { get; set; } = 4;
     public int VerticalBelowChunks { get; set; } = 1;
-    public int VerticalAboveChunks { get; set; } = 0;
+    public int VerticalAboveChunks { get; set; }
     public int MaxConcurrentJobs { get; set; } = 4;
 
     public WorldGameObject(
@@ -40,14 +42,16 @@ public sealed class WorldGameObject : Base3dGameObject
         IAssetManager assetManager,
         ChunkMeshBuilder meshBuilder,
         IJobSystemService jobSystem,
-        IChunkGeneratorService chunkGenerator
-    ) : base("World", null!)
+        IChunkGeneratorService chunkGenerator,
+        IGameObjectManager gameObjectManager
+    ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
         _meshBuilder = meshBuilder;
         _jobSystem = jobSystem;
         _chunkGenerator = chunkGenerator;
+        _gameObjectManager = gameObjectManager;
         IgnoreFrustumCulling = true;
     }
 
@@ -62,19 +66,8 @@ public sealed class WorldGameObject : Base3dGameObject
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
 
-        foreach (var chunk in _activeChunks.Values)
-        {
-            chunk.Update(gameTime);
-        }
     }
 
-    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        foreach (var chunk in _activeChunks.Values)
-        {
-            chunk.Draw(gameTime, graphicsDevice, camera);
-        }
-    }
 
     private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
     {
@@ -109,28 +102,32 @@ public sealed class WorldGameObject : Base3dGameObject
             }
 
             var job = _jobSystem.Schedule(
-                $"chunk_build_{coord}",
+                $"chunk_build_{coord.ToHumanReadableString()}",
                 async ct =>
                 {
                     var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition((int)coord.X, (int)coord.Y, (int)coord.Z);
                     var chunk = await _chunkGenerator.GetChunkByWorldPosition(worldPos);
-                    
+
                     // Pass neighbor lookup to MeshBuilder so it can cull faces between chunks
-                    var mesh = _meshBuilder.BuildMeshData(chunk, (chunkCoords) => 
-                    {
-                        var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                            (int)chunkCoords.X, 
-                            (int)chunkCoords.Y, 
-                            (int)chunkCoords.Z
-                        );
-                        
-                        if (_chunkGenerator.TryGetCachedChunk(neighborPos, out var neighbor))
+                    var mesh = _meshBuilder.BuildMeshData(
+                        chunk,
+                        (chunkCoords) =>
                         {
-                            return neighbor;
+                            var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                (int)chunkCoords.X,
+                                (int)chunkCoords.Y,
+                                (int)chunkCoords.Z
+                            );
+
+                            if (_chunkGenerator.TryGetCachedChunk(neighborPos, out var neighbor))
+                            {
+                                return neighbor;
+                            }
+
+                            return null;
                         }
-                        return null;
-                    });
-                    
+                    );
+
                     return new ChunkBuildResult(chunk, mesh);
                 },
                 JobPriority.Normal,
@@ -158,19 +155,23 @@ public sealed class WorldGameObject : Base3dGameObject
             _pending.TryRemove(coord, out _);
 
             bool isNewChunk = false;
+
             if (_activeChunks.TryGetValue(coord, out var existing))
             {
                 existing.SetPendingMesh(result.MeshData);
             }
             else
             {
-                var chunkGo = new ChunkGameObject(result.Chunk, _graphicsDevice, _assetManager, null!);
+                var chunkGo = new ChunkGameObject(result.Chunk, _graphicsDevice, _assetManager, _gameObjectManager);
                 chunkGo.SetPendingMesh(result.MeshData);
                 _activeChunks[coord] = chunkGo;
                 isNewChunk = true;
+
+                // Add to scene graph so it gets rendered and updated automatically
+                AddGameObject(chunkGo);
             }
 
-            // If a new chunk was added, notify neighbors to rebuild their mesh 
+            // If a new chunk was added, notify neighbors to rebuild their mesh
             // (so they can hide faces that are now touching this new chunk)
             if (isNewChunk)
             {
@@ -191,53 +192,46 @@ public sealed class WorldGameObject : Base3dGameObject
         foreach (var dir in directions)
         {
             var neighborCoord = coord + dir;
+
             if (_activeChunks.TryGetValue(neighborCoord, out var neighborGo))
             {
-                // Mark the neighbor as dirty so it rebuilds its mesh in the next Update loop
-                // (or whenever the system handles dirty chunks)
-                // Since we don't have a direct "Rebuild" method exposed here that schedules a job,
-                // we rely on the ChunkEntity's dirty flag if the system checks it, 
-                // OR we manually trigger a rebuild schedule.
-                //
-                // Currently, WorldGameObject schedules based on _activeChunks check. 
-                // We need to force it to re-schedule or re-build.
-                
-                // For now, we'll remove it from active chunks so it gets picked up as "missing" 
-                // and re-scheduled. This is a bit heavy but safe.
-                // A better way would be to have a "Dirty" set or explicit Rebuild method.
-                
-                // Actually, let's just schedule a job for it directly if not already pending.
                 if (!_pending.ContainsKey(neighborCoord))
                 {
-                    // Force a re-schedule by removing from active? 
-                    // No, that destroys the object.
-                    // Let's just launch a new job for it.
-                    
                     var job = _jobSystem.Schedule(
                         $"chunk_rebuild_{neighborCoord}",
                         async ct =>
                         {
-                            var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition((int)neighborCoord.X, (int)neighborCoord.Y, (int)neighborCoord.Z);
+                            var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                (int)neighborCoord.X,
+                                (int)neighborCoord.Y,
+                                (int)neighborCoord.Z
+                            );
                             var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
-                            
-                            var mesh = _meshBuilder.BuildMeshData(chunk, (chunkCoords) => 
-                            {
-                                var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                                    (int)chunkCoords.X, 
-                                    (int)chunkCoords.Y, 
-                                    (int)chunkCoords.Z
-                                );
-                                if (_chunkGenerator.TryGetCachedChunk(nPos, out var n)) return n;
-                                return null;
-                            });
-                            
+
+                            var mesh = _meshBuilder.BuildMeshData(
+                                chunk,
+                                (chunkCoords) =>
+                                {
+                                    var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                        (int)chunkCoords.X,
+                                        (int)chunkCoords.Y,
+                                        (int)chunkCoords.Z
+                                    );
+
+                                    if (_chunkGenerator.TryGetCachedChunk(nPos, out var n))
+                                        return n;
+
+                                    return null;
+                                }
+                            );
+
                             return new ChunkBuildResult(chunk, mesh);
                         },
                         JobPriority.Normal,
                         onComplete: null,
                         cancellationToken: default
                     );
-                    
+
                     _pending[neighborCoord] = job;
                 }
             }
@@ -261,6 +255,9 @@ public sealed class WorldGameObject : Base3dGameObject
             if (_activeChunks.Remove(coord, out var chunk))
             {
                 chunk.DisposeBuffers();
+
+                // Remove from scene graph
+                RemoveGameObject(chunk);
             }
         }
     }
