@@ -55,9 +55,11 @@ vec4 SampleAtlas(vec2 baseUV, vec2 sizeUV, vec2 uv)
 
 void BuildTangentBasis(vec3 dir, out vec3 right, out vec3 up)
 {
-    vec3 reference = abs(dir.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-    right = normalize(cross(reference, dir));
-    up = cross(dir, right);
+    vec3 worldUp = vec3(0.0, 1.0, 0.0);
+    vec3 fallbackUp = vec3(0.0, 0.0, 1.0);
+    vec3 ref = abs(dot(worldUp, dir)) > 0.99 ? fallbackUp : worldUp;
+    right = normalize(cross(ref, dir));
+    up = normalize(cross(dir, right));
 }
 
 vec2 ProjectToSpritePlane(vec3 dir, vec3 targetDir, float radius, out float distanceFromCenter)
@@ -363,7 +365,7 @@ vec3 RenderSun(vec3 direction, vec3 sky_color)
     return sky_color;
 
     // Larger disc near horizon, tighter at midday
-    float angular_radius = mix(0.18, 0.075, clamp((sun_height + 0.2) / 0.8, 0.0, 1.0));
+    float angular_radius = mix(0.24, 0.10, clamp((sun_height + 0.2) / 0.8, 0.0, 1.0));
 
     float distance_from_center;
     vec2 sprite_uv = ProjectToSpritePlane(dir, sun_dir, angular_radius, distance_from_center);
@@ -400,7 +402,7 @@ vec3 RenderMoon(vec3 direction, vec3 sky_color)
     if (moon_dir.y <= -0.1)
     return sky_color;
 
-    float angular_radius = 0.12;
+    float angular_radius = 0.16;
     float distance_from_center;
     vec2 sprite_uv = ProjectToSpritePlane(dir, moon_dir, angular_radius, distance_from_center);
 
