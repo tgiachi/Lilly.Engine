@@ -145,5 +145,13 @@ public class LillyVoxelPlugin : ILillyPlugin
         );
 
         assetManager.LoadTextureFromResource("snowflake", "Assets/Textures/snowflake.png", typeof(LillyVoxelPlugin).Assembly);
+
+        assetManager.LoadTextureAtlasFromResource(
+            "sun_moon",
+            "Assets/Textures/sun_moon_atlas.png",
+            typeof(LillyVoxelPlugin).Assembly,
+            32,
+            32
+        );
     }
 }

@@ -47,5 +47,27 @@ public static class AssetManagerServiceExtensions
 
             assetManager.LoadTextureFromMemory(textureName, textureStream);
         }
+
+        public void LoadTextureAtlasFromResource(
+            string atlasName,
+            string resourcePath,
+            Assembly assembly,
+            int tileWidth,
+            int tileHeight,
+            int spacing = 0,
+            int margin = 0
+        )
+        {
+            using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+            if (textureStream == null)
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'."
+                );
+            }
+
+            assetManager.LoadTextureAtlasFromMemory(atlasName, textureStream, tileWidth, tileHeight, spacing, margin);
+        }
     }
 }
