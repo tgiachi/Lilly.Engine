@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -11,11 +11,11 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 public struct ChunkFluidVertex : IVertex
 {
     public ChunkFluidVertex(
-        Vector3D<float> position,
-        Vector4D<byte> color,
-        Vector2D<float> texCoord,
-        Vector2D<float> tileBase,
-        Vector2D<float> tileSize,
+        Vector3 position,
+        Color4b color,
+        Vector2 texCoord,
+        Vector2 tileBase,
+        Vector2 tileSize,
         float direction,
         float top)
     {
@@ -28,11 +28,11 @@ public struct ChunkFluidVertex : IVertex
         Top = top;
     }
 
-    public Vector3D<float> Position;
-    public Vector4D<byte> Color;
-    public Vector2D<float> TexCoord;
-    public Vector2D<float> TileBase;
-    public Vector2D<float> TileSize;
+    public Vector3 Position;
+    public Color4b Color;
+    public Vector2 TexCoord;
+    public Vector2 TileBase;
+    public Vector2 TileSize;
     public float Direction;
     public float Top;
 

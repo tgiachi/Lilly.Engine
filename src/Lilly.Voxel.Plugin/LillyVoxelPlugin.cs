@@ -9,6 +9,7 @@ using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Voxel.Plugin.GameObjects;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
@@ -61,7 +62,7 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield break;
+        yield return gameObjectFactory.Create<SnowEffectGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)
@@ -72,6 +73,8 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterScriptModule<BlockRegistryModule>()
             .RegisterScriptModule<GenerationModule>()
             .RegisterScriptModule<WorldModule>();
+
+        container.RegisterGameObject<SnowEffectGameObject>();
 
         return container;
     }

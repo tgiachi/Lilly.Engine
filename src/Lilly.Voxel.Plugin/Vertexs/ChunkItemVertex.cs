@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -10,7 +10,7 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 [StructLayout(LayoutKind.Sequential)]
 public struct ChunkItemVertex : IVertex
 {
-    public ChunkItemVertex(Vector3D<float> position, Vector4D<byte> color, Vector2D<float> texCoord, Vector2D<float> offset, Vector2D<float> tileBase, Vector2D<float> tileSize)
+    public ChunkItemVertex(Vector3 position, Color4b color, Vector2 texCoord, Vector2 offset, Vector2 tileBase, Vector2 tileSize)
     {
         Position = position;
         Color = color;
@@ -20,17 +20,17 @@ public struct ChunkItemVertex : IVertex
         TileSize = tileSize;
     }
 
-    public Vector3D<float> Position;
+    public Vector3 Position;
 
-    public Vector4D<byte> Color;
+    public Color4b Color;
 
-    public Vector2D<float> TexCoord;
+    public Vector2 TexCoord;
 
-    public Vector2D<float> Offset;
+    public Vector2 Offset;
 
-    public Vector2D<float> TileBase;
+    public Vector2 TileBase;
 
-    public Vector2D<float> TileSize;
+    public Vector2 TileSize;
 
     /// <inheritdoc />
     public int AttribDescriptionCount => 6;

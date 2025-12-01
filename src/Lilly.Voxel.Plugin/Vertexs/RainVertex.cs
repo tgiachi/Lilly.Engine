@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -11,8 +11,8 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 public struct RainVertex : IVertex
 {
     public RainVertex(
-        Vector3D<float> position,
-        Vector2D<float> corner,
+        Vector3 position,
+        Vector2 corner,
         float length,
         float alpha)
     {
@@ -22,8 +22,8 @@ public struct RainVertex : IVertex
         Alpha = alpha;
     }
 
-    public Vector3D<float> Position;
-    public Vector2D<float> Corner;
+    public Vector3 Position;
+    public Vector2 Corner;
     public float Length;
     public float Alpha;
 

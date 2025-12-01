@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -20,12 +20,12 @@ public struct ChunkVertex : IVertex
     /// <param name="tileSize">Size of the atlas region.</param>
     /// <param name="blockCoord">Block coordinate used for light sampling.</param>
     public ChunkVertex(
-        Vector3D<float> position,
-        Vector4D<byte> color,
-        Vector2D<float> tileCoord,
-        Vector2D<float> tileBase,
-        Vector2D<float> tileSize,
-        Vector3D<float> blockCoord)
+        Vector3 position,
+        Color4b color,
+        Vector2 tileCoord,
+        Vector2 tileBase,
+        Vector2 tileSize,
+        Vector3 blockCoord)
     {
         Position = position;
         Color = color;
@@ -38,32 +38,32 @@ public struct ChunkVertex : IVertex
     /// <summary>
     /// Gets or sets the vertex position.
     /// </summary>
-    public Vector3D<float> Position;
+    public Vector3 Position;
 
     /// <summary>
     /// Gets or sets the vertex color (RGBA as normalized bytes).
     /// </summary>
-    public Vector4D<byte> Color;
+    public Color4b Color;
 
     /// <summary>
     /// Gets or sets the unscaled tile coordinate used for tiling.
     /// </summary>
-    public Vector2D<float> TileCoord;
+    public Vector2 TileCoord;
 
     /// <summary>
     /// Gets or sets the base UV coordinate of the atlas region.
     /// </summary>
-    public Vector2D<float> TileBase;
+    public Vector2 TileBase;
 
     /// <summary>
     /// Gets or sets the size of the atlas region.
     /// </summary>
-    public Vector2D<float> TileSize;
+    public Vector2 TileSize;
 
     /// <summary>
     /// Gets or sets the block coordinate associated with the vertex.
     /// </summary>
-    public Vector3D<float> BlockCoord;
+    public Vector3 BlockCoord;
 
     /// <inheritdoc />
     public int AttribDescriptionCount => 6;

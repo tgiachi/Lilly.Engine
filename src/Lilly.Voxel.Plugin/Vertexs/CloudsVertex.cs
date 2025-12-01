@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -10,14 +10,14 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 [StructLayout(LayoutKind.Sequential)]
 public struct CloudsVertex : IVertex
 {
-    public CloudsVertex(Vector3D<float> position, Vector3D<float> normal)
+    public CloudsVertex(Vector3 position, Vector3 normal)
     {
         Position = position;
         Normal = normal;
     }
 
-    public Vector3D<float> Position;
-    public Vector3D<float> Normal;
+    public Vector3 Position;
+    public Vector3 Normal;
 
     /// <inheritdoc />
     public int AttribDescriptionCount => 2;

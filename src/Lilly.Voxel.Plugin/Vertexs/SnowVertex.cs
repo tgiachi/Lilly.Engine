@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Vertexs;
@@ -11,8 +11,8 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 public struct SnowVertex : IVertex
 {
     public SnowVertex(
-        Vector3D<float> position,
-        Vector2D<float> corner,
+        Vector3 position,
+        Vector2 corner,
         float size,
         float alpha)
     {
@@ -22,8 +22,8 @@ public struct SnowVertex : IVertex
         Alpha = alpha;
     }
 
-    public Vector3D<float> Position;
-    public Vector2D<float> Corner;
+    public Vector3 Position;
+    public Vector2 Corner;
     public float Size;
     public float Alpha;
 

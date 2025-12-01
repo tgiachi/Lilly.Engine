@@ -8,7 +8,7 @@ using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.Base;
 
-public abstract class Base3dGameObject : IGameObject3d
+public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializable
 {
     public uint Id { get; set; }
     public string Name { get; set; }
@@ -105,5 +105,10 @@ public abstract class Base3dGameObject : IGameObject3d
         {
             return;
         }
+    }
+
+    public virtual void Initialize()
+    {
+
     }
 }
