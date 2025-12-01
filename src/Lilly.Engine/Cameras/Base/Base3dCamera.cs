@@ -257,7 +257,8 @@ public abstract class Base3dCamera : ICamera3D
             return true;
         }
 
-        if (Distance(gameObject) > CullingDistance)
+        var toObject = gameObject.Transform.Position - Position;
+        if (toObject.LengthSquared() > CullingDistance * CullingDistance)
         {
             return false;
         }

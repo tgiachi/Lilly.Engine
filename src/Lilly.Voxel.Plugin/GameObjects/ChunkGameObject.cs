@@ -3,6 +3,7 @@ using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Vertexs;
 using System.Numerics;
@@ -14,7 +15,7 @@ namespace Lilly.Voxel.Plugin.GameObjects;
 /// <summary>
 /// Renders a single chunk using prebuilt mesh data. Buffers are reused until new mesh data arrives.
 /// </summary>
-public sealed class ChunkGameObject : Base3dGameObject
+public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -184,6 +185,14 @@ public sealed class ChunkGameObject : Base3dGameObject
             return;
         }
 
+        DrawOpaque(gameTime, graphicsDevice, camera);
+        DrawTransparent(gameTime, graphicsDevice, camera);
+    }
+
+    public void DrawOpaque(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!IsActive) return;
+
         if (_solidVbo != null)
         {
             DrawSolid(camera);
@@ -198,6 +207,11 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             DrawItems(camera);
         }
+    }
+
+    public void DrawTransparent(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!IsActive) return;
 
         if (_fluidVbo != null)
         {
@@ -207,6 +221,12 @@ public sealed class ChunkGameObject : Base3dGameObject
 
     private void DrawSolid(ICamera3D camera)
     {
+        // Ensure standard opaque rendering states (Write=True, Test=Less)
+        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.Less);
+        _graphicsDevice.BlendState = BlendState.Opaque;
+        _graphicsDevice.FaceCullingEnabled = true;
+        _graphicsDevice.CullFaceMode = CullingMode.CullBack;
+
         _graphicsDevice.ShaderProgram = _solidShader;
         _solidShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
         _solidShader.Uniforms["uView"].SetValueMat4(camera.View);
@@ -232,8 +252,23 @@ public sealed class ChunkGameObject : Base3dGameObject
         _billboardShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _billboardShader.Uniforms["uFogEnabled"].SetValueBool(false);
 
+        // Draw vegetation double-sided so back faces remain visible
+        var oldDepthState = _graphicsDevice.DepthState;
+        var oldBlendState = _graphicsDevice.BlendState;
+        var oldCullingEnabled = _graphicsDevice.FaceCullingEnabled;
+        var oldCullMode = _graphicsDevice.CullFaceMode;
+
+        _graphicsDevice.DepthState = DepthState.Default;
+        _graphicsDevice.BlendState = BlendState.Opaque;
+        _graphicsDevice.FaceCullingEnabled = false;
+
         _graphicsDevice.VertexArray = _billboardVbo;
         _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _billboardVbo!.Value.StorageLength);
+
+        _graphicsDevice.DepthState = oldDepthState;
+        _graphicsDevice.BlendState = oldBlendState;
+        _graphicsDevice.FaceCullingEnabled = oldCullingEnabled;
+        _graphicsDevice.CullFaceMode = oldCullMode;
     }
 
     private void DrawItems(ICamera3D camera)
@@ -270,8 +305,8 @@ public sealed class ChunkGameObject : Base3dGameObject
         var oldCullingEnabled = _graphicsDevice.FaceCullingEnabled;
         var oldCullMode = _graphicsDevice.CullFaceMode;
 
-        // Configure for transparency
-        _graphicsDevice.DepthState = new DepthState(false, DepthFunction.LessOrEqual);
+        // Configure for transparency: keep depth testing so water is occluded by solids, but avoid writing to depth
+        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.LessOrEqual, 1f, 0.0, 1.0, false);
         _graphicsDevice.BlendState = BlendState.AlphaBlend;
         _graphicsDevice.FaceCullingEnabled = true;
         _graphicsDevice.CullFaceMode = CullingMode.CullBack;

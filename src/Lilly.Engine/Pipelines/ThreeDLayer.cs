@@ -1,8 +1,8 @@
 using System.Numerics;
-using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Layers;
 using Lilly.Rendering.Core.Types;
@@ -78,7 +78,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
             }
         }
 
-        // 2. Sort (Painter's Algorithm: Back-to-Front)
+        // 2. Sort (Front-to-Back for Early-Z Optimization)
         var cameraPos = _camera3dService.ActiveCamera.Position;
 
         EntitiesInCullingFrustum.Sort(
@@ -87,15 +87,26 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
                 var distA = Vector3.DistanceSquared(a.Transform.Position, cameraPos);
                 var distB = Vector3.DistanceSquared(b.Transform.Position, cameraPos);
 
-                return distB.CompareTo(distA); // Descending order (Far -> Near)
+                return distA.CompareTo(distB); // Ascending order (Near -> Far)
             }
         );
 
-        // 3. Draw
+        // 3. Draw Opaque Pass (Front-to-Back)
         foreach (var entity in EntitiesInCullingFrustum)
         {
+
             entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
+
             ProcessedEntityCount++;
+        }
+
+        // 4. Draw Transparent Pass (Back-to-Front)
+        for (int i = EntitiesInCullingFrustum.Count - 1; i >= 0; i--)
+        {
+            var entity = EntitiesInCullingFrustum[i];
+
+            if (entity is ITransparentRenderable3d transparentEntity)
+                transparentEntity.DrawTransparent(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
         }
 
         RestoreState();
