@@ -148,7 +148,7 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         assetManager.LoadTextureAtlasFromResource(
             "sun_moon",
-            "Assets/Textures/sun_moon_atlas.png",
+            "Assets/Textures/sun_moon.png",
             typeof(LillyVoxelPlugin).Assembly,
             32,
             32
