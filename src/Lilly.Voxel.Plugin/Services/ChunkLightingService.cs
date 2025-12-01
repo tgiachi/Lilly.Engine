@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
+using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Services;
 
@@ -76,12 +77,13 @@ public sealed class ChunkLightingService
     /// AO is calculated by checking the 3 adjacent blocks at each corner of the face.
     /// </summary>
     /// <param name="chunk">Chunk containing the block.</param>
+    /// <param name="neighbor">The neighboring chunk in the direction of the face (if any).</param>
     /// <param name="x">Block X coordinate.</param>
     /// <param name="y">Block Y coordinate.</param>
     /// <param name="z">Block Z coordinate.</param>
     /// <param name="face">Face being rendered.</param>
     /// <returns>Lighting color as Vector4D(R, G, B, FaceDirection) where each component is 0-255.</returns>
-    public Vector4 CalculateFaceColor(ChunkEntity? chunk, int x, int y, int z, BlockFace face)
+    public Vector4 CalculateFaceColor(ChunkEntity? chunk, ChunkEntity? neighbor, int x, int y, int z, BlockFace face)
     {
         if (chunk == null)
         {
@@ -114,13 +116,38 @@ public sealed class ChunkLightingService
 
         // Calculate neighbor position to sample light from (because solid blocks are dark inside)
         var (nx, ny, nz) = GetNeighborPosition(x, y, z, face);
-        byte lightLevel;
+        byte lightLevel = 0;
+        Color4b lightColor = Color4b.White;
+        bool foundLight = false;
 
         if (chunk.IsInBounds(nx, ny, nz))
         {
             lightLevel = chunk.GetLightLevel(nx, ny, nz);
+            lightColor = chunk.GetLightColor(nx, ny, nz);
+            foundLight = true;
         }
-        else
+        else if (neighbor != null)
+        {
+            // Wrap coordinates to neighbor space
+            int wx = nx;
+            int wy = ny;
+            int wz = nz;
+
+            if (wx < 0) wx += ChunkEntity.Size;
+            else if (wx >= ChunkEntity.Size) wx -= ChunkEntity.Size;
+
+            if (wz < 0) wz += ChunkEntity.Size;
+            else if (wz >= ChunkEntity.Size) wz -= ChunkEntity.Size;
+
+            if (neighbor.IsInBounds(wx, wy, wz))
+            {
+                lightLevel = neighbor.GetLightLevel(wx, wy, wz);
+                lightColor = neighbor.GetLightColor(wx, wy, wz);
+                foundLight = true;
+            }
+        }
+
+        if (!foundLight)
         {
             // Boundary handling
             if (ny >= ChunkEntity.Height)
@@ -133,9 +160,12 @@ public sealed class ChunkLightingService
             }
             else
             {
-                // Side neighbors: Default to 15 (daylight) to avoid black borders when neighbors are missing
-                lightLevel = 15;
+                // Side neighbors missing: Default to 0 (darkness) to prevent light leaks underground.
+                // This might cause black borders on surface until chunks load, but that's better than artifacts.
+                lightLevel = 0;
             }
+            // Use current block's color as fallback
+            lightColor = chunk.GetLightColor(x, y, z);
         }
 
         // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
@@ -150,13 +180,9 @@ public sealed class ChunkLightingService
         // Use the stronger of propagated light and skylight so torches still light caves.
         float light = Math.Max(levelFactor, skyLight);
 
-        // Apply per-channel light color (defaults to white)
-        // Use neighbor color if possible, otherwise current
-        var color = chunk.IsInBounds(nx, ny, nz) ? chunk.GetLightColor(nx, ny, nz) : chunk.GetLightColor(x, y, z);
-        
-        float r = (color.R / 255f) * light;
-        float g = (color.G / 255f) * light;
-        float b = (color.B / 255f) * light;
+        float r = (lightColor.R / 255f) * light;
+        float g = (lightColor.G / 255f) * light;
+        float b = (lightColor.B / 255f) * light;
 
         byte rByte = (byte)(Math.Clamp(r, 0f, 1f) * 255f);
         byte gByte = (byte)(Math.Clamp(g, 0f, 1f) * 255f);

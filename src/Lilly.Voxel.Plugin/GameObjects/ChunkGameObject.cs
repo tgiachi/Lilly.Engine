@@ -6,6 +6,7 @@ using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Vertexs;
 using System.Numerics;
+using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.GameObjects;
@@ -38,6 +39,16 @@ public sealed class ChunkGameObject : Base3dGameObject
     private ChunkMeshData? _pendingMesh;
 
     public ChunkEntity Chunk { get; }
+
+    public override BoundingBox BoundingBox
+    {
+        get
+        {
+            var min = Transform.Position;
+            var max = min + new Vector3(ChunkEntity.Size, ChunkEntity.Height, ChunkEntity.Size);
+            return new(min, max);
+        }
+    }
 
     public ChunkGameObject(
         ChunkEntity chunk,

@@ -45,6 +45,8 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     public Transform3D Transform { get; set; } = new();
 
+    public virtual BoundingBox BoundingBox => new BoundingBox(Transform.Position, Transform.Position + System.Numerics.Vector3.One);
+
     private readonly IGameObjectManager _gameObjectManager;
 
     public virtual void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera) { }

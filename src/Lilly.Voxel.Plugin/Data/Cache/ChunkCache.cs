@@ -1,5 +1,6 @@
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Extensions;
 using Lilly.Voxel.Plugin.Primitives;
 using Serilog;
 
@@ -66,7 +67,7 @@ public class ChunkCache
         }
 
         chunk = null;
-        _logger.Debug("Cache miss for chunk at {Position}", position);
+        _logger.Debug("Cache miss for chunk at {Position}", position.ToHumanReadableString());
 
         return false;
     }

@@ -10,6 +10,7 @@ public interface IGameObject3d : IGameObject
 
     bool IgnoreFrustumCulling { get; set; }
     Transform3D Transform { get; set; }
+    BoundingBox BoundingBox { get; }
 
     void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera);
 

@@ -18,9 +18,6 @@ public sealed class ChunkLightPropagationService
     private readonly IBlockRegistry _blockRegistry;
     private readonly ILogger _logger = Log.ForContext<ChunkLightPropagationService>();
 
-    // Queue for BFS: holds the encoded index of the block to process
-    private readonly Queue<int> _lightQueue = new();
-
     public ChunkLightPropagationService(IBlockRegistry blockRegistry)
     {
         _blockRegistry = blockRegistry;
@@ -34,11 +31,13 @@ public sealed class ChunkLightPropagationService
         // 1. Reset light levels to 0 (darkness) so we can recalculate fresh
         Array.Fill(chunk.LightLevels, (byte)0);
 
-        // 2. Initialize Sources (Sunlight & Emissive Blocks)
-        InitializeSunlight(chunk);
-        InitializeBlockLights(chunk);
+        var lightQueue = new Queue<int>();
 
-        int sourceCount = _lightQueue.Count;
+        // 2. Initialize Sources (Sunlight & Emissive Blocks)
+        InitializeSunlight(chunk, lightQueue);
+        InitializeBlockLights(chunk, lightQueue);
+
+        int sourceCount = lightQueue.Count;
 
         if (sourceCount == 0)
         {
@@ -47,20 +46,16 @@ public sealed class ChunkLightPropagationService
                 chunk.ChunkCoordinates
             );
         }
-        else
-        {
-            // _logger.Debug("Chunk {Chunk} lighting initialized with {Count} sources.", chunk.ChunkCoordinates, sourceCount);
-        }
 
         // 3. Propagate (Flood Fill)
-        ProcessLightQueue(chunk);
+        ProcessLightQueue(chunk, lightQueue);
 
         // 4. Mark clean
         chunk.IsLightingDirty = false;
         chunk.IsMeshDirty = true;
     }
 
-    private void InitializeSunlight(ChunkEntity chunk)
+    private void InitializeSunlight(ChunkEntity chunk, Queue<int> lightQueue)
     {
         // Simple vertical sunlight:
         // Iterate every column (X, Z).
@@ -93,14 +88,14 @@ public sealed class ChunkLightPropagationService
                         chunk.LightLevels[index] = 15;
 
                         // Add to queue so it can spread sideways into caves/overhangs
-                        _lightQueue.Enqueue(index);
+                        lightQueue.Enqueue(index);
                     }
                 }
             }
         }
     }
 
-    private void InitializeBlockLights(ChunkEntity chunk)
+    private void InitializeBlockLights(ChunkEntity chunk, Queue<int> lightQueue)
     {
         // Scan for blocks that emit light (torches, lava, etc.)
         for (int i = 0; i < chunk.Blocks.Length; i++)
@@ -132,18 +127,18 @@ public sealed class ChunkLightPropagationService
                         );
                     }
 
-                    _lightQueue.Enqueue(i);
+                    lightQueue.Enqueue(i);
                 }
             }
         }
     }
 
-    private void ProcessLightQueue(ChunkEntity chunk)
+    private void ProcessLightQueue(ChunkEntity chunk, Queue<int> lightQueue)
     {
         // Standard BFS Flood Fill
-        while (_lightQueue.Count > 0)
+        while (lightQueue.Count > 0)
         {
-            int index = _lightQueue.Dequeue();
+            int index = lightQueue.Dequeue();
 
             // Reconstruct coordinates from index
             int x = index % ChunkEntity.Size;
@@ -156,16 +151,16 @@ public sealed class ChunkLightPropagationService
                 continue; // Logic stops at 1, next would be 0
 
             // Check all 6 neighbors
-            CheckNeighbor(chunk, x + 1, y, z, currentLevel);
-            CheckNeighbor(chunk, x - 1, y, z, currentLevel);
-            CheckNeighbor(chunk, x, y + 1, z, currentLevel);
-            CheckNeighbor(chunk, x, y - 1, z, currentLevel);
-            CheckNeighbor(chunk, x, y, z + 1, currentLevel);
-            CheckNeighbor(chunk, x, y, z - 1, currentLevel);
+            CheckNeighbor(chunk, x + 1, y, z, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x - 1, y, z, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x, y + 1, z, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x, y - 1, z, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x, y, z + 1, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x, y, z - 1, currentLevel, lightQueue);
         }
     }
 
-    private void CheckNeighbor(ChunkEntity chunk, int x, int y, int z, byte currentLevel)
+    private void CheckNeighbor(ChunkEntity chunk, int x, int y, int z, byte currentLevel, Queue<int> lightQueue)
     {
         if (!chunk.IsInBounds(x, y, z))
             return;
@@ -197,7 +192,7 @@ public sealed class ChunkLightPropagationService
             // var parentColor = chunk.GetLightColor(neighborIndex); // actually we need parent coords
             // For now, let's just let the renderer handle the white vs color mix based on intensity
 
-            _lightQueue.Enqueue(neighborIndex);
+            lightQueue.Enqueue(neighborIndex);
         }
     }
 }

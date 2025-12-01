@@ -106,6 +106,7 @@ public sealed class ChunkMeshBuilder
 
     private void AppendBillboard(
         ChunkEntity chunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -122,7 +123,10 @@ public sealed class ChunkMeshBuilder
         var centerX = origin.X + half;
         var centerZ = origin.Z + half;
 
-        var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, BlockFace.Top);
+        // Billboards generally take lighting from the block they are in (or slightly above).
+        // For simplicity and to match old behavior, we light from Top.
+        // If y is at chunk top, we need the Top neighbor.
+        var lighting = _lightingService.CalculateFaceColor(chunk, neighbors.Top, x, y, z, BlockFace.Top);
         var lightColor = new Color4b((byte)lighting.X, (byte)lighting.Y, (byte)lighting.Z);
 
         var bottomA0 = new Vector3(centerX - half, baseHeight, centerZ - half);
@@ -220,7 +224,7 @@ public sealed class ChunkMeshBuilder
                 continue;
             }
 
-            var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, face);
+            var lighting = _lightingService.CalculateFaceColor(chunk, neighbors.Get(face), x, y, z, face);
             var color = new Color4b((byte)lighting.X, (byte)lighting.Y, (byte)lighting.Z, 200);
             AppendFluidFace(context.FluidVertices, context.FluidIndices, origin, face, color, blockType, context);
         }
@@ -461,6 +465,7 @@ public sealed class ChunkMeshBuilder
 
     private void AppendItemBillboard(
         ChunkEntity chunk,
+        in NeighborChunkCache neighbors,
         int x,
         int y,
         int z,
@@ -474,7 +479,7 @@ public sealed class ChunkMeshBuilder
         var halfWidth = scale * 0.5f;
         var halfHeight = scale * 0.5f;
 
-        var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, BlockFace.Top);
+        var lighting = _lightingService.CalculateFaceColor(chunk, neighbors.Top, x, y, z, BlockFace.Top);
         var color = new Color4b((byte)lighting.X, (byte)lighting.Y, (byte)lighting.Z);
         var baseIndex = context.ItemVertices.Count;
 
@@ -544,9 +549,10 @@ public sealed class ChunkMeshBuilder
         ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Left, context);
     }
 
-    private Color4b CalculateLighting(ChunkEntity chunk, int x, int y, int z, BlockFace face)
+    private Color4b CalculateLighting(ChunkEntity chunk, in NeighborChunkCache neighbors, int x, int y, int z, BlockFace face)
     {
-        var lighting = _lightingService.CalculateFaceColor(chunk, x, y, z, face);
+        var neighborChunk = neighbors.Get(face);
+        var lighting = _lightingService.CalculateFaceColor(chunk, neighborChunk, x, y, z, face);
 
         return new((byte)lighting.X, (byte)lighting.Y, (byte)lighting.Z, (byte)lighting.W);
     }
@@ -738,7 +744,7 @@ public sealed class ChunkMeshBuilder
                         continue;
                     }
 
-                    var lighting = CalculateLighting(chunk, x, y, z, face);
+                    var lighting = CalculateLighting(chunk, neighbors, x, y, z, face);
                     context.MaskBuffer[x + y * width] = new(x, y, z, lighting, blockType);
                 }
             }
@@ -782,7 +788,7 @@ public sealed class ChunkMeshBuilder
                         continue;
                     }
 
-                    var lighting = CalculateLighting(chunk, x, y, z, face);
+                    var lighting = CalculateLighting(chunk, neighbors, x, y, z, face);
                     context.MaskBuffer[x + z * width] = new(x, y, z, lighting, blockType);
                 }
             }
@@ -818,14 +824,14 @@ public sealed class ChunkMeshBuilder
 
                     if (blockType.IsBillboard)
                     {
-                        AppendBillboard(chunk, x, y, z, origin, blockCoord, blockType, context);
+                        AppendBillboard(chunk, neighbors, x, y, z, origin, blockCoord, blockType, context);
 
                         continue;
                     }
 
                     if (blockType.RenderType == BlockRenderType.Item)
                     {
-                        AppendItemBillboard(chunk, x, y, z, origin, blockType, context);
+                        AppendItemBillboard(chunk, neighbors, x, y, z, origin, blockType, context);
 
                         continue;
                     }
@@ -874,7 +880,7 @@ public sealed class ChunkMeshBuilder
                         continue;
                     }
 
-                    var lighting = CalculateLighting(chunk, x, y, z, face);
+                    var lighting = CalculateLighting(chunk, neighbors, x, y, z, face);
                     context.MaskBuffer[z + y * depth] = new(x, y, z, lighting, blockType);
                 }
             }

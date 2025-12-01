@@ -198,7 +198,7 @@ public sealed class WorldGameObject : Base3dGameObject
                 if (!_pending.ContainsKey(neighborCoord))
                 {
                     var job = _jobSystem.Schedule(
-                        $"chunk_rebuild_{neighborCoord}",
+                        $"chunk_rebuild_{neighborCoord.ToHumanReadableString()}",
                         async ct =>
                         {
                             var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
