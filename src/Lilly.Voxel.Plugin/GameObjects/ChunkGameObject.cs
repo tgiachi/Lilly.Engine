@@ -46,6 +46,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             var min = Transform.Position;
             var max = min + new Vector3(ChunkEntity.Size, ChunkEntity.Height, ChunkEntity.Size);
+
             return new(min, max);
         }
     }
@@ -104,6 +105,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             _solidVbo?.Dispose();
             _solidVbo = null;
+
             return;
         }
 
@@ -119,6 +121,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             _billboardVbo?.Dispose();
             _billboardVbo = null;
+
             return;
         }
 
@@ -133,6 +136,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             _itemVbo?.Dispose();
             _itemVbo = null;
+
             return;
         }
 
@@ -147,6 +151,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         {
             _fluidVbo?.Dispose();
             _fluidVbo = null;
+
             return;
         }
 
@@ -163,10 +168,12 @@ public sealed class ChunkGameObject : Base3dGameObject
         }
 
         var expanded = new T[indices.Length];
+
         for (int i = 0; i < indices.Length; i++)
         {
             expanded[i] = vertices[indices[i]];
         }
+
         return expanded;
     }
 
@@ -194,7 +201,7 @@ public sealed class ChunkGameObject : Base3dGameObject
 
         if (_fluidVbo != null)
         {
-            DrawFluids(camera);
+            DrawFluids(gameTime, camera);
         }
     }
 
@@ -245,21 +252,38 @@ public sealed class ChunkGameObject : Base3dGameObject
         _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _itemVbo!.Value.StorageLength);
     }
 
-    private void DrawFluids(ICamera3D camera)
+    private void DrawFluids(GameTime gameTime, ICamera3D camera)
     {
         _graphicsDevice.ShaderProgram = _fluidShader;
         _fluidShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
         _fluidShader.Uniforms["uView"].SetValueMat4(camera.View);
         _fluidShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
-        _fluidShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
         _fluidShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_fluidAtlasName));
-        _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(0.2f);
+        _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(0.4f); // 0.4 transparency = 0.6 opacity
         _fluidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _fluidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
         _fluidShader.Uniforms["uFogEnabled"].SetValueBool(false);
 
+        // Save states
+        var oldDepthState = _graphicsDevice.DepthState;
+        var oldBlendState = _graphicsDevice.BlendState;
+        var oldCullingEnabled = _graphicsDevice.FaceCullingEnabled;
+        var oldCullMode = _graphicsDevice.CullFaceMode;
+
+        // Configure for transparency
+        _graphicsDevice.DepthState = new DepthState(false, DepthFunction.LessOrEqual);
+        _graphicsDevice.BlendState = BlendState.AlphaBlend;
+        _graphicsDevice.FaceCullingEnabled = true;
+        _graphicsDevice.CullFaceMode = CullingMode.CullBack;
+
         _graphicsDevice.VertexArray = _fluidVbo;
         _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _fluidVbo!.Value.StorageLength);
+
+        // Restore states
+        _graphicsDevice.DepthState = oldDepthState;
+        _graphicsDevice.BlendState = oldBlendState;
+        _graphicsDevice.FaceCullingEnabled = oldCullingEnabled;
+        _graphicsDevice.CullFaceMode = oldCullMode;
     }
 
     public void DisposeBuffers()
@@ -275,6 +299,7 @@ public sealed class ChunkGameObject : Base3dGameObject
         if (!string.IsNullOrEmpty(atlasName))
         {
             var name = atlasName + "_atlas";
+
             try
             {
                 return _assetManager.GetTexture<Texture2D>(name);

@@ -62,6 +62,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
         CheckWireframe();
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
         // 1. Filter and Categorize (Culling)
         foreach (var entity in Entities)
@@ -120,5 +121,6 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     {
         _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
         _renderContext.GraphicsDevice.DepthState = DepthState.None;
+        _renderContext.GraphicsDevice.BlendState = BlendState.Opaque;
     }
 }

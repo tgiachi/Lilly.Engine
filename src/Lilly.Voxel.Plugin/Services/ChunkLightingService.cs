@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
@@ -152,7 +153,7 @@ public sealed class ChunkLightingService
             // Boundary handling
             if (ny >= ChunkEntity.Height)
             {
-                lightLevel = 15; // Sunlight from above
+                lightLevel = VoxelConstants.MaxLightLevel; // Sunlight from above
             }
             else if (ny < 0)
             {
@@ -170,9 +171,9 @@ public sealed class ChunkLightingService
 
         // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
         // so we don't wash out caves before lighting is computed.
-        float levelFactor = Math.Clamp(lightLevel / 15f, 0f, 1f);
+        float levelFactor = Math.Clamp(lightLevel / VoxelConstants.MaxLightLevelF, 0f, 1f);
 
-        if (chunk.IsLightingDirty && lightLevel >= 15)
+        if (chunk.IsLightingDirty && lightLevel >= VoxelConstants.MaxLightLevel)
         {
             levelFactor = 0f;
         }

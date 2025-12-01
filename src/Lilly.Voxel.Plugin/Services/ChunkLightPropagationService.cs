@@ -1,11 +1,9 @@
-using System.Collections.Concurrent;
-using System.Numerics;
+using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
-using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Types;
-using TrippyGL;
 using Serilog;
+using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Services;
 
@@ -60,7 +58,7 @@ public sealed class ChunkLightPropagationService
         // Simple vertical sunlight:
         // Iterate every column (X, Z).
         // Go from Top (Y=height-1) down.
-        // If block is transparent -> Set to 15 (Max Sun).
+        // If block is transparent -> Set to Max Sun.
         // If block is solid -> Stop (Shadow).
 
         for (int x = 0; x < ChunkEntity.Size; x++)
@@ -85,7 +83,7 @@ public sealed class ChunkLightPropagationService
                     if (!inShadow)
                     {
                         // Full sunlight
-                        chunk.LightLevels[index] = 15;
+                        chunk.LightLevels[index] = VoxelConstants.MaxLightLevel;
 
                         // Add to queue so it can spread sideways into caves/overhangs
                         lightQueue.Enqueue(index);
@@ -109,8 +107,8 @@ public sealed class ChunkLightPropagationService
 
             if (blockType.EmitsLight > 0)
             {
-                // Map float 0-1 to byte 0-15
-                byte intensity = (byte)(blockType.EmitsLight * 15f);
+                // Map float 0-1 to byte 0-MaxLightLevel
+                byte intensity = (byte)(blockType.EmitsLight * VoxelConstants.MaxLightLevel);
 
                 if (intensity > chunk.LightLevels[i])
                 {
