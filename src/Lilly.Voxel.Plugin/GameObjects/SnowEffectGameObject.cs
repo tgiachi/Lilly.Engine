@@ -19,7 +19,6 @@ public class SnowEffectGameObject : Base3dGameObject
     private readonly ILogger _logger = Log.ForContext<SnowEffectGameObject>();
     private readonly Random _random = new();
     private readonly GraphicsDevice _graphicsDevice;
-    private readonly IGameObjectManager _gameObjectManager;
 
     private VertexBuffer<SnowVertex>? _vertexBuffer;
     private readonly SnowVertex[] _vertices = new SnowVertex[MaxFlakes * 6]; // 6 vertices per quad (2 triangles)

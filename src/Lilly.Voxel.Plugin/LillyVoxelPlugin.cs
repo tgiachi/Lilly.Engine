@@ -62,7 +62,8 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield return gameObjectFactory.Create<SnowEffectGameObject>();
+        yield return gameObjectFactory.Create<SkyGameObject>();
+       // yield return gameObjectFactory.Create<RainEffectGameObject>();
     }
 
     public IContainer RegisterModule(IContainer container)
@@ -74,7 +75,11 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterScriptModule<GenerationModule>()
             .RegisterScriptModule<WorldModule>();
 
-        container.RegisterGameObject<SnowEffectGameObject>();
+        container
+            .RegisterGameObject<SnowEffectGameObject>()
+            .RegisterGameObject<RainEffectGameObject>()
+            .RegisterGameObject<SkyGameObject>()
+            ;
 
         return container;
     }
@@ -112,7 +117,7 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         // Environment shaders
         assetManager.LoadShaderFromResource<PositionVertex>(
-            "dynamicSky",
+            "sky",
             "Assets/Shaders/Environment/dynamic_sky.shader",
             ["aPosition"],
             typeof(LillyVoxelPlugin).Assembly
@@ -126,7 +131,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         );
 
         assetManager.LoadShaderFromResource<RainVertex>(
-            "rain_legacy",
+            "rain",
             "Assets/Shaders/Environment/rain.shader",
             ["aPosition", "aCorner", "aLength", "aAlpha"],
             typeof(LillyVoxelPlugin).Assembly

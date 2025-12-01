@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
-using Silk.NET.Maths;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using TrippyGL;
 
 namespace Lilly.Engine.Vertexts;
@@ -7,9 +8,9 @@ namespace Lilly.Engine.Vertexts;
 [StructLayout(LayoutKind.Sequential)]
 public struct PositionVertex : IVertex
 {
-    public Vector3D<float> Position;
+    public Vector3 Position;
 
-    public PositionVertex(Vector3D<float> position)
+    public PositionVertex(Vector3 position)
     {
         Position = position;
     }
