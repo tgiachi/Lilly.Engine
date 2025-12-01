@@ -18,6 +18,8 @@ using Lilly.Voxel.Plugin.Steps;
 using Lilly.Voxel.Plugin.Steps.World;
 using Lilly.Voxel.Plugin.Vertexs;
 
+using Lilly.Voxel.Plugin.Steps.Lighting;
+
 namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
@@ -45,10 +47,12 @@ public class LillyVoxelPlugin : ILillyPlugin
         LoadAssets(container.Resolve<IAssetManager>());
         var blockRegistry = container.Resolve<IBlockRegistry>();
         var chunkGeneratorService = container.Resolve<IChunkGeneratorService>();
+        var lightingService = container.Resolve<ChunkLightPropagationService>();
 
         if (_isWorldFlat)
         {
             chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));
         }
         else
         {
@@ -57,6 +61,9 @@ public class LillyVoxelPlugin : ILillyPlugin
             chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
             chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
             chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+            
+            // Lighting must run last to calculate correct light levels
+            chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));
         }
     }
 
@@ -74,6 +81,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
             .RegisterService<ChunkLightingService>()
+            .RegisterService<ChunkLightPropagationService>()
             .RegisterService<ChunkMeshBuilder>();
 
         container.RegisterScriptModule<BlockRegistryModule>()

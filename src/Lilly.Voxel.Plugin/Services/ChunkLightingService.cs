@@ -112,23 +112,48 @@ public sealed class ChunkLightingService
             skyLight = Math.Max(skyLight, averageAO * 0.45f);
         }
 
+        // Calculate neighbor position to sample light from (because solid blocks are dark inside)
+        var (nx, ny, nz) = GetNeighborPosition(x, y, z, face);
+        byte lightLevel;
+
+        if (chunk.IsInBounds(nx, ny, nz))
+        {
+            lightLevel = chunk.GetLightLevel(nx, ny, nz);
+        }
+        else
+        {
+            // Boundary handling
+            if (ny >= ChunkEntity.Height)
+            {
+                lightLevel = 15; // Sunlight from above
+            }
+            else if (ny < 0)
+            {
+                lightLevel = 0; // Void below
+            }
+            else
+            {
+                // Side neighbors: Default to 15 (daylight) to avoid black borders when neighbors are missing
+                lightLevel = 15;
+            }
+        }
+
         // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
         // so we don't wash out caves before lighting is computed.
-        var lightLevel = chunk.GetLightLevel(x, y, z);
         float levelFactor = Math.Clamp(lightLevel / 15f, 0f, 1f);
 
-        // FIXME: Lighting propagation is not yet implemented, so IsLightingDirty is never set to false.
-        // This causes the scene to be rendered as pitch black. Disabling this check temporarily.
-        // if (chunk.IsLightingDirty && lightLevel >= 15)
-        // {
-        //     levelFactor = 0f;
-        // }
+        if (chunk.IsLightingDirty && lightLevel >= 15)
+        {
+            levelFactor = 0f;
+        }
 
         // Use the stronger of propagated light and skylight so torches still light caves.
         float light = Math.Max(levelFactor, skyLight);
 
         // Apply per-channel light color (defaults to white)
-        var color = chunk.GetLightColor(x, y, z);
+        // Use neighbor color if possible, otherwise current
+        var color = chunk.IsInBounds(nx, ny, nz) ? chunk.GetLightColor(nx, ny, nz) : chunk.GetLightColor(x, y, z);
+        
         float r = (color.R / 255f) * light;
         float g = (color.G / 255f) * light;
         float b = (color.B / 255f) * light;
@@ -138,6 +163,20 @@ public sealed class ChunkLightingService
         byte bByte = (byte)(Math.Clamp(b, 0f, 1f) * 255f);
 
         return new(rByte, gByte, bByte, GetDirectionIndex(face));
+    }
+
+    private static (int x, int y, int z) GetNeighborPosition(int x, int y, int z, BlockFace face)
+    {
+        return face switch
+        {
+            BlockFace.Top => (x, y + 1, z),
+            BlockFace.Bottom => (x, y - 1, z),
+            BlockFace.Front => (x, y, z + 1),
+            BlockFace.Back => (x, y, z - 1),
+            BlockFace.Left => (x - 1, y, z),
+            BlockFace.Right => (x + 1, y, z),
+            _ => (x, y, z)
+        };
     }
 
     /// <summary>
