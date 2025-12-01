@@ -103,8 +103,17 @@ void main()
     vec2 atlasCoord = aTileBase + aTexCoord * aTileSize;
     vTexCoord = atlasCoord * uTexMultiplier;
 
-    vNormal = normals[int(aDirection)];
-    vVertexLight = aColor.rgb / 255.0;
+    int dir = clamp(int(round(aDirection)), 0, 6);
+    vNormal = normals[dir];
+
+    // Adjust normal for waving top surface to keep lighting coherent
+    if (dir == 4 && int(aTop) == 1)
+    {
+        float slopeX = cos((pos.x + uModel.x) * PI / 2.0 + uTime) * (PI / 2.0) * 0.05;
+        float slopeZ = cos((pos.z + uModel.z) * PI / 2.0 + uTime * 1.5) * (PI / 2.0) * 0.05;
+        vNormal = normalize(vec3(-slopeX, 1.0, -slopeZ));
+    }
+    vVertexLight = aColor.rgb; // aColor is already normalized by the vertex attribute
 
     if (uFogEnabled)
     {

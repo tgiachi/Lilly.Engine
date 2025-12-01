@@ -90,7 +90,7 @@ void main()
 
     vTexCoord = aTexCoord * uTexMultiplier;
     vColor = aColor;
-    vVertexLight = aColor.rgb / 255.0;
+    vVertexLight = aColor.rgb; // already normalized
     vTileBase = aTileBase;
     vTileSize = aTileSize;
 
