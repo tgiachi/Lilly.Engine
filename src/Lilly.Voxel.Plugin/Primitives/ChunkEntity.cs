@@ -67,11 +67,12 @@ public class ChunkEntity
         Blocks = new ushort[Size * Size * Height];
         LightLevels = new byte[Size * Size * Height];
         // LightColors is lazy loaded
-        ChunkCoordinates = coordinates;
-        Position = new Vector3(
-            coordinates.X * Size,
-            coordinates.Y * Height,
-            coordinates.Z * Size
+        // coordinates passed in are world-space chunk origin (already multiplied by Size/Height)
+        Position = coordinates;
+        ChunkCoordinates = new Vector3(
+            coordinates.X / Size,
+            coordinates.Y / Height,
+            coordinates.Z / Size
         );
 
         Array.Fill(LightLevels, (byte)15);

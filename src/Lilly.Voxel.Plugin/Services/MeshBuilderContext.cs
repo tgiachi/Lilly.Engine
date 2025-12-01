@@ -24,6 +24,10 @@ internal sealed class MeshBuilderContext
     public uint BillboardTextureHandle;
     public uint ItemTextureHandle;
     public uint FluidTextureHandle;
+    public string SolidAtlasName = string.Empty;
+    public string BillboardAtlasName = string.Empty;
+    public string ItemAtlasName = string.Empty;
+    public string FluidAtlasName = string.Empty;
 
     public MeshBuilderContext()
     {
@@ -48,5 +52,9 @@ internal sealed class MeshBuilderContext
         BillboardTextureHandle = 0;
         ItemTextureHandle = 0;
         FluidTextureHandle = 0;
+        SolidAtlasName = string.Empty;
+        BillboardAtlasName = string.Empty;
+        ItemAtlasName = string.Empty;
+        FluidAtlasName = string.Empty;
     }
 }

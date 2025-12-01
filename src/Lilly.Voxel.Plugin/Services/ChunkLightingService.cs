@@ -117,10 +117,12 @@ public sealed class ChunkLightingService
         var lightLevel = chunk.GetLightLevel(x, y, z);
         float levelFactor = Math.Clamp(lightLevel / 15f, 0f, 1f);
 
-        if (chunk.IsLightingDirty && lightLevel >= 15)
-        {
-            levelFactor = 0f;
-        }
+        // FIXME: Lighting propagation is not yet implemented, so IsLightingDirty is never set to false.
+        // This causes the scene to be rendered as pitch black. Disabling this check temporarily.
+        // if (chunk.IsLightingDirty && lightLevel >= 15)
+        // {
+        //     levelFactor = 0f;
+        // }
 
         // Use the stronger of propagated light and skylight so torches still light caves.
         float light = Math.Max(levelFactor, skyLight);

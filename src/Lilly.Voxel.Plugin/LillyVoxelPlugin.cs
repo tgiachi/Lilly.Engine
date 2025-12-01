@@ -63,6 +63,7 @@ public class LillyVoxelPlugin : ILillyPlugin
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
         yield return gameObjectFactory.Create<SkyGameObject>();
+        yield return gameObjectFactory.Create<WorldGameObject>();
 
         // yield return gameObjectFactory.Create<RainEffectGameObject>();
     }
@@ -72,13 +73,16 @@ public class LillyVoxelPlugin : ILillyPlugin
         container
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
-            .RegisterService<ChunkLightingService>();
+            .RegisterService<ChunkLightingService>()
+            .RegisterService<ChunkMeshBuilder>();
 
         container.RegisterScriptModule<BlockRegistryModule>()
                  .RegisterScriptModule<GenerationModule>()
                  .RegisterScriptModule<WorldModule>();
 
         container
+            .RegisterGameObject<WorldGameObject>()
+            .RegisterGameObject<ChunkGameObject>()
             .RegisterGameObject<SnowEffectGameObject>()
             .RegisterGameObject<RainEffectGameObject>()
             .RegisterGameObject<SkyGameObject>()

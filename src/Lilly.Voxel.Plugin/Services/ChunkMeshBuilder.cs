@@ -81,15 +81,19 @@ public sealed class ChunkMeshBuilder
                 Vertices = context.SolidVertices.ToArray(),
                 Indices = context.SolidIndices.ToArray(),
                 TextureHandle = context.SolidTextureHandle,
+                SolidAtlasName = context.SolidAtlasName,
                 BillboardVertices = context.BillboardVertices.ToArray(),
                 BillboardIndices = context.BillboardIndices.ToArray(),
                 BillboardTextureHandle = context.BillboardTextureHandle,
+                BillboardAtlasName = context.BillboardAtlasName,
                 ItemVertices = context.ItemVertices.ToArray(),
                 ItemIndices = context.ItemIndices.ToArray(),
                 ItemTextureHandle = context.ItemTextureHandle,
+                ItemAtlasName = context.ItemAtlasName,
                 FluidVertices = context.FluidVertices.ToArray(),
                 FluidIndices = context.FluidIndices.ToArray(),
-                FluidTextureHandle = context.FluidTextureHandle
+                FluidTextureHandle = context.FluidTextureHandle,
+                FluidAtlasName = context.FluidAtlasName
             };
         }
         catch (Exception ex)
@@ -173,7 +177,7 @@ public sealed class ChunkMeshBuilder
         var baseIndex = vertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.BillboardTextureHandle);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.BillboardTextureHandle, ref context.BillboardAtlasName);
 
         var t0 = new Vector2(0f, 1f);
         var t1 = new Vector2(1f, 1f);
@@ -236,7 +240,7 @@ public sealed class ChunkMeshBuilder
         var baseIndex = vertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(face);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.FluidTextureHandle);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.FluidTextureHandle, ref context.FluidAtlasName);
 
         Vector3 v0,
                 v1,
@@ -427,7 +431,7 @@ public sealed class ChunkMeshBuilder
         t3.Y = 1f - t3.Y;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(face);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.SolidTextureHandle);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.SolidTextureHandle, ref context.SolidAtlasName);
         var baseIndex = vertices.Count;
 
         vertices.Add(new(v0, lighting, t0, tileBase, tileSize, blockCoord));
@@ -475,7 +479,7 @@ public sealed class ChunkMeshBuilder
         var baseIndex = context.ItemVertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.ItemTextureHandle);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.ItemTextureHandle, ref context.ItemAtlasName);
 
         Span<Vector2> offsets = stackalloc Vector2[4]
         {
@@ -645,7 +649,11 @@ public sealed class ChunkMeshBuilder
         }
     }
 
-    private (Vector2 Position, Vector2 Size) GetAtlasRegionForTexture(BlockTextureObject texture, ref uint textureHandle)
+    private (Vector2 Position, Vector2 Size) GetAtlasRegionForTexture(
+        BlockTextureObject texture,
+        ref uint textureHandle,
+        ref string atlasName
+    )
     {
         try
         {
@@ -661,6 +669,11 @@ public sealed class ChunkMeshBuilder
                 {
                     _logger.Debug(handleEx, "Unable to resolve texture handle for atlas {Atlas}", texture.AtlasName);
                 }
+            }
+
+            if (string.IsNullOrEmpty(atlasName))
+            {
+                atlasName = texture.AtlasName;
             }
 
             return (new(region.Position.X, region.Position.Y), new(region.Size.X, region.Size.Y));
