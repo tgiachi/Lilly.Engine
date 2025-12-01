@@ -27,7 +27,7 @@ public class CaveGenerationStep : IGeneratorStep
         float megaFrequency = 0.009f, // Low frequency for massive rooms
         float megaThreshold = 0.55f,  // Higher threshold = rarer but bigger
         int seedOffset = 8121,
-        int surfaceBuffer = 8 // Increased buffer to avoid cutting surface too much
+        int surfaceBuffer = 6 // Slightly tighter buffer for lower terrain
     )
     {
         _frequency = frequency;
@@ -66,7 +66,8 @@ public class CaveGenerationStep : IGeneratorStep
             {
                 var surfaceHeight = heightMap[z * chunkSize + x] - _surfaceBuffer;
 
-                for (var y = 1; y < ChunkEntity.Height; y++)
+                var maxLocalY = Math.Min(ChunkEntity.Height - 1, surfaceHeight - chunkBaseY - 1);
+                for (var y = 1; y <= maxLocalY; y++)
                 {
                     var worldY = chunkBaseY + y;
 

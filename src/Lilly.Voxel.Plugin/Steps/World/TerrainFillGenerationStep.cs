@@ -26,7 +26,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
 
     public TerrainFillGenerationStep(
         IBlockRegistry blockRegistry,
-        float waterLevel = 60f,
+        float waterLevel = 18f,
         int soilDepth = 3
     )
     {
@@ -71,6 +71,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
         var chunk = context.Chunk;
         var chunkSize = ChunkEntity.Size;
         var chunkBaseY = (int)context.WorldPosition.Y;
+        var maxWorldY = chunkBaseY + ChunkEntity.Height - 1;
 
         for (var z = 0; z < chunkSize; z++)
         {
@@ -106,7 +107,12 @@ public class TerrainFillGenerationStep : IGeneratorStep
                     subBlock = _sandId;
                 }
 
-                for (var y = 0; y < ChunkEntity.Height; y++)
+                // Clamp loops to the chunk's vertical span to avoid wasting time when surface is above the chunk
+                var maxLocalY = Math.Min(ChunkEntity.Height - 1, (int)(_waterLevel - chunkBaseY));
+                var surfaceLocalY = surfaceHeight - chunkBaseY;
+                var loopMaxY = Math.Min(ChunkEntity.Height - 1, Math.Max(surfaceLocalY, maxLocalY));
+
+                for (var y = 0; y <= loopMaxY; y++)
                 {
                     var worldY = chunkBaseY + y;
 

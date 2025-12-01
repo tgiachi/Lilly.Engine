@@ -17,7 +17,7 @@ public class ChunkEntity
     /// <summary>
     /// Number of blocks along the Y axis.
     /// </summary>
-    public const int Height = 128;
+    public const int Height = 32;
 
     /// <summary>
     /// Gets the world position at which the chunk is anchored.

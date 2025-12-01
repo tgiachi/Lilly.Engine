@@ -72,9 +72,11 @@ public class LillyVoxelPlugin : ILillyPlugin
         container
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
-            .RegisterScriptModule<BlockRegistryModule>()
-            .RegisterScriptModule<GenerationModule>()
-            .RegisterScriptModule<WorldModule>();
+            .RegisterService<ChunkLightingService>();
+
+        container.RegisterScriptModule<BlockRegistryModule>()
+                 .RegisterScriptModule<GenerationModule>()
+                 .RegisterScriptModule<WorldModule>();
 
         container
             .RegisterGameObject<SnowEffectGameObject>()

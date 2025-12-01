@@ -49,19 +49,26 @@ public class FlatWorldGenerationStep : IGeneratorStep
         // Layers 1-28: Stone (main underground)
         if (stoneId.HasValue)
         {
-            context.FillBlocks(0, 1, 0, chunkSize, 29, chunkSize, stoneId.Value);
+            context.FillBlocks(0, 1, 0, chunkSize, Math.Min(29, chunkHeight), chunkSize, stoneId.Value);
         }
 
         // Layers 29-31: Dirt (soil layer)
         if (dirtId.HasValue)
         {
-            context.FillBlocks(0, 29, 0, chunkSize, 32, chunkSize, dirtId.Value);
+            var dirtTop = Math.Min(32, chunkHeight);
+            if (dirtTop > 29)
+            {
+                context.FillBlocks(0, 29, 0, chunkSize, dirtTop, chunkSize, dirtId.Value);
+            }
         }
 
         // Layer 31: Grass (surface)
         if (grassId.HasValue)
         {
-            context.FillLayer(31, grassId.Value);
+            if (chunkHeight > 31)
+            {
+                context.FillLayer(31, grassId.Value);
+            }
         }
 
         PlaceFlowers(context, grassId, flowerIds);
@@ -99,25 +106,20 @@ public class FlatWorldGenerationStep : IGeneratorStep
         var randomSeed = HashCode.Combine(context.Seed, coordinates.X, coordinates.Y, coordinates.Z);
         var random = new Random(randomSeed);
 
-        const int flowersPerChunk = 2;
+        const double flowerChance = 0.02; // 2% per grass column
 
-        for (int i = 0; i < flowersPerChunk; i++)
+        for (int z = 0; z < context.ChunkSize(); z++)
         {
-            bool placed = false;
-
-            for (int attempt = 0; attempt < 16 && !placed; attempt++)
+            for (int x = 0; x < context.ChunkSize(); x++)
             {
-                int x = random.Next(0, context.ChunkSize());
-                int z = random.Next(0, context.ChunkSize());
+                if (random.NextDouble() > flowerChance)
+                    continue;
 
                 if (chunk.GetBlock(x, 31, z) != grassId.Value)
-                {
                     continue;
-                }
 
                 var flowerId = flowerIds[random.Next(flowerIds.Count)];
                 context.SetBlock(x, 32, z, flowerId);
-                placed = true;
             }
         }
     }

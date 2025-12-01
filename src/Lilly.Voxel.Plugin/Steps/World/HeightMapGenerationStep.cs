@@ -23,14 +23,14 @@ public class HeightMapGenerationStep : IGeneratorStep
     private readonly int _seedOffset;
 
     public HeightMapGenerationStep(
-        float baseHeight = 64f,
-        float heightVariance = 20f,
+        float baseHeight = 24f,
+        float heightVariance = 10f,
         float baseFrequency = 0.009f,
         float continentFrequency = 0.002f,
         float mountainFrequency = 0.018f,
-        float mountainAmplitude = 80f,
-        float mountainThreshold = 0.45f,
-        float mountainSharpness = 2.2f,
+        float mountainAmplitude = 24f,
+        float mountainThreshold = 0.35f,
+        float mountainSharpness = 2.0f,
         int octaves = 4,
         float gain = 0.45f,
         float lacunarity = 2f,

@@ -16,7 +16,7 @@ public class DecorationGenerationStep : IGeneratorStep
 
     public DecorationGenerationStep(
         IBlockRegistry blockRegistry,
-        float decorationChance = 0.05f,
+        float decorationChance = 0.02f,
         IEnumerable<string>? decorationBlockNames = null,
         int maxSlope = 3
     )
