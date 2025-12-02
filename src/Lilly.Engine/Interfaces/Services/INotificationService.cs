@@ -29,19 +29,9 @@ public interface INotificationService
     /// </summary>
     /// <param name="text">The notification text.</param>
     /// <param name="duration">The optional display duration.</param>
-    /// <summary>
-    /// Raises an error notification.
-    /// </summary>
-    /// <param name="text">The notification text.</param>
-    /// <param name="duration">The optional display duration.</param>
     /// <param name="iconTextureName">The optional texture name for a leading icon.</param>
     void ShowError(string text, float? duration = null, string? iconTextureName = null);
 
-    /// <summary>
-    /// Raises an informational notification.
-    /// </summary>
-    /// <param name="text">The notification text.</param>
-    /// <param name="duration">The optional display duration.</param>
     /// <summary>
     /// Raises an informational notification.
     /// </summary>
@@ -72,12 +62,6 @@ public interface INotificationService
     /// <param name="text">The notification text.</param>
     /// <param name="type">The notification type.</param>
     /// <param name="duration">The optional display duration.</param>
-    /// <summary>
-    /// Raises a notification for a predefined type.
-    /// </summary>
-    /// <param name="text">The notification text.</param>
-    /// <param name="type">The notification type.</param>
-    /// <param name="duration">The optional display duration.</param>
     /// <param name="iconTextureName">The optional texture name for a leading icon.</param>
     void ShowMessage(string text, NotificationType type, float? duration = null, string? iconTextureName = null);
 
@@ -86,19 +70,9 @@ public interface INotificationService
     /// </summary>
     /// <param name="text">The notification text.</param>
     /// <param name="duration">The optional display duration.</param>
-    /// <summary>
-    /// Raises a success notification.
-    /// </summary>
-    /// <param name="text">The notification text.</param>
-    /// <param name="duration">The optional display duration.</param>
     /// <param name="iconTextureName">The optional texture name for a leading icon.</param>
     void ShowSuccess(string text, float? duration = null, string? iconTextureName = null);
 
-    /// <summary>
-    /// Raises a warning notification.
-    /// </summary>
-    /// <param name="text">The notification text.</param>
-    /// <param name="duration">The optional display duration.</param>
     /// <summary>
     /// Raises a warning notification.
     /// </summary>

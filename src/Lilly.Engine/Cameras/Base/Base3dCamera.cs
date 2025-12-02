@@ -9,7 +9,7 @@ using TrippyGL;
 namespace Lilly.Engine.Cameras.Base;
 
 /// <summary>
-/// Base implementation of a 3D camera with position, rotation, and projection.
+/// Represents a base class for 3D cameras, providing position, rotation, projection, and frustum culling functionality.
 /// </summary>
 public abstract class Base3dCamera : ICamera3D
 {
@@ -29,13 +29,25 @@ public abstract class Base3dCamera : ICamera3D
     private bool _projectionDirty = true;
 
     // IGameObject members
+    /// <summary>
+    /// Gets or sets the unique identifier of the camera.
+    /// </summary>
     public uint Id { get; set; }
     public ushort Order => 0; // Cameras don't have a specific render order
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the camera is enabled.
+    /// </summary>
     public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the name of the camera.
+    /// </summary>
     public string Name { get; set; } = "Camera";
 
+    /// <summary>
+    /// Gets or sets the position of the camera in 3D space.
+    /// </summary>
     public Vector3 Position
     {
         get => _position;
@@ -54,6 +66,9 @@ public abstract class Base3dCamera : ICamera3D
         _projectionDirty = true;
     }
 
+    /// <summary>
+    /// Gets or sets the rotation of the camera as a quaternion.
+    /// </summary>
     public Quaternion Rotation
     {
         get => _rotation;
@@ -67,6 +82,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets or sets the target point the camera is looking at.
+    /// </summary>
     public Vector3 Target
     {
         get => _target;
@@ -80,8 +98,14 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets the up vector of the camera.
+    /// </summary>
     public Vector3 Up { get; private set; } = new(0, 1, 0);
 
+    /// <summary>
+    /// Gets the forward direction vector of the camera.
+    /// </summary>
     public Vector3 Forward
     {
         get
@@ -92,6 +116,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets the right direction vector of the camera.
+    /// </summary>
     public Vector3 Right
     {
         get
@@ -102,6 +129,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets or sets the field of view angle in radians.
+    /// </summary>
     public float FieldOfView
     {
         get => _fieldOfView;
@@ -115,6 +145,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets or sets the aspect ratio of the camera (width / height).
+    /// </summary>
     public float AspectRatio
     {
         get => _aspectRatio;
@@ -128,6 +161,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets or sets the distance to the near clipping plane.
+    /// </summary>
     public float NearPlane
     {
         get => _nearPlane;
@@ -141,6 +177,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets or sets the distance to the far clipping plane.
+    /// </summary>
     public float FarPlane
     {
         get => _farPlane;
@@ -154,6 +193,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets the view matrix of the camera.
+    /// </summary>
     public Matrix4x4 View
     {
         get
@@ -168,6 +210,9 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets the projection matrix of the camera.
+    /// </summary>
     public Matrix4x4 Projection
     {
         get
@@ -180,9 +225,11 @@ public abstract class Base3dCamera : ICamera3D
 
             return _projection;
         }
-        protected set;
     }
 
+    /// <summary>
+    /// Gets the bounding frustum of the camera for culling.
+    /// </summary>
     public BoundingFrustum Frustum
     {
         get
@@ -197,6 +244,12 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
+    /// <summary>
+    /// Gets a ray from the camera through a screen position for picking.
+    /// </summary>
+    /// <param name="screenPosition">The screen position in pixels.</param>
+    /// <param name="viewport">The viewport information.</param>
+    /// <returns>The pick ray.</returns>
     public virtual Ray GetPickRay(Vector2 screenPosition, Viewport viewport)
     {
         // Convert screen position to NDC (Normalized Device Coordinates)
@@ -221,8 +274,16 @@ public abstract class Base3dCamera : ICamera3D
         return new(nearPoint, direction);
     }
 
+    /// <summary>
+    /// Gets or sets the maximum distance for frustum culling.
+    /// </summary>
     public float CullingDistance { get; set; } = 200f;
 
+    /// <summary>
+    /// Sets the camera to look at a target point with a specified up vector.
+    /// </summary>
+    /// <param name="target">The target point to look at.</param>
+    /// <param name="up">The up vector.</param>
     public virtual void LookAt(Vector3 target, Vector3 up)
     {
         Target = target;
@@ -230,26 +291,47 @@ public abstract class Base3dCamera : ICamera3D
         _viewDirty = true;
     }
 
+    /// <summary>
+    /// Moves the camera by the specified offset.
+    /// </summary>
+    /// <param name="offset">The offset to move by.</param>
     public virtual void Move(Vector3 offset)
     {
         Position += offset;
     }
 
+    /// <summary>
+    /// Moves the camera forward by the specified distance.
+    /// </summary>
+    /// <param name="distance">The distance to move forward.</param>
     public virtual void MoveForward(float distance)
     {
         Move(Forward * distance);
     }
 
+    /// <summary>
+    /// Moves the camera right by the specified distance.
+    /// </summary>
+    /// <param name="distance">The distance to move right.</param>
     public virtual void MoveRight(float distance)
     {
         Move(Right * distance);
     }
 
+    /// <summary>
+    /// Moves the camera up by the specified distance.
+    /// </summary>
+    /// <param name="distance">The distance to move up.</param>
     public virtual void MoveUp(float distance)
     {
         Move(new Vector3(0, 1, 0) * distance);
     }
 
+    /// <summary>
+    /// Determines whether a 3D game object is within the camera's frustum.
+    /// </summary>
+    /// <param name="gameObject">The game object to check.</param>
+    /// <returns>True if the object is in the frustum; otherwise, false.</returns>
     public bool IsInFrustum(IGameObject3d gameObject)
     {
         if (gameObject.IgnoreFrustumCulling)
@@ -269,6 +351,11 @@ public abstract class Base3dCamera : ICamera3D
         return Frustum.Intersects(boundingBox.Min, boundingBox.Max);
     }
 
+    /// <summary>
+    /// Calculates the distance from the camera to a 3D game object.
+    /// </summary>
+    /// <param name="gameObject">The game object to measure distance to.</param>
+    /// <returns>The distance to the game object.</returns>
     public float Distance(IGameObject3d gameObject)
     {
         var toObject = gameObject.Transform.Position - Position;
@@ -276,6 +363,12 @@ public abstract class Base3dCamera : ICamera3D
         return toObject.Length();
     }
 
+    /// <summary>
+    /// Rotates the camera by the specified pitch, yaw, and roll angles.
+    /// </summary>
+    /// <param name="pitch">The pitch angle in radians.</param>
+    /// <param name="yaw">The yaw angle in radians.</param>
+    /// <param name="roll">The roll angle in radians.</param>
     public virtual void Rotate(float pitch, float yaw, float roll)
     {
         var pitchRotation = Quaternion.CreateFromAxisAngle(Right, pitch);
@@ -285,6 +378,10 @@ public abstract class Base3dCamera : ICamera3D
         Rotation = rollRotation * yawRotation * pitchRotation * Rotation;
     }
 
+    /// <summary>
+    /// Updates the camera state based on the elapsed game time.
+    /// </summary>
+    /// <param name="gameTime">The elapsed game time.</param>
     public abstract void Update(GameTime gameTime);
 
     protected virtual void UpdateProjectionMatrix()
