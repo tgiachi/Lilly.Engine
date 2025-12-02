@@ -763,9 +763,9 @@ public class MyService : IMyService
 
 ## Next Steps
 
-- Check out existing plugins: `src/Lilly.Voxel.Plugin/` and `src/Lilly.Engine.GameObjects/`
+- Check out existing plugins in the source code: `src/Lilly.Voxel.Plugin/` and `src/Lilly.Engine.GameObjects/`
 - Read the [Architecture Guide](architecture.md) to understand system interactions
 - Explore the [Lua Scripting Guide](lua-scripting.md) to expose your plugin to scripts
-- Browse the [API Reference](../api/) for available interfaces and services
+- Try the [tutorials](tutorials/voxel-world.md) to see plugins in action
 
 Happy plugin development!

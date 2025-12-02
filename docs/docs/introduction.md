@@ -163,5 +163,3 @@ Ready to get your hands dirty?
 2. [Architecture Guide](architecture.md) - Deep dive into how the engine is structured
 3. [Plugin Development](plugin-development.md) - Learn how to extend the engine
 4. [Lua Scripting](lua-scripting.md) - Script game logic without recompiling
-
-Or jump straight into the [API Reference](../api/) to explore the codebase.

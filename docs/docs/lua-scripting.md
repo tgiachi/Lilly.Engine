@@ -844,7 +844,7 @@ local product = custom.calculate(5, 10)
 
 - [Getting Started](getting-started.md) - Learn to integrate scripts in scenes
 - [Plugin Development](plugin-development.md) - Expose your plugin APIs to Lua
-- [Tutorials](tutorials/) - Complete examples with scripts
-- Check existing scripts in `scripts/` folder for more examples
+- [Voxel Tutorial](tutorials/voxel-world.md) - Complete example with Lua scripts
+- [UI Tutorial](tutorials/custom-ui.md) - Building interactive interfaces
 
 Happy scripting!

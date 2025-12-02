@@ -762,4 +762,4 @@ public class VoxelWorldScene : BaseScene
 - Create biomes with different terrain
 - Add mobs and AI
 
-Check out the [Voxel Plugin source](../../src/Lilly.Voxel.Plugin/) for more advanced features!
+Check out the Voxel Plugin source code in `src/Lilly.Voxel.Plugin/` for more advanced features!

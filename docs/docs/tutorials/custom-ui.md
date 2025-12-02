@@ -932,4 +932,4 @@ public class GameScene : BaseScene
 - Build an inventory system
 - Create a dialogue system
 
-Check the [API Reference](../../api/) for all available UI controls and their properties!
+Check the source code in `src/Lilly.Engine.GameObjects/` for all available UI controls and their properties!

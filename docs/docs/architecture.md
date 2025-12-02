@@ -671,7 +671,7 @@ Now that you understand the architecture:
 
 - **[Plugin Development](plugin-development.md)** - Build your own plugin
 - **[Lua Scripting](lua-scripting.md)** - Learn the Lua module system
-- **[Tutorials](tutorials/)** - Build complete features
-- **[API Reference](../api/)** - Explore the codebase
+- **[Voxel Tutorial](tutorials/voxel-world.md)** - Build a voxel world
+- **[UI Tutorial](tutorials/custom-ui.md)** - Create custom UI
 
 Questions? Check the source code - it's well-documented and designed to be readable.

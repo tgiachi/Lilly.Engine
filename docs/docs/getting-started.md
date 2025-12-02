@@ -520,8 +520,6 @@ Now that you have a working scene, explore these topics:
 - **[Voxel Tutorial](tutorials/voxel-world.md)** - Build a Minecraft-style world
 - **[UI Tutorial](tutorials/custom-ui.md)** - Create custom UI controls
 
-Check out the [API Reference](../api/) for detailed documentation on all classes and interfaces.
-
 ## Common Issues
 
 ### "Could not load file or assembly"
