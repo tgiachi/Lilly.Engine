@@ -7,8 +7,19 @@ namespace Lilly.Rendering.Core.Primitives;
 /// </summary>
 public class Transform3D
 {
+    /// <summary>
+    /// Gets or sets the position of the transform in 3D space.
+    /// </summary>
     public Vector3 Position { get; set; } = Vector3.Zero;
+
+    /// <summary>
+    /// Gets or sets the rotation represented as a quaternion.
+    /// </summary>
     public Quaternion Rotation { get; set; } = Quaternion.Identity;
+
+    /// <summary>
+    /// Gets or sets the scale factors for x, y, and z axes.
+    /// </summary>
     public Vector3 Scale { get; set; } = Vector3.One;
 
     /// <summary>
