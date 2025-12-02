@@ -574,9 +574,7 @@ docs/_site/
 docs/obj/
 docs/api/
 docs/log.txt
-.docfx/
 **/.manifest
-docs/**/*
 .tools
 
 # Source Generator - auto-generated files (regenerated on build)
