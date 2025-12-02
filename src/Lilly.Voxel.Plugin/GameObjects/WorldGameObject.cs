@@ -28,6 +28,7 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly IJobSystemService _jobSystem;
     private readonly IChunkGeneratorService _chunkGenerator;
     private readonly IGameObjectManager _gameObjectManager;
+    private readonly ICamera3dService _cameraService;
 
     private readonly Dictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
@@ -43,7 +44,8 @@ public sealed class WorldGameObject : Base3dGameObject
         ChunkMeshBuilder meshBuilder,
         IJobSystemService jobSystem,
         IChunkGeneratorService chunkGenerator,
-        IGameObjectManager gameObjectManager
+        IGameObjectManager gameObjectManager,
+        ICamera3dService cameraService
     ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
@@ -52,6 +54,7 @@ public sealed class WorldGameObject : Base3dGameObject
         _jobSystem = jobSystem;
         _chunkGenerator = chunkGenerator;
         _gameObjectManager = gameObjectManager;
+        _cameraService = cameraService;
         IgnoreFrustumCulling = true;
     }
 
@@ -59,13 +62,18 @@ public sealed class WorldGameObject : Base3dGameObject
     {
         base.Update(gameTime);
 
-        var playerChunk = ChunkUtils.GetChunkCoordinates(Transform.Position);
+        var playerChunk = ChunkUtils.GetChunkCoordinates(GetStreamingOrigin());
         var targets = BuildTargetSet(playerChunk);
 
         ScheduleMissingChunks(targets);
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
 
+    }
+
+    private Vector3 GetStreamingOrigin()
+    {
+        return _cameraService.ActiveCamera?.Position ?? Transform.Position;
     }
 
 
@@ -198,11 +206,7 @@ public sealed class WorldGameObject : Base3dGameObject
                         $"chunk_rebuild_{neighborCoord.ToHumanReadableString()}",
                         async ct =>
                         {
-                            var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                                (int)neighborCoord.X,
-                                (int)neighborCoord.Y,
-                                (int)neighborCoord.Z
-                            );
+
                             var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
 
                             var mesh = _meshBuilder.BuildMeshData(
@@ -216,7 +220,9 @@ public sealed class WorldGameObject : Base3dGameObject
                                     );
 
                                     if (_chunkGenerator.TryGetCachedChunk(nPos, out var n))
+                                    {
                                         return n;
+                                    }
 
                                     return null;
                                 }

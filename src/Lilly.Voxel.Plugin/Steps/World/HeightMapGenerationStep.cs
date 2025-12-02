@@ -118,7 +118,8 @@ public class HeightMapGenerationStep : IGeneratorStep
                 var height = _baseHeight +
                              (baseValue * _heightVariance * biomeHeightMod) +
                              mountainOffset;
-                height = Math.Clamp(height, 1f, ChunkEntity.Height - 2f);
+                // Allow heights to span multiple vertical chunks; only clamp below to avoid negatives.
+                height = MathF.Max(1f, height);
 
                 heightMap[z * chunkSize + x] = (int)MathF.Round(height);
             }
