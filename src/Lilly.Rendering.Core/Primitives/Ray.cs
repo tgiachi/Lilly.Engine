@@ -1,3 +1,4 @@
+using System.Numerics;
 using Silk.NET.Maths;
 
 namespace Lilly.Rendering.Core.Primitives;
@@ -10,19 +11,19 @@ public struct Ray
     /// <summary>
     /// Gets or sets the origin point of the ray.
     /// </summary>
-    public Vector3D<float> Origin { get; set; }
+    public Vector3 Origin { get; set; }
 
     /// <summary>
     /// Gets or sets the direction vector of the ray (should be normalized).
     /// </summary>
-    public Vector3D<float> Direction { get; set; }
+    public Vector3 Direction { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the Ray struct.
     /// </summary>
     /// <param name="origin">The origin point of the ray.</param>
     /// <param name="direction">The direction vector of the ray.</param>
-    public Ray(Vector3D<float> origin, Vector3D<float> direction)
+    public Ray(Vector3 origin, Vector3 direction)
     {
         Origin = origin;
         Direction = direction;
@@ -33,7 +34,7 @@ public struct Ray
     /// </summary>
     /// <param name="distance">Distance from the origin.</param>
     /// <returns>A point along the ray.</returns>
-    public readonly Vector3D<float> GetPoint(float distance)
+    public readonly Vector3 GetPoint(float distance)
         => Origin + Direction * distance;
 
     /// <summary>
@@ -43,9 +44,9 @@ public struct Ray
     /// <param name="planePoint">A point on the plane.</param>
     /// <param name="distance">The distance from the ray origin to the intersection point, if any.</param>
     /// <returns>True if the ray intersects the plane, false otherwise.</returns>
-    public readonly bool IntersectsPlane(Vector3D<float> planeNormal, Vector3D<float> planePoint, out float distance)
+    public readonly bool IntersectsPlane(Vector3 planeNormal, Vector3 planePoint, out float distance)
     {
-        var denominator = Vector3D.Dot(Direction, planeNormal);
+        var denominator = Vector3.Dot(Direction, planeNormal);
 
         // Ray is parallel to the plane
         if (Math.Abs(denominator) < float.Epsilon)
@@ -55,7 +56,7 @@ public struct Ray
             return false;
         }
 
-        var numerator = Vector3D.Dot(planePoint - Origin, planeNormal);
+        var numerator = Vector3.Dot(planePoint - Origin, planeNormal);
         distance = numerator / denominator;
 
         return distance >= 0;

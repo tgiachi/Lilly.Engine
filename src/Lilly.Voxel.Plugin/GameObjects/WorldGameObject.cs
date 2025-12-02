@@ -7,6 +7,7 @@ using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Services;
@@ -54,6 +55,13 @@ public sealed class WorldGameObject : Base3dGameObject
         _gameObjectManager = gameObjectManager;
         _cameraService = cameraService;
         IgnoreFrustumCulling = true;
+
+    }
+
+    public override void Initialize()
+    {
+        CreateGameObject<BlockOutlineGameObject>();
+        base.Initialize();
     }
 
     public override void Update(GameTime gameTime)
@@ -66,14 +74,12 @@ public sealed class WorldGameObject : Base3dGameObject
         ScheduleMissingChunks(targets);
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
-
     }
 
     private Vector3 GetStreamingOrigin()
     {
         return _cameraService.ActiveCamera?.Position ?? Transform.Position;
     }
-
 
     private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
     {
@@ -204,7 +210,6 @@ public sealed class WorldGameObject : Base3dGameObject
                         $"chunk_rebuild_{neighborCoord.ToHumanReadableString()}",
                         async ct =>
                         {
-
                             var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
 
                             var mesh = _meshBuilder.BuildMeshData(
@@ -258,5 +263,48 @@ public sealed class WorldGameObject : Base3dGameObject
                 RemoveGameObject(chunk);
             }
         }
+    }
+
+    public bool Raycast(Ray ray, float maxDistance, out Vector3 blockPosition)
+    {
+        // Normalize direction to keep step size consistent regardless of input
+        var direction = Vector3.Normalize(ray.Direction);
+        var origin = ray.Origin;
+        const float step = 0.1f;
+        var distance = 0f;
+
+        while (distance <= maxDistance)
+        {
+            var sample = origin + direction * distance;
+            var samplePos = new Vector3(sample.X, sample.Y, sample.Z);
+            var chunkCoords = ChunkUtils.GetChunkCoordinates(samplePos);
+
+            if (_activeChunks.TryGetValue(chunkCoords, out var chunkGo))
+            {
+                var (localX, localY, localZ) = ChunkUtils.GetLocalIndices(samplePos);
+
+                if (ChunkUtils.IsValidLocalPosition(localX, localY, localZ))
+                {
+                    var blockId = chunkGo.Chunk.GetBlock(localX, localY, localZ);
+
+                    if (blockId != 0)
+                    {
+                        blockPosition = new Vector3(
+                            (int)MathF.Floor(samplePos.X),
+                            (int)MathF.Floor(samplePos.Y),
+                            (int)MathF.Floor(samplePos.Z)
+                        );
+
+                        return true;
+                    }
+                }
+            }
+
+            distance += step;
+        }
+
+        blockPosition = default;
+
+        return false;
     }
 }

@@ -168,11 +168,13 @@ public class RenderPipeline : IRenderPipeline
         }
     }
 
-    public void CreateGameObject<TEntity>() where TEntity : class, IGameObject
+    public TEntity CreateGameObject<TEntity>() where TEntity : class, IGameObject
     {
         var entity = _gameObjectFactory.Create<TEntity>();
 
         AddGameObject(entity);
+
+        return entity;
     }
 
     public void RemoveGameObject<TEntity>(TEntity entity) where TEntity : IGameObject

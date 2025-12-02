@@ -15,7 +15,7 @@ public abstract class Base3dCamera : ICamera3D
 {
     private Vector3 _position = Vector3.Zero;
     private Quaternion _rotation = Quaternion.Identity;
-    private Vector3 _target = new(0, 0, -1);     // Forward
+    private Vector3 _target = new(0, 0, -1);    // Forward
     private float _fieldOfView = MathF.PI / 4f; // 45 degrees
     private float _aspectRatio;
     private float _nearPlane = 0.1f;
@@ -218,7 +218,7 @@ public abstract class Base3dCamera : ICamera3D
         var direction = farPoint - nearPoint;
         direction = Vector3.Normalize(direction);
 
-        return new(nearPoint.ToSilk(), direction.ToSilk());
+        return new(nearPoint, direction);
     }
 
     public float CullingDistance { get; set; } = 200f;
@@ -258,12 +258,14 @@ public abstract class Base3dCamera : ICamera3D
         }
 
         var toObject = gameObject.Transform.Position - Position;
+
         if (toObject.LengthSquared() > CullingDistance * CullingDistance)
         {
             return false;
         }
 
         var boundingBox = gameObject.BoundingBox;
+
         return Frustum.Intersects(boundingBox.Min, boundingBox.Max);
     }
 

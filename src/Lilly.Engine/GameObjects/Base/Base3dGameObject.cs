@@ -45,7 +45,8 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     public Transform3D Transform { get; set; } = new();
 
-    public virtual BoundingBox BoundingBox => new BoundingBox(Transform.Position, Transform.Position + System.Numerics.Vector3.One);
+    public virtual BoundingBox BoundingBox
+        => new BoundingBox(Transform.Position, Transform.Position + System.Numerics.Vector3.One);
 
     private readonly IGameObjectManager _gameObjectManager;
 
@@ -97,6 +98,11 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
         }
     }
 
+    protected TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
+    {
+        return _gameObjectManager.CreateGameObject<TGameObject>();
+    }
+
     /// <summary>
     /// Updates the game object. Override to implement custom update logic.
     /// </summary>
@@ -109,8 +115,5 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
         }
     }
 
-    public virtual void Initialize()
-    {
-
-    }
+    public virtual void Initialize() { }
 }

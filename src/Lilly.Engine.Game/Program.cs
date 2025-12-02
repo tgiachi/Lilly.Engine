@@ -83,8 +83,6 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
 
-    //logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
-
     if (logToFile)
     {
         logConfiguration.WriteTo.File(
