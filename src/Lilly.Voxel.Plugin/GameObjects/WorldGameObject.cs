@@ -34,7 +34,7 @@ public sealed class WorldGameObject : Base3dGameObject
 
     public int HorizontalRadiusChunks { get; set; } = 4;
     public int VerticalBelowChunks { get; set; } = 1;
-    public int VerticalAboveChunks { get; set; }
+    public int VerticalAboveChunks { get; set; } = 4;
     public int MaxConcurrentJobs { get; set; } = 4;
 
     public WorldGameObject(
@@ -129,10 +129,7 @@ public sealed class WorldGameObject : Base3dGameObject
                     );
 
                     return new ChunkBuildResult(chunk, mesh);
-                },
-                JobPriority.Normal,
-                onComplete: null,
-                cancellationToken: default
+                }
             );
 
             _pending[coord] = job;
@@ -226,10 +223,7 @@ public sealed class WorldGameObject : Base3dGameObject
                             );
 
                             return new ChunkBuildResult(chunk, mesh);
-                        },
-                        JobPriority.Normal,
-                        onComplete: null,
-                        cancellationToken: default
+                        }
                     );
 
                     _pending[neighborCoord] = job;

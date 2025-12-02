@@ -71,6 +71,7 @@ out float vFogFactor;
 out vec3 vVertexLight;
 
 const float PI = 3.1415926535;
+const float UV_INSET = 0.001; // tighten UVs to avoid sampling padded transparent texels
 
 // Array of possible normals based on direction
 const vec3 normals[7] = vec3[7](
@@ -100,7 +101,8 @@ void main()
     gl_Position = uProjection * viewPosition;
 
     // Atlas coordinates
-    vec2 atlasCoord = aTileBase + aTexCoord * aTileSize;
+    vec2 tiled = aTexCoord * (1.0 - 2.0 * UV_INSET) + UV_INSET; // shrink UVs slightly to avoid bleeding
+    vec2 atlasCoord = aTileBase + tiled * aTileSize;
     vTexCoord = atlasCoord * uTexMultiplier;
 
     int dir = clamp(int(round(aDirection)), 0, 6);
