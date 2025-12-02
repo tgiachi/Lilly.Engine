@@ -80,6 +80,22 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
         }
     }
 
+    protected TGameObject? GetGameObject<TGameObject>() where TGameObject : class, IGameObject
+    {
+        if (Children is GameObjectCollection<IGameObject> collection)
+        {
+            foreach (var child in collection)
+            {
+                if (child is TGameObject typedChild)
+                {
+                    return typedChild;
+                }
+            }
+        }
+
+        return _gameObjectManager.GetGameObject<TGameObject>();
+    }
+
     /// <summary>
     /// Removes a 2D game object from the children collection.
     /// </summary>

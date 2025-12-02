@@ -37,6 +37,12 @@ public sealed class WorldGameObject : Base3dGameObject
     public int VerticalAboveChunks { get; set; } = 4;
     public int MaxConcurrentJobs { get; set; } = 4;
 
+    public bool IsChunkDebuggerVisible
+    {
+        get => GetGameObject<ChunkDebuggerViewerGameObject>().IsActive;
+        set => GetGameObject<ChunkDebuggerViewerGameObject>().IsActive = value;
+    }
+
     public WorldGameObject(
         GraphicsDevice graphicsDevice,
         IAssetManager assetManager,
@@ -55,12 +61,13 @@ public sealed class WorldGameObject : Base3dGameObject
         _gameObjectManager = gameObjectManager;
         _cameraService = cameraService;
         IgnoreFrustumCulling = true;
-
     }
 
     public override void Initialize()
     {
         CreateGameObject<BlockOutlineGameObject>();
+        CreateGameObject<ChunkDebuggerViewerGameObject>();
+
         base.Initialize();
     }
 

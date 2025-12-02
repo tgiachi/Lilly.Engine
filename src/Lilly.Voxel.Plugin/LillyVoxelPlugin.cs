@@ -91,6 +91,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         container
             .RegisterGameObject<WorldGameObject>()
             .RegisterGameObject<ChunkGameObject>()
+            .RegisterGameObject<ChunkDebuggerViewerGameObject>()
             .RegisterGameObject<BlockOutlineGameObject>()
             .RegisterGameObject<SnowEffectGameObject>()
             .RegisterGameObject<RainEffectGameObject>()
