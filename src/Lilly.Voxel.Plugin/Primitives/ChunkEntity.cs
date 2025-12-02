@@ -19,6 +19,12 @@ public class ChunkEntity
     /// </summary>
     public const int Height = 32;
 
+
+    /// <summary>
+    ///  Gets or sets a value indicating whether the chunk has been modified since last save.
+    /// </summary>
+    public bool IsModified { get; set; }
+
     /// <summary>
     /// Gets the world position at which the chunk is anchored.
     /// </summary>
@@ -39,24 +45,6 @@ public class ChunkEntity
     /// </summary>
     public bool IsMeshDirty { get; set; } = true;
 
-    // /// <summary>
-    // /// Initializes a new <see cref="ChunkEntity"/> at the provided position.
-    // /// </summary>
-    // /// <param name="position">World position of the chunk origin.</param>
-    // public ChunkEntity(Vector3 position)
-    // {
-    //     Blocks = new ushort[Size * Size * Height];
-    //     LightLevels = new byte[Size * Size * Height];
-    //     // LightColors is lazy loaded
-    //     Position = position;
-    //     ChunkCoordinates = new Vector3(
-    //         (int)(position.X / Size),
-    //         (int)(position.Y / Height),
-    //         (int)(position.Z / Size)
-    //     );
-    //
-    //     Array.Fill(LightLevels, (byte)15);
-    // }
 
     /// <summary>
     /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.

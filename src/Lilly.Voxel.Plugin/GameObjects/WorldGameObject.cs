@@ -8,6 +8,7 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Services;
@@ -28,6 +29,8 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly IChunkGeneratorService _chunkGenerator;
     private readonly IGameObjectManager _gameObjectManager;
     private readonly ICamera3dService _cameraService;
+
+    private readonly IBlockRegistry _blockRegistry;
 
     private readonly Dictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
@@ -55,7 +58,8 @@ public sealed class WorldGameObject : Base3dGameObject
         IJobSystemService jobSystem,
         IChunkGeneratorService chunkGenerator,
         IGameObjectManager gameObjectManager,
-        ICamera3dService cameraService
+        ICamera3dService cameraService,
+        IBlockRegistry blockRegistry
     ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
@@ -65,6 +69,7 @@ public sealed class WorldGameObject : Base3dGameObject
         _chunkGenerator = chunkGenerator;
         _gameObjectManager = gameObjectManager;
         _cameraService = cameraService;
+        _blockRegistry = blockRegistry;
         IgnoreFrustumCulling = true;
     }
 
@@ -339,5 +344,92 @@ public sealed class WorldGameObject : Base3dGameObject
         blockPosition = default;
 
         return false;
+    }
+
+    public bool GetBlockAtPosition(Vector3 position, out BlockType blockType)
+    {
+        var chunkCoords = ChunkUtils.GetChunkCoordinates(position);
+        blockType = _blockRegistry.Air;
+
+        if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGo))
+        {
+            return false;
+        }
+
+        var (lx, ly, lz) = ChunkUtils.GetLocalIndices(position);
+
+        if (!ChunkUtils.IsValidLocalPosition(lx, ly, lz))
+        {
+            return false;
+        }
+
+        var blockId = chunkGo.Chunk.GetBlock(lx, ly, lz);
+        blockType = _blockRegistry.GetById(blockId);
+
+        return blockId != 0;
+    }
+
+    public void SetBlockAtPosition(Vector3 position, BlockType blockType)
+    {
+        var chunkCoords = ChunkUtils.GetChunkCoordinates(position);
+
+        if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGo))
+        {
+            return;
+        }
+
+        var (lx, ly, lz) = ChunkUtils.GetLocalIndices(position);
+
+        if (!ChunkUtils.IsValidLocalPosition(lx, ly, lz))
+        {
+            return;
+        }
+
+        var chunk = chunkGo.Chunk;
+        chunk.SetBlock(lx, ly, lz, blockType.Id);
+        chunk.IsLightingDirty = true;
+        chunk.IsMeshDirty = true;
+        chunk.IsModified = true;
+
+        EnqueueChunkRebuild(chunkCoords, chunkGo);
+        UpdateNeighbors(chunkCoords);
+    }
+
+    public void RemoveBlockAtPosition(Vector3 position)
+    {
+        SetBlockAtPosition(position, _blockRegistry.Air);
+    }
+
+    private void EnqueueChunkRebuild(Vector3 coord, ChunkGameObject chunkGo)
+    {
+        if (_pending.ContainsKey(coord))
+        {
+            return;
+        }
+
+        var job = _jobSystem.Schedule(
+            $"chunk_rebuild_{coord.ToHumanReadableString()}",
+            async ct =>
+            {
+                var chunk = chunkGo.Chunk;
+                var mesh = _meshBuilder.BuildMeshData(
+                    chunk,
+                    chunkCoords =>
+                    {
+                        var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                            (int)chunkCoords.X,
+                            (int)chunkCoords.Y,
+                            (int)chunkCoords.Z
+                        );
+
+                        return _chunkGenerator.TryGetCachedChunk(nPos, out var n) ? n : null;
+                    }
+                );
+
+                return new ChunkBuildResult(chunk, mesh);
+            }
+        );
+
+        _pending[coord] = job;
     }
 }

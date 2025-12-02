@@ -32,11 +32,19 @@ void main()
     if (texResult.a == 0.0)
         discard;
 
+    // Treat fully white textures (clouds) as softer lit so they don't get harsh shading.
+    bool isCloud = all(greaterThanEqual(texResult.rgb, vec3(0.99)));
+
     vec3 lightDir = normalize(uLightDirection);
     float diff = max(dot(vNormal, lightDir), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+    float diffTerm = isCloud ? (1.0 - diff * 0.2) : diff;
+    vec3 diffuse = diffTerm * vec3(1.0, 1.0, 1.0);
 
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
+    if (isCloud) {
+        vertexLight = max(vertexLight, vec3(0.75)); // keep clouds bright even with low light
+    }
+
     vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight * uFade;
 
     // Apply fog

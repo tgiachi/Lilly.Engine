@@ -24,7 +24,7 @@ namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
 {
-    private bool _isWorldFlat = false;
+    private readonly bool _isWorldFlat;
 
     public LillyPluginData LillyData
         => new LillyPluginData(
@@ -61,6 +61,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
             chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
             chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+            chunkGeneratorService.AddGeneratorStep(new CloudGenerationStep(blockRegistry));
 
             // Lighting must run last to calculate correct light levels
             chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));

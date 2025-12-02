@@ -206,6 +206,7 @@ public class LillyBootstrap : ILillyBootstrap
             pipeline.CreateGameObject<RenderPipelineDebugger>();
             pipeline.CreateGameObject<PerformanceDebugger>();
             pipeline.CreateGameObject<CameraDebugger>();
+            pipeline.CreateGameObject<JobSystemDebugger>();
 
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
@@ -217,8 +218,6 @@ public class LillyBootstrap : ILillyBootstrap
 
                 cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
 
-                //cube.XRotationSpeed = Random.Shared.NextSingle() * 0.1f;
-                //cube.ZRotationSpeed = Random.Shared.NextSingle() * 0.1f;
                 cube.Transform.Position = new Vector3(
                     (index % 5) * 2f - 4f,
                     0f,
@@ -256,6 +255,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<RenderPipelineDebugger>()
             .RegisterGameObject<PerformanceDebugger>()
             .RegisterGameObject<CameraDebugger>()
+            .RegisterGameObject<JobSystemDebugger>()
             ;
     }
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Extensions;
 using Lilly.Voxel.Plugin.Contexts;
 using Lilly.Voxel.Plugin.Data.Cache;
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
@@ -40,10 +41,9 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     private readonly IJobSystemService _jobSystemService;
 
     private readonly int _initialChunkRadius = 3;
-    private Vector3 _initialPosition = Vector3.Zero;
+    private readonly Vector3 _initialPosition = Vector3.Zero;
 
     // Configuration
-    private readonly int _maxConcurrentGenerations;
     private int _maxCachedChunks = 128;
     private bool _useJobSystem = true;
 
@@ -65,14 +65,13 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     {
         _blockRegistry = blockRegistry;
         _jobSystemService = jobSystemService;
-        ArgumentNullException.ThrowIfNull(timerService);
 
         // Initialize concurrency limit (cap at half logical cores to avoid pegging CPU)
-        _maxConcurrentGenerations = Math.Max(1, Environment.ProcessorCount / 2);
-        _generationSemaphore = new SemaphoreSlim(_maxConcurrentGenerations, _maxConcurrentGenerations);
+        var maxConcurrentGenerations = Math.Max(1, Environment.ProcessorCount / 2);
+        _generationSemaphore = new SemaphoreSlim(maxConcurrentGenerations, maxConcurrentGenerations);
         _logger.Information(
             "Chunk generator initialized with max {MaxConcurrent} concurrent chunk generations",
-            _maxConcurrentGenerations
+            maxConcurrentGenerations
         );
 
         // Initialize noise generator
@@ -213,7 +212,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         if (shouldUseJobSystem)
         {
             var handle = _jobSystemService.Schedule(
-                "ChunkGeneration",
+                $"chunk_generation_{chunkPosition.ToHumanReadableString()}",
                 _ => GenerateChunkAsync(chunkPosition)
             );
 
@@ -222,7 +221,6 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
         return await GenerateChunkAsync(chunkPosition);
     }
-
 
     /// <summary>
     /// Generates a new chunk at the specified position using the generation pipeline.
@@ -242,7 +240,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
             var noiseGenerator = CreateNoiseGeneratorCopy();
             var context = new GeneratorContext(chunk, _blockRegistry, chunkPosition, noiseGenerator, Seed);
 
-            _logger.Debug("Starting generation pipeline for chunk at {Position}", chunkPosition);
+            _logger.Debug("Starting generation pipeline for chunk at {Position}", chunkPosition.ToHumanReadableString());
 
             // Get a snapshot of the pipeline with read lock to allow concurrent execution
             IGeneratorStep[] pipelineSteps;
@@ -304,7 +302,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
             }
 
             Interlocked.Increment(ref _totalChunksGenerated);
-            _logger.Debug("Chunk generation completed at {Position}", chunkPosition);
+            _logger.Debug("Chunk generation completed at {Position}", chunkPosition.ToHumanReadableString());
 
             return chunk;
         }
@@ -464,7 +462,6 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        _logger.Information("Disposing ChunkGeneratorService");
         _chunkCache.Dispose();
         _pipelineLock.Dispose();
         _generationSemaphore.Dispose();
