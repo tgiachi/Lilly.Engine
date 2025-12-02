@@ -384,82 +384,33 @@ _sceneManager.ActivateSceneWithTransition(
 
 ## Using Lua Scripts
 
-Lua scripts let you modify game behavior without recompiling.
+Lua scripts let you modify game behavior without recompiling. The engine loads `scripts/init.lua` as the entry point.
 
-### Step 1: Create a Script
-
-Create `scripts/player_controller.lua`:
+Create `scripts/init.lua`:
 
 ```lua
--- scripts/player_controller.lua
+-- scripts/init.lua
 
-local player_speed = 200
+function on_initialize()
+    window.set_title("My First Game")
+    window.set_vsync(true)
 
-function on_init()
-    console.log("Player controller initialized")
+    console.log("Game initialized!")
 end
 
-function on_update(delta_time)
-    local input = engine.input
-    local movement = {x = 0, y = 0}
+-- Bind input
+input_manager.bind_key("Escape", function()
+    console.log("Escape pressed!")
+end)
 
-    if input:is_key_down("W") then
-        movement.y = movement.y - 1
-    end
-    if input:is_key_down("S") then
-        movement.y = movement.y + 1
-    end
-    if input:is_key_down("A") then
-        movement.x = movement.x - 1
-    end
-    if input:is_key_down("D") then
-        movement.x = movement.x + 1
-    end
-
-    -- Normalize
-    local length = math.sqrt(movement.x * movement.x + movement.y * movement.y)
-    if length > 0 then
-        movement.x = movement.x / length
-        movement.y = movement.y / length
-    end
-
-    return movement.x * player_speed * delta_time,
-           movement.y * player_speed * delta_time
-end
+-- Update callback
+engine.on_update(function(game_time)
+    -- Called every frame
+    -- game_time.elapsed_game_time is delta time
+end)
 ```
 
-### Step 2: Load and Execute
-
-```csharp
-private readonly IScriptEngineService _scriptEngine;
-private LuaScript? _playerScript;
-
-public override void Initialize()
-{
-    _playerScript = _scriptEngine.LoadScript("scripts/player_controller.lua");
-    _playerScript.Call("on_init");
-
-    // ... rest of initialization ...
-}
-
-public override void Update(float deltaTime)
-{
-    if (_playerScript != null && _player != null)
-    {
-        var result = _playerScript.Call("on_update", deltaTime);
-
-        if (result != null)
-        {
-            var dx = result[0] as float? ?? 0;
-            var dy = result[1] as float? ?? 0;
-
-            _player.Position += new Vector2D<float>(dx, dy);
-        }
-    }
-
-    base.Update(deltaTime);
-}
-```
+The script runs automatically. For complete Lua API documentation, see the [Lua Scripting Guide](lua-scripting.md).
 
 ## Debugging
 

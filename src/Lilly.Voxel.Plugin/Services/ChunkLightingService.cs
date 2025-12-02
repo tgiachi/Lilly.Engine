@@ -107,8 +107,8 @@ public sealed class ChunkLightingService
 
         bool openSky = IsColumnSkyOpen(openSkyCache, x, z);
 
-        // Sky light (AO modulated, damped if underground)
-        float skyLight = openSky ? averageAO : averageAO * 0.08f;
+        // Sky light (AO modulated). Underground should be dark unless near an open column.
+        float skyLight = openSky ? averageAO : 0f;
 
         // If the column above is blocked, allow some skylight when neighboring columns are exposed.
         if (!openSky && IsSideFace(face) && HasAdjacentSky(chunk, openSkyCache, x, y, z, face))

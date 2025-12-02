@@ -127,74 +127,81 @@ Run the game. You should see a procedurally generated world with grass, stone, a
 
 ## Step 2: Custom Block Types
 
-Let's add custom blocks. Create a Lua script to register blocks:
+Custom blocks are defined in `data/blocks.json`:
+
+```json
+[
+  {
+    "name": "grass",
+    "isSolid": true,
+    "isBreakable": true,
+    "faces": {
+      "All": "blocks@535",
+      "Top": "blocks@288",
+      "Bottom": "blocks@533"
+    }
+  },
+  {
+    "name": "stone",
+    "isSolid": true,
+    "isBreakable": true,
+    "faces": {
+      "All": "blocks@7"
+    }
+  },
+  {
+    "name": "glass",
+    "isTransparent": true,
+    "isSolid": true,
+    "faces": {
+      "All": "blocks@586"
+    }
+  },
+  {
+    "name": "glowing_crystal",
+    "isSolid": true,
+    "isLightSource": true,
+    "emitsLight": 15,
+    "faces": {
+      "All": "blocks@420"
+    }
+  },
+  {
+    "name": "flowers",
+    "isBillboard": true,
+    "faces": {
+      "All": "blocks@193"
+    }
+  }
+]
+```
+
+Load blocks in your Lua init script:
 
 ```lua
--- scripts/custom_blocks.lua
+-- scripts/init.lua
+local blocks = require("blocks")
 
-function register_custom_blocks()
-    -- Glowing crystal block
-    blocks.register({
-        id = 100,
-        name = "crystal",
-        is_solid = true,
-        is_transparent = false,
-        is_emissive = true,  -- Glows in the dark
-        light_level = 15,
-        texture_top = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.crystal.png",
-        texture_sides = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.crystal.png",
-        texture_bottom = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.crystal.png"
-    })
+function on_initialize()
+    -- Load texture atlas
+    assets.load_atlas("blocks", "textures/blocks.png", 16, 16, 0, 0)
 
-    -- Glass block
-    blocks.register({
-        id = 101,
-        name = "glass",
-        is_solid = true,
-        is_transparent = true,  -- Can see through it
-        texture_top = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.glass.png",
-        texture_sides = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.glass.png",
-        texture_bottom = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.glass.png"
-    })
+    -- Load block definitions from JSON
+    blocks.load_tiles()
 
-    -- Wooden planks
-    blocks.register({
-        id = 102,
-        name = "wood_planks",
-        is_solid = true,
-        is_transparent = false,
-        texture_top = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.wood_planks.png",
-        texture_sides = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.wood_planks.png",
-        texture_bottom = "Lilly.Voxel.Plugin.Assets.Textures.Blocks.wood_planks.png"
-    })
-
-    console.log("Custom blocks registered!")
+    console.log("Blocks loaded!")
 end
 ```
 
-Load the script in your scene:
+```lua
+-- scripts/blocks/init.lua
+M = {}
 
-```csharp
-private readonly IScriptEngineService _scriptEngine;
+function M.load_tiles()
+    block_registry.load_blocks_from_data("blocks.json")
+end
 
-public VoxelWorldScene(
-    IAssetManager assetManager,
-    IInputManagerService input,
-    IScriptEngineService scriptEngine)
-{
-    _assetManager = assetManager;
-    _input = input;
-    _scriptEngine = scriptEngine;
-}
-
-public override void Initialize()
-{
-    // Load and run block registration
-    var blockScript = _scriptEngine.LoadScript("scripts/custom_blocks.lua");
-    blockScript.Call("register_custom_blocks");
-
-    // ... rest of initialization ...
-}
+return M
 ```
 
 ## Step 3: Block Placement and Destruction
@@ -283,107 +290,84 @@ private void HandleBlockSelection()
 }
 ```
 
-## Step 4: Custom Terrain Generation
+## Step 4: Input Bindings with Lua
 
-Create a Lua script for custom terrain:
+Set up camera controls using Lua input bindings:
 
 ```lua
--- scripts/terrain_generation.lua
+-- scripts/init.lua
+local blocks = require("blocks")
 
-function generate_custom_terrain()
-    -- Remove default generation
-    generation.remove_step("heightmap")
-    generation.remove_step("erosion")
+function on_initialize()
+    window.set_title("Voxel World")
+    window.set_vsync(true)
 
-    -- Add custom mountain generation
-    generation.add_step("custom_mountains", function(chunk)
-        local chunk_x = chunk.x * 16
-        local chunk_z = chunk.z * 16
+    -- Setup camera
+    camera.register_fps("main")
+    camera.set_active("main")
 
-        for x = 0, 15 do
-            for z = 0, 15 do
-                local world_x = chunk_x + x
-                local world_z = chunk_z + z
+    -- Load assets and blocks
+    assets.load_atlas("blocks", "textures/blocks.png", 16, 16, 0, 0)
+    blocks.load_tiles()
 
-                -- Generate height using multiple noise octaves
-                local height = 0
-                local amplitude = 1
-                local frequency = 0.005
-
-                for octave = 1, 4 do
-                    local noise_value = noise.perlin(
-                        world_x * frequency,
-                        world_z * frequency
-                    )
-                    height = height + noise_value * amplitude
-                    amplitude = amplitude * 0.5
-                    frequency = frequency * 2
-                end
-
-                height = height * 40 + 64  -- Scale and offset
-
-                -- Fill terrain
-                for y = 0, math.floor(height) do
-                    local block_id
-
-                    if y < 5 then
-                        block_id = 7  -- Bedrock
-                    elseif y < height - 4 then
-                        block_id = 1  -- Stone
-                    elseif y < height - 1 then
-                        block_id = 3  -- Dirt
-                    else
-                        if height > 100 then
-                            block_id = 4  -- Snow
-                        else
-                            block_id = 2  -- Grass
-                        end
-                    end
-
-                    world.set_block(world_x, y, world_z, block_id)
-                end
-
-                -- Add trees on grass
-                if height < 100 and math.random() < 0.01 then
-                    place_tree(world_x, math.floor(height) + 1, world_z)
-                end
-            end
-        end
-    end)
-
-    console.log("Custom terrain generation enabled")
+    console.log("Voxel world initialized!")
 end
 
-function place_tree(x, y, z)
-    -- Tree trunk
-    for h = 0, 4 do
-        world.set_block(x, y + h, z, 5)  -- Wood
+-- Mouse controls
+input_manager.bind_mouse(function(xDelta, yDelta, posX, posY)
+    local sensitivity = 0.003
+    camera.dispatch_mouse_fps(yDelta * sensitivity, xDelta * sensitivity)
+end)
+
+-- Click to remove blocks
+input_manager.bind_mouse_click(function(button, posX, posY)
+    if button == "left" then
+        world.remove_block()
     end
+end)
 
-    -- Tree leaves
-    for lx = -2, 2 do
-        for lz = -2, 2 do
-            for ly = 4, 6 do
-                if math.abs(lx) + math.abs(lz) < 4 then
-                    world.set_block(x + lx, y + ly, z + lz, 6)  -- Leaves
-                end
-            end
-        end
+-- Movement
+input_manager.bind_key_held("W", function()
+    camera.dispatch_keyboard_fps(1, 0, 0)
+end)
+
+input_manager.bind_key_held("S", function()
+    camera.dispatch_keyboard_fps(-1, 0, 0)
+end)
+
+input_manager.bind_key_held("A", function()
+    camera.dispatch_keyboard_fps(0, 1, 0)
+end)
+
+input_manager.bind_key_held("D", function()
+    camera.dispatch_keyboard_fps(0, -1, 0)
+end)
+
+input_manager.bind_key_held("Space", function()
+    camera.dispatch_keyboard_fps(0, 0, 1)
+end)
+
+-- Shift for down
+engine.on_update(function(gt)
+    if input_manager.is_key_down("ShiftLeft") or input_manager.is_key_down("ShiftRight") then
+        camera.dispatch_keyboard_fps(0, 0, -1)
     end
-end
-```
+end)
 
-Load in scene initialization:
+-- Toggle mouse
+input_manager.bind_key("F5", function()
+    input_manager.toggle_mouse()
+end)
 
-```csharp
-public override void Initialize()
-{
-    // Load terrain script
-    var terrainScript = _scriptEngine.LoadScript("scripts/terrain_generation.lua");
-    terrainScript.Call("generate_custom_terrain");
+-- Wireframe toggle
+input_manager.bind_key("F3", function()
+    rendering.toggle_wireframe()
+    local state = rendering.is_wireframe() and "enabled" or "disabled"
+    notifications.info("Wireframe mode " .. state)
+end)
 
-    // ... rest of initialization ...
-}
+-- Start with mouse grabbed
+input_manager.grab_mouse()
 ```
 
 ## Step 5: Add UI for Block Selection
