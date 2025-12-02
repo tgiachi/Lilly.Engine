@@ -33,6 +33,7 @@ public abstract class Base3dCamera : ICamera3D
     /// Gets or sets the unique identifier of the camera.
     /// </summary>
     public uint Id { get; set; }
+
     public ushort Order => 0; // Cameras don't have a specific render order
 
     /// <summary>
@@ -224,6 +225,11 @@ public abstract class Base3dCamera : ICamera3D
             }
 
             return _projection;
+        }
+        set
+        {
+            _projection = value;
+            _projectionDirty = false;
         }
     }
 

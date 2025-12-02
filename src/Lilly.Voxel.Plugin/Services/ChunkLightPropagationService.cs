@@ -1,3 +1,4 @@
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
@@ -59,7 +60,7 @@ public sealed class ChunkLightPropagationService
         // Iterate every column (X, Z).
         // Go from Top (Y=height-1) down.
         // If block is transparent -> Set to Max Sun.
-        // If block is solid -> Stop (Shadow).
+        // If block blocks light -> Stop (Shadow).
 
         for (int x = 0; x < ChunkEntity.Size; x++)
         {
@@ -73,7 +74,7 @@ public sealed class ChunkLightPropagationService
                     ushort blockId = chunk.Blocks[index];
                     var blockType = _blockRegistry.GetById(blockId);
 
-                    if (!blockType.IsTransparent && blockType.IsSolid)
+                    if (BlocksSunlight(blockType))
                     {
                         inShadow = true;
 
@@ -192,5 +193,17 @@ public sealed class ChunkLightPropagationService
 
             lightQueue.Enqueue(neighborIndex);
         }
+    }
+
+    /// <summary>
+    /// Determines whether a block should stop skylight propagation.
+    /// Treat any non-transparent, non-billboard/item block as a blocker to avoid
+    /// leaks when block definitions forget to mark them as solid.
+    /// </summary>
+    private static bool BlocksSunlight(BlockType blockType)
+    {
+        return !blockType.IsTransparent &&
+               !blockType.IsBillboard &&
+               blockType.RenderType != BlockRenderType.Item;
     }
 }

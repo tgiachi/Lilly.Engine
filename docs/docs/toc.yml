@@ -2,3 +2,15 @@
   href: introduction.md
 - name: Getting Started
   href: getting-started.md
+- name: Architecture
+  href: architecture.md
+- name: Plugin Development
+  href: plugin-development.md
+- name: Lua Scripting
+  href: lua-scripting.md
+- name: Tutorials
+  items:
+    - name: Building a Voxel World
+      href: tutorials/voxel-world.md
+    - name: Creating Custom UI
+      href: tutorials/custom-ui.md

@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
@@ -352,11 +353,8 @@ public sealed class ChunkLightingService
 
             var blockType = _blockRegistry.GetById(blockId);
 
-            // Non-solid or explicitly transparent elements (billboards/items/glass) don't block the sky.
-            if (!blockType.IsSolid ||
-                blockType.IsTransparent ||
-                blockType.IsBillboard ||
-                blockType.RenderType is BlockRenderType.Item)
+            // Only explicitly see-through elements (transparent/billboard/item) let skylight pass through.
+            if (!BlocksSkyLight(blockType))
             {
                 continue;
             }
@@ -371,4 +369,15 @@ public sealed class ChunkLightingService
     {
         return cache[z * ChunkEntity.Size + x];
     }
+
+    /// <summary>
+    /// Determines whether a block should stop skylight when scanning a column.
+    /// </summary>
+    private static bool BlocksSkyLight(BlockType blockType)
+    {
+        return !blockType.IsTransparent &&
+               !blockType.IsBillboard &&
+               blockType.RenderType is not BlockRenderType.Item;
+    }
+
 }
