@@ -1,17 +1,14 @@
 using DryIoc;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Internal;
+using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Collections;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Types;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Serilog;
-using TrippyGL;
 
 namespace Lilly.Engine.Services;
 
@@ -19,32 +16,35 @@ namespace Lilly.Engine.Services;
 /// Implements the scene management service.
 /// Manages scene registration, transitions, and the current active scene.
 /// </summary>
-public class SceneManager : ISceneManager
+public class SceneManager : ISceneManager, IGameObject
 {
     private readonly ILogger _logger = Log.ForContext<SceneManager>();
     private readonly Dictionary<string, IScene> _registeredScenes = new();
     private readonly List<SceneObjectRegistration> _registeredSceneObjects;
     private readonly IInputManagerService _inputManagerService;
-    private readonly IGraphicRenderPipeline? _graphicRenderPipeline;
+    private readonly IRenderPipeline? _renderPipeline;
     private IScene? _nextScene;
 
     public IGameObject? Parent { get; set; }
-    public GameObjectCollection<IGameObject> Children { get; } = new();
+    public IEnumerable<IGameObject> Children => Enumerable.Empty<IGameObject>();
+
     public uint Id { get; set; }
     public string Name { get; set; } = "SceneManager";
-    public ushort Order { get; }
+    public uint ZIndex { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public SceneManager(
         IInputManagerService inputManagerService,
         IContainer container,
-        IGraphicRenderPipeline? graphicRenderPipeline,
+        IRenderPipeline? renderPipeline,
         List<SceneObjectRegistration>? registeredSceneObjects = null
     )
     {
         _inputManagerService = inputManagerService;
         _registeredSceneObjects = registeredSceneObjects;
-        _graphicRenderPipeline = graphicRenderPipeline;
+        _renderPipeline = renderPipeline;
 
+        _logger.Information("Initializing Scene Manager");
         if (registeredSceneObjects != null)
         {
             foreach (var sceneObject in _registeredSceneObjects)
@@ -151,10 +151,10 @@ public class SceneManager : ISceneManager
         // Start the transition (don't load the new scene yet)
         transition.Start(CurrentScene, scene);
 
-        // Add transition as a layer if we have the engine layer collection
-        if (_graphicRenderPipeline != null && transition is TransitionGameObject transitionGameObject)
+        // Add transition to render pipeline
+        if (_renderPipeline != null && transition is TransitionGameObject transitionGameObject)
         {
-            _graphicRenderPipeline.AddGameObject(transitionGameObject);
+            _renderPipeline.AddGameObject(transitionGameObject);
         }
 
         // Subscribe to transition events
@@ -218,12 +218,6 @@ public class SceneManager : ISceneManager
         _logger.Debug("Registered scene {Name}", scene.Name);
     }
 
-    public IEnumerable<RenderCommand> Render(GameTime gameTime)
-    {
-
-        // Scene manager does not render anything itself
-        yield break;
-    }
 
     /// <summary>
     /// Unregisters a scene from the scene manager.
@@ -267,10 +261,10 @@ public class SceneManager : ISceneManager
         // Unsubscribe from state change event
         CurrentTransition.StateChanged -= OnTransitionStateChanged;
 
-        // Remove transition from layer collection
-        if (_graphicRenderPipeline != null && CurrentTransition is TransitionGameObject transitionGameObject)
+        // Remove transition from render pipeline
+        if (_renderPipeline != null && CurrentTransition is TransitionGameObject transitionGameObject)
         {
-            _graphicRenderPipeline.RemoveGameObject(transitionGameObject);
+            _renderPipeline.RemoveGameObject(transitionGameObject);
         }
 
         // Set the new scene as current (it was already loaded when state changed to In)
@@ -316,4 +310,6 @@ public class SceneManager : ISceneManager
             _nextScene.Load();
         }
     }
+
+    public void OnRemoved() { }
 }

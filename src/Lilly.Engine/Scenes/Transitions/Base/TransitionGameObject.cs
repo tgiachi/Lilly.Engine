@@ -1,8 +1,5 @@
-using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Collections;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
+using Lilly.Rendering.Core.Interfaces.Entities;
 
 namespace Lilly.Engine.Scenes.Transitions.Base;
 
@@ -16,17 +13,17 @@ public abstract class TransitionGameObject : Transition, IGameObject
 
     public IGameObject? Parent { get; set; }
 
-    public GameObjectCollection<IGameObject> Children { get; } = new();
+    public IEnumerable<IGameObject> Children => Enumerable.Empty<IGameObject>();
+    public void OnRemoved()
+    {
+
+    }
 
     public uint Id { get; set; }
 
     public string Name { get; set; } = "Transition";
 
-    public ushort Order { get; set; }
+    public uint ZIndex { get; set; } = 1000; // High z-index to render on top
 
-    public IEnumerable<RenderCommand> Render(GameTime gameTime)
-
-        // For now, transitions render directly via the Effect and RenderPipeline
-        // This method is required by IGameObject but transitions use a different rendering path
-        => Enumerable.Empty<RenderCommand>();
+    public bool IsActive { get; set; } = true;
 }

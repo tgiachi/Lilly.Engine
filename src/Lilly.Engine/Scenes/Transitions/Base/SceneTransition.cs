@@ -1,6 +1,6 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
+using Lilly.Engine.Interfaces.Scenes;
+using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
 using Lilly.Engine.Types;
 
@@ -42,14 +42,14 @@ public abstract class Transition : IDisposable
     }
 
     /// <summary>
-    /// Renders the transition using the graphics render pipeline.
+    /// Renders the transition using the sprite batcher.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
-    /// <param name="renderPipeline">The render pipeline to enqueue render commands to.</param>
-    public void Render(GameTime gameTime, IGraphicRenderPipeline renderPipeline)
+    /// <param name="spriteBatcher">The sprite batcher for rendering.</param>
+    public void Render(GameTime gameTime, ILillySpriteBatcher spriteBatcher)
     {
         // Delegate rendering to the effect
-        Effect.Render(gameTime, Value, renderPipeline);
+        Effect.Render(gameTime, Value, spriteBatcher);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public abstract class Transition : IDisposable
 
                 break;
             default:
-                throw new ArgumentOutOfRangeException(" Invalid transition state");
+                throw new ArgumentOutOfRangeException("Invalid transition state");
         }
     }
 }

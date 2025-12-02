@@ -1,15 +1,17 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Input;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 using Silk.NET.Maths;
 using TrippyGL;
-using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
+using MouseButton = Lilly.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
 
@@ -17,7 +19,7 @@ namespace Lilly.Engine.GameObjects.UI.Controls;
 /// A focusable UI list box component that displays a scrollable list of selectable items.
 /// Supports both single and multiple selection modes.
 /// </summary>
-public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
+public class ListBoxGameObject : Base2dGameObject, IInputReceiver
 {
     private readonly IInputManagerService _inputManager;
     private readonly IAssetManager _assetManager;
@@ -143,7 +145,13 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     /// <param name="inputManager">The input manager service.</param>
     /// <param name="assetManager">The asset manager service for loading fonts and textures.</param>
     /// <param name="theme">The theme to apply.</param>
-    public ListBoxGameObject(IInputManagerService inputManager, IAssetManager assetManager, UITheme theme)
+    /// <param name="gameObjectManager">The render pipeline/game object manager.</param>
+    public ListBoxGameObject(
+        IInputManagerService inputManager,
+        IAssetManager assetManager,
+        UITheme theme,
+        IRenderPipeline gameObjectManager
+    ) : base("ListBox", gameObjectManager, 100)
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
@@ -212,7 +220,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
             return;
         }
 
-        var visibleCount = GetVisibleItemCount();
         var currentSelected = SelectedIndex;
 
         if (IsKeyJustPressed(keyboardState, previousKeyboardState, Key.Down))
@@ -249,7 +256,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     public void HandleMouse(MouseState mouseState, GameTime gameTime)
     {
         var mousePos = new Vector2(mouseState.Position.X, mouseState.Position.Y);
-        var wasInBounds = _isMouseInBounds;
         _isMouseInBounds = IsMouseInBounds(mousePos);
 
         var bounds = Bounds;
@@ -262,8 +268,6 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         {
             if (_hoveredIndex >= 0 && _hoveredIndex < Items.Count)
             {
-                // Multi-select is handled via keyboard (Ctrl+click would require keyboard context)
-                // For now, single select on click, multi-select via arrow keys + Shift
                 SelectItem(_hoveredIndex);
             }
         }
@@ -330,35 +334,30 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         OnSelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (!IsVisible)
+        if (!IsActive || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
 
-        var bounds = Bounds;
         var bgColor = HasFocus ? BackgroundColorFocused : BackgroundColor;
         var brColor = HasFocus ? BorderColorFocused : BorderColor;
 
         // Draw background
-        yield return DrawRectangle(
-            new(Transform.Position, new(_width, _height)),
-            bgColor,
-            NextDepth()
+        SpriteBatcher.DrawRectangle(
+            Transform.Position,
+            new(_width, _height),
+            bgColor
         );
 
         // Draw border
-        foreach (var cmd in DrawHollowRectangle(
-                     Transform.Position,
-                     new(_width, _height),
-                     brColor,
-                     BorderThickness,
-                     NextDepth()
-                 ))
-        {
-            yield return cmd;
-        }
+        SpriteBatcher.DrawHollowRectangle(
+            Transform.Position,
+            new(_width, _height),
+            brColor,
+            BorderThickness
+        );
 
         // Draw items
         var visibleCount = GetVisibleItemCount();
@@ -366,34 +365,33 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
         for (var i = 0; i < visibleCount && _scrollOffset + i < Items.Count; i++)
         {
             var itemIndex = _scrollOffset + i;
-            var itemBounds = new Rectangle<float>(
-                new(
-                    bounds.Origin.X + BorderThickness,
-                    bounds.Origin.Y + BorderThickness + i * ItemHeight
-                ),
-                new(bounds.Size.X - BorderThickness * 2, ItemHeight)
+            var itemPos = new Vector2(
+                Transform.Position.X + BorderThickness,
+                Transform.Position.Y + BorderThickness + i * ItemHeight
             );
+            var itemSize = new Vector2(_width - BorderThickness * 2, ItemHeight);
 
             // Draw item background
             var itemBgColor = _selectedIndices.Contains(itemIndex) ? ItemSelectedColor :
                               itemIndex == _hoveredIndex ? ItemHoveredColor :
                               BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, NextDepth());
+            SpriteBatcher.DrawRectangle(itemPos, itemSize, itemBgColor);
 
             // Draw item text
-            var textPos = new Vector2D<float>(
-                itemBounds.Origin.X + Padding,
-                itemBounds.Origin.Y + Padding
+            var textPos = new Vector2(
+                itemPos.X + Padding,
+                itemPos.Y + Padding
             );
 
-            yield return DrawTextCustom(
+            var text = TrimTextToFit(Items[itemIndex], itemSize.X - Padding * 2);
+
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                Items[itemIndex],
                 Theme.FontSize,
+                text,
                 textPos,
-                color: TextColor,
-                depth: NextDepth()
+                TextColor
             );
         }
     }
@@ -456,5 +454,31 @@ public class ListBoxGameObject : BaseGameObject2D, IInputReceiver
     private void UpdateTransformSize()
     {
         Transform.Size = new(_width, _height);
+    }
+
+    private string TrimTextToFit(string text, float maxWidth)
+    {
+        const string ellipsis = "...";
+        var ellipsisWidth = TextMeasurement.MeasureStringWidth(_assetManager, ellipsis, Theme.FontName, Theme.FontSize);
+
+        if (maxWidth <= ellipsisWidth)
+        {
+            return string.Empty;
+        }
+
+        var current = text;
+
+        while (TextMeasurement.MeasureStringWidth(_assetManager, current, Theme.FontName, Theme.FontSize) > maxWidth - ellipsisWidth &&
+               current.Length > 0)
+        {
+            current = current[..^1];
+        }
+
+        if (current.Length == text.Length)
+        {
+            return current;
+        }
+
+        return current + ellipsis;
     }
 }

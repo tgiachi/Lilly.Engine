@@ -1,15 +1,17 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Input;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 using Silk.NET.Maths;
 using TrippyGL;
-using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
+using MouseButton = Lilly.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
 
@@ -17,7 +19,7 @@ namespace Lilly.Engine.GameObjects.UI.Controls;
 /// A focusable UI combo box component that displays a dropdown list of selectable items.
 /// Allows users to select from a predefined list of options.
 /// </summary>
-public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
+public class ComboBoxGameObject : Base2dGameObject, IInputReceiver
 {
     private readonly IInputManagerService _inputManager;
     private readonly IAssetManager _assetManager;
@@ -28,9 +30,8 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     private bool _isMouseInBounds;
     private int _width = 200;
     private int _height = 30;
-    private Vector2 _lastMousePos = Vector2.Zero;
+    private bool _isOpen;
 
-    private const int BorderThickness = 2;
     private const int ItemHeight = 30;
     private const int Padding = 4;
     private const int MaxDropdownHeight = 150;
@@ -61,8 +62,6 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     /// Gets the currently selected item text, or empty string if nothing selected.
     /// </summary>
     public string SelectedItem => _selectedIndex >= 0 && _selectedIndex < Items.Count ? Items[_selectedIndex] : string.Empty;
-
-    private bool _isOpen;
 
     /// <summary>
     /// Gets or sets whether the dropdown is open.
@@ -128,7 +127,13 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     /// <param name="inputManager">The input manager service.</param>
     /// <param name="assetManager">The asset manager service for loading fonts and textures.</param>
     /// <param name="theme">The theme to apply.</param>
-    public ComboBoxGameObject(IInputManagerService inputManager, IAssetManager assetManager, UITheme theme)
+    /// <param name="gameObjectManager">The render pipeline/game object manager.</param>
+    public ComboBoxGameObject(
+        IInputManagerService inputManager,
+        IAssetManager assetManager,
+        UITheme theme,
+        IRenderPipeline gameObjectManager
+    ) : base("ComboBox", gameObjectManager, 100)
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
@@ -222,8 +227,6 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     public void HandleMouse(MouseState mouseState, GameTime gameTime)
     {
         var mousePos = new Vector2(mouseState.Position.X, mouseState.Position.Y);
-        _lastMousePos = mousePos;
-        var wasInBounds = _isMouseInBounds;
         _isMouseInBounds = IsMouseInBounds(mousePos);
 
         // Check if clicking on closed combo box
@@ -290,168 +293,148 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
         return true;
     }
 
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (!IsVisible)
+        if (!IsActive || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
 
-        var bounds = Bounds;
         var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
         var brColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
 
         // Draw closed combo box background
-        yield return DrawRectangle(
-            new(Transform.Position, new(_width, _height)),
-            bgColor,
-            NextDepth()
+        SpriteBatcher.DrawRectangle(
+            Transform.Position,
+            new(_width, _height),
+            bgColor
         );
 
         // Draw border
-        foreach (var cmd in DrawHollowRectangle(
-                     Transform.Position,
-                     new(_width, _height),
-                     brColor,
-                     Theme.BorderThickness,
-                     NextDepth()
-                 ))
-        {
-            yield return cmd;
-        }
+        SpriteBatcher.DrawHollowRectangle(
+            Transform.Position,
+            new(_width, _height),
+            brColor,
+            Theme.BorderThickness
+        );
 
         // Draw selected item text
         if (_selectedIndex >= 0)
         {
-            var textPos = new Vector2D<float>(
+            var textPos = new Vector2(
                 Transform.Position.X + Padding,
-                Transform.Position.Y + Padding
+                Transform.Position.Y + (_height - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(
+            var textAvailableWidth = _width - Padding * 3; // Leave room for arrow
+            var text = TrimTextToFit(Items[_selectedIndex], textAvailableWidth);
+
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                Items[_selectedIndex],
                 Theme.FontSize,
+                text,
                 textPos,
-                color: Theme.TextColor,
-                depth: NextDepth()
+                Theme.TextColor
             );
         }
 
         // Draw dropdown indicator arrow
-        foreach (var cmd in DrawDropdownArrow())
-        {
-            yield return cmd;
-        }
+        DrawDropdownArrow();
 
         // Draw dropdown list if open
         if (IsOpen)
         {
-            foreach (var cmd in DrawDropdown(brColor))
-            {
-                yield return cmd;
-            }
+            DrawDropdown(brColor);
         }
     }
 
-    private IEnumerable<RenderCommand> DrawDropdown(Color4b borderColor)
+    private void DrawDropdown(Color4b borderColor)
     {
-        if (Items.Count == 0)
+        if (Items.Count == 0 || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
 
         var dropdownBounds = GetDropdownBounds();
+        var dropdownPos = new Vector2(dropdownBounds.Origin.X, dropdownBounds.Origin.Y);
+        var dropdownSize = new Vector2(dropdownBounds.Size.X, dropdownBounds.Size.Y);
 
         // Draw dropdown background
-        yield return DrawRectangle(
-            new(
-                new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
-                new(dropdownBounds.Size.X, dropdownBounds.Size.Y)
-            ),
-            Theme.BackgroundColor,
-            NextDepth()
+        SpriteBatcher.DrawRectangle(
+            dropdownPos,
+            dropdownSize,
+            Theme.DropdownBackgroundColor
         );
 
         // Draw border
-        foreach (var cmd in DrawHollowRectangle(
-                     new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y),
-                     new(dropdownBounds.Size.X, dropdownBounds.Size.Y),
-                     borderColor,
-                     Theme.BorderThickness,
-                     NextDepth()
-                 ))
-        {
-            yield return cmd;
-        }
+        SpriteBatcher.DrawHollowRectangle(
+            dropdownPos,
+            dropdownSize,
+            borderColor,
+            Theme.BorderThickness
+        );
 
         // Draw items
-        for (var i = 0; i < Items.Count && i * ItemHeight < dropdownBounds.Size.Y; i++)
-        {
-            var itemBounds = new Rectangle<float>(
-                new(dropdownBounds.Origin.X, dropdownBounds.Origin.Y + i * ItemHeight),
-                new(dropdownBounds.Size.X, ItemHeight)
-            );
+        var visibleItems = Math.Min(Items.Count, dropdownBounds.Size.Y / ItemHeight);
 
-            // Draw item background
+        for (var i = 0; i < visibleItems; i++)
+        {
+            var itemPos = new Vector2(dropdownBounds.Origin.X, dropdownBounds.Origin.Y + i * ItemHeight);
+            var itemSize = new Vector2(dropdownBounds.Size.X, ItemHeight);
+
             var itemBgColor = i == _selectedIndex ? Theme.ItemSelectedColor :
                               i == _hoveredIndex ? Theme.ItemHoveredColor :
                               Theme.BackgroundColor;
 
-            yield return DrawRectangle(itemBounds, itemBgColor, NextDepth());
+            SpriteBatcher.DrawRectangle(
+                itemPos,
+                itemSize,
+                itemBgColor
+            );
 
-            // Draw item text
-            var textPos = new Vector2D<float>(
+            var textPos = new Vector2(
                 dropdownBounds.Origin.X + Padding,
                 dropdownBounds.Origin.Y + i * ItemHeight + Padding
             );
 
-            yield return DrawTextCustom(
+            var text = TrimTextToFit(Items[i], itemSize.X - Padding * 2);
+
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                Items[i],
                 Theme.FontSize,
+                text,
                 textPos,
-                color: Theme.TextColor,
-                depth: NextDepth()
+                Theme.TextColor
             );
         }
     }
 
-    private IEnumerable<RenderCommand> DrawDropdownArrow()
+    private void DrawDropdownArrow()
     {
-        var bounds = Bounds;
-        var arrowSize = 8;
-        var arrowX = bounds.Origin.X + bounds.Size.X - Padding - arrowSize;
-        var arrowY = bounds.Origin.Y + (bounds.Size.Y - arrowSize) / 2;
+        if (SpriteBatcher == null)
+        {
+            return;
+        }
 
-        if (IsOpen)
-        {
-            // Up arrow: ▲
-            yield return DrawRectangle(
-                new(new(arrowX, arrowY), new(arrowSize, 1)),
-                Theme.TextColor,
-                NextDepth()
-            );
-            yield return DrawRectangle(
-                new(new(arrowX + arrowSize / 2f, arrowY), new(1, arrowSize)),
-                Theme.TextColor,
-                NextDepth()
-            );
-        }
-        else
-        {
-            // Down arrow: ▼
-            yield return DrawRectangle(
-                new(new(arrowX, arrowY), new(arrowSize, 1)),
-                Theme.TextColor,
-                NextDepth()
-            );
-            yield return DrawRectangle(
-                new(new(arrowX + arrowSize / 2f, arrowY), new(1, arrowSize)),
-                Theme.TextColor,
-                NextDepth()
-            );
-        }
+        var arrowSize = 8;
+        var arrowX = Transform.Position.X + _width - Padding - arrowSize;
+        var arrowY = Transform.Position.Y + (_height - arrowSize) / 2f;
+
+        var arrowPos = new Vector2(arrowX, arrowY);
+        var arrowColor = Theme.TextColor;
+
+        // Simple arrow representation using two rectangles (avoids triangle support)
+        SpriteBatcher.DrawRectangle(
+            arrowPos,
+            new(arrowSize, 1),
+            arrowColor
+        );
+
+        SpriteBatcher.DrawRectangle(
+            new(arrowPos.X + arrowSize / 2f, arrowPos.Y),
+            new(1, arrowSize),
+            arrowColor
+        );
     }
 
     private Rectangle<int> GetDropdownBounds()
@@ -501,6 +484,7 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
                     return;
                 }
             }
+
             _hoveredIndex = -1;
         }
     }
@@ -509,15 +493,39 @@ public class ComboBoxGameObject : BaseGameObject2D, IInputReceiver
     {
         if (_isOpen && Items.Count > 0)
         {
-            // When open, include dropdown height in the transform size
             var dropdownBounds = GetDropdownBounds();
             var totalHeight = _height + dropdownBounds.Size.Y;
             Transform.Size = new(_width, totalHeight);
         }
         else
         {
-            // When closed, use normal size
             Transform.Size = new(_width, _height);
         }
+    }
+
+    private string TrimTextToFit(string text, float maxWidth)
+    {
+        const string ellipsis = "...";
+        var ellipsisWidth = TextMeasurement.MeasureStringWidth(_assetManager, ellipsis, Theme.FontName, Theme.FontSize);
+
+        if (maxWidth <= ellipsisWidth)
+        {
+            return string.Empty;
+        }
+
+        var current = text;
+
+        while (TextMeasurement.MeasureStringWidth(_assetManager, current, Theme.FontName, Theme.FontSize) > maxWidth - ellipsisWidth &&
+               current.Length > 0)
+        {
+            current = current[..^1];
+        }
+
+        if (current.Length == text.Length)
+        {
+            return current;
+        }
+
+        return current + ellipsis;
     }
 }

@@ -2,16 +2,17 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.GameObjects.Utils;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Utils;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Utils;
+using Lilly.Rendering.Core.Interfaces.Input;
+using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Utils;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
-using Silk.NET.Maths;
 using TrippyGL;
-using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
+using MouseButton = Lilly.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
 
@@ -19,7 +20,7 @@ namespace Lilly.Engine.GameObjects.UI.Controls;
 /// A text input control that supports editing, selection, cursor positioning, and basic text operations.
 /// Similar to a standard text box or input field.
 /// </summary>
-public class TextEditGameObject : BaseGameObject2D, IInputReceiver
+public class TextEditGameObject : Base2dGameObject, IInputReceiver
 {
     private readonly IInputManagerService _inputManager;
     private readonly IAssetManager _assetManager;
@@ -46,7 +47,13 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
     /// <param name="inputManager">The input manager service.</param>
     /// <param name="assetManager">The asset manager for loading fonts.</param>
     /// <param name="theme">The UI theme to use for styling.</param>
-    public TextEditGameObject(IInputManagerService inputManager, IAssetManager assetManager, UITheme theme)
+    /// <param name="gameObjectManager">The game object manager.</param>
+    public TextEditGameObject(
+        IInputManagerService inputManager,
+        IAssetManager assetManager,
+        UITheme theme,
+        IRenderPipeline gameObjectManager
+    ) : base("TextEdit", gameObjectManager, 100)
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
@@ -112,11 +119,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
-    public Rectangle<int> Bounds
-        => new(
-            new((int)Transform.Position.X, (int)Transform.Position.Y),
-            new((int)Transform.Size.X, (int)Transform.Size.Y)
-        );
+    public Vector2 Bounds => new(Transform.Size.X, Transform.Size.Y);
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
@@ -238,61 +241,47 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
-        var bounds = Bounds;
+        var boundsX = (int)mousePosition.X >= (int)Transform.Position.X &&
+                      (int)mousePosition.X <= (int)(Transform.Position.X + Transform.Size.X);
+        var boundsY = (int)mousePosition.Y >= (int)Transform.Position.Y &&
+                      (int)mousePosition.Y <= (int)(Transform.Position.Y + Transform.Size.Y);
 
-        return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+        return boundsX && boundsY;
     }
 
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (!IsVisible)
+        if (!IsActive || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
-
-        // var scissorBounds = new Rectangle<int>(
-        //     new Vector2D<int>((int)Transform.Position.X, (int)Transform.Position.Y),
-        //     new Vector2D<int>((int)Transform.Size.X, (int)Transform.Size.Y)
-        // );
-
-        var bounds = new Rectangle<float>(
-            new(Transform.Position.X, Transform.Position.Y),
-            new(Transform.Size.X, Transform.Size.Y)
-        );
-
-        // yield return RenderCommandHelpers.CreateScissor(scissorBounds);
 
         // Background
         var bgColor = HasFocus ? Theme.BackgroundColorFocused : Theme.BackgroundColor;
-
-        yield return DrawRectangle(bounds, bgColor, NextDepth());
+        var backgroundPos = Transform.Position;
+        var backgroundSize = new Vector2(Transform.Size.X, Transform.Size.Y);
+        SpriteBatcher.DrawRectangle(backgroundPos, backgroundSize, bgColor);
 
         // Border
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
-
-        foreach (var cmd in DrawHollowRectangle(
-                     Transform.Position,
-                     new(Transform.Size.X, Transform.Size.Y),
-                     borderColor,
-                     Theme.BorderThickness,
-                     NextDepth()
-                 ))
-        {
-            yield return cmd;
-        }
+        SpriteBatcher.DrawHollowRectangle(
+            Transform.Position,
+            new Vector2(Transform.Size.X, Transform.Size.Y),
+            borderColor,
+            Theme.BorderThickness
+        );
 
         // Selection highlight
         if (_selectionLength > 0 && HasFocus)
         {
-            var selectionRect = GetSelectionRectangle();
+            var (selectionPos, selectionSize) = GetSelectionRectangle();
             var selectionColor = new Color4b(
                 Theme.ItemSelectedColor.R,
                 Theme.ItemSelectedColor.G,
                 Theme.ItemSelectedColor.B,
                 128
             );
-
-            yield return DrawRectangle(selectionRect, selectionColor, NextDepth());
+            SpriteBatcher.DrawRectangle(selectionPos, selectionSize, selectionColor);
         }
 
         // Text content or placeholder
@@ -300,34 +289,32 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 
         if (!string.IsNullOrEmpty(displayText))
         {
-            var textPos = new Vector2D<float>(
+            var textPos = new Vector2(
                 Transform.Position.X + Padding - _scrollOffset,
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                displayText,
                 Theme.FontSize,
+                displayText,
                 textPos,
-                color: Theme.TextColor,
-                depth: NextDepth()
+                Theme.TextColor
             );
         }
         else if (!HasFocus && !string.IsNullOrEmpty(PlaceholderText))
         {
-            var textPos = new Vector2D<float>(
+            var textPos = new Vector2(
                 Transform.Position.X + Padding,
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                PlaceholderText,
                 Theme.FontSize,
+                PlaceholderText,
                 textPos,
-                color: Theme.PlaceholderTextColor,
-                depth: NextDepth()
+                Theme.PlaceholderTextColor
             );
         }
 
@@ -338,9 +325,8 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
 
             if (_cursorVisible)
             {
-                var cursorRect = GetCursorRectangle();
-
-                yield return DrawRectangle(cursorRect, Theme.BorderColorFocused, NextDepth());
+                var (cursorPos, cursorSize) = GetCursorRectangle();
+                SpriteBatcher.DrawRectangle(cursorPos, cursorSize, Theme.BorderColorFocused);
             }
         }
     }
@@ -364,16 +350,19 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         TextChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private Rectangle<float> GetCursorRectangle()
+    private (Vector2 position, Vector2 size) GetCursorRectangle()
     {
         var displayText = GetDisplayText();
         var textBeforeCursor = _cursorPosition > 0 ? displayText[.._cursorPosition] : string.Empty;
         var cursorX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeCursor, Theme.FontName, Theme.FontSize);
 
-        return new(
-            new(Transform.Position.X + Padding + cursorX - _scrollOffset, Transform.Position.Y + 4),
-            new(2, Transform.Size.Y - 8)
+        var position = new Vector2(
+            Transform.Position.X + Padding + cursorX - _scrollOffset,
+            Transform.Position.Y + 4
         );
+        var size = new Vector2(2, Transform.Size.Y - 8);
+
+        return (position, size);
     }
 
     private string GetDisplayText()
@@ -386,7 +375,7 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         return _text;
     }
 
-    private Rectangle<float> GetSelectionRectangle()
+    private (Vector2 position, Vector2 size) GetSelectionRectangle()
     {
         var displayText = GetDisplayText();
         var textBeforeSelection = displayText[.._selectionStart];
@@ -395,10 +384,13 @@ public class TextEditGameObject : BaseGameObject2D, IInputReceiver
         var startX = TextMeasurement.MeasureStringWidth(_assetManager, textBeforeSelection, Theme.FontName, Theme.FontSize);
         var width = TextMeasurement.MeasureStringWidth(_assetManager, selectedText, Theme.FontName, Theme.FontSize);
 
-        return new(
-            new(Transform.Position.X + Padding + startX - _scrollOffset, Transform.Position.Y + 2),
-            new(width, Transform.Size.Y - 4)
+        var position = new Vector2(
+            Transform.Position.X + Padding + startX - _scrollOffset,
+            Transform.Position.Y + 2
         );
+        var size = new Vector2(width, Transform.Size.Y - 4);
+
+        return (position, size);
     }
 
     private void HandleBackspace()

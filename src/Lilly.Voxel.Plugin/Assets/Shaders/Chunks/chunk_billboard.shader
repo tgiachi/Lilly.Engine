@@ -18,6 +18,7 @@ uniform sampler2D uTexture;
 uniform bool uFogEnabled;
 uniform vec3 uFogColor;
 uniform vec3 uAmbient;
+uniform float uFade;
 
 void main()
 {
@@ -34,13 +35,14 @@ void main()
     vertexLight = max(vertexLight, vec3(0.45)); // lift dark billboards
     vec3 diffuse = vec3(0.5, 0.5, 0.5); // Fixed diffuse for billboards
     vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.1;
+    color *= uFade;
 
     if (uFogEnabled)
     {
         color = mix(uFogColor, color, vFogFactor);
     }
 
-    FragColor = vec4(color, texResult.a);
+    FragColor = vec4(color, texResult.a * uFade);
 }
 
 #shader vertex

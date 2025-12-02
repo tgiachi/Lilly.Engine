@@ -5,11 +5,11 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>0.9.0</Version>
+        <Version>0.5.0</Version>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="ConsoleAppFramework" Version="5.7.11">
+        <PackageReference Include="ConsoleAppFramework" Version="5.7.13">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -30,10 +30,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj" />
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine.Rendering.Core\Lilly.Engine.Rendering.Core.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj" />
+        <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj" />
         <ProjectReference Include="..\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj" />
     </ItemGroup>
 

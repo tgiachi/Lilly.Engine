@@ -1,8 +1,8 @@
 using Lilly.Engine.Core.Extensions.Strings;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Builders;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Entities;
-using Lilly.Voxel.Plugin.Primitives;
 using Serilog;
 
 namespace Lilly.Voxel.Plugin.Services;
@@ -44,11 +44,7 @@ public class BlockRegistry : IBlockRegistry
     /// <returns>The block type, or Air if not found.</returns>
     public BlockType GetById(ushort id)
     {
-        if (id < _blocksById.Count)
-        {
-            return _blocksById[id];
-        }
-        return Air;
+        return id < _blocksById.Count ? _blocksById[id] : Air;
     }
 
     /// <summary>
@@ -82,11 +78,15 @@ public class BlockRegistry : IBlockRegistry
         if (_blocksById.Count == nextId)
         {
             _blocksById.Add(block);
+
         }
         else
         {
             // Fallback just in case IDs get out of sync, though shouldn't happen with sequential generation
-            while (_blocksById.Count <= nextId) _blocksById.Add(Air);
+            while (_blocksById.Count <= nextId)
+            {
+                _blocksById.Add(Air);
+            }
             _blocksById[nextId] = block;
         }
 

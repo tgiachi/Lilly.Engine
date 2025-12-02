@@ -1,43 +1,24 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.GameObjects.Types;
+using Lilly.Engine.Utils;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Utils;
+using Lilly.Rendering.Core.Interfaces.Input;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
-using Silk.NET.Maths;
 using TrippyGL;
-using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
+using MouseButton = Lilly.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
 
 /// <summary>
-/// Visual states for a button.
-/// </summary>
-public enum ButtonState
-{
-    Normal,
-    Hover,
-    Pressed,
-    Disabled
-}
-
-/// <summary>
-/// Size modes for button sizing.
-/// </summary>
-public enum ButtonSizeMode
-{
-    Fixed,
-    Auto
-}
-
-/// <summary>
 /// A clickable button control with support for text, icons, and visual states.
 /// </summary>
-public class ButtonGameObject : BaseGameObject2D, IInputReceiver
+public class ButtonGameObject : Base2dGameObject, IInputReceiver
 {
     private readonly IInputManagerService _inputManager;
     private readonly IAssetManager _assetManager;
@@ -60,7 +41,13 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
     /// <param name="inputManager">The input manager service.</param>
     /// <param name="assetManager">The asset manager for loading fonts and textures.</param>
     /// <param name="theme">The UI theme to use for styling.</param>
-    public ButtonGameObject(IInputManagerService inputManager, IAssetManager assetManager, UITheme theme)
+    /// <param name="gameObjectManager">The game object manager.</param>
+    public ButtonGameObject(
+        IInputManagerService inputManager,
+        IAssetManager assetManager,
+        UITheme theme,
+        IRenderPipeline gameObjectManager
+    ) : base("Button", gameObjectManager, 100)
     {
         _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
         _assetManager = assetManager ?? throw new ArgumentNullException(nameof(assetManager));
@@ -224,11 +211,7 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
         }
     }
 
-    public Rectangle<int> Bounds
-        => new(
-            new((int)Transform.Position.X, (int)Transform.Position.Y),
-            new((int)Transform.Size.X, (int)Transform.Size.Y)
-        );
+    public Vector2 Bounds => new(Transform.Size.X, Transform.Size.Y);
 
     public void HandleKeyboard(KeyboardState keyboardState, KeyboardState previousKeyboardState, GameTime gameTime)
     {
@@ -293,37 +276,36 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
 
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
-        var bounds = Bounds;
+        var boundsX = (int)mousePosition.X >= (int)Transform.Position.X &&
+                      (int)mousePosition.X <= (int)(Transform.Position.X + Transform.Size.X);
+        var boundsY = (int)mousePosition.Y >= (int)Transform.Position.Y &&
+                      (int)mousePosition.Y <= (int)(Transform.Position.Y + Transform.Size.Y);
 
-        return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+        return boundsX && boundsY;
     }
 
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (!IsVisible)
+        if (!IsActive || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
-
-        var bounds = new Rectangle<float>(Transform.Position, new(Transform.Size.X, Transform.Size.Y));
 
         // Get colors based on current state
         var (bgColor, borderColor, textColor) = GetStateColors();
 
         // Background
-        yield return DrawRectangle(bounds, bgColor, NextDepth());
+        var backgroundPos = Transform.Position;
+        var backgroundSize = new Vector2(Transform.Size.X, Transform.Size.Y);
+        SpriteBatcher.DrawRectangle(backgroundPos, backgroundSize, bgColor);
 
         // Border
-        foreach (var cmd in DrawHollowRectangle(
-                     Transform.Position,
-                     new(Transform.Size.X, Transform.Size.Y),
-                     borderColor,
-                     Theme.BorderThickness,
-                     NextDepth()
-                 ))
-        {
-            yield return cmd;
-        }
+        SpriteBatcher.DrawHollowRectangle(
+            Transform.Position,
+            new Vector2(Transform.Size.X, Transform.Size.Y),
+            borderColor,
+            Theme.BorderThickness
+        );
 
         // Calculate content position (centered)
         var contentWidth = CalculateContentWidth();
@@ -337,30 +319,24 @@ public class ButtonGameObject : BaseGameObject2D, IInputReceiver
         if (!string.IsNullOrEmpty(IconTextureName))
         {
             var iconSize = Theme.FontSize;
-            var iconPos = new Vector2D<float>(currentX, contentY);
-
-            // Note: DrawTexture would need to be implemented in BaseGameObject2D
-            // For now, we'll skip the icon rendering or you can add it later
-            // yield return DrawTexture(IconTextureName, iconPos, new Vector2D<float>(iconSize, iconSize), depth: NextDepth());
-
+            // Note: DrawTexture would need to be implemented if icon support is needed
             currentX += iconSize + IconTextSpacing;
         }
 
         // Text
         if (!string.IsNullOrEmpty(_text))
         {
-            var textPos = new Vector2D<float>(
+            var textPos = new Vector2(
                 currentX,
                 Transform.Position.Y + (Transform.Size.Y - Theme.FontSize) / 2f
             );
 
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 Theme.FontName,
-                _text,
                 Theme.FontSize,
+                _text,
                 textPos,
-                color: textColor,
-                depth: NextDepth()
+                textColor
             );
         }
     }

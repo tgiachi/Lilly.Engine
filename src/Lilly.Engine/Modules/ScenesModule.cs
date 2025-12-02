@@ -1,10 +1,10 @@
 using DryIoc;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Contexts;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Scenes.Transitions;
 using Lilly.Engine.Wrappers.Scenes;
+using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Interfaces.Services;
 using MoonSharp.Interpreter;
 using Serilog;
 using TrippyGL;
@@ -29,7 +29,7 @@ public class ScenesModule
     [ScriptFunction("add_scene", "Adds a new scene to the scene manager.")]
     public void AddScene(string name, Closure loadFunction)
     {
-        var scene = new LuaSceneWrap(_container.Resolve<IGameObjectManager>(), name, loadFunction);
+        var scene = new LuaSceneWrap(_container.Resolve<IRenderPipeline>(), name, loadFunction);
 
         _sceneManager.RegisterScene(scene);
     }

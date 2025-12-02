@@ -1,9 +1,11 @@
 using DryIoc;
 using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Data.Internal;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Data.Internal;
+using Lilly.Engine.GameObjects.Base;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Context;
 using MoonSharp.Interpreter;
 using Serilog;
 using Serilog.Events;
@@ -11,10 +13,8 @@ using Serilog.Events;
 namespace Lilly.Engine.Services;
 
 /// <summary>
-/// Factory for creating instances of game objects using dependency injection.
-/// This factory provides simple, direct object creation. For performance-critical scenarios
-/// with high object creation/destruction rates (e.g., bullets, particles), consider using
-/// IGameObjectPool for manual pooling management.
+/// Factory class responsible for creating and managing game objects.
+/// It handles registration, instantiation, and integration with the script engine.
 /// </summary>
 public class GameObjectFactory : IGameObjectFactory
 {
@@ -29,9 +29,9 @@ public class GameObjectFactory : IGameObjectFactory
     private readonly IScriptEngineService _scriptEngineService;
 
     public GameObjectFactory(
-        List<GameObjectRegistration> registrations,
         IContainer container,
-        IScriptEngineService scriptEngineService
+        IScriptEngineService scriptEngineService,
+        List<GameObjectRegistration> registrations
     )
     {
         _registrations = registrations;
@@ -71,13 +71,14 @@ public class GameObjectFactory : IGameObjectFactory
         }
 
         var instance = _container.Resolve<IGameObject>(type);
+        AttachRenderContextIfNeeded(instance);
         var objectId = GenerateObjectId();
         instance.Id = objectId;
         instance.Name = GenerateGameObjectName(type, objectId);
 
         _logger.Debug(
             "Created game object of type {GameObjectType} with ID {GameObjectId}",
-            type.FullName,
+            instance.Name,
             objectId
         );
 
@@ -99,6 +100,24 @@ public class GameObjectFactory : IGameObjectFactory
     /// <returns>True if the game object type is registered; otherwise, false.</returns>
     public bool IsRegistered(Type type)
         => type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
+
+    public void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject
+    {
+        ArgumentNullException.ThrowIfNull(gameObject);
+
+        _logger.Debug(
+            "Destroying game object of type {GameObjectType} with ID {GameObjectId}",
+            gameObject.Name,
+            gameObject.Id
+        );
+
+        if (gameObject is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        DecrementObjectId();
+    }
 
     private void BuildDynamicScriptModule()
     {
@@ -146,4 +165,24 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     private uint GenerateObjectId()
         => (uint)Interlocked.Increment(ref _nextObjectId);
+
+    /// <summary>
+    ///  Decrements the object ID counter.
+    /// </summary>
+    private void DecrementObjectId()
+        => Interlocked.Decrement(ref _nextObjectId);
+
+    private void AttachRenderContextIfNeeded(IGameObject instance)
+    {
+        if (instance is not Base2dGameObject base2d)
+        {
+            return;
+        }
+
+        if (_container.IsRegistered<RenderContext>())
+        {
+            var renderContext = _container.Resolve<RenderContext>();
+            base2d.UseRenderContext(renderContext);
+        }
+    }
 }

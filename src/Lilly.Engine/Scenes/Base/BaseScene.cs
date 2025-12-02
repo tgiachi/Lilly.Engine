@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Extensions.Strings;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Interfaces.Scenes;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Scenes.Base;
 
@@ -10,13 +10,13 @@ public abstract class BaseScene : IScene
     public string Name { get; }
     public event IScene.SceneActivatedHandler? SceneActivated;
 
-    private readonly IGameObjectManager _gameObjectManager;
+    private readonly IRenderPipeline _renderPipeline;
 
     private readonly List<IGameObject> _gameObjects = [];
 
-    protected BaseScene(IGameObjectManager gameObjectManager, string name)
+    protected BaseScene(IRenderPipeline renderPipeline, string name)
     {
-        _gameObjectManager = gameObjectManager;
+        _renderPipeline = renderPipeline;
         Name = name.ToSnakeCase();
     }
 
@@ -29,7 +29,7 @@ public abstract class BaseScene : IScene
     {
         foreach (var gameObject in _gameObjects)
         {
-            _gameObjectManager.RemoveGameObject(gameObject);
+            _renderPipeline.RemoveGameObject(gameObject);
         }
         _gameObjects.Clear();
     }
@@ -39,7 +39,7 @@ public abstract class BaseScene : IScene
         ArgumentNullException.ThrowIfNull(gameObject);
 
         _gameObjects.Add(gameObject);
-        _gameObjectManager.AddGameObject(gameObject);
+        _renderPipeline.AddGameObject(gameObject);
     }
 
     protected void RemoveGameObject(IGameObject gameObject)
@@ -47,6 +47,6 @@ public abstract class BaseScene : IScene
         ArgumentNullException.ThrowIfNull(gameObject);
 
         _gameObjects.Remove(gameObject);
-        _gameObjectManager.RemoveGameObject(gameObject);
+        _renderPipeline.RemoveGameObject(gameObject);
     }
 }

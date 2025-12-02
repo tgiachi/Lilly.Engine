@@ -1,7 +1,6 @@
-using System.Reflection;
+using System.Numerics;
 using Lilly.Engine.Cameras.Base;
 using Lilly.Engine.Core.Data.Privimitives;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Engine.Cameras;
@@ -22,8 +21,8 @@ public class OrthographicCamera : Base3dCamera
     private float _zoomSpeed = 5f;
     private float _movementSpeed = 10f;
 
-    private Vector3D<float> _minBounds;
-    private Vector3D<float> _maxBounds;
+    private Vector3 _minBounds;
+    private Vector3 _maxBounds;
 
     /// <summary>
     /// Gets or sets the orthographic viewport width in world units.
@@ -108,7 +107,7 @@ public class OrthographicCamera : Base3dCamera
     /// Gets or sets the minimum bounds for camera position constraints.
     /// Only applied if EnableBoundsConstraints is true.
     /// </summary>
-    public Vector3D<float> MinBounds
+    public Vector3 MinBounds
     {
         get => _minBounds;
         set => _minBounds = value;
@@ -118,7 +117,7 @@ public class OrthographicCamera : Base3dCamera
     /// Gets or sets the maximum bounds for camera position constraints.
     /// Only applied if EnableBoundsConstraints is true.
     /// </summary>
-    public Vector3D<float> MaxBounds
+    public Vector3 MaxBounds
     {
         get => _maxBounds;
         set => _maxBounds = value;
@@ -136,8 +135,8 @@ public class OrthographicCamera : Base3dCamera
     public OrthographicCamera(string name = "OrthographicCamera")
     {
         Name = name;
-        Position = new(0, 0, -10);
-        Target = Vector3D<float>.Zero;
+        Position = new Vector3(0, 0, -10);
+        Target = Vector3.Zero;
     }
 
     /// <summary>
@@ -155,7 +154,7 @@ public class OrthographicCamera : Base3dCamera
     /// <param name="deltaY">Vertical movement in world units</param>
     public void Pan(float deltaX, float deltaY)
     {
-        var offset = new Vector3D<float>(deltaX, deltaY, 0);
+        var offset = new Vector3(deltaX, deltaY, 0);
         Position += offset;
         Target += offset;
         ApplyBoundsConstraints();
@@ -167,7 +166,7 @@ public class OrthographicCamera : Base3dCamera
     /// <param name="screenPoint">Screen position in pixels</param>
     /// <param name="viewport">The viewport</param>
     /// <returns>World position</returns>
-    public Vector3D<float> ScreenToWorld(Vector2D<int> screenPoint, Viewport viewport)
+    public Vector3 ScreenToWorld(Vector2 screenPoint, Viewport viewport)
     {
         // Normalize screen coordinates to [-1, 1]
         var x = 2.0f * screenPoint.X / viewport.Width - 1.0f;
@@ -180,7 +179,7 @@ public class OrthographicCamera : Base3dCamera
         var worldX = Position.X + x * effectiveWidth * 0.5f;
         var worldY = Position.Y + y * effectiveHeight * 0.5f;
 
-        return new(worldX, worldY, Position.Z);
+        return new Vector3(worldX, worldY, Position.Z);
     }
 
     /// <summary>
@@ -188,7 +187,7 @@ public class OrthographicCamera : Base3dCamera
     /// </summary>
     /// <param name="min">Minimum position bounds</param>
     /// <param name="max">Maximum position bounds</param>
-    public void SetBounds(Vector3D<float> min, Vector3D<float> max)
+    public void SetBounds(Vector3 min, Vector3 max)
     {
         _minBounds = min;
         _maxBounds = max;
@@ -246,7 +245,7 @@ public class OrthographicCamera : Base3dCamera
     /// <param name="worldPoint">World position</param>
     /// <param name="viewport">The viewport</param>
     /// <returns>Screen position in pixels</returns>
-    public Vector2D<int> WorldToScreen(Vector3D<float> worldPoint, Viewport viewport)
+    public Vector2 WorldToScreen(Vector3 worldPoint, Viewport viewport)
     {
         var effectiveWidth = _orthoWidth / _zoom;
         var effectiveHeight = _orthoHeight / _zoom;
@@ -254,10 +253,10 @@ public class OrthographicCamera : Base3dCamera
         var relativeX = (worldPoint.X - Position.X) / (effectiveWidth * 0.5f);
         var relativeY = (worldPoint.Y - Position.Y) / (effectiveHeight * 0.5f);
 
-        var screenX = (int)((relativeX + 1.0f) * 0.5f * viewport.Width);
-        var screenY = (int)((1.0f - relativeY) * 0.5f * viewport.Height);
+        var screenX = (relativeX + 1.0f) * 0.5f * viewport.Width;
+        var screenY = (1.0f - relativeY) * 0.5f * viewport.Height;
 
-        return new(screenX, screenY);
+        return new Vector2(screenX, screenY);
     }
 
     /// <summary>
@@ -266,7 +265,7 @@ public class OrthographicCamera : Base3dCamera
     /// <param name="screenPoint">The screen position to zoom towards (in pixels)</param>
     /// <param name="viewport">The viewport information</param>
     /// <param name="zoomAmount">Amount to zoom (positive = zoom in, negative = zoom out)</param>
-    public void ZoomAtScreenPoint(Vector2D<int> screenPoint, Viewport viewport, float zoomAmount)
+    public void ZoomAtScreenPoint(Vector2 screenPoint, Viewport viewport, float zoomAmount)
     {
         // Get world position before zoom
         var worldPosBefore = ScreenToWorld(screenPoint, viewport);
@@ -318,18 +317,12 @@ public class OrthographicCamera : Base3dCamera
         var effectiveWidth = _orthoWidth / _zoom;
         var effectiveHeight = _orthoHeight / _zoom;
 
-        var projection = Matrix4X4.CreateOrthographic(
+        Projection = Matrix4x4.CreateOrthographic(
             effectiveWidth,
             effectiveHeight,
             NearPlane,
             FarPlane
         );
-
-        // Store in the base class field via reflection or expose a setter
-        // Since _projection is private in base, we need to work around this
-        typeof(Base3dCamera)
-            .GetField("_projection", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.SetValue(this, projection);
     }
 
     /// <summary>
@@ -350,7 +343,7 @@ public class OrthographicCamera : Base3dCamera
         if (pos != Position)
         {
             Position = pos;
-            Target = new(pos.X, pos.Y, 0);
+            Target = new Vector3(pos.X, pos.Y, 0);
         }
     }
 
@@ -359,13 +352,8 @@ public class OrthographicCamera : Base3dCamera
     /// </summary>
     private void MarkProjectionDirty()
     {
-        // Set the dirty flag in the base class
-        typeof(Base3dCamera)
-            .GetField("_projectionDirty", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.SetValue(this, true);
+        SetProjectionDirty();
     }
-
-#region Static Factory Methods
 
     /// <summary>
     /// Creates an orthographic camera configured for 2D top-down view.
@@ -379,11 +367,11 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = width,
             OrthoHeight = height,
-            Position = new(0, 0, -10),
-            Target = Vector3D<float>.Zero
+            Position = new Vector3(0, 0, -10),
+            Target = Vector3.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
+        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
 
         return camera;
     }
@@ -400,11 +388,11 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = width,
             OrthoHeight = height,
-            Position = new(0, 0, -10),
-            Target = Vector3D<float>.Zero
+            Position = new Vector3(0, 0, -10),
+            Target = Vector3.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
+        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
 
         return camera;
     }
@@ -433,8 +421,8 @@ public class OrthographicCamera : Base3dCamera
         var y = distance * MathF.Sin(pitch);
         var z = distance * MathF.Cos(angle) * MathF.Cos(pitch);
 
-        camera.Position = new(x, y, z);
-        camera.LookAt(Vector3D<float>.Zero, new(0, 1, 0));
+        camera.Position = new Vector3(x, y, z);
+        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
 
         return camera;
     }
@@ -451,8 +439,8 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = screenWidth,
             OrthoHeight = screenHeight,
-            Position = new(screenWidth / 2f, screenHeight / 2f, -10),
-            Target = new(screenWidth / 2f, screenHeight / 2f, 0),
+            Position = new Vector3(screenWidth / 2f, screenHeight / 2f, -10),
+            Target = new Vector3(screenWidth / 2f, screenHeight / 2f, 0),
             NearPlane = 0.1f,
             FarPlane = 100f
         };
@@ -473,14 +461,12 @@ public class OrthographicCamera : Base3dCamera
         {
             OrthoWidth = worldWidth,
             OrthoHeight = worldHeight,
-            Position = new(0, height, 0),
-            Target = Vector3D<float>.Zero
+            Position = new Vector3(0, height, 0),
+            Target = Vector3.Zero
         };
 
-        camera.LookAt(Vector3D<float>.Zero, new(0, 0, 1));
+        camera.LookAt(Vector3.Zero, new Vector3(0, 0, 1));
 
         return camera;
     }
-
-#endregion
 }

@@ -9,7 +9,6 @@ using Lilly.Voxel.Plugin.Noise;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Utils;
 using Serilog;
-using Silk.NET.Maths;
 
 namespace Lilly.Voxel.Plugin.Services;
 
@@ -112,6 +111,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     public bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk)
     {
         var chunkPosition = ChunkUtils.NormalizeToChunkPosition(position);
+
         return _chunkCache.TryGet(chunkPosition, out chunk);
     }
 
@@ -208,11 +208,11 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     private async Task<ChunkEntity> GenerateChunkWrap(Vector3 chunkPosition)
     {
-        var shouldUseJobSystem = _useJobSystem && !IsRunningInJobWorker();
+        var shouldUseJobSystem = _useJobSystem;
 
         if (shouldUseJobSystem)
         {
-            var handle = _jobSystemService.ExecuteTaskAsync(
+            var handle = _jobSystemService.Schedule(
                 "ChunkGeneration",
                 _ => GenerateChunkAsync(chunkPosition)
             );
@@ -223,12 +223,6 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         return await GenerateChunkAsync(chunkPosition);
     }
 
-    private static bool IsRunningInJobWorker()
-    {
-        var threadName = Thread.CurrentThread.Name;
-
-        return threadName != null && threadName.StartsWith("LillyEngine-JobWorker", StringComparison.Ordinal);
-    }
 
     /// <summary>
     /// Generates a new chunk at the specified position using the generation pipeline.
@@ -242,7 +236,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
         try
         {
-            var chunk = new ChunkEntity(new Vector3D<float>(chunkPosition.X, chunkPosition.Y, chunkPosition.Z));
+            var chunk = new ChunkEntity(new Vector3(chunkPosition.X, chunkPosition.Y, chunkPosition.Z));
 
             // Create a thread-safe copy of the noise generator for this chunk
             var noiseGenerator = CreateNoiseGeneratorCopy();

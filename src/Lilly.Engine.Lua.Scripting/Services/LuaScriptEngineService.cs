@@ -51,7 +51,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     private readonly ConcurrentDictionary<string, object> _loadedModules = new();
     private readonly ILogger _logger = Log.ForContext<LuaScriptEngineService>();
 
-    private readonly IJobSystemService _jobSystemService;
 
     // Script caching - using hash to avoid re-parsing identical scripts
     private readonly ConcurrentDictionary<string, string> _scriptCache = new();
@@ -81,10 +80,9 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     public LuaScriptEngineService(
         DirectoriesConfig directoriesConfig,
         List<ScriptModuleData> scriptModules,
-        List<ScriptUserData> loadedUserData,
         IContainer serviceProvider,
         IVersionService versionService,
-        IJobSystemService jobSystemService
+        List<ScriptUserData> loadedUserData = null
     )
     {
         ArgumentNullException.ThrowIfNull(directoriesConfig);
@@ -95,8 +93,7 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         _directoriesConfig = directoriesConfig;
         _serviceProvider = serviceProvider;
         _versionService = versionService;
-        _jobSystemService = jobSystemService;
-        _loadedUserData = loadedUserData;
+        _loadedUserData = loadedUserData ?? new();
         _initScripts = ["bootstrap.lua", "init.lua", "main.lua"];
 
         CreateNameResolver();
@@ -598,17 +595,17 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             _isInitialized = true;
             _logger.Information("Lua engine initialized successfully");
 
-            // if (_watcher == null)
-            // {
-            //     _watcher = new(_directoriesConfig[DirectoryType.Scripts], "*.lua")
-            //     {
-            //         NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
-            //         IncludeSubdirectories = true,
-            //         EnableRaisingEvents = true
-            //     };
-            //
-            //     _watcher.Changed += OnLuaFilesChanged;
-            // }
+            if (_watcher == null)
+            {
+                _watcher = new(_directoriesConfig[DirectoryType.Scripts], "*.lua")
+                {
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                    IncludeSubdirectories = true,
+                    EnableRaisingEvents = true
+                };
+
+                _watcher.Changed += OnLuaFilesChanged;
+            }
         }
         catch (Exception ex)
         {
@@ -1235,6 +1232,11 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
 
     private void LoadToUserData()
     {
+        if (_loadedUserData == null)
+        {
+            return;
+        }
+
         foreach (var scriptUserData in _loadedUserData)
         {
             // Register the type to allow MoonSharp to access its members and methods

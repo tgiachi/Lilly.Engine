@@ -1,13 +1,12 @@
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Notifications;
 using Lilly.Engine.Extensions;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Utils;
-using Silk.NET.Maths;
+using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
@@ -15,7 +14,7 @@ namespace Lilly.Engine.GameObjects.UI.Controls;
 /// <summary>
 /// Displays queued toast notifications with fade and slide animations.
 /// </summary>
-public class NotificationHudGameObject : BaseGameObject2D
+public class NotificationHudGameObject : Base2dGameObject
 {
     private const float DefaultSlideSpeed = 8.0f;
     private const float DefaultPadding = 10.0f;
@@ -33,7 +32,7 @@ public class NotificationHudGameObject : BaseGameObject2D
     /// <summary>
     /// Gets or sets the anchor position for notifications.
     /// </summary>
-    public Vector2D<float> StartPosition { get; set; } = new(20f, 20f);
+    public Vector2 StartPosition { get; set; } = new(20f, 20f);
 
     /// <summary>
     /// Gets or sets the vertical spacing between notifications.
@@ -58,7 +57,7 @@ public class NotificationHudGameObject : BaseGameObject2D
     /// <summary>
     /// Gets or sets the icon size.
     /// </summary>
-    public Vector2D<float> IconSize { get; set; } = new(24f, 24f);
+    public Vector2 IconSize { get; set; } = new(24f, 24f);
 
     /// <summary>
     /// Gets or sets the spacing between icon and text.
@@ -82,18 +81,18 @@ public class NotificationHudGameObject : BaseGameObject2D
     /// <summary>
     /// Initializes a new instance of the NotificationHudGameObject class.
     /// </summary>
+    /// <param name="theme">The UI theme for styling.</param>
     /// <param name="assetManager">The asset manager service.</param>
     /// <param name="notificationService">The notification service.</param>
     public NotificationHudGameObject(
         UITheme theme,
         IAssetManager assetManager,
-        INotificationService notificationService
-    )
+        INotificationService notificationService,
+        IRenderPipeline gameObjectManager
+    ) : base("NotificationHud", gameObjectManager, 9000) // High Z-index to render on top
     {
         _assetManager = assetManager;
-
-        FontFamily = theme.FontName;
-        Order = 9000; // High order to render on top of other UI elements
+        _fontFamily = theme.FontName;
 
         notificationService.NotificationRaised += HandleNotificationRaised;
         notificationService.NotificationsCleared += HandleNotificationsCleared;
@@ -105,6 +104,8 @@ public class NotificationHudGameObject : BaseGameObject2D
     /// <param name="gameTime">The game timing information.</param>
     public override void Update(GameTime gameTime)
     {
+        base.Update(gameTime);
+
         if (_messages.Count == 0)
         {
             return;
@@ -166,18 +167,17 @@ public class NotificationHudGameObject : BaseGameObject2D
     }
 
     /// <summary>
-    /// Renders the notification HUD by yielding render commands.
+    /// Renders the notification HUD using the sprite batcher.
     /// </summary>
     /// <param name="gameTime">The game timing information.</param>
-    /// <returns>An enumerable collection of render commands.</returns>
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (_messages.Count == 0)
+        if (_messages.Count == 0 || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
 
-        // Pre-pass: Calculate total bounds for proper scissor clipping
+        // Pre-pass: Calculate total bounds for proper Transform sizing
         var minX = float.MaxValue;
         var minY = float.MaxValue;
         var maxX = float.MinValue;
@@ -192,8 +192,9 @@ public class NotificationHudGameObject : BaseGameObject2D
                 continue;
             }
 
-            var basePosition = new Vector2D<float>(StartPosition.X, StartPosition.Y + message.YOffset);
-            var textSize = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var basePosition = new Vector2(StartPosition.X, StartPosition.Y + message.YOffset);
+            var textSizeVec2D = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var textSize = new Vector2(textSizeVec2D.X, textSizeVec2D.Y);
             var hasIcon = !string.IsNullOrWhiteSpace(message.IconTextureName);
             var iconWidth = hasIcon ? IconSize.X : 0f;
             var iconSpacing = hasIcon ? IconSpacing : 0f;
@@ -212,11 +213,11 @@ public class NotificationHudGameObject : BaseGameObject2D
             maxY = MathF.Max(maxY, rectY + height);
         }
 
-        // Update Transform for proper scissor clipping
+        // Update Transform for proper bounds tracking
         if (minX != float.MaxValue)
         {
-            Transform.Position = new Vector2D<float>(minX, minY);
-            Transform.Size = new Vector2D<float>(maxX - minX, maxY - minY);
+            Transform.Position = new Vector2(minX, minY);
+            Transform.Size = new Vector2(maxX - minX, maxY - minY);
         }
 
         // Rendering pass
@@ -230,8 +231,9 @@ public class NotificationHudGameObject : BaseGameObject2D
             }
 
             // Calculate positions and sizes
-            var basePosition = new Vector2D<float>(StartPosition.X, StartPosition.Y + message.YOffset);
-            var textSize = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var basePosition = new Vector2(StartPosition.X, StartPosition.Y + message.YOffset);
+            var textSizeVec2D = TextMeasurement.MeasureString(_assetManager, message.Text, FontFamily, FontSize);
+            var textSize = new Vector2(textSizeVec2D.X, textSizeVec2D.Y);
             var hasIcon = !string.IsNullOrWhiteSpace(message.IconTextureName);
             var iconWidth = hasIcon ? IconSize.X : 0f;
             var iconSpacing = hasIcon ? IconSpacing : 0f;
@@ -239,16 +241,16 @@ public class NotificationHudGameObject : BaseGameObject2D
 
             // Background rectangle
             var calculatedWidth = textSize.X + iconWidth + iconSpacing + MessagePadding * 2f;
-            var backgroundRect = new Rectangle<float>(
-                new(basePosition.X - MessagePadding, basePosition.Y - MessagePadding),
-                new(
-                    MathF.Max(calculatedWidth, MinNotificationWidth),
-                    contentHeight + MessagePadding * 2f
-                )
+            var backgroundWidth = MathF.Max(calculatedWidth, MinNotificationWidth);
+            var backgroundHeight = contentHeight + MessagePadding * 2f;
+            var backgroundPosition = new Vector2(
+                basePosition.X - MessagePadding,
+                basePosition.Y - MessagePadding
             );
+            var backgroundSize = new Vector2(backgroundWidth, backgroundHeight);
 
             // Text position (offset by icon if present)
-            var textPosition = new Vector2D<float>(
+            var textPosition = new Vector2(
                 basePosition.X + iconWidth + iconSpacing,
                 basePosition.Y + (contentHeight - textSize.Y) / 2f
             );
@@ -260,38 +262,48 @@ public class NotificationHudGameObject : BaseGameObject2D
             // Draw background
             if (finalBackground.A > 0)
             {
-                yield return DrawRectangle(backgroundRect, finalBackground, NextDepth());
+                SpriteBatcher.DrawRectangle(
+                    backgroundPosition,
+                    backgroundSize,
+                    finalBackground,
+                    0f,
+                    Vector2.Zero,
+                    0f
+                );
             }
 
             // Draw icon if present
             if (hasIcon)
             {
-                var iconRect = new Rectangle<float>(
-                    new(
-                        basePosition.X,
-                        basePosition.Y + (contentHeight - IconSize.Y) / 2f
-                    ),
-                    IconSize
+                var iconPosition = new Vector2(
+                    basePosition.X,
+                    basePosition.Y + (contentHeight - IconSize.Y) / 2f
                 );
 
                 var iconColor = new Color4b(255, 255, 255).ApplyAlpha(message.Alpha);
 
-                yield return DrawTextureCustom(
+                SpriteBatcher.DrawTexure(
                     message.IconTextureName!,
-                    destination: iconRect,
+                    position: iconPosition,
+                    destination: null,
+                    source: null,
                     color: iconColor,
-                    depth: NextDepth()
+                    origin: null,
+                    scale: new Vector2(IconSize.X / 32f, IconSize.Y / 32f), // Assuming 32x32 base texture
+                    rotation: null,
+                    depth: 0.1f
                 );
             }
 
             // Draw text
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 FontFamily,
-                message.Text,
                 FontSize,
+                message.Text,
                 textPosition,
-                color: finalText,
-                depth: NextDepth()
+                finalText,
+                0f,
+                Vector2.One
             );
         }
     }

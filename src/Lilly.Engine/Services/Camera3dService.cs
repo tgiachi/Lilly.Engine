@@ -1,7 +1,7 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Contexts;
-using Lilly.Engine.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Serilog;
 using TrippyGL;
 
@@ -23,10 +23,12 @@ public class Camera3dService : ICamera3dService
     public Camera3dService(RenderContext renderContext)
     {
         _renderContext = renderContext;
-        _renderContext.Renderer.Resize += (s, e) =>
-                                          {
-                                              UpdateViewport(_renderContext.GraphicsDevice.Viewport);
-                                          };
+        _renderContext.Renderer.OnResize += RendererOnOnResize;
+    }
+
+    private void RendererOnOnResize(int width, int height)
+    {
+        UpdateViewport(_renderContext.GraphicsDevice.Viewport);
     }
 
     //private Viewport _currentViewport;
@@ -141,4 +143,5 @@ public class Camera3dService : ICamera3dService
             camera.AspectRatio = aspectRatio;
         }
     }
+
 }

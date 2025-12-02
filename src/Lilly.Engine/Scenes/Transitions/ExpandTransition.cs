@@ -1,10 +1,8 @@
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Helpers;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
-using Silk.NET.Maths;
+using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using TrippyGL;
 
 namespace Lilly.Engine.Scenes.Transitions;
@@ -52,8 +50,9 @@ public class ExpandTransition : TransitionGameObject
 
         public Color4b Color { get; }
 
-        public void Render(GameTime gameTime, float progress, IGraphicRenderPipeline renderPipeline)
+        public void Render(GameTime gameTime, float progress, ILillySpriteBatcher spriteBatcher)
         {
+            // Calculate expanding rectangle from center
             var halfWidth = _viewportWidth / 2f;
             var halfHeight = _viewportHeight / 2f;
             var x = halfWidth * (1.0f - progress);
@@ -61,18 +60,15 @@ public class ExpandTransition : TransitionGameObject
             var width = _viewportWidth * progress;
             var height = _viewportHeight * progress;
 
-            var destination = new Rectangle<float>(x, y, width, height);
-
-            var command = RenderCommandHelpers.CreateDrawTexture(
-                new(
-                    DefaultTextures.WhiteTextureKey,
-                    destination: destination,
-                    color: Color,
-                    depth: 0.9f
-                )
+            // Draw expanding rectangle
+            spriteBatcher.DrawRectangle(
+                position: new Vector2(x, y),
+                size: new Vector2(width, height),
+                color: Color,
+                rotation: 0f,
+                origin: null,
+                depth: 0.9f
             );
-
-            renderPipeline.EnqueueRenderCommand(command);
         }
     }
 }

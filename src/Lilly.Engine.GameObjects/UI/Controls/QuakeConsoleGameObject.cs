@@ -2,16 +2,16 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.UI.Controls.Console;
 using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.GameObjects.Utils;
-using Lilly.Engine.Rendering.Core.Base.GameObjects;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Contexts;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
+using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Utils;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Utils;
+using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Interfaces.Input;
+using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Utils;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.UI.Controls;
@@ -19,7 +19,7 @@ namespace Lilly.Engine.GameObjects.UI.Controls;
 /// <summary>
 /// Provides a Quake-style drop-down console for command entry and history browsing.
 /// </summary>
-public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, IDisposable
+public sealed class QuakeConsoleGameObject : Base2dGameObject, IInputReceiver, IDisposable
 {
     private const int ConsoleHeight = 320;
     private const float DefaultAnimationSpeed = 700f;
@@ -119,23 +119,23 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
     /// <summary>
     /// Gets the bounds of the console.
     /// </summary>
-    public Rectangle<int> Bounds
-        => new(
-            new(0, (int)_currentY),
-            new(_viewportWidth, ConsoleHeight)
-        );
+    public Vector2 Bounds => new(_viewportWidth, ConsoleHeight);
 
     /// <summary>
     /// Initializes a new instance of the QuakeConsoleGameObject class.
     /// </summary>
     /// <param name="inputManager">The input manager service.</param>
     /// <param name="assetManager">The asset manager service.</param>
+    /// <param name="renderContext">The render context.</param>
+    /// <param name="uiTheme">The UI theme.</param>
+    /// <param name="gameObjectManager">The game object manager.</param>
     public QuakeConsoleGameObject(
         IInputManagerService inputManager,
         IAssetManager assetManager,
         RenderContext renderContext,
-        UITheme uiTheme
-    )
+        UITheme uiTheme,
+        IRenderPipeline gameObjectManager
+    ) : base("QuakeConsole", gameObjectManager, 9999)
     {
         _inputManager = inputManager;
         _assetManager = assetManager;
@@ -269,9 +269,10 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
     /// <inheritdoc />
     public bool IsMouseInBounds(Vector2 mousePosition)
     {
-        var bounds = Bounds;
+        var boundsX = (int)mousePosition.X >= 0 && (int)mousePosition.X <= _viewportWidth;
+        var boundsY = (int)mousePosition.Y >= (int)_currentY && (int)mousePosition.Y <= (int)(_currentY + ConsoleHeight);
 
-        return bounds.Contains(new Vector2D<int>((int)mousePosition.X, (int)mousePosition.Y));
+        return boundsX && boundsY;
     }
 
     /// <summary>
@@ -288,7 +289,7 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         _targetY = 0f;
         _isOpen = true;
         _isAnimating = true;
-        IsVisible = true;
+        IsActive = true;
     }
 
     /// <summary>
@@ -343,27 +344,24 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
 
                 if (!_isOpen)
                 {
-                    IsVisible = false;
+                    IsActive = false;
                 }
             }
         }
     }
 
     /// <inheritdoc />
-    protected override IEnumerable<RenderCommand> Draw(GameTime gameTime)
+    protected override void OnDraw(GameTime gameTime)
     {
-        if (!_isInitialized || !IsVisible)
+        if (!_isInitialized || !IsActive || SpriteBatcher == null)
         {
-            yield break;
+            return;
         }
 
         // Background
-        var backgroundRect = new Rectangle<float>(
-            new(0, _currentY),
-            new(_viewportWidth, ConsoleHeight)
-        );
-
-        yield return DrawRectangle(backgroundRect, BackgroundColor, NextDepth());
+        var backgroundPos = new Vector2(0, _currentY);
+        var backgroundSize = new Vector2(_viewportWidth, ConsoleHeight);
+        SpriteBatcher.DrawRectangle(backgroundPos, backgroundSize, BackgroundColor);
 
         // Console entries
         var lineY = _currentY + 10;
@@ -371,26 +369,22 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
         for (var i = 0; i < _entries.Count; i++)
         {
             var entry = _entries[i];
-            var textPosition = new Vector2D<float>(10f, lineY);
+            var textPosition = new Vector2(10f, lineY);
 
             if (entry.Background.HasValue)
             {
                 var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, entry.Text, _fontFamily, _fontSize);
-                var rect = new Rectangle<float>(
-                    new(textPosition.X - 2, textPosition.Y - 2),
-                    new(textWidth + 4, _fontSize + 4)
-                );
-
-                yield return DrawRectangle(rect, entry.Background.Value, NextDepth());
+                var rectPos = new Vector2(textPosition.X - 2, textPosition.Y - 2);
+                var rectSize = new Vector2(textWidth + 4, _fontSize + 4);
+                SpriteBatcher.DrawRectangle(rectPos, rectSize, entry.Background.Value);
             }
 
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 _fontFamily,
-                entry.Text,
                 _fontSize,
+                entry.Text,
                 textPosition,
-                color: entry.Foreground,
-                depth: NextDepth()
+                entry.Foreground
             );
 
             lineY += _lineHeight;
@@ -398,30 +392,28 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
 
         // Input line
         var inputText = Prompt + _inputBuffer;
-        var inputPosition = new Vector2D<float>(10f, _currentY + ConsoleHeight - 25f);
+        var inputPosition = new Vector2(10f, _currentY + ConsoleHeight - 25f);
 
-        yield return DrawTextCustom(
+        SpriteBatcher.DrawText(
             _fontFamily,
-            inputText,
             _fontSize,
+            inputText,
             inputPosition,
-            color: ForegroundColor,
-            depth: NextDepth()
+            ForegroundColor
         );
 
         // Cursor
         if (ShouldShowCaret(gameTime))
         {
             var textWidth = TextMeasurement.MeasureStringWidth(_assetManager, inputText, _fontFamily, _fontSize);
-            var caretPosition = new Vector2D<float>(inputPosition.X + textWidth, inputPosition.Y);
+            var caretPosition = new Vector2(inputPosition.X + textWidth, inputPosition.Y);
 
-            yield return DrawTextCustom(
+            SpriteBatcher.DrawText(
                 _fontFamily,
-                "_",
                 _fontSize,
+                "_",
                 caretPosition,
-                color: ForegroundColor,
-                depth: NextDepth()
+                ForegroundColor
             );
         }
     }
@@ -578,7 +570,7 @@ public sealed class QuakeConsoleGameObject : BaseGameObject2D, IInputReceiver, I
             AddLine(line, new(144, 238, 144));
         }
 
-        IsVisible = false;
+        IsActive = false;
         _isInitialized = true;
     }
 

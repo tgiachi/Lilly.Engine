@@ -1,12 +1,16 @@
 namespace Lilly.Engine.Core.Interfaces.Events;
 
+/// <summary>
+/// Defines a listener for events of type TEvent.
+/// </summary>
+/// <typeparam name="TEvent">The type of event to listen for.</typeparam>
 public interface IEventBusListener<in TEvent>
 {
     /// <summary>
     /// Handles the received event.
     /// </summary>
-    /// <param name="event">The event to handle.</param>
+    /// <param name="evt">The event to handle.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task HandleAsync(TEvent @event, CancellationToken cancellationToken = default);
+    Task HandleAsync(TEvent evt, CancellationToken cancellationToken = default);
 }

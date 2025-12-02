@@ -1,5 +1,6 @@
-using Lilly.Engine.Rendering.Core.Interfaces.Camera;
-using Silk.NET.Maths;
+using System.Numerics;
+using Lilly.Engine.Audio;
+using Lilly.Rendering.Core.Interfaces.Camera;
 
 namespace Lilly.Engine.Interfaces.Services;
 
@@ -11,28 +12,27 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Sets the listener's position in 3D space.
     /// </summary>
-    void SetListenerPosition(Vector3D<float> position);
+    void SetListenerPosition(Vector3 position);
 
     /// <summary>
     /// Sets the listener's velocity (for Doppler effect).
     /// </summary>
-    void SetListenerVelocity(Vector3D<float> velocity);
+    void SetListenerVelocity(Vector3 velocity);
 
     /// <summary>
     /// Sets the listener's orientation (forward and up vectors).
     /// </summary>
-    void SetListenerOrientation(Vector3D<float> forward, Vector3D<float> up);
-
+    void SetListenerOrientation(Vector3 forward, Vector3 up);
 
     /// <summary>
     /// Sets the camera to synchronize listener position and orientation.
-    ///
+    /// </summary>
     void Update(ICamera3D camera);
 
     /// <summary>
     /// Gets the current listener position.
     /// </summary>
-    Vector3D<float> GetListenerPosition();
+    Vector3 GetListenerPosition();
 
     /// <summary>
     /// Plays a sound effect at the listener's position (non-spatial).
@@ -42,7 +42,7 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Plays a sound effect at a specific position in 3D space.
     /// </summary>
-    void PlaySoundEffect3D(string soundName, Vector3D<float> position, float volume = 1.0f, float referenceDistance = 1.0f);
+    void PlaySoundEffect3D(string soundName, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f);
 
     /// <summary>
     /// Plays a looping audio stream.
@@ -52,7 +52,13 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Plays a looping audio stream at a specific position in 3D space.
     /// </summary>
-    void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f);
+    void PlayStream3D(
+        string streamName,
+        Vector3 position,
+        float volume = 1.0f,
+        bool isLooping = true,
+        float referenceDistance = 1.0f
+    );
 
     /// <summary>
     /// Stops a stream.
@@ -72,5 +78,5 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    void LoadAudioStream(string streamName, string filePath, bool isLooping = true);
+    void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true);
 }

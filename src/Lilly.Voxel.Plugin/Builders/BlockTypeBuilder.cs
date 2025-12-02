@@ -1,3 +1,4 @@
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
 using TrippyGL;

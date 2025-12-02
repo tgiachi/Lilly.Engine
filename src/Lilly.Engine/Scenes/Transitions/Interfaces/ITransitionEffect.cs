@@ -1,5 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 
 namespace Lilly.Engine.Scenes.Transitions.Interfaces;
 
@@ -14,10 +14,10 @@ public interface ITransitionEffect
     float Depth => 0.9f;
 
     /// <summary>
-    /// Renders the transition effect using the graphics render pipeline.
+    /// Renders the transition effect using the sprite batcher.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
     /// <param name="progress">The transition progress value from 0 to 1.</param>
-    /// <param name="renderPipeline">The render pipeline to enqueue render commands to.</param>
-    void Render(GameTime gameTime, float progress, IGraphicRenderPipeline renderPipeline);
+    /// <param name="spriteBatcher">The sprite batcher for rendering.</param>
+    void Render(GameTime gameTime, float progress, ILillySpriteBatcher spriteBatcher);
 }

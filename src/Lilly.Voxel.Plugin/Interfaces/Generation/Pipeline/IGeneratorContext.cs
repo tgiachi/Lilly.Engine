@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Noise;
 using Lilly.Voxel.Plugin.Primitives;
 

@@ -13,7 +13,7 @@ public static class AddScriptModuleExtension
     /// <summary>
     /// Registers a user data type with the container for Lua scripting.
     /// </summary>
-    public static IContainer AddLuaUserData(this IContainer container, Type userDataType)
+    public static IContainer RegisterLuaUserData(this IContainer container, Type userDataType)
     {
         if (userDataType == null)
         {
@@ -28,11 +28,11 @@ public static class AddScriptModuleExtension
     /// <summary>
     /// Registers a user data type with the container for Lua scripting using generics.
     /// </summary>
-    public static IContainer AddLuaUserData<TUserData>(this IContainer container)
+    public static IContainer RegisterLuaUserData<TUserData>(this IContainer container)
     {
         UserData.RegisterType<TUserData>();
 
-        return container.AddLuaUserData(typeof(TUserData));
+        return container.RegisterLuaUserData(typeof(TUserData));
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public static class AddScriptModuleExtension
     /// <param name="scriptModule">The type of the script module to register.</param>
     /// <returns>The container for method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when scriptModule is null.</exception>
-    public static IContainer AddScriptModule(this IContainer container, Type scriptModule)
+    public static IContainer RegisterScriptModule(this IContainer container, Type scriptModule)
     {
         if (scriptModule == null)
         {
@@ -62,6 +62,6 @@ public static class AddScriptModuleExtension
     /// <typeparam name="TScriptModule">The type of the script module to register.</typeparam>
     /// <param name="container">The dependency injection container.</param>
     /// <returns>The container for method chaining.</returns>
-    public static IContainer AddScriptModule<TScriptModule>(this IContainer container) where TScriptModule : class
-        => container.AddScriptModule(typeof(TScriptModule));
+    public static IContainer RegisterScriptModule<TScriptModule>(this IContainer container) where TScriptModule : class
+        => container.RegisterScriptModule(typeof(TScriptModule));
 }

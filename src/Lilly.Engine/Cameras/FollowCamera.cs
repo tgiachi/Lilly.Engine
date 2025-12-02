@@ -1,6 +1,6 @@
+using System.Numerics;
 using Lilly.Engine.Cameras.Base;
 using Lilly.Engine.Core.Data.Privimitives;
-using Silk.NET.Maths;
 
 namespace Lilly.Engine.Cameras;
 
@@ -11,13 +11,13 @@ namespace Lilly.Engine.Cameras;
 public class FollowCamera : Base3dCamera
 {
     private const float Epsilon = 1e-6f;
-    private Vector3D<float> _offset;
+    private Vector3 _offset;
     private float _followDistance = 5f;
     private float _smoothness = 5f;
 
-    public Vector3D<float> TargetPosition { get; set; } = Vector3D<float>.Zero;
+    public Vector3 TargetPosition { get; set; } = Vector3.Zero;
 
-    public Vector3D<float> Offset
+    public Vector3 Offset
     {
         get => _offset;
         set => _offset = value;
@@ -54,7 +54,7 @@ public class FollowCamera : Base3dCamera
         Name = name;
 
         // Default: follow from behind and above
-        _offset = new(0, FollowHeight, _followDistance);
+        _offset = new Vector3(0, FollowHeight, _followDistance);
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public class FollowCamera : Base3dCamera
     {
         var x = FollowDistance * MathF.Sin(angleY);
         var z = FollowDistance * MathF.Cos(angleY);
-        _offset = new(x, height, z);
+        _offset = new Vector3(x, height, z);
     }
 
     /// <summary>
@@ -78,14 +78,14 @@ public class FollowCamera : Base3dCamera
     {
         FollowDistance = distance;
         FollowHeight = height;
-        _offset = new(_offset.X, height, distance);
+        _offset = new Vector3(_offset.X, height, distance);
     }
 
     /// <summary>
     /// Sets the target position for the camera to follow.
     /// </summary>
     /// <param name="targetPosition">The position to follow</param>
-    public void SetTarget(Vector3D<float> targetPosition)
+    public void SetTarget(Vector3 targetPosition)
     {
         TargetPosition = targetPosition;
     }
@@ -101,9 +101,9 @@ public class FollowCamera : Base3dCamera
         // Smooth interpolation for camera position using exponential damping
         var lerpFactor = 1f - MathF.Exp(-_smoothness * deltaTime);
         lerpFactor = Math.Clamp(lerpFactor, 0f, 1f);
-        Position = Vector3D.Lerp(Position, targetCameraPosition, lerpFactor);
+        Position = Vector3.Lerp(Position, targetCameraPosition, lerpFactor);
 
         // Always look at the target
-        LookAt(TargetPosition, new(0, 1, 0));
+        LookAt(TargetPosition, new Vector3(0, 1, 0));
     }
 }

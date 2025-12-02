@@ -1,6 +1,6 @@
+using System.Numerics;
 using Lilly.Engine.Cameras.Base;
 using Lilly.Engine.Core.Data.Privimitives;
-using Silk.NET.Maths;
 
 namespace Lilly.Engine.Cameras;
 
@@ -47,7 +47,7 @@ public class FPSCamera : Base3dCamera
     public FPSCamera(string name = "FPSCamera")
     {
         Name = name;
-        Position = Vector3D<float>.Zero;
+        Position = Vector3.Zero;
     }
 
     /// <summary>
@@ -55,15 +55,15 @@ public class FPSCamera : Base3dCamera
     /// Yaw rotates around the world Y axis, pitch is clamped to prevent flipping.
     /// </summary>
     /// <param name="pitchDelta">Change in pitch in radians (positive = look up)</param>
-    /// <param name="yawDelta">Change in yaw in radians (positive = look right)</param>
+    /// <param name="yawDelta">Change in yaw in radians</param>
     public void Look(float pitchDelta, float yawDelta)
     {
         // Update yaw first (rotate around world Y axis)
         if (MathF.Abs(yawDelta) > Epsilon)
         {
-            var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), yawDelta);
+            var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), -yawDelta);
             Rotation = yawRotation * Rotation;
-            CurrentYaw += yawDelta;
+            CurrentYaw += -yawDelta;
         }
 
         // Then update pitch (rotate around camera's Right axis)
@@ -77,7 +77,7 @@ public class FPSCamera : Base3dCamera
             var actualPitchDelta = newPitch - CurrentPitch;
             if (MathF.Abs(actualPitchDelta) > Epsilon)
             {
-                var pitchRotation = Quaternion<float>.CreateFromAxisAngle(Right, actualPitchDelta);
+                var pitchRotation = Quaternion.CreateFromAxisAngle(Right, actualPitchDelta);
                 Rotation = pitchRotation * Rotation;
                 CurrentPitch = newPitch;
             }
@@ -89,13 +89,14 @@ public class FPSCamera : Base3dCamera
 
     /// <summary>
     /// Rotates the camera based on mouse movement delta.
+    /// Follows standard FPS conventions: move mouse right to look right, move down to look down.
     /// </summary>
-    /// <param name="mouseDeltaX">Horizontal mouse movement in pixels</param>
-    /// <param name="mouseDeltaY">Vertical mouse movement in pixels</param>
+    /// <param name="mouseDeltaX">Horizontal mouse movement in pixels (positive = right)</param>
+    /// <param name="mouseDeltaY">Vertical mouse movement in pixels (positive = down)</param>
     public void LookWithMouse(float mouseDeltaX, float mouseDeltaY)
     {
-        var pitchDelta = -mouseDeltaY * _mouseSensitivity;
-        var yawDelta = mouseDeltaX * _mouseSensitivity;
+        var pitchDelta = -mouseDeltaY * _mouseSensitivity; // Negate: mouse down (positive) = look down (negative pitch)
+        var yawDelta = mouseDeltaX * _mouseSensitivity;     // Direct: mouse right (positive) = look right (positive yaw)
 
         Look(pitchDelta, yawDelta);
     }
@@ -109,13 +110,32 @@ public class FPSCamera : Base3dCamera
     /// <param name="deltaTime">Time elapsed since last frame</param>
     public void MoveInFPSStyle(float forward, float right, float up, float deltaTime)
     {
-        var moveVector = Forward * forward + Right * right + new Vector3D<float>(0, 1, 0) * up;
+        // Project forward and right vectors onto XZ plane for horizontal movement
+        var forwardFlat = new Vector3(Forward.X, 0, Forward.Z);
+        var rightFlat = new Vector3(Right.X, 0, Right.Z);
 
-        if (moveVector.LengthSquared > Epsilon)
-        {
-            moveVector = Vector3D.Normalize(moveVector);
-            Move(moveVector * _movementSpeed * deltaTime);
-        }
+        // Normalize projected vectors (they lose length when projected if camera looks up/down)
+        var forwardFlatLen = forwardFlat.Length();
+        var rightFlatLen = rightFlat.Length();
+
+        if (forwardFlatLen > Epsilon)
+            forwardFlat = Vector3.Normalize(forwardFlat);
+        else
+            forwardFlat = Vector3.Zero;
+
+        if (rightFlatLen > Epsilon)
+            rightFlat = Vector3.Normalize(rightFlat);
+        else
+            rightFlat = Vector3.Zero;
+
+        // Calculate horizontal movement with normalized projected vectors
+        var horizontalMove = (forwardFlat * forward + rightFlat * right) * _movementSpeed * deltaTime;
+
+        // Add vertical movement separately (not normalized with horizontal)
+        var verticalMove = new Vector3(0, up * _movementSpeed * deltaTime, 0);
+
+        // Combine and apply
+        Move(horizontalMove + verticalMove);
 
         // Update target to stay in front of camera
         Target = Position + Forward;
@@ -128,7 +148,7 @@ public class FPSCamera : Base3dCamera
     {
         CurrentPitch = 0f;
         CurrentYaw = 0f;
-        Rotation = Quaternion<float>.Identity;
+        Rotation = Quaternion.Identity;
         Target = Position + Forward;
     }
 

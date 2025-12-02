@@ -1,14 +1,14 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
+using Lilly.Engine.Interfaces.Scenes;
 using Lilly.Engine.Scenes.Transitions.Base;
+using Lilly.Rendering.Core.Interfaces.Entities;
 
 namespace Lilly.Engine.Interfaces.Services;
 
 /// <summary>
 /// Defines the contract for scene management services.
 /// </summary>
-public interface ISceneManager : IUpdatable, IDisposable
+public interface ISceneManager : IUpdateble, IDisposable
 {
     /// <summary>
     /// Gets the currently active scene.

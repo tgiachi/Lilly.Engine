@@ -1,5 +1,5 @@
+using System.Numerics;
 using Lilly.Voxel.Plugin.Types;
-using Silk.NET.Maths;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Primitives;
@@ -17,17 +17,17 @@ public class ChunkEntity
     /// <summary>
     /// Number of blocks along the Y axis.
     /// </summary>
-    public const int Height = 128;
+    public const int Height = 32;
 
     /// <summary>
     /// Gets the world position at which the chunk is anchored.
     /// </summary>
-    public Vector3D<float> Position { get; }
+    public Vector3 Position { get; }
 
     /// <summary>
     /// Gets the chunk coordinates in the voxel world grid.
     /// </summary>
-    public ChunkCoordinates ChunkCoordinates { get; }
+    public Vector3 ChunkCoordinates { get; }
 
     /// <summary>
     /// Gets or sets the current state of this chunk.
@@ -39,39 +39,40 @@ public class ChunkEntity
     /// </summary>
     public bool IsMeshDirty { get; set; } = true;
 
-    /// <summary>
-    /// Initializes a new <see cref="ChunkEntity"/> at the provided position.
-    /// </summary>
-    /// <param name="position">World position of the chunk origin.</param>
-    public ChunkEntity(Vector3D<float> position)
-    {
-        Blocks = new ushort[Size * Size * Height];
-        LightLevels = new byte[Size * Size * Height];
-        // LightColors is lazy loaded
-        Position = position;
-        ChunkCoordinates = new ChunkCoordinates(
-            (int)(position.X / Size),
-            (int)(position.Y / Height),
-            (int)(position.Z / Size)
-        );
-
-        Array.Fill(LightLevels, (byte)15);
-    }
+    // /// <summary>
+    // /// Initializes a new <see cref="ChunkEntity"/> at the provided position.
+    // /// </summary>
+    // /// <param name="position">World position of the chunk origin.</param>
+    // public ChunkEntity(Vector3 position)
+    // {
+    //     Blocks = new ushort[Size * Size * Height];
+    //     LightLevels = new byte[Size * Size * Height];
+    //     // LightColors is lazy loaded
+    //     Position = position;
+    //     ChunkCoordinates = new Vector3(
+    //         (int)(position.X / Size),
+    //         (int)(position.Y / Height),
+    //         (int)(position.Z / Size)
+    //     );
+    //
+    //     Array.Fill(LightLevels, (byte)15);
+    // }
 
     /// <summary>
     /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.
     /// </summary>
     /// <param name="coordinates">Chunk coordinates in the world grid.</param>
-    public ChunkEntity(ChunkCoordinates coordinates)
+    public ChunkEntity(Vector3 coordinates)
     {
         Blocks = new ushort[Size * Size * Height];
         LightLevels = new byte[Size * Size * Height];
         // LightColors is lazy loaded
-        ChunkCoordinates = coordinates;
-        Position = new Vector3D<float>(
-            coordinates.X * Size,
-            coordinates.Y * Height,
-            coordinates.Z * Size
+        // coordinates passed in are world-space chunk origin (already multiplied by Size/Height)
+        Position = coordinates;
+        ChunkCoordinates = new Vector3(
+            coordinates.X / Size,
+            coordinates.Y / Height,
+            coordinates.Z / Size
         );
 
         Array.Fill(LightLevels, (byte)15);
@@ -145,7 +146,7 @@ public class ChunkEntity
     /// </summary>
     /// <param name="position">Vector position of the block.</param>
     /// <returns>The block entity at the position.</returns>
-    public ushort GetBlock(Vector3D<float> position)
+    public ushort GetBlock(Vector3 position)
     {
         return GetBlock((int)position.X, (int)position.Y, (int)position.Z);
     }
@@ -155,7 +156,7 @@ public class ChunkEntity
     /// </summary>
     /// <param name="position">Vector position of the block.</param>
     /// <param name="block">Block entity to store.</param>
-    public void SetBlock(Vector3D<float> position, ushort block)
+    public void SetBlock(Vector3 position, ushort block)
     {
         SetBlock((int)position.X, (int)position.Y, (int)position.Z, block);
     }
@@ -200,7 +201,7 @@ public class ChunkEntity
     /// </summary>
     /// <param name="position">Vector position of the block.</param>
     /// <returns>The corresponding linear index.</returns>
-    public int GetIndex(Vector3D<float> position)
+    public int GetIndex(Vector3 position)
     {
         return GetIndex((int)position.X, (int)position.Y, (int)position.Z);
     }
@@ -218,7 +219,7 @@ public class ChunkEntity
     /// <summary>
     /// Provides array-style access to blocks using a vector position.
     /// </summary>
-    public ushort this[Vector3D<float> position]
+    public ushort this[Vector3 position]
     {
         get => GetBlock(position);
         set => SetBlock(position, value);
@@ -306,7 +307,7 @@ public class ChunkEntity
                z >= 0 && z < Size;
     }
 
-    public bool IsInBounds(Vector3D<float> position)
+    public bool IsInBounds(Vector3 position)
     {
         return IsInBounds((int)position.X, (int)position.Y, (int)position.Z);
     }

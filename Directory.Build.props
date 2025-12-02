@@ -27,7 +27,7 @@
         <Copyright>© $(Company) $([System.DateTime]::Now.Year)</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryType>git</RepositoryType>
-        <PackageProjectUrl>https://github.com/youruser/$(MSBuildProjectName)</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/tgiachi/$(MSBuildProjectName)</PackageProjectUrl>
         <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
     </PropertyGroup>
 
@@ -52,7 +52,7 @@
 
     <!-- Common Package References -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.0">
+        <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>

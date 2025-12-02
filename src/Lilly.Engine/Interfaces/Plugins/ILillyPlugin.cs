@@ -1,7 +1,7 @@
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Interfaces.Plugins;
 
@@ -13,7 +13,7 @@ public interface ILillyPlugin
 
     void EngineReady(IContainer container);
 
-    IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory);
+    IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory);
 
     IContainer RegisterModule(IContainer container);
 }

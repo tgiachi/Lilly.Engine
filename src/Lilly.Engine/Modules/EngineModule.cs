@@ -1,5 +1,5 @@
 using Lilly.Engine.Core.Attributes.Scripts;
-using Lilly.Engine.Rendering.Core.Contexts;
+using Lilly.Rendering.Core.Context;
 using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Modules;
@@ -17,9 +17,9 @@ public class EngineModule
     [ScriptFunction("on_update", "Registers a closure to be called on each engine update cycle.")]
     public void OnUpdate(Closure update)
     {
-        _renderContext.Renderer.Update += (gameTime) =>
-                                          {
-                                              update.Call(gameTime);
-                                          };
+        _renderContext.Renderer.OnUpdate += (gameTime) =>
+                                            {
+                                                update.Call(gameTime);
+                                            };
     }
 }

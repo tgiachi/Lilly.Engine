@@ -1,51 +1,105 @@
 using DryIoc;
 using Lilly.Engine.Core.Extensions.Container;
-using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Plugins;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
-using Lilly.Engine.Rendering.Core.Extensions;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Shaders;
+using Lilly.Engine.Vertexts;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Voxel.Plugin.GameObjects;
-using Lilly.Voxel.Plugin.GameObjects.Environment;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
-using Lilly.Voxel.Plugin.Primitives.Vertex;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
 using Lilly.Voxel.Plugin.Steps.World;
-using Serilog;
+using Lilly.Voxel.Plugin.Vertexs;
+
+using Lilly.Voxel.Plugin.Steps.Lighting;
 
 namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
 {
+    private bool _isWorldFlat = false;
+
     public LillyPluginData LillyData
-        => new LillyPluginData("com.lillyengine.voxel", "Lilly Voxel Plugin", "squid", "1.0.0", []);
+        => new LillyPluginData(
+            "com.tgiachi.lilly.voxel",
+            "Lilly Voxel Plugin",
+            "0.1.0",
+            "squid",
+            "com.tgiachi.lilly.gameobjects"
+        );
 
-    private readonly ILogger _logger = Log.ForContext<LillyVoxelPlugin>();
-
-    private readonly bool _isWorldFlat ;
-
-    public void EngineInitialized(IContainer container)
+    public LillyVoxelPlugin()
     {
-        container.Resolve<ChunkLightingService>();
-        container.Resolve<ChunkMeshBuilder>();
-
-        LoadShaders(container.Resolve<IAssetManager>());
+        JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
     }
+
+    public void EngineInitialized(IContainer container) { }
 
     public void EngineReady(IContainer container)
     {
-        AddGenerationSteps(container.Resolve<IChunkGeneratorService>(), container.Resolve<IBlockRegistry>());
+        LoadAssets(container.Resolve<IAssetManager>());
+        var blockRegistry = container.Resolve<IBlockRegistry>();
+        var chunkGeneratorService = container.Resolve<IChunkGeneratorService>();
+        var lightingService = container.Resolve<ChunkLightPropagationService>();
+
+        if (_isWorldFlat)
+        {
+            chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));
+        }
+        else
+        {
+            chunkGeneratorService.AddGeneratorStep(new HeightMapGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainErosionGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
+            chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
+            chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+
+            // Lighting must run last to calculate correct light levels
+            chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));
+        }
     }
 
-    private void LoadShaders(IAssetManager assetManager)
+    public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
+    {
+        yield return gameObjectFactory.Create<SkyGameObject>();
+        yield return gameObjectFactory.Create<WorldGameObject>();
+
+        // yield return gameObjectFactory.Create<RainEffectGameObject>();
+    }
+
+    public IContainer RegisterModule(IContainer container)
+    {
+        container
+            .RegisterService<IBlockRegistry, BlockRegistry>()
+            .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
+            .RegisterService<ChunkLightingService>()
+            .RegisterService<ChunkLightPropagationService>()
+            .RegisterService<ChunkMeshBuilder>();
+
+        container.RegisterScriptModule<BlockRegistryModule>()
+                 .RegisterScriptModule<GenerationModule>()
+                 .RegisterScriptModule<WorldModule>();
+
+        container
+            .RegisterGameObject<WorldGameObject>()
+            .RegisterGameObject<ChunkGameObject>()
+            .RegisterGameObject<SnowEffectGameObject>()
+            .RegisterGameObject<RainEffectGameObject>()
+            .RegisterGameObject<SkyGameObject>()
+            ;
+
+        return container;
+    }
+
+    private void LoadAssets(IAssetManager assetManager)
     {
         // Chunk rendering shaders
         assetManager.LoadShaderFromResource<ChunkVertex>(
@@ -78,7 +132,7 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         // Environment shaders
         assetManager.LoadShaderFromResource<PositionVertex>(
-            "dynamicSky",
+            "sky",
             "Assets/Shaders/Environment/dynamic_sky.shader",
             ["aPosition"],
             typeof(LillyVoxelPlugin).Assembly
@@ -92,68 +146,31 @@ public class LillyVoxelPlugin : ILillyPlugin
         );
 
         assetManager.LoadShaderFromResource<RainVertex>(
-            "rain_legacy",
-            "Assets/Shaders/Environment/rain_legacy.shader",
+            "rain",
+            "Assets/Shaders/Environment/rain.shader",
             ["aPosition", "aCorner", "aLength", "aAlpha"],
             typeof(LillyVoxelPlugin).Assembly
         );
 
         assetManager.LoadShaderFromResource<CloudsVertex>(
             "clouds_legacy",
-            "Assets/Shaders/Environment/clouds_legacy.shader",
+            "Assets/Shaders/Environment/clouds.shader",
             ["aPosition", "aNormal"],
             typeof(LillyVoxelPlugin).Assembly
         );
-    }
 
-    public IEnumerable<IGameObject> GlobalGameObjects(IGameObjectFactory gameObjectFactory)
-    {
-        yield return gameObjectFactory.Create<VoxelWorldGameObject>();
-    }
+        assetManager.LoadTextureFromResource(
+            "snowflake",
+            "Assets/Textures/snowflake.png",
+            typeof(LillyVoxelPlugin).Assembly
+        );
 
-    public IContainer RegisterModule(IContainer container)
-    {
-        JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
-
-        container.RegisterGameObject<SkyGameObject>()
-                 .RegisterGameObject<CloudsGameObject>()
-                 .RegisterGameObject<SnowEffectGameObject>()
-                 .RegisterGameObject<RainEffectGameObject>()
-                 .RegisterGameObject<VoxelWorldGameObject>()
-                 .RegisterGameObject<ChunkGameObject>()
-                 .RegisterGameObject<BlockOutlineGameObject>()
-            ;
-
-        container.RegisterService<IBlockRegistry, BlockRegistry>();
-
-        container.RegisterService<IChunkGeneratorService, ChunkGeneratorService>();
-
-        container.RegisterService<ChunkLightingService>();
-
-        container.RegisterService<ChunkMeshBuilder>();
-
-        container
-            .AddScriptModule<BlockRegistryModule>()
-            .AddScriptModule<GenerationModule>()
-            .AddScriptModule<WorldModule>()
-            ;
-
-        return container;
-    }
-
-    private void AddGenerationSteps(IChunkGeneratorService chunkGeneratorService, IBlockRegistry blockRegistry)
-    {
-        if (_isWorldFlat)
-        {
-            chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
-        }
-        else
-        {
-            chunkGeneratorService.AddGeneratorStep(new HeightMapGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new TerrainErosionGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
-            chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
-        }
+        assetManager.LoadTextureAtlasFromResource(
+            "sun_moon",
+            "Assets/Textures/sun_moon.png",
+            typeof(LillyVoxelPlugin).Assembly,
+            32,
+            32
+        );
     }
 }

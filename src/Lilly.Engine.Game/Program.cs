@@ -7,11 +7,11 @@ using Lilly.Engine.Core.Extensions.Logger;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Logging;
 using Lilly.Engine.Core.Utils;
+using Lilly.Engine.Data.Config;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
-using Lilly.Engine.Renderers;
-using Lilly.Engine.Rendering.Core.Data.Config;
+using Lilly.Rendering.Core.Data.Config;
 using Lilly.Voxel.Plugin;
 using Serilog;
 using Serilog.Events;
@@ -20,16 +20,14 @@ using Serilog.Sinks.SystemConsole.Themes;
 await ConsoleApp.RunAsync(
     args,
     async (
-        string rootDirectory = null,
+        string? rootDirectory = null,
         bool logToFile = false,
         LogLevelType logLevel = LogLevelType.Debug,
-        int width = 1280 ,
+        int width = 1280,
         int height = 720
     ) =>
     {
-
         //--root-directory /Users/squid/lilly --width 3272 --height 1277
-
 
         JsonUtils.RegisterJsonContext(LillyLuaScriptJsonContext.Default);
         var container = new Container();
@@ -43,35 +41,34 @@ await ConsoleApp.RunAsync(
 
         InitializeLogger(logToFile, logLevel.ToSerilogLogLevel(), rootDirectory);
 
-        container.RegisterPlugin(typeof(DefaultGameObjectPlugin).Assembly);
+        var bootstrap = new LillyBootstrap(container);
 
-        var bootstrap = new LillyBoostrap(container, new OpenGlRenderer());
+        var config = new InitialEngineOptions();
 
-        var initialEngineOptions = new InitialEngineOptions
-        {
-            GraphicOptions =
-            {
-                WindowSize = new(width, height)
-            }
-        };
+        config.RenderConfig.WindowConfig.Height = height;
+        config.RenderConfig.WindowConfig.Width = width;
 
         if (PlatformUtils.IsRunningOnLinux())
         {
-            initialEngineOptions.TargetRenderVersion = new(4, 5, 0, 0);
+            config.RenderConfig.OpenGlApiLevel = new(4, 6);
         }
 
-        bootstrap.OnConfiguring += container1 =>
+        bootstrap.OnConfiguring += _ =>
                                    {
-                                       container1.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+                                       container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
+                                       container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
                                    };
 
-        ///https: //github.com/aemeny/Custom-OpenGL-GameEngine
+        await bootstrap.InitializeAsync(config);
 
-        await bootstrap.InitializeAsync(initialEngineOptions);
+        Log.Logger.Information("Starting Lilly Engine...");
 
         await bootstrap.RunAsync();
 
         await bootstrap.ShutdownAsync();
+
+        Log.Logger.Information("Shutting down Lilly Engine...");
+        Log.CloseAndFlush();
     }
 );
 
@@ -84,9 +81,8 @@ void InitializeLogger(bool logToFile, LogEventLevel logEventLevel, string rootDi
 
     logConfiguration.MinimumLevel.Is(logEventLevel);
 
-
-
     logConfiguration.WriteTo.Async(s => s.Console(theme: AnsiConsoleTheme.Code));
+
     //logConfiguration.WriteTo.Console(theme: AnsiConsoleTheme.Literate);
 
     if (logToFile)

@@ -28,14 +28,16 @@ public static class RegisterSingletonExtensions
                 )
             );
 
-            if (autoStart)
-            {
-                container.AddToRegisterTypedList(new AutostartRegistration(typeof(TService)));
-            }
+            container.AddToRegisterTypedList(new AutostartRegistration(typeof(TService), autoStart));
 
             return container;
         }
 
+        /// <summary>
+        /// Registers a service with itself as a singleton (when service and implementation are the same type).
+        /// </summary>
+        /// <typeparam name="TService">The service type.</typeparam>
+        /// <returns>The container for method chaining.</returns>
         public IContainer RegisterService<TService>()
         {
             return container.RegisterService<TService, TService>();

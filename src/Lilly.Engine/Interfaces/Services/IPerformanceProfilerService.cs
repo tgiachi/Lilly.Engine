@@ -1,13 +1,10 @@
-using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
-using TrippyGL;
 
 namespace Lilly.Engine.Interfaces.Services;
 
 /// <summary>
 /// Service for collecting and managing performance metrics
 /// </summary>
-public interface IPerformanceProfilerService : IUpdatable
+public interface IPerformanceProfilerService
 {
     /// <summary>
     /// Gets the current frame rate (FPS)
@@ -85,6 +82,31 @@ public interface IPerformanceProfilerService : IUpdatable
     IReadOnlyList<double> FpsHistory { get; }
 
     /// <summary>
+    /// Gets the total draw calls for the current frame
+    /// </summary>
+    int DrawCallsThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total vertices rendered in the current frame
+    /// </summary>
+    int VerticesThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total triangles rendered in the current frame
+    /// </summary>
+    int TrianglesThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total texture bindings for the current frame
+    /// </summary>
+    int TextureBindingsThisFrame { get; }
+
+    /// <summary>
+    /// Gets the total shader switches for the current frame
+    /// </summary>
+    int ShaderSwitchesThisFrame { get; }
+
+    /// <summary>
     /// Gets a summary of current performance metrics
     /// </summary>
     /// <returns>Dictionary of metric name to value</returns>
@@ -96,26 +118,22 @@ public interface IPerformanceProfilerService : IUpdatable
     void ResetMetrics();
 
     /// <summary>
-    /// Sets the graphics device for collecting graphics metrics
+    /// Records a draw call with vertex count
     /// </summary>
-    /// <param name="graphicsDevice">The graphics device to monitor</param>
-    void SetGraphicsDevice(GraphicsDevice graphicsDevice);
+    void RecordDrawCall(int vertexCount);
 
     /// <summary>
-    /// Updates draw timing metrics
+    /// Records a texture binding
     /// </summary>
-    /// <param name="drawTime">Draw time in milliseconds</param>
-    void UpdateDrawTime(GameTime gameTime);
+    void RecordTextureBinding();
 
     /// <summary>
-    /// Updates frame timing metrics
+    /// Records a shader switch
     /// </summary>
-    /// <param name="frameTime">Frame time in milliseconds</param>
-    void UpdateFrameTime(GameTime gameTime);
+    void RecordShaderSwitch();
 
     /// <summary>
-    /// Updates update timing metrics
+    /// Resets per-frame counters (called at start of each frame)
     /// </summary>
-    /// <param name="updateTime">Update time in milliseconds</param>
-    void UpdateUpdateTime(GameTime gameTime);
+    void ResetFrameCounters();
 }

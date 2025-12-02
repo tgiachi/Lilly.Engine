@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
+using Lilly.Rendering.Core.Interfaces.Renderers;
 using Serilog;
 
 namespace Lilly.Engine.Dispatchers;
@@ -28,7 +28,7 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
     {
         _renderer = renderer;
         _mainThreadId = Environment.CurrentManagedThreadId;
-        _renderer.Update += Update;
+        _renderer.OnUpdate += Update;
     }
 
     public int QueuedActionCount => _actionQueue.Count;
@@ -40,7 +40,7 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
     /// </summary>
     public void Dispose()
     {
-        _renderer.Update -= Update;
+        _renderer.OnUpdate -= Update;
         _actionQueue.Clear();
         GC.SuppressFinalize(this);
     }

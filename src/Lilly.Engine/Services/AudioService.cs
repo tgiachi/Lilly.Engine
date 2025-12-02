@@ -1,7 +1,7 @@
+using System.Numerics;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Interfaces.Camera;
-using Silk.NET.Maths;
+using Lilly.Rendering.Core.Interfaces.Camera;
 using Silk.NET.OpenAL;
 using Serilog;
 
@@ -15,17 +15,35 @@ public class AudioService : IAudioService
 {
     private readonly ILogger _logger = Log.ForContext<AudioService>();
     private readonly AL _al;
-    private Vector3D<float> _listenerPosition = Vector3D<float>.Zero;
-    private Vector3D<float> _listenerVelocity = Vector3D<float>.Zero;
-    private Vector3D<float> _listenerForward = new(0, 0, -1);
-    private Vector3D<float> _listenerUp = new(0, 1, 0);
+    private Vector3 _listenerPosition = Vector3.Zero;
+    private Vector3 _listenerVelocity = Vector3.Zero;
+    private Vector3 _listenerForward = new(0, 0, -1);
+    private Vector3 _listenerUp = new(0, 1, 0);
 
-    private readonly Dictionary<string, Audio.AudioEffect> _soundEffects = new();
-    private readonly Dictionary<string, Audio.AudioStream> _streams = new();
+    private readonly Dictionary<string, AudioEffect> _soundEffects = new();
+    private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly Dictionary<string, AlBuffer> _cachedBuffers = new();
 
     public AudioService()
     {
+
+        /**
+         *
+         * // open the mp3 file.
+MP3Stream stream = new MP3Stream(@"sample.mp3");
+// Create the buffer.
+byte[] buffer = new byte[4096];
+// read the entire mp3 file.
+int bytesReturned = 1;
+int totalBytesRead = 0;
+while (bytesReturned > 0)
+{
+    bytesReturned = stream.Read(buffer, 0, buffer.Length);
+    totalBytesRead += bytesReturned;
+}
+// close the stream after we're done with it.
+stream.Close();
+         */
         // Initialize AudioMaster (OpenAL context)
         _al = AudioMaster.GetInstance().Al;
 
@@ -38,7 +56,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Sets the listener's position in 3D space.
     /// </summary>
-    public void SetListenerPosition(Vector3D<float> position)
+    public void SetListenerPosition(Vector3 position)
     {
         _listenerPosition = position;
         UpdateListenerProperties();
@@ -47,7 +65,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Sets the listener's velocity (for Doppler effect).
     /// </summary>
-    public void SetListenerVelocity(Vector3D<float> velocity)
+    public void SetListenerVelocity(Vector3 velocity)
     {
         _listenerVelocity = velocity;
         UpdateListenerProperties();
@@ -56,7 +74,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Sets the listener's orientation (forward and up vectors).
     /// </summary>
-    public void SetListenerOrientation(Vector3D<float> forward, Vector3D<float> up)
+    public void SetListenerOrientation(Vector3 forward, Vector3 up)
     {
         _listenerForward = forward;
         _listenerUp = up;
@@ -67,13 +85,12 @@ public class AudioService : IAudioService
     {
         SetListenerPosition(camera.Position);
         SetListenerOrientation(camera.Forward, camera.Up);
-
     }
 
     /// <summary>
     /// Gets the current listener position.
     /// </summary>
-    public Vector3D<float> GetListenerPosition() => _listenerPosition;
+    public Vector3 GetListenerPosition() => _listenerPosition;
 
     /// <summary>
     /// Plays a sound effect at the listener's position (non-spatial).
@@ -100,7 +117,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Plays a sound effect at a specific position in 3D space.
     /// </summary>
-    public void PlaySoundEffect3D(string soundName, Vector3D<float> position, float volume = 1.0f, float referenceDistance = 1.0f)
+    public void PlaySoundEffect3D(string soundName, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f)
     {
         try
         {
@@ -147,7 +164,7 @@ public class AudioService : IAudioService
     /// <summary>
     /// Plays a looping audio stream at a specific position in 3D space.
     /// </summary>
-    public void PlayStream3D(string streamName, Vector3D<float> position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f)
+    public void PlayStream3D(string streamName, Vector3 position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f)
     {
         try
         {
@@ -221,11 +238,11 @@ public class AudioService : IAudioService
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    public void LoadAudioStream(string streamName, string filePath, bool isLooping = true)
+    public void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true)
     {
         try
         {
-            var stream = new Audio.AudioStream(filePath, isLooping);
+            var stream = new AudioStream(filePath, audioType, isLooping);
             _streams[streamName] = stream;
             _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
         }

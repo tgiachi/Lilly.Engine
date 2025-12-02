@@ -1,4 +1,5 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Numerics;
 using NVorbis;
 using Silk.NET.Maths;
 using Silk.NET.OpenAL;
@@ -66,9 +67,9 @@ public class AudioEffect : IDisposable
     /// <summary>
     /// Sets the 3D position of the sound effect.
     /// </summary>
-    public void SetPosition(Vector3D<float> position)
+    public void SetPosition(Vector3 position)
     {
-        alSource.SetPosition(position);
+        alSource.SetPosition(new Vector3D<float>(position.X, position.Y, position.Z));
     }
 
     /// <summary>
@@ -99,8 +100,8 @@ public class AudioEffect : IDisposable
     /// <summary>
     /// Sets the velocity of the sound effect (for Doppler effect).
     /// </summary>
-    public void SetVelocity(Vector3D<float> velocity)
+    public void SetVelocity(Vector3 velocity)
     {
-        alSource.SetVelocity(velocity);
+        alSource.SetVelocity(new Vector3D<float>(velocity.X, velocity.Y, velocity.Z));
     }
 }

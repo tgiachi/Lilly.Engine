@@ -1,3 +1,4 @@
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Builders;
 using Lilly.Voxel.Plugin.Json.Entities;
 using Lilly.Voxel.Plugin.Primitives;

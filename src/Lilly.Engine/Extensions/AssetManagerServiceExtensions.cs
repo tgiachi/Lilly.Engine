@@ -1,6 +1,6 @@
 using System.Reflection;
 using Lilly.Engine.Core.Utils;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Interfaces.Services;
 using TrippyGL;
 
 namespace Lilly.Engine.Extensions;
@@ -28,6 +28,46 @@ public static class AssetManagerServiceExtensions
             }
 
             assetManager.LoadShaderFromMemory<TVertex>(shaderName, shaderContent, attributeNames);
+        }
+
+        public void LoadTextureFromResource(
+            string textureName,
+            string resourcePath,
+            Assembly assembly
+        )
+        {
+            using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+            if (textureStream == null)
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'."
+                );
+            }
+
+            assetManager.LoadTextureFromMemory(textureName, textureStream);
+        }
+
+        public void LoadTextureAtlasFromResource(
+            string atlasName,
+            string resourcePath,
+            Assembly assembly,
+            int tileWidth,
+            int tileHeight,
+            int spacing = 0,
+            int margin = 0
+        )
+        {
+            using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+            if (textureStream == null)
+            {
+                throw new InvalidOperationException(
+                    $"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'."
+                );
+            }
+
+            assetManager.LoadTextureAtlasFromMemory(atlasName, textureStream, tileWidth, tileHeight, spacing, margin);
         }
     }
 }

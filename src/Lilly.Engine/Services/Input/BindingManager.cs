@@ -1,4 +1,4 @@
-using Lilly.Engine.Rendering.Core.Data.Input;
+using Lilly.Rendering.Core.Data.Input;
 using Serilog;
 
 namespace Lilly.Engine.Services.Input;

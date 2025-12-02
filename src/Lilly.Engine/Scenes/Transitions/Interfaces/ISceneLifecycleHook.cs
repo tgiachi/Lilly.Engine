@@ -1,4 +1,4 @@
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
+using Lilly.Engine.Interfaces.Scenes;
 
 namespace Lilly.Engine.Scenes.Transitions.Interfaces;
 

@@ -1,246 +1,146 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using ImGuiNET;
-using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Interfaces.Debuggers;
+using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Collections;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
 
 namespace Lilly.Engine.Debuggers;
 
-/// <summary>
-/// ImGui debugger for displaying real-time performance metrics
-/// </summary>
-public class PerformanceDebugger : IImGuiDebugger
+public class PerformanceDebugger : BaseImGuiDebuggerGameObject
 {
-    public IGameObject? Parent { get; set; }
-    public GameObjectCollection<IGameObject> Children { get; } = new();
-    public uint Id { get; set; }
-    public string Name { get; set; } = "Performance Debugger";
-    public ushort Order { get; } = 1000;
+    private readonly IPerformanceProfilerService _profiler;
 
-    private readonly IPerformanceProfilerService _profilerService;
-
-    public bool IsVisible { get; set; } = true;
-    public string WindowTitle { get; set; } = "Performance Debugger";
-
-    public PerformanceDebugger(IPerformanceProfilerService profilerService)
-        => _profilerService = profilerService ?? throw new ArgumentNullException(nameof(profilerService));
-
-    public IEnumerable<RenderCommand> Render(GameTime gameTime)
+    public PerformanceDebugger(IPerformanceProfilerService profiler) : base("Performance debugger")
     {
-        DrawMainMetrics();
-        ImGui.Separator();
-
-        if (ImGui.CollapsingHeader("Detailed Metrics", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            DrawDetailedMetrics();
-        }
-
-        if (ImGui.CollapsingHeader("Performance Graphs", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            DrawPerformanceGraphs();
-        }
-
-        if (ImGui.CollapsingHeader("Memory Info", ImGuiTreeNodeFlags.DefaultOpen))
-        {
-            DrawMemoryInfo();
-        }
-
-        ImGui.Separator();
-
-        if (ImGui.Button("Reset Metrics", new(120, 0)))
-        {
-            _profilerService.ResetMetrics();
-        }
-
-        yield break;
+        _profiler = profiler;
     }
 
-    private void DrawDetailedMetrics()
+    protected override void DrawDebug()
     {
-        ImGui.Indent();
+        DrawSummary();
 
-        // Frame timing details
-        ImGui.Text($"Min Frame Time: {_profilerService.MinFrameTime:F2} ms");
-        ImGui.Text($"Max Frame Time: {_profilerService.MaxFrameTime:F2} ms");
+        ImGui.Separator();
+        ImGui.TextUnformatted("Graphs");
 
-        // Draw time info
-        ImGui.Spacing();
-        ImGui.Text($"Update Time: {_profilerService.CurrentUpdateTime:F2} ms");
-        ImGui.Text($"Draw Time: {_profilerService.CurrentDrawTime:F2} ms");
-        ImGui.SameLine();
-        ImGui.Text($"(Avg: {_profilerService.AverageDrawTime:F2} ms)");
+        PlotHistory("Frame time (ms)", _profiler.FrameTimeHistory);
+        PlotHistory("Update time (ms)", _profiler.UpdateTimeHistory);
+        PlotHistory("Draw time (ms)", _profiler.DrawTimeHistory);
+        PlotHistory("FPS", _profiler.FpsHistory);
 
-        // Total frames
-        ImGui.Spacing();
-        ImGui.Text($"Total Frames: {_profilerService.TotalFrames}");
-
-        // Frame time distribution bar
-        var minFrameTime = _profilerService.MinFrameTime;
-        var maxFrameTime = _profilerService.MaxFrameTime;
-        var avgFrameTime = _profilerService.AverageFrameTime;
-
-        if (maxFrameTime > minFrameTime)
+        if (ImGui.Button("Reset metrics"))
         {
-            var normalizedPosition = (avgFrameTime - minFrameTime) / (maxFrameTime - minFrameTime);
-            normalizedPosition = Math.Clamp(normalizedPosition, 0, 1);
+            _profiler.ResetMetrics();
+        }
+    }
 
-            ImGui.ProgressBar(
-                (float)normalizedPosition,
-                new(-1, 0),
-                $"Avg: {avgFrameTime:F2} ms"
+    private void DrawSummary()
+    {
+        if (ImGui.BeginTable("perf_summary", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        {
+            ImGui.TableSetupColumn("Metric");
+            ImGui.TableSetupColumn("Value");
+            ImGui.TableHeadersRow();
+
+            DrawMetricRow("FPS (current / avg)", $"{_profiler.CurrentFps:F1} / {_profiler.AverageFps:F1}");
+            DrawMetricRow(
+                "Frame time ms (cur / avg / min / max)",
+                $"{_profiler.CurrentFrameTime:F3} / {_profiler.AverageFrameTime:F3} / {_profiler.MinFrameTime:F3} / {_profiler.MaxFrameTime:F3}"
             );
+            DrawMetricRow("Update time ms (cur)", $"{_profiler.CurrentUpdateTime:F3}");
+            DrawMetricRow("Draw time ms (cur / avg)", $"{_profiler.CurrentDrawTime:F3} / {_profiler.AverageDrawTime:F3}");
+            DrawMetricRow("Memory MB", $"{_profiler.MemoryUsageMb:F2}");
+            DrawMetricRow("Frames", _profiler.TotalFrames.ToString());
+
+            ImGui.EndTable();
         }
 
-        ImGui.Unindent();
+        ImGui.Separator();
+        ImGui.TextUnformatted("OpenGL Metrics (this frame)");
+
+        if (ImGui.BeginTable("opengl_metrics", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+        {
+            ImGui.TableSetupColumn("Metric");
+            ImGui.TableSetupColumn("Value");
+            ImGui.TableHeadersRow();
+
+            DrawMetricRow("Draw calls", _profiler.DrawCallsThisFrame.ToString());
+            DrawMetricRow("Vertices", _profiler.VerticesThisFrame.ToString());
+            DrawMetricRow("Triangles", _profiler.TrianglesThisFrame.ToString());
+            DrawMetricRow("Texture bindings", _profiler.TextureBindingsThisFrame.ToString());
+            DrawMetricRow("Shader switches", _profiler.ShaderSwitchesThisFrame.ToString());
+
+            ImGui.EndTable();
+        }
     }
 
-    private void DrawMainMetrics()
+    private static void DrawMetricRow(string name, string value)
     {
-        var fps = _profilerService.CurrentFps;
-        var fpsColor = GetFpsColor(fps);
-
-        ImGui.TextColored(fpsColor, $"FPS: {fps:F1}");
-        ImGui.SameLine();
-        ImGui.Text($"(Avg: {_profilerService.AverageFps:F1})");
-
-        var frameTime = _profilerService.CurrentFrameTime;
-        ImGui.Text($"Frame Time: {frameTime:F2} ms");
-        ImGui.SameLine();
-        ImGui.Text($"(Avg: {_profilerService.AverageFrameTime:F2} ms)");
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.TextUnformatted(name);
+        ImGui.TableSetColumnIndex(1);
+        ImGui.TextUnformatted(value);
     }
 
-    private void DrawMemoryInfo()
+    private static void PlotHistory(string label, IReadOnlyList<double> data)
     {
-        ImGui.Indent();
+        if (data.Count == 0)
+        {
+            ImGui.TextUnformatted($"{label}: no data");
 
-        var memoryMb = _profilerService.MemoryUsageMb;
-        ImGui.Text($"Memory Usage: {memoryMb:F2} MB");
+            return;
+        }
 
-        // Memory progress bar (normalized to 1GB as reference)
-        const float referenceMemoryMb = 1024.0f; // 1 GB as reference
-        var normalizedMemory = Math.Min((float)(memoryMb / referenceMemoryMb), 1.0f);
+        var length = data.Count;
+        Span<float> buffer = length <= 256
+                                 ? stackalloc float[256]
+                                 : new float[length];
 
-        var memoryColor = GetMemoryColor(normalizedMemory);
-        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, memoryColor);
-        ImGui.ProgressBar(
-            normalizedMemory,
-            new(-1, 0),
-            $"{normalizedMemory * 100:F0}% of 1 GB reference"
+        for (var i = 0; i < length; i++)
+        {
+            buffer[i] = (float)data[i];
+        }
+
+        var span = buffer[..length];
+        var (min, max) = GetMinMax(span);
+
+        ImGui.PlotLines(
+            label,
+            ref MemoryMarshal.GetReference(span),
+            span.Length,
+            0,
+            null,
+            min,
+            max,
+            new Vector2(-1, 60),
+            sizeof(float)
         );
-        ImGui.PopStyleColor();
-
-        ImGui.Spacing();
-
-        if (ImGui.Button("Force GC", new(100, 0)))
-        {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-        }
-
-        ImGui.Unindent();
     }
 
-    private void DrawPerformanceGraphs()
+    private static (float min, float max) GetMinMax(Span<float> span)
     {
-        ImGui.Indent();
-
-        var fpsHistory = _profilerService.FpsHistory;
-
-        if (fpsHistory.Count > 0)
+        if (span.IsEmpty)
         {
-            var fpsArray = fpsHistory.Select(x => (float)x).ToArray();
-            var fpsMin = fpsArray.Length > 0 ? fpsArray.Min() * 0.9f : 0;
-            var fpsMax = fpsArray.Length > 0 ? fpsArray.Max() * 1.1f : 60;
-
-            ImGui.PlotLines(
-                "FPS History",
-                ref fpsArray[0],
-                fpsArray.Length,
-                0,
-                $"Current: {_profilerService.CurrentFps:F1}",
-                fpsMin,
-                fpsMax,
-                new(ImGui.GetContentRegionAvail().X, 80)
-            );
+            return (0f, 0f);
         }
 
-        ImGui.Spacing();
+        float min = span[0];
+        float max = span[0];
 
-        var frameTimeHistory = _profilerService.FrameTimeHistory;
-
-        if (frameTimeHistory.Count > 0)
+        for (var i = 1; i < span.Length; i++)
         {
-            var frameTimeArray = frameTimeHistory.Select(x => (float)x).ToArray();
-            var ftMin = frameTimeArray.Length > 0 ? frameTimeArray.Min() * 0.9f : 0;
-            var ftMax = frameTimeArray.Length > 0 ? frameTimeArray.Max() * 1.1f : 16.67f;
+            var value = span[i];
+            if (value < min)
+            {
+                min = value;
+            }
 
-            ImGui.PlotLines(
-                "Frame Time History (ms)",
-                ref frameTimeArray[0],
-                frameTimeArray.Length,
-                0,
-                $"Current: {_profilerService.CurrentFrameTime:F2}",
-                ftMin,
-                ftMax,
-                new(ImGui.GetContentRegionAvail().X, 80)
-            );
+            if (value > max)
+            {
+                max = value;
+            }
         }
 
-        ImGui.Spacing();
-
-        var drawTimeHistory = _profilerService.DrawTimeHistory;
-
-        if (drawTimeHistory.Count > 0)
-        {
-            var drawTimeArray = drawTimeHistory.Select(x => (float)x).ToArray();
-            var dtMin = drawTimeArray.Length > 0 ? drawTimeArray.Min() * 0.9f : 0;
-            var dtMax = drawTimeArray.Length > 0 ? drawTimeArray.Max() * 1.1f : 10;
-
-            ImGui.PlotLines(
-                "Draw Time History (ms)",
-                ref drawTimeArray[0],
-                drawTimeArray.Length,
-                0,
-                $"Current: {_profilerService.CurrentDrawTime:F2}",
-                dtMin,
-                dtMax,
-                new(ImGui.GetContentRegionAvail().X, 80)
-            );
-        }
-
-        ImGui.Unindent();
-    }
-
-    private static Vector4 GetFpsColor(double fps)
-    {
-        if (fps >= 50)
-        {
-            return new(0, 1, 0, 1); // Green - good
-        }
-
-        if (fps >= 30)
-        {
-            return new(1, 1, 0, 1); // Yellow - acceptable
-        }
-
-        return new(1, 0, 0, 1); // Red - poor
-    }
-
-    private static Vector4 GetMemoryColor(float normalizedMemory)
-    {
-        if (normalizedMemory < 0.5f)
-        {
-            return new(0, 1, 0, 1); // Green
-        }
-
-        if (normalizedMemory < 0.8f)
-        {
-            return new(1, 1, 0, 1); // Yellow
-        }
-
-        return new(1, 0, 0, 1); // Red
+        return (min, max);
     }
 }

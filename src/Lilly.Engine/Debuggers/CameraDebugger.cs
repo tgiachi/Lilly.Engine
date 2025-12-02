@@ -1,61 +1,66 @@
-using System.Numerics;
-using ImGuiNET;
-using Lilly.Engine.Debuggers.Base;
-using Lilly.Engine.Interfaces.Services;
-using Silk.NET.Maths;
+using Lilly.Engine.GameObjects.Base;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Debuggers;
 
-public class CameraDebugger : BaseDebugger
+public class CameraDebugger : BaseImGuiDebuggerGameObject
 {
-    private readonly ICamera3dService _camera3dService;
+    private readonly ICamera3dService _cameraService;
 
-    public CameraDebugger(ICamera3dService camera3dService) : base("Camera Debugger")
-        => _camera3dService = camera3dService;
-
-    public override void DrawImGui()
+    public CameraDebugger(ICamera3dService cameraService) : base("Camera Debugger")
     {
-        ImGui.LabelText(_camera3dService.ActiveCamera?.Name ?? "No Active Camera", "Current Active Camera");
+        _cameraService = cameraService;
+    }
 
-        // Available Cameras
-        if (ImGui.CollapsingHeader("Available Cameras", ImGuiTreeNodeFlags.DefaultOpen))
+    protected override void DrawDebug()
+    {
+        var cameras = _cameraService.Cameras;
+        var activeCamera = _cameraService.ActiveCamera;
+
+        ImGuiNET.ImGui.Text($"Available Cameras: {cameras.Count}");
+        ImGuiNET.ImGui.Separator();
+
+        if (cameras.Count == 0)
         {
-            foreach (var camera in _camera3dService.Cameras)
-            {
-                ImGui.BulletText(camera.Name);
-            }
+            ImGuiNET.ImGui.Text("No cameras registered.");
+            return;
         }
 
-        if (_camera3dService.ActiveCamera != null)
+        if (ImGuiNET.ImGui.BeginCombo("Active Camera", activeCamera?.Name ?? "None"))
         {
-            if (ImGui.CollapsingHeader("Camera Properties", ImGuiTreeNodeFlags.DefaultOpen))
+            foreach (var camera in cameras)
             {
-                var camera = _camera3dService.ActiveCamera;
-
-                ImGui.LabelText(camera.Position.ToString(), "Position");
-                ImGui.LabelText(camera.Rotation.ToString(), "Rotation");
-                ImGui.LabelText(camera.FieldOfView.ToString("F2"), "Field of View");
-                ImGui.LabelText(camera.AspectRatio.ToString("F2"), "Aspect Ratio");
-
-                var position = camera.Position.ToSystem();
-                ImGui.Separator();
-                ImGui.Text("Position");
-
-                if (ImGui.InputFloat3("##Position", ref position))
+                bool isSelected = camera == activeCamera;
+                if (ImGuiNET.ImGui.Selectable(camera.Name, isSelected))
                 {
-                    camera.Position = new(position.X, position.Y, position.Z);
+                    _cameraService.CurrentCamera = camera;
                 }
 
-                ImGui.Separator();
-                ImGui.Text("Rotation");
-
-                var rotation = camera.Rotation.ToSystem().AsVector4();
-
-                if (ImGui.InputFloat4("##Rotation", ref rotation))
+                if (isSelected)
                 {
-                    camera.Rotation = new(rotation.X, rotation.Y, rotation.Z, rotation.W);
+                    ImGuiNET.ImGui.SetItemDefaultFocus();
                 }
             }
+
+            ImGuiNET.ImGui.EndCombo();
         }
+
+        ImGuiNET.ImGui.Separator();
+
+        if (activeCamera == null)
+        {
+            ImGuiNET.ImGui.Text("No active camera selected.");
+            return;
+        }
+
+        ImGuiNET.ImGui.Text($"Camera: {activeCamera.Name}");
+        ImGuiNET.ImGui.Text($"Enabled: {activeCamera.Enabled}");
+        ImGuiNET.ImGui.Text($"Position: X: {activeCamera.Position.X:F2}, Y: {activeCamera.Position.Y:F2}, Z: {activeCamera.Position.Z:F2}");
+        ImGuiNET.ImGui.Text(
+            $"Rotation: Pitch: {activeCamera.Rotation.X:F2}, Yaw: {activeCamera.Rotation.Y:F2}, Roll: {activeCamera.Rotation.Z:F2}"
+        );
+        ImGuiNET.ImGui.Text($"FOV: {activeCamera.FieldOfView:F2}");
+        ImGuiNET.ImGui.Text($"Near Clip: {activeCamera.NearPlane:F2}");
+        ImGuiNET.ImGui.Text($"Far Clip: {activeCamera.FarPlane:F2}");
     }
 }

@@ -1,15 +1,15 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Events;
-using Lilly.Engine.Rendering.Core.Contexts;
-using Lilly.Engine.Rendering.Core.Data.Input;
-using Lilly.Engine.Rendering.Core.Interfaces.Features;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Data.Input;
+using Lilly.Rendering.Core.Interfaces.Input;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;
 using Silk.NET.Maths;
-using MouseButton = Lilly.Engine.Rendering.Core.Types.MouseButton;
+using MouseButton = Lilly.Rendering.Core.Types.MouseButton;
 
 namespace Lilly.Engine.Services.Input;
 
@@ -29,8 +29,8 @@ public class InputManagerService : IInputManagerService
 
     public InputManagerService(RenderContext renderContext)
     {
-        _keyboardHandler = new(renderContext.InputContext.Keyboards[0]);
-        _mouseHandler = new(renderContext.InputContext.Mice[0]);
+        _keyboardHandler = new(renderContext.Input.Keyboards[0]);
+        _mouseHandler = new(renderContext.Input.Mice[0]);
         _focusManager = new();
         _bindingManager = new(_keyboardHandler);
     }

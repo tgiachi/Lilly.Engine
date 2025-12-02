@@ -23,16 +23,13 @@ public class FlatWorldGenerationStep : IGeneratorStep
     {
         var chunkSize = context.ChunkSize();
         var chunkHeight = context.ChunkHeight();
-        var chunkBaseY = (int)context.WorldPosition.Y;
+        var chunkWorldY = (int)context.WorldPosition.Y;
+        
+        // Define global surface height (World Y)
+        const int SurfaceY = 15;
+        const int DirtDepth = 3;
 
-        if (chunkBaseY >= ChunkEntity.Height)
-        {
-            context.FillBlocks(0, 0, 0, chunkSize, chunkHeight, chunkSize, 0);
-
-            return Task.CompletedTask;
-        }
-
-        // Get block IDs from the block registry
+        // Get block IDs
         var bedrockId = context.GetBlockIdByName("bedrock");
         var stoneId = context.GetBlockIdByName("stone");
         var dirtId = context.GetBlockIdByName("dirt");
@@ -40,32 +37,53 @@ public class FlatWorldGenerationStep : IGeneratorStep
         var flowerIds = GetFlowerIds(context);
         var itemId = context.GetBlockIdByName("item_1");
 
-        // Layer 0: Bedrock (indestructible foundation)
-        if (bedrockId.HasValue)
+        // Iterate through each vertical layer of the chunk
+        for (int y = 0; y < chunkHeight; y++)
         {
-            context.FillLayer(0, bedrockId.Value);
+            int currentWorldY = chunkWorldY + y;
+
+            // Don't generate anything below world 0 (void)
+            if (currentWorldY < 0) continue;
+
+            ushort? blockToPlace = null;
+
+            if (currentWorldY == 0)
+            {
+                // Bottom of the world
+                blockToPlace = bedrockId;
+            }
+            else if (currentWorldY < SurfaceY - DirtDepth)
+            {
+                // Deep underground
+                blockToPlace = stoneId;
+            }
+            else if (currentWorldY < SurfaceY)
+            {
+                // Dirt layer just below surface
+                blockToPlace = dirtId;
+            }
+            else if (currentWorldY == SurfaceY)
+            {
+                // Surface
+                blockToPlace = grassId;
+            }
+
+            if (blockToPlace.HasValue)
+            {
+                context.FillLayer(y, blockToPlace.Value);
+            }
         }
 
-        // Layers 1-28: Stone (main underground)
-        if (stoneId.HasValue)
-        {
-            context.FillBlocks(0, 1, 0, chunkSize, 29, chunkSize, stoneId.Value);
-        }
+        // Decorators (Flowers & Items) - placed at SurfaceY + 1
+        // We only place them if this chunk contains the layer just above the surface
+        int decorationWorldY = SurfaceY + 1;
+        int localDecorationY = decorationWorldY - chunkWorldY;
 
-        // Layers 29-31: Dirt (soil layer)
-        if (dirtId.HasValue)
+        if (localDecorationY >= 0 && localDecorationY < chunkHeight && grassId.HasValue)
         {
-            context.FillBlocks(0, 29, 0, chunkSize, 32, chunkSize, dirtId.Value);
+             PlaceFlowers(context, localDecorationY, grassId.Value, flowerIds);
+             PlaceItem(context, localDecorationY, grassId.Value, itemId);
         }
-
-        // Layer 31: Grass (surface)
-        if (grassId.HasValue)
-        {
-            context.FillLayer(31, grassId.Value);
-        }
-
-        PlaceFlowers(context, grassId, flowerIds);
-        PlaceItem(context, grassId, itemId);
 
         return Task.CompletedTask;
     }
@@ -87,47 +105,42 @@ public class FlatWorldGenerationStep : IGeneratorStep
         return ids;
     }
 
-    private static void PlaceFlowers(IGeneratorContext context, ushort? grassId, List<ushort> flowerIds)
+    private static void PlaceFlowers(IGeneratorContext context, int y, ushort grassId, List<ushort> flowerIds)
     {
-        if (!grassId.HasValue || flowerIds.Count == 0 || context.ChunkHeight() <= 32)
-        {
-            return;
-        }
+        if (flowerIds.Count == 0) return;
 
         var chunk = context.GetChunk();
         var coordinates = chunk.ChunkCoordinates;
         var randomSeed = HashCode.Combine(context.Seed, coordinates.X, coordinates.Y, coordinates.Z);
         var random = new Random(randomSeed);
 
-        const int flowersPerChunk = 2;
+        const double flowerChance = 0.002; // 0.2% per grass column
 
-        for (int i = 0; i < flowersPerChunk; i++)
+        for (int z = 0; z < context.ChunkSize(); z++)
         {
-            bool placed = false;
-
-            for (int attempt = 0; attempt < 16 && !placed; attempt++)
+            for (int x = 0; x < context.ChunkSize(); x++)
             {
-                int x = random.Next(0, context.ChunkSize());
-                int z = random.Next(0, context.ChunkSize());
-
-                if (chunk.GetBlock(x, 31, z) != grassId.Value)
-                {
+                if (random.NextDouble() > flowerChance)
                     continue;
-                }
+
+                // Check block below (y-1) to ensure it's grass
+                // Note: We need to be careful if y=0, checking y-1 would be out of bounds for this chunk.
+                // However, since we are strictly placing at SurfaceY+1, and SurfaceY is usually grass, 
+                // we can assume valid placement if the logic above is correct.
+                // But for safety/correctness, we should check the actual block if it's within bounds.
+                
+                if (y > 0 && chunk.GetBlock(x, y - 1, z) != grassId)
+                   continue;
 
                 var flowerId = flowerIds[random.Next(flowerIds.Count)];
-                context.SetBlock(x, 32, z, flowerId);
-                placed = true;
+                context.SetBlock(x, y, z, flowerId);
             }
         }
     }
 
-    private static void PlaceItem(IGeneratorContext context, ushort? grassId, ushort? itemId)
+    private static void PlaceItem(IGeneratorContext context, int y, ushort grassId, ushort? itemId)
     {
-        if (!grassId.HasValue || !itemId.HasValue || context.ChunkHeight() <= 32)
-        {
-            return;
-        }
+        if (!itemId.HasValue) return;
 
         var chunk = context.GetChunk();
         var coordinates = chunk.ChunkCoordinates;
@@ -139,17 +152,17 @@ public class FlatWorldGenerationStep : IGeneratorStep
             int x = random.Next(0, context.ChunkSize());
             int z = random.Next(0, context.ChunkSize());
 
-            if (chunk.GetBlock(x, 31, z) != grassId.Value)
+            if (y > 0 && chunk.GetBlock(x, y - 1, z) != grassId)
             {
                 continue;
             }
 
-            if (chunk.GetBlock(x, 32, z) != 0)
+            if (chunk.GetBlock(x, y, z) != 0)
             {
                 continue;
             }
 
-            context.SetBlock(x, 32, z, itemId.Value);
+            context.SetBlock(x, y, z, itemId.Value);
             break;
         }
     }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Json.Converters;

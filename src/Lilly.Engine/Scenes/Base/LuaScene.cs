@@ -1,5 +1,5 @@
-using Lilly.Engine.Rendering.Core.Interfaces.Scenes;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Interfaces.Scenes;
+using Lilly.Rendering.Core.Interfaces.Services;
 using MoonSharp.Interpreter;
 
 namespace Lilly.Engine.Scenes.Base;
@@ -8,7 +8,7 @@ public class LuaScene : BaseScene
 {
     private readonly Table _table;
 
-    public LuaScene(Table table, IGameObjectManager gameObjectManager, string name) : base(gameObjectManager, name)
+    public LuaScene(Table table, IRenderPipeline renderPipeline, string name) : base(renderPipeline, name)
     {
         _table = table;
         SceneActivated += OnSceneActivated;

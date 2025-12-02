@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Lilly.Engine.GameObjects.Utils;
+using Lilly.Engine.Utils;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.UI.Theme;
@@ -22,12 +23,12 @@ public class UITheme : INotifyPropertyChanged
     /// <summary>
     /// Gets or sets the default font name for all UI components.
     /// </summary>
-    public string FontName { get; set; } = DefaultFontAndSizes.DefaultUiFont;
+    public string FontName { get; set; } = DefaultFonts.DefultFontName;
 
     /// <summary>
     /// Gets or sets the default font size for all UI components.
     /// </summary>
-    public int FontSize { get; set; } = DefaultFontAndSizes.DefaultUiFontSize;
+    public int FontSize { get; set; } = DefaultSizes.DefaultUiFontSize;
 
     // ========== PRIMARY COLORS ==========
 
@@ -200,8 +201,8 @@ public class UITheme : INotifyPropertyChanged
     public static UITheme Default
         => new()
         {
-            FontName = DefaultFontAndSizes.DefaultUiFont,
-            FontSize = DefaultFontAndSizes.DefaultUiFontSize,
+            FontName = DefaultFonts.DefultFontName,
+            FontSize = DefaultSizes.DefaultUiFontSize,
             TextColor = Color4b.Black,
             BackgroundColor = Color4b.White,
             BackgroundColorFocused = new(220, 230, 255),
@@ -239,8 +240,8 @@ public class UITheme : INotifyPropertyChanged
     public static UITheme Dark
         => new()
         {
-            FontName = DefaultFontAndSizes.DefaultUiFont,
-            FontSize = DefaultFontAndSizes.DefaultUiFontSize,
+            FontName = DefaultFonts.DefultFontName,
+            FontSize = DefaultSizes.DefaultUiFontSize,
             TextColor = Color4b.WhiteSmoke,
             BackgroundColor = new(40, 40, 40),
             BackgroundColorFocused = new(60, 60, 80),
@@ -278,8 +279,8 @@ public class UITheme : INotifyPropertyChanged
     public static UITheme Minimal
         => new()
         {
-            FontName = DefaultFontAndSizes.DefaultUiFont,
-            FontSize = DefaultFontAndSizes.DefaultUiFontSize,
+            FontName = DefaultFonts.DefultFontName,
+            FontSize = DefaultSizes.DefaultUiFontSize,
             TextColor = Color4b.Black,
             BackgroundColor = Color4b.White,
             BackgroundColorFocused = new(245, 245, 250),
@@ -317,8 +318,8 @@ public class UITheme : INotifyPropertyChanged
     public static UITheme Vibrant
         => new()
         {
-            FontName = DefaultFontAndSizes.DefaultUiFont,
-            FontSize = DefaultFontAndSizes.DefaultUiFontSize,
+            FontName = DefaultFonts.DefultFontName,
+            FontSize = DefaultSizes.DefaultUiFontSize,
             TextColor = new(30, 30, 40),
             BackgroundColor = new(255, 255, 250),
             BackgroundColorFocused = new(240, 248, 255),

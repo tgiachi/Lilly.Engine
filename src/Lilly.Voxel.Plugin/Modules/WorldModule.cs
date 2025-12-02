@@ -1,7 +1,5 @@
 using DryIoc;
 using Lilly.Engine.Core.Attributes.Scripts;
-using Lilly.Engine.Layers;
-using Lilly.Voxel.Plugin.GameObjects;
 
 namespace Lilly.Voxel.Plugin.Modules;
 
@@ -18,8 +16,8 @@ public class WorldModule
     [ScriptFunction("remove_block", "Removes the block at the current targeted position in the voxel world.")]
     public void RemoveBlock()
     {
-        var voxelGameObject = _container.Resolve<RenderLayerSystem3D>().GetGameObject<VoxelWorldGameObject>();
-
-        voxelGameObject.RemoveCurrentBlock();
+        // var voxelGameObject = _container.Resolve<IRenderLayer>().GetEntity< VoxelWorldGameObject > ();
+        //
+        // voxelGameObject.RemoveCurrentBlock();
     }
 }

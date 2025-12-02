@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Numerics;
 using NVorbis;
 using Silk.NET.Maths;
 using Silk.NET.OpenAL;
@@ -8,7 +10,8 @@ namespace Lilly.Engine.Audio;
 public class AudioStream : IDisposable
 {
     public const int NB_BUFFERS = 4;
-    private readonly VorbisReader vorbisReader;
+
+    private readonly IAudioDecoder decoder;
     private readonly int _channels;
     private readonly int _sampleRate;
     private readonly Queue<AlBuffer> buffers = new();
@@ -20,24 +23,21 @@ public class AudioStream : IDisposable
     private bool loop;
     private Thread? thread;
 
-    public AudioStream(string path, bool loop = true)
+    public AudioStream(string path, AudioType audioType = AudioType.Ogg, bool loop = true)
     {
         this.loop = loop;
         al = AudioMaster.GetInstance().Al;
-        vorbisReader = new(path);
 
-        _channels = vorbisReader.Channels;
-        _sampleRate = vorbisReader.SampleRate;
-        _format = BufferFormat.Mono16;
+        var (initialStream, streamFactory) = CreateStreamFactory(path);
+        decoder = CreateDecoder(audioType, initialStream, streamFactory);
 
-        if (_channels == 2)
-        {
-            _format = BufferFormat.Stereo16;
-        }
+        _channels = decoder.Channels;
+        _sampleRate = decoder.SampleRate;
+        _format = _channels == 2 ? BufferFormat.Stereo16 : BufferFormat.Mono16;
 
         alSource = new();
 
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < NB_BUFFERS; i++)
         {
             var alBuffer = new AlBuffer();
             var haveNext = FillBufferWithSound(alBuffer, _channels, _sampleRate, _format);
@@ -57,9 +57,10 @@ public class AudioStream : IDisposable
         {
             return;
         }
+
         alSource.Stop();
         isPlaying = false;
-        vorbisReader.Dispose();
+        decoder.Dispose();
         alSource.Dispose();
 
         foreach (var buffer in buffers)
@@ -88,7 +89,7 @@ public class AudioStream : IDisposable
 
     public void Seek(int i)
     {
-        vorbisReader.SeekTo(i);
+        decoder.Seek(i);
     }
 
     public void Stop()
@@ -118,33 +119,51 @@ public class AudioStream : IDisposable
         }
     }
 
+    private static (Stream initialStream, Func<Stream> streamFactory) CreateStreamFactory(string source)
+    {
+        Func<Stream> fileFactory = () => File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return (fileFactory(), fileFactory);
+    }
+
+    private static IAudioDecoder CreateDecoder(AudioType audioType, Stream initialStream, Func<Stream> streamFactory)
+        => audioType switch
+        {
+            AudioType.Ogg => new OggDecoder(initialStream, streamFactory),
+            AudioType.Mp3 => new Mp3Decoder(initialStream, streamFactory),
+            _ => throw new ArgumentOutOfRangeException(nameof(audioType), audioType, "Unsupported audio format"),
+        };
+
     private bool FillBufferWithSound(AlBuffer buffer, int channels, int sampleRate, BufferFormat format)
     {
-        var readBuffer = new float[channels * sampleRate / 5];
-        var rawData = new Span<byte>(new byte[readBuffer.Length * sizeof(short)]);
+        var samplesPerBuffer = channels * sampleRate / 5;
+        var readBuffer = ArrayPool<short>.Shared.Rent(samplesPerBuffer);
 
-        var samplesRead = vorbisReader.ReadSamples(readBuffer, 0, readBuffer.Length);
+        var samplesRead = decoder.ReadSamples(readBuffer, 0, samplesPerBuffer);
+
+        if (loop && samplesRead < samplesPerBuffer)
+        {
+            decoder.Reset();
+            samplesRead += decoder.ReadSamples(readBuffer, samplesRead, samplesPerBuffer - samplesRead);
+        }
+
+        if (samplesRead == 0)
+        {
+            ArrayPool<short>.Shared.Return(readBuffer);
+            return false;
+        }
+
+        var rawData = new byte[samplesRead * sizeof(short)];
+        var rawSpan = new Span<byte>(rawData);
 
         for (var i = 0; i < samplesRead; i++)
         {
-            var sampleShort = (short)(readBuffer[i] * short.MaxValue);
-            BinaryPrimitives.WriteInt16LittleEndian(rawData.Slice(i * sizeof(short), sizeof(short)), sampleShort);
+            BinaryPrimitives.WriteInt16LittleEndian(rawSpan.Slice(i * sizeof(short), sizeof(short)), readBuffer[i]);
         }
 
-        if (loop && samplesRead < readBuffer.Length)
-        {
-            vorbisReader.SeekTo(0);
-            var samplesRead2 = vorbisReader.ReadSamples(readBuffer, samplesRead, readBuffer.Length - samplesRead);
+        buffer.SetData(format, rawData, sampleRate);
+        ArrayPool<short>.Shared.Return(readBuffer);
 
-            for (var i = samplesRead; i < samplesRead + samplesRead2; i++)
-            {
-                var sampleShort = (short)(readBuffer[i] * short.MaxValue);
-                BinaryPrimitives.WriteInt16LittleEndian(rawData.Slice(i * sizeof(short), sizeof(short)), sampleShort);
-            }
-        }
-        buffer.SetData(format, rawData.ToArray(), sampleRate);
-
-        return loop || samplesRead >= readBuffer.Length;
+        return loop || samplesRead >= samplesPerBuffer;
     }
 
     private void ThreadUpdater()
@@ -176,9 +195,9 @@ public class AudioStream : IDisposable
     /// <summary>
     /// Sets the 3D position of the audio stream.
     /// </summary>
-    public void SetPosition(Vector3D<float> position)
+    public void SetPosition(Vector3 position)
     {
-        alSource.SetPosition(position);
+        alSource.SetPosition(new Vector3D<float>(position.X, position.Y, position.Z));
     }
 
     /// <summary>
@@ -209,8 +228,162 @@ public class AudioStream : IDisposable
     /// <summary>
     /// Sets the velocity of the audio stream (for Doppler effect).
     /// </summary>
-    public void SetVelocity(Vector3D<float> velocity)
+    public void SetVelocity(Vector3 velocity)
     {
-        alSource.SetVelocity(velocity);
+        alSource.SetVelocity(new Vector3D<float>(velocity.X, velocity.Y, velocity.Z));
+    }
+
+    private interface IAudioDecoder : IDisposable
+    {
+        int Channels { get; }
+        int SampleRate { get; }
+        int ReadSamples(short[] buffer, int offset, int count);
+        void Reset();
+        void Seek(long samplePosition);
+    }
+
+    private sealed class OggDecoder : IAudioDecoder
+    {
+        private VorbisReader reader;
+        private readonly Func<Stream> streamFactory;
+
+        public OggDecoder(Stream stream, Func<Stream> streamFactory)
+        {
+            this.streamFactory = streamFactory;
+            reader = CreateReader(stream);
+        }
+
+        public int Channels => reader.Channels;
+        public int SampleRate => reader.SampleRate;
+
+        public int ReadSamples(short[] buffer, int offset, int count)
+        {
+            var floatBuffer = ArrayPool<float>.Shared.Rent(count);
+            var read = reader.ReadSamples(floatBuffer, 0, count);
+
+            for (var i = 0; i < read; i++)
+            {
+                var sample = Math.Clamp(floatBuffer[i], -1.0f, 1.0f);
+                buffer[offset + i] = (short)(sample * short.MaxValue);
+            }
+
+            ArrayPool<float>.Shared.Return(floatBuffer);
+
+            return read;
+        }
+
+        public void Reset()
+        {
+            try
+            {
+                reader.SeekTo(0);
+                return;
+            }
+            catch
+            {
+                reader.Dispose();
+                reader = CreateReader(streamFactory());
+            }
+        }
+
+        public void Seek(long samplePosition)
+        {
+            try
+            {
+                reader.SeekTo(samplePosition);
+            }
+            catch
+            {
+                Reset();
+            }
+        }
+
+        public void Dispose()
+        {
+            reader.Dispose();
+        }
+
+        private static VorbisReader CreateReader(Stream stream)
+            => new(stream, closeOnDispose: true);
+    }
+
+    private sealed class Mp3Decoder : IAudioDecoder
+    {
+        private MP3Sharp.MP3Stream mp3Stream;
+        private Stream backingStream;
+        private readonly Func<Stream> streamFactory;
+        private byte[] byteBuffer = new byte[8192];
+
+        public Mp3Decoder(Stream stream, Func<Stream> streamFactory)
+        {
+            this.streamFactory = streamFactory;
+            backingStream = stream;
+            mp3Stream = new MP3Sharp.MP3Stream(backingStream);
+        }
+
+        public int Channels => mp3Stream.ChannelCount;
+        public int SampleRate => mp3Stream.Frequency;
+
+        public int ReadSamples(short[] buffer, int offset, int count)
+        {
+            var bytesNeeded = count * sizeof(short);
+
+            if (byteBuffer.Length < bytesNeeded)
+            {
+                byteBuffer = new byte[bytesNeeded];
+            }
+
+            var bytesRead = mp3Stream.Read(byteBuffer, 0, Math.Min(byteBuffer.Length, bytesNeeded));
+            var samplesRead = bytesRead / sizeof(short);
+
+            for (var i = 0; i < samplesRead; i++)
+            {
+                buffer[offset + i] = BinaryPrimitives.ReadInt16LittleEndian(byteBuffer.AsSpan(i * sizeof(short), sizeof(short)));
+            }
+
+            return samplesRead;
+        }
+
+        public void Reset()
+        {
+            mp3Stream.Dispose();
+            backingStream.Dispose();
+
+            backingStream = streamFactory();
+            mp3Stream = new MP3Sharp.MP3Stream(backingStream);
+        }
+
+        public void Seek(long samplePosition)
+        {
+            Reset();
+
+            if (samplePosition <= 0)
+            {
+                return;
+            }
+
+            var skipBuffer = ArrayPool<short>.Shared.Rent(4096);
+            var remaining = samplePosition;
+
+            while (remaining > 0)
+            {
+                var toRead = (int)Math.Min(remaining, skipBuffer.Length);
+                var read = ReadSamples(skipBuffer, 0, toRead);
+
+                if (read == 0)
+                {
+                    break;
+                }
+                remaining -= read;
+            }
+
+            ArrayPool<short>.Shared.Return(skipBuffer);
+        }
+
+        public void Dispose()
+        {
+            mp3Stream.Dispose();
+            backingStream.Dispose();
+        }
     }
 }

@@ -1,6 +1,7 @@
+using System.Numerics;
 using Lilly.Engine.Cameras;
 using Lilly.Engine.Core.Attributes.Scripts;
-using Lilly.Engine.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.Modules;
 
@@ -23,13 +24,25 @@ public class CameraModule
     {
         if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
         {
-            var moveVector = fpsCamera.Forward * forward + fpsCamera.Right * right + new Silk.NET.Maths.Vector3D<float>(0, 1, 0) * up;
+            // Forwards movement now follows the camera's true forward vector, including vertical component.
+            var actualForward = fpsCamera.Forward * forward;
 
-            if (moveVector.LengthSquared > 0.0001f)
-            {
-                moveVector = Silk.NET.Maths.Vector3D.Normalize(moveVector);
-                fpsCamera.Move(moveVector * 0.5f);  // 0.5 units per call
-            }
+            // Strafing (right/left) movement is still projected onto the XZ plane for horizontal movement.
+            var rightFlat = new Vector3(fpsCamera.Right.X, 0, fpsCamera.Right.Z);
+            if (rightFlat.Length() > 0.0001f)
+                rightFlat = Vector3.Normalize(rightFlat);
+            else
+                rightFlat = Vector3.Zero;
+            var strafeMove = rightFlat * -right; // Inverted 'right' movement as previously corrected
+
+            // Vertical movement is separate.
+            var verticalMove = new Vector3(0, up, 0);
+
+            // Combine and apply all movements
+            fpsCamera.Move((actualForward + strafeMove + verticalMove) * 0.5f);
+
+            // CRITICAL: Update target to stay in front of camera after moving
+            fpsCamera.Target = fpsCamera.Position + fpsCamera.Forward;
         }
     }
 
@@ -43,9 +56,11 @@ public class CameraModule
     [ScriptFunction("dispatch_mouse_fps", "Dispatches mouse delta directly for FPS camera using Look method.")]
     public void DispatchMouseFps(float pitchDelta, float yawDelta)
     {
+        // pitchDelta: positive = look up, negative = look down
+        // yawDelta: positive = look right, negative = look left
         if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
         {
-            fpsCamera.Look(pitchDelta, yawDelta);
+            fpsCamera.Look(-pitchDelta, yawDelta);
         }
     }
 

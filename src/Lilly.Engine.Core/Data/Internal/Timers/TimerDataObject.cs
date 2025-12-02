@@ -61,6 +61,22 @@ public class TimerDataObject
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Number of complete wheel rotations remaining before this timer fires.
+    /// Used for timers with intervals longer than one wheel rotation.
+    /// </summary>
+    public int RemainingRounds { get; set; }
+
+    /// <summary>
+    /// Reference to the linked list node in the timer wheel slot for O(1) removal
+    /// </summary>
+    public LinkedListNode<TimerDataObject>? SlotNode { get; set; }
+
+    /// <summary>
+    /// Index of the slot where this timer is currently stored
+    /// </summary>
+    public int SlotIndex { get; set; } = -1;
+
+    /// <summary>
     /// Decrements the remaining time by the specified amount
     /// </summary>
     /// <param name="deltaTimeMs">Time to subtract in milliseconds</param>
@@ -85,6 +101,9 @@ public class TimerDataObject
         AsyncCallback = null;
         IsAsync = false;
         IsActive = true;
+        RemainingRounds = 0;
+        SlotNode = null;
+        SlotIndex = -1;
     }
 
     /// <summary>

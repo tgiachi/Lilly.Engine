@@ -1,13 +1,12 @@
-using System.Diagnostics;
 using System.Reflection;
 using FontStashSharp;
 using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
-using Lilly.Engine.Rendering.Core.Contexts;
-using Lilly.Engine.Rendering.Core.Data.TextureAtlas;
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
-using Lilly.Engine.Rendering.Core.Utils;
+using Lilly.Engine.Data.Atlas;
+using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Context;
 using Serilog;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -18,6 +17,9 @@ using TrippyGL.ImageSharp;
 
 namespace Lilly.Engine.Services;
 
+/// <summary>
+/// Manages loading and caching of assets such as textures, fonts, and shaders.
+/// </summary>
 public class AssetManager : IAssetManager, IDisposable
 {
     private readonly int[] defaultSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64, 72, 96, 128, 144, 192, 256];
@@ -88,6 +90,11 @@ public class AssetManager : IAssetManager, IDisposable
         KernelHeight = 2
     };
 
+    /// <summary>
+    /// Initializes a new instance of the AssetManager class.
+    /// </summary>
+    /// <param name="directoriesConfig">The directories configuration.</param>
+    /// <param name="context">The render context.</param>
     public AssetManager(DirectoriesConfig directoriesConfig, RenderContext context)
     {
         _directoriesConfig = directoriesConfig;
@@ -103,13 +110,13 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="size">The size of the font.</param>
     /// <typeparam name="TFont">The type of the font.</typeparam>
     /// <returns>The font instance.</returns>
-    public TFont GetFont<TFont>(string fontName, int size) where TFont : class
+    public DynamicSpriteFont GetFont(string fontName, int size)
     {
         var key = $"{fontName}_{size}";
 
         if (_dynamicSpriteFonts.TryGetValue(key, out var font))
         {
-            return font as TFont;
+            return font ;
         }
 
         if (_fontSystems.TryGetValue(fontName, out var fontSystem))
@@ -117,11 +124,13 @@ public class AssetManager : IAssetManager, IDisposable
             var dynamicFont = fontSystem.GetFont(size);
             _dynamicSpriteFonts[key] = dynamicFont;
 
-            return dynamicFont as TFont;
+            return dynamicFont;
         }
 
         throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
     }
+
+
 
     /// <summary>
     /// Retrieves a previously loaded shader program by name.
@@ -131,8 +140,17 @@ public class AssetManager : IAssetManager, IDisposable
     public ShaderProgram GetShaderProgram(string shaderName)
         => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
                ? shaderProgram
-               : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
 
+    /// <summary>
+    /// Loads a texture atlas from a file.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="atlasPath">The path to the atlas file.</param>
+    /// <param name="tileWidth">The width of each tile.</param>
+    /// <param name="tileHeight">The height of each tile.</param>
+    /// <param name="spacing">The spacing between tiles.</param>
+    /// <param name="margin">The margin around the atlas.</param>
     public void LoadTextureAtlasFromFile(
         string atlasName,
         string atlasPath,
@@ -146,9 +164,18 @@ public class AssetManager : IAssetManager, IDisposable
 
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
 
-        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin);
+        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin        );
     }
 
+    /// <summary>
+    /// Loads a texture atlas from a stream.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="stream">The stream containing the atlas data.</param>
+    /// <param name="tileWidth">The width of each tile.</param>
+    /// <param name="tileHeight">The height of each tile.</param>
+    /// <param name="spacing">The spacing between tiles.</param>
+    /// <param name="margin">The margin around the atlas.</param>
     public void LoadTextureAtlasFromMemory(
         string atlasName,
         Stream stream,
@@ -228,6 +255,13 @@ public class AssetManager : IAssetManager, IDisposable
         return atlasDefinition.Regions[tileIndex];
     }
 
+    /// <summary>
+    /// Gets a specific region from a loaded texture atlas by coordinates.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="xIndex">The x index of the tile.</param>
+    /// <param name="yIndex">The y index of the tile.</param>
+    /// <returns>The atlas region with UV coordinates and size.</returns>
     public AtlasRegion GetAtlasRegion(string atlasName, int xIndex, int yIndex)
     {
         if (!_textureAtlases.TryGetValue(atlasName, out var atlasDefinition))
@@ -269,6 +303,11 @@ public class AssetManager : IAssetManager, IDisposable
         throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
     }
 
+    /// <summary>
+    /// Gets the OpenGL handle of a loaded texture.
+    /// </summary>
+    /// <param name="textureName">The name of the texture.</param>
+    /// <returns>The texture handle.</returns>
     public uint GetTextureHandle(string textureName)
     {
         return _texture2Ds.TryGetValue(textureName, out var texture)
@@ -335,7 +374,7 @@ public class AssetManager : IAssetManager, IDisposable
         {
             var font = fontSystem.GetFont(size);
 
-            _logger.Debug("  - Added size {FontSize}", size);
+            _logger.Verbose("  - Added size {FontSize}", size);
             _dynamicSpriteFonts[$"{fontName}_{size}"] = font;
         }
     }
@@ -553,10 +592,11 @@ public class AssetManager : IAssetManager, IDisposable
         return vertexBuffer;
     }
 
+    /// <summary>
+    /// Disposes of the asset manager and releases all loaded assets.
+    /// </summary>
     public void Dispose()
     {
-
-
         GC.SuppressFinalize(this);
     }
 }

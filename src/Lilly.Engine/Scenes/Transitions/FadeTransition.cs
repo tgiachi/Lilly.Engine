@@ -1,10 +1,10 @@
+using System.Drawing;
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Helpers;
-using Lilly.Engine.Rendering.Core.Interfaces.Renderers;
-using Lilly.Engine.Rendering.Core.Utils;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
-using Silk.NET.Maths;
+using Lilly.Engine.Utils;
+using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using TrippyGL;
 
 namespace Lilly.Engine.Scenes.Transitions;
@@ -52,24 +52,21 @@ public class FadeTransition : TransitionGameObject
 
         public Color4b Color { get; }
 
-        public void Render(GameTime gameTime, float progress, IGraphicRenderPipeline renderPipeline)
+        public void Render(GameTime gameTime, float progress, ILillySpriteBatcher spriteBatcher)
         {
             // Apply alpha based on transition progress
             var alpha = (byte)(progress * 255);
             var colorWithAlpha = new Color4b(Color.R, Color.G, Color.B, alpha);
 
-            var destination = new Rectangle<float>(0, 0, _viewportWidth, _viewportHeight);
-
-            var command = RenderCommandHelpers.CreateDrawTexture(
-                new(
-                    DefaultTextures.WhiteTextureKey,
-                    destination: destination,
-                    color: colorWithAlpha,
-                    depth: 0.9f
-                )
+            // Draw full-screen rectangle with fade color
+            spriteBatcher.DrawRectangle(
+                position: Vector2.Zero,
+                size: new Vector2(_viewportWidth, _viewportHeight),
+                color: colorWithAlpha,
+                rotation: 0f,
+                origin: null,
+                depth: 0.9f
             );
-
-            renderPipeline.EnqueueRenderCommand(command);
         }
     }
 }

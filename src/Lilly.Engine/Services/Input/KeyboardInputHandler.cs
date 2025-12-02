@@ -1,5 +1,5 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Data.Input;
+using Lilly.Rendering.Core.Data.Input;
 using Serilog;
 using Silk.NET.Input;
 using Silk.NET.Input.Extensions;

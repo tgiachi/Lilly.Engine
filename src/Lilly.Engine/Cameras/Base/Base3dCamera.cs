@@ -1,10 +1,9 @@
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Rendering.Core.Collections;
-using Lilly.Engine.Rendering.Core.Commands;
-using Lilly.Engine.Rendering.Core.Interfaces.Camera;
-using Lilly.Engine.Rendering.Core.Interfaces.GameObjects;
-using Lilly.Engine.Rendering.Core.Primitives;
-using Silk.NET.Maths;
+using Lilly.Rendering.Core.Extensions;
+using Lilly.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
 namespace Lilly.Engine.Cameras.Base;
@@ -14,26 +13,22 @@ namespace Lilly.Engine.Cameras.Base;
 /// </summary>
 public abstract class Base3dCamera : ICamera3D
 {
-    private const float Epsilon = 1e-6f; // Epsilon per confronti float
-
-    private Vector3D<float> _position = Vector3D<float>.Zero;
-    private Quaternion<float> _rotation = Quaternion<float>.Identity;
-    private Vector3D<float> _target = new(0, 0, 1); // Forward
-    private float _fieldOfView = MathF.PI / 4f;     // 45 degrees
+    private Vector3 _position = Vector3.Zero;
+    private Quaternion _rotation = Quaternion.Identity;
+    private Vector3 _target = new(0, 0, -1);     // Forward
+    private float _fieldOfView = MathF.PI / 4f; // 45 degrees
     private float _aspectRatio;
     private float _nearPlane = 0.1f;
     private float _farPlane = 1000f;
 
-    private Matrix4X4<float> _view = Matrix4X4<float>.Identity;
-    private Matrix4X4<float> _projection = Matrix4X4<float>.Identity;
+    private Matrix4x4 _view = Matrix4x4.Identity;
+    private Matrix4x4 _projection = Matrix4x4.Identity;
     private BoundingFrustum? _frustum;
 
     private bool _viewDirty = true;
     private bool _projectionDirty = true;
 
     // IGameObject members
-    public IGameObject? Parent { get; set; }
-    public GameObjectCollection<IGameObject> Children { get; } = new();
     public uint Id { get; set; }
     public ushort Order => 0; // Cameras don't have a specific render order
 
@@ -41,7 +36,7 @@ public abstract class Base3dCamera : ICamera3D
 
     public string Name { get; set; } = "Camera";
 
-    public Vector3D<float> Position
+    public Vector3 Position
     {
         get => _position;
         set
@@ -54,7 +49,12 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public Quaternion<float> Rotation
+    protected void SetProjectionDirty()
+    {
+        _projectionDirty = true;
+    }
+
+    public Quaternion Rotation
     {
         get => _rotation;
         set
@@ -67,7 +67,7 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public Vector3D<float> Target
+    public Vector3 Target
     {
         get => _target;
         set
@@ -80,25 +80,25 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public Vector3D<float> Up { get; private set; } = new(0, 1, 0); // Vector3D.Up
+    public Vector3 Up { get; private set; } = new(0, 1, 0);
 
-    public Vector3D<float> Forward
+    public Vector3 Forward
     {
         get
         {
-            var forward = Vector3D.Transform(new(0, 0, 1), _rotation);
+            var forward = Vector3.Transform(new Vector3(0, 0, -1), _rotation);
 
-            return Vector3D.Normalize(forward);
+            return Vector3.Normalize(forward);
         }
     }
 
-    public Vector3D<float> Right
+    public Vector3 Right
     {
         get
         {
-            var right = Vector3D.Transform(new(1, 0, 0), _rotation);
+            var right = Vector3.Transform(new Vector3(1, 0, 0), _rotation);
 
-            return Vector3D.Normalize(right);
+            return Vector3.Normalize(right);
         }
     }
 
@@ -107,7 +107,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _fieldOfView;
         set
         {
-            if (MathF.Abs(_fieldOfView - value) > Epsilon)
+            if (MathF.Abs(_fieldOfView - value) > MathF.E)
             {
                 _fieldOfView = Math.Clamp(value, 0.01f, MathF.PI - 0.01f);
                 _projectionDirty = true;
@@ -120,7 +120,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _aspectRatio;
         set
         {
-            if (MathF.Abs(_aspectRatio - value) > Epsilon)
+            if (MathF.Abs(_aspectRatio - value) > float.Epsilon)
             {
                 _aspectRatio = Math.Max(value, 0.01f);
                 _projectionDirty = true;
@@ -133,7 +133,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _nearPlane;
         set
         {
-            if (MathF.Abs(_nearPlane - value) > Epsilon)
+            if (MathF.Abs(_nearPlane - value) > float.Epsilon)
             {
                 _nearPlane = Math.Max(value, 0.01f);
                 _projectionDirty = true;
@@ -146,7 +146,7 @@ public abstract class Base3dCamera : ICamera3D
         get => _farPlane;
         set
         {
-            if (MathF.Abs(_farPlane - value) > Epsilon)
+            if (MathF.Abs(_farPlane - value) > float.Epsilon)
             {
                 _farPlane = Math.Max(value, _nearPlane + 0.01f);
                 _projectionDirty = true;
@@ -154,7 +154,7 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public Matrix4X4<float> View
+    public Matrix4x4 View
     {
         get
         {
@@ -168,7 +168,7 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public Matrix4X4<float> Projection
+    public Matrix4x4 Projection
     {
         get
         {
@@ -180,6 +180,7 @@ public abstract class Base3dCamera : ICamera3D
 
             return _projection;
         }
+        protected set;
     }
 
     public BoundingFrustum Frustum
@@ -196,43 +197,40 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    public virtual Ray GetPickRay(Vector2D<int> screenPosition, Viewport viewport)
+    public virtual Ray GetPickRay(Vector2 screenPosition, Viewport viewport)
     {
         // Convert screen position to NDC (Normalized Device Coordinates)
         var x = 2.0f * screenPosition.X / viewport.Width - 1.0f;
         var y = 1.0f - 2.0f * screenPosition.Y / viewport.Height;
 
         // Create points in NDC space
-        var nearPointNDC = new Vector3D<float>(x, y, 0);
-        var farPointNDC = new Vector3D<float>(x, y, 1);
+        var nearPointNDC = new Vector3(x, y, 0);
+        var farPointNDC = new Vector3(x, y, 1);
 
         // Get inverse view-projection matrix
-        Matrix4X4.Invert(View * Projection, out var invViewProj);
+        Matrix4x4.Invert(View * Projection, out var invViewProj);
 
         // Transform to world space
-        var nearPoint = Vector3D.Transform(nearPointNDC, invViewProj);
-        var farPoint = Vector3D.Transform(farPointNDC, invViewProj);
+        var nearPoint = Vector3.Transform(nearPointNDC, invViewProj);
+        var farPoint = Vector3.Transform(farPointNDC, invViewProj);
 
         // Calculate direction
         var direction = farPoint - nearPoint;
-        direction = Vector3D.Normalize(direction);
+        direction = Vector3.Normalize(direction);
 
-        return new(nearPoint, direction);
+        return new(nearPoint.ToSilk(), direction.ToSilk());
     }
 
-    public virtual void LookAt(Vector3D<float> target, Vector3D<float> up)
+    public float CullingDistance { get; set; } = 200f;
+
+    public virtual void LookAt(Vector3 target, Vector3 up)
     {
         Target = target;
         Up = up;
         _viewDirty = true;
     }
 
-    public void LookAt(IGameObject3D targetObject)
-    {
-        LookAt(targetObject.Transform.Position, new(0, 1, 0));
-    }
-
-    public virtual void Move(Vector3D<float> offset)
+    public virtual void Move(Vector3 offset)
     {
         Position += offset;
     }
@@ -249,20 +247,38 @@ public abstract class Base3dCamera : ICamera3D
 
     public virtual void MoveUp(float distance)
     {
-        Move(new Vector3D<float>(0, 1, 0) * distance);
+        Move(new Vector3(0, 1, 0) * distance);
     }
 
-    /// <summary>
-    /// Cameras don't render anything themselves, they define the view for rendering.
-    /// </summary>
-    public virtual IEnumerable<RenderCommand> Render(GameTime gameTime)
-        => [];
+    public bool IsInFrustum(IGameObject3d gameObject)
+    {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
+        var toObject = gameObject.Transform.Position - Position;
+        if (toObject.LengthSquared() > CullingDistance * CullingDistance)
+        {
+            return false;
+        }
+
+        var boundingBox = gameObject.BoundingBox;
+        return Frustum.Intersects(boundingBox.Min, boundingBox.Max);
+    }
+
+    public float Distance(IGameObject3d gameObject)
+    {
+        var toObject = gameObject.Transform.Position - Position;
+
+        return toObject.Length();
+    }
 
     public virtual void Rotate(float pitch, float yaw, float roll)
     {
-        var pitchRotation = Quaternion<float>.CreateFromAxisAngle(Right, pitch);
-        var yawRotation = Quaternion<float>.CreateFromAxisAngle(new(0, 1, 0), yaw);
-        var rollRotation = Quaternion<float>.CreateFromAxisAngle(Forward, roll);
+        var pitchRotation = Quaternion.CreateFromAxisAngle(Right, pitch);
+        var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), yaw);
+        var rollRotation = Quaternion.CreateFromAxisAngle(Forward, roll);
 
         Rotation = rollRotation * yawRotation * pitchRotation * Rotation;
     }
@@ -271,7 +287,7 @@ public abstract class Base3dCamera : ICamera3D
 
     protected virtual void UpdateProjectionMatrix()
     {
-        _projection = Matrix4X4.CreatePerspectiveFieldOfView(
+        _projection = Matrix4x4.CreatePerspectiveFieldOfView(
             _fieldOfView,
             _aspectRatio,
             _nearPlane,
@@ -281,25 +297,6 @@ public abstract class Base3dCamera : ICamera3D
 
     protected virtual void UpdateViewMatrix()
     {
-        _view = Matrix4X4.CreateLookAt(_position, _target, Up);
-    }
-
-    public bool IsInFrustum(IGameObject3D gameObject)
-    {
-        if (gameObject.IgnoreFrustumCulling)
-        {
-            return true;
-        }
-
-        var position = gameObject.Transform.Position;
-        var scale = gameObject.Transform.Scale;
-
-        // Calculate bounding sphere radius for a unit cube (vertices from -0.5 to +0.5)
-        // Corner is at (0.5*sx, 0.5*sy, 0.5*sz), so:
-        // radius = sqrt((0.5*sx)² + (0.5*sy)² + (0.5*sz)²) = 0.5 * sqrt(sx² + sy² + sz²)
-        var scaleLength = MathF.Sqrt(scale.X * scale.X + scale.Y * scale.Y + scale.Z * scale.Z);
-        var estimatedRadius = scaleLength * 0.5f;
-
-        return Frustum.Intersects(position, estimatedRadius);
+        _view = Matrix4x4.CreateLookAt(_position, _target, Up);
     }
 }
