@@ -51,6 +51,12 @@ public sealed class WorldGameObject : Base3dGameObject
         set => GetGameObject<ChunkDebuggerViewerGameObject>().IsActive = value;
     }
 
+    public bool IsBlockOutlineVisible
+    {
+        get => GetGameObject<BlockOutlineGameObject>().IsActive;
+        set => GetGameObject<BlockOutlineGameObject>().IsActive = value;
+    }
+
     public WorldGameObject(
         GraphicsDevice graphicsDevice,
         IAssetManager assetManager,
@@ -77,6 +83,10 @@ public sealed class WorldGameObject : Base3dGameObject
     {
         CreateGameObject<BlockOutlineGameObject>();
         CreateGameObject<ChunkDebuggerViewerGameObject>();
+        CreateGameObject<CrosshairGameObject>();
+
+        IsBlockOutlineVisible = true;
+        IsChunkDebuggerVisible = true;
 
         base.Initialize();
     }

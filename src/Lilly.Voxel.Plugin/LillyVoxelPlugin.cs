@@ -97,6 +97,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterGameObject<SnowEffectGameObject>()
             .RegisterGameObject<RainEffectGameObject>()
             .RegisterGameObject<SkyGameObject>()
+            .RegisterGameObject<CrosshairGameObject>()
             ;
 
         return container;
@@ -165,6 +166,12 @@ public class LillyVoxelPlugin : ILillyPlugin
         assetManager.LoadTextureFromResource(
             "snowflake",
             "Assets/Textures/snowflake.png",
+            typeof(LillyVoxelPlugin).Assembly
+        );
+
+        assetManager.LoadTextureFromResource(
+            "crosshair",
+            "Assets/Textures/crosshair.png",
             typeof(LillyVoxelPlugin).Assembly
         );
 

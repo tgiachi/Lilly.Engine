@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Services;
 using TrippyGL;
 
@@ -15,6 +16,8 @@ public class TextureGameObject : Base2dGameObject
 {
     private string _textureName;
     private Vector2 _size = Vector2.Zero;
+
+    private readonly IAssetManager _assetManager;
 
     /// <summary>
     /// Gets or sets the name of the texture to render.
@@ -67,9 +70,22 @@ public class TextureGameObject : Base2dGameObject
     /// <param name="textureName">The name of the texture to render.</param>
     /// <param name="name">The name of the game object (default: "TextureGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
-    public TextureGameObject(IGameObjectManager gameObjectManager)
+    public TextureGameObject(IGameObjectManager gameObjectManager, IAssetManager assetManager)
         : base("TextureGameObject", gameObjectManager)
     {
+        _assetManager = assetManager;
+    }
+
+    protected Vector2 GetTextureSize()
+    {
+        if (SpriteBatcher == null || string.IsNullOrEmpty(_textureName))
+        {
+            return Vector2.Zero;
+        }
+
+        var textureInfo = _assetManager.GetTexture<Texture2D>(_textureName);
+
+        return textureInfo == null ? Vector2.Zero : new Vector2(textureInfo.Width, textureInfo.Height);
     }
 
     /// <summary>
@@ -90,6 +106,7 @@ public class TextureGameObject : Base2dGameObject
 
         // If size is set, use it as destination rectangle
         Rectangle? destination = null;
+
         if (_size != Vector2.Zero)
         {
             var worldSize = _size * worldScale;
