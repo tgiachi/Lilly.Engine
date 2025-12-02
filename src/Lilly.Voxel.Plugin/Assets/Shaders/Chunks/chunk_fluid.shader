@@ -17,6 +17,7 @@ uniform vec3 uFogColor;
 uniform vec3 uAmbient;
 uniform vec3 uLightDirection;
 uniform float uWaterTransparency;
+uniform float uFade;
 
 void main()
 {
@@ -29,6 +30,7 @@ void main()
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
     vertexLight = max(vertexLight, vec3(0.4)); // keep water readable even in low light
     vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.08; // slight base term
+    color *= uFade;
 
     if (uFogEnabled)
     {
@@ -37,7 +39,7 @@ void main()
 
     // Apply water transparency: 0.0 = fully opaque, 1.0 = fully transparent
     float t = clamp(uWaterTransparency, 0.0, 1.0);
-    float alpha = texResult.a * (1.0 - t);
+    float alpha = texResult.a * (1.0 - t) * uFade;
 
     FragColor = vec4(color, alpha);
 }

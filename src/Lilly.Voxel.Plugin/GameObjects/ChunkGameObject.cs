@@ -41,6 +41,10 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 
     public ChunkEntity Chunk { get; }
 
+    private const float FadeInDurationSeconds = 0.35f;
+    private double _spawnTimeSeconds = -1;
+    private float _currentFade = 1f;
+
     public override BoundingBox BoundingBox
     {
         get
@@ -69,6 +73,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 
         Transform.Position = chunk.Position;
         IgnoreFrustumCulling = false;
+        _currentFade = 0f;
     }
 
     public void SetPendingMesh(ChunkMeshData meshData)
@@ -79,6 +84,18 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+
+        var now = gameTime.GetTotalGameTimeSeconds();
+        if (_spawnTimeSeconds < 0)
+        {
+            _spawnTimeSeconds = now;
+        }
+
+        if (_currentFade < 1f)
+        {
+            var elapsed = Math.Max(0f, (float)(now - _spawnTimeSeconds));
+            _currentFade = Math.Min(1f, elapsed / FadeInDurationSeconds);
+        }
 
         if (_pendingMesh != null)
         {
@@ -225,7 +242,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
     {
         // Ensure standard opaque rendering states (Write=True, Test=Less)
         _graphicsDevice.DepthState = new DepthState(true, DepthFunction.Less);
-        _graphicsDevice.BlendState = BlendState.Opaque;
+        _graphicsDevice.BlendState = _currentFade < 0.999f ? BlendState.AlphaBlend : BlendState.Opaque;
         _graphicsDevice.FaceCullingEnabled = true;
         _graphicsDevice.CullFaceMode = CullingMode.CullBack;
 
@@ -238,6 +255,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _solidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _solidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
         _solidShader.Uniforms["uFogEnabled"].SetValueBool(false);
+        _solidShader.Uniforms["uFade"].SetValueFloat(_currentFade);
 
         _graphicsDevice.VertexArray = _solidVbo;
         _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _solidVbo!.Value.StorageLength);
@@ -253,6 +271,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _billboardShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
         _billboardShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _billboardShader.Uniforms["uFogEnabled"].SetValueBool(false);
+        _billboardShader.Uniforms["uFade"].SetValueFloat(_currentFade);
 
         // Draw vegetation double-sided so back faces remain visible
         var oldDepthState = _graphicsDevice.DepthState;
@@ -261,7 +280,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         var oldCullMode = _graphicsDevice.CullFaceMode;
 
         _graphicsDevice.DepthState = DepthState.Default;
-        _graphicsDevice.BlendState = BlendState.Opaque;
+        _graphicsDevice.BlendState = _currentFade < 0.999f ? BlendState.AlphaBlend : BlendState.Opaque;
         _graphicsDevice.FaceCullingEnabled = false;
 
         _graphicsDevice.VertexArray = _billboardVbo;
@@ -284,6 +303,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _itemShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _itemShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
         _itemShader.Uniforms["uFogEnabled"].SetValueBool(false);
+        _itemShader.Uniforms["uFade"].SetValueFloat(_currentFade);
 
         _graphicsDevice.VertexArray = _itemVbo;
         _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _itemVbo!.Value.StorageLength);
@@ -301,6 +321,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _fluidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
         _fluidShader.Uniforms["uFogEnabled"].SetValueBool(false);
         _fluidShader.Uniforms["uTime"].SetValueFloat(gameTime.GetTotalGameTimeSeconds());
+        _fluidShader.Uniforms["uFade"].SetValueFloat(_currentFade);
 
         // Save states
         var oldDepthState = _graphicsDevice.DepthState;

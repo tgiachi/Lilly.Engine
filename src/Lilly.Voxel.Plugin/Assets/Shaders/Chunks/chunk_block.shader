@@ -20,6 +20,7 @@ uniform bool uFogEnabled;
 uniform vec3 uFogColor;
 uniform vec3 uAmbient;
 uniform vec3 uLightDirection;
+uniform float uFade;
 
 void main()
 {
@@ -36,7 +37,7 @@ void main()
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight;
+    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight * uFade;
 
     // Apply fog
     if (uFogEnabled)
@@ -44,7 +45,7 @@ void main()
         color = mix(uFogColor, color, vFogFactor);
     }
 
-    FragColor = vec4(color, texResult.a);
+    FragColor = vec4(color, texResult.a * uFade);
 }
 
 #shader vertex
