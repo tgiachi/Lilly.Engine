@@ -1,5 +1,4 @@
 using System.Numerics;
-using Silk.NET.Maths;
 
 namespace Lilly.Rendering.Core.Primitives;
 

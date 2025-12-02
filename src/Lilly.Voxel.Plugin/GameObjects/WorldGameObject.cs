@@ -31,6 +31,11 @@ public sealed class WorldGameObject : Base3dGameObject
 
     private readonly Dictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
+    private readonly List<Vector3> _targetOffsets = new();
+    private readonly HashSet<Vector3> _targetScratch = new();
+    private int _cachedHorizontalRadius = int.MinValue;
+    private int _cachedVerticalBelow = int.MinValue;
+    private int _cachedVerticalAbove = int.MinValue;
 
     public int HorizontalRadiusChunks { get; set; } = 4;
     public int VerticalBelowChunks { get; set; } = 1;
@@ -88,9 +93,19 @@ public sealed class WorldGameObject : Base3dGameObject
         return _cameraService.ActiveCamera?.Position ?? Transform.Position;
     }
 
-    private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
+    private void RebuildTargetOffsetsIfNeeded()
     {
-        var targets = new HashSet<Vector3>();
+        if (_cachedHorizontalRadius == HorizontalRadiusChunks &&
+            _cachedVerticalBelow == VerticalBelowChunks &&
+            _cachedVerticalAbove == VerticalAboveChunks)
+        {
+            return;
+        }
+
+        _cachedHorizontalRadius = HorizontalRadiusChunks;
+        _cachedVerticalBelow = VerticalBelowChunks;
+        _cachedVerticalAbove = VerticalAboveChunks;
+        _targetOffsets.Clear();
 
         for (int dx = -HorizontalRadiusChunks; dx <= HorizontalRadiusChunks; dx++)
         {
@@ -98,12 +113,23 @@ public sealed class WorldGameObject : Base3dGameObject
             {
                 for (int dy = -VerticalBelowChunks; dy <= VerticalAboveChunks; dy++)
                 {
-                    targets.Add(new Vector3(playerChunk.X + dx, playerChunk.Y + dy, playerChunk.Z + dz));
+                    _targetOffsets.Add(new Vector3(dx, dy, dz));
                 }
             }
         }
+    }
 
-        return targets;
+    private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
+    {
+        RebuildTargetOffsetsIfNeeded();
+        _targetScratch.Clear();
+
+        foreach (var offset in _targetOffsets)
+        {
+            _targetScratch.Add(playerChunk + offset);
+        }
+
+        return _targetScratch;
     }
 
     private void ScheduleMissingChunks(HashSet<Vector3> targets)
