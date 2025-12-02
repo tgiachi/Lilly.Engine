@@ -19,17 +19,20 @@ uniform vec3 uLightDirection;
 uniform float uWaterTransparency;
 uniform float uFade;
 
+// Simple fluid shading inspired by Craft's fluid shader
 void main()
 {
     vec4 texResult = texture(uTexture, vTexCoord);
+    if (texResult.a == 0.0)
+        discard;
 
     vec3 lightDir = normalize(uLightDirection);
     float diff = max(dot(vNormal, lightDir), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+    vec3 diffuse = diff * vec3(1.0);
 
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
-    vertexLight = max(vertexLight, vec3(0.4)); // keep water readable even in low light
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.08; // slight base term
+    vec3 lighting = uAmbient + diffuse;
+    vec3 color = texResult.rgb * lighting * vertexLight;
     color *= uFade;
 
     if (uFogEnabled)
@@ -37,7 +40,7 @@ void main()
         color = mix(uFogColor, color, vFogFactor);
     }
 
-    // Apply water transparency: 0.0 = fully opaque, 1.0 = fully transparent
+    // Apply controllable transparency
     float t = clamp(uWaterTransparency, 0.0, 1.0);
     float alpha = texResult.a * (1.0 - t) * uFade;
 
@@ -74,6 +77,9 @@ out vec3 vVertexLight;
 
 const float PI = 3.1415926535;
 const float UV_INSET = 0.001; // tighten UVs to avoid sampling padded transparent texels
+const int FRAME_COUNT = 32;
+const float ANIMATION_TIME = 5.0;
+const int FRAME_COLUMNS = 16;
 
 // Array of possible normals based on direction
 const vec3 normals[7] = vec3[7](
@@ -102,9 +108,15 @@ void main()
     vec4 viewPosition = uView * worldPosition;
     gl_Position = uProjection * viewPosition;
 
-    // Atlas coordinates
+    // Atlas coordinates with animated frame offsets (Craft-style water animation)
+    float anim = mod(uTime / ANIMATION_TIME, 1.0);
+    float frame = floor(anim * float(FRAME_COUNT));
+    float frameX = mod(frame, float(FRAME_COLUMNS));
+    float frameY = floor(frame / float(FRAME_COLUMNS));
+
     vec2 tiled = aTexCoord * (1.0 - 2.0 * UV_INSET) + UV_INSET; // shrink UVs slightly to avoid bleeding
-    vec2 atlasCoord = aTileBase + tiled * aTileSize;
+    vec2 frameOffset = vec2(frameX, frameY);
+    vec2 atlasCoord = aTileBase + (tiled + frameOffset) * aTileSize;
     vTexCoord = atlasCoord * uTexMultiplier;
 
     int dir = clamp(int(round(aDirection)), 0, 6);
