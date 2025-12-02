@@ -315,6 +315,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _fluidShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
         _fluidShader.Uniforms["uView"].SetValueMat4(camera.View);
         _fluidShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
+        _fluidShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
         _fluidShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_fluidAtlasName, _solidAtlasName));
         _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(0.3f); // 0.4 transparency = 0.6 opacity
         _fluidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
