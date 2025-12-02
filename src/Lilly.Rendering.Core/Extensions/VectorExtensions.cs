@@ -39,5 +39,5 @@ public static class VectorExtensions
 
 
     public static string ToHumanReadableString(this Vector3 vector)
-        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2})";
+        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2}";
 }

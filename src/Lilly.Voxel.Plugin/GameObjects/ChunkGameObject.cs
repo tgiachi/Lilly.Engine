@@ -230,7 +230,9 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
     public void DrawTransparent(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
     {
         if (!IsActive)
+        {
             return;
+        }
 
         if (_fluidVbo != null)
         {
@@ -317,7 +319,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _fluidShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
         _fluidShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
         _fluidShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_fluidAtlasName, _solidAtlasName));
-        _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(0.3f); // 0.4 transparency = 0.6 opacity
+        _fluidShader.Uniforms["uWaterTransparency"].SetValueFloat(0.6f); // 0.6 transparency = 0.4 opacity
         _fluidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
         _fluidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
         _fluidShader.Uniforms["uFogEnabled"].SetValueBool(false);
@@ -331,7 +333,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         var oldCullMode = _graphicsDevice.CullFaceMode;
 
         // Configure for transparency: depth test and write so adjacent chunks don't double-blend at seams
-        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.LessOrEqual, 1f, 0.0, 1.0, true);
+        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.LessOrEqual);
         _graphicsDevice.BlendState = BlendState.AlphaBlend;
         _graphicsDevice.FaceCullingEnabled = true;
         _graphicsDevice.CullFaceMode = CullingMode.CullBack;

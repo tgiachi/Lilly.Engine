@@ -23,7 +23,7 @@ public class CloudGenerationStep : IGeneratorStep
         IBlockRegistry blockRegistry,
         int cloudMinY = 64,
         int cloudMaxY = 71,
-        float threshold = 0.75f,
+        float threshold = 0.65f,
         int seedOffset = 9127
     )
     {
