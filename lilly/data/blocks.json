@@ -1,0 +1,168 @@
+[
+  {
+    "name": "grass",
+    "isSolid": true,
+    "isBreakable": true,
+
+    "faces": {
+      "All": "default@535",
+      "Top": "default@288",
+      "Bottom": "default@533"
+    }
+  },
+  {
+    "name": "dirt",
+    "isSolid": true,
+    "isBreakable": true,
+
+    "faces": {
+      "All": "default@533"
+    }
+  },
+  {
+    "name": "stone",
+    "isSolid": true,
+    "isBreakable": true,
+    "faces": {
+      "All": "default@7"
+    }
+  },
+  {
+    "name": "water",
+    "isLiquid": true,
+    "faces": {
+      "All": "default3@160"
+    }
+  },
+  {
+    "name": "cloud",
+    "isTransparent": true,
+    "faces": {
+      "All": "default@344"
+    }
+  },
+  {
+    "name": "glass",
+    "isTransparent": true,
+    "isSolid": true,
+    "faces": {
+      "All": "default@586"
+    }
+  },
+  {
+    "name": "flowers1",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@193"
+    }
+  },
+  {
+    "name": "flowers2",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@194"
+    }
+  },
+  {
+    "name": "flowers3",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@195"
+    }
+  },
+  {
+    "name": "flowers4",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@195"
+    }
+  },
+  {
+    "name": "flowers5",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@195"
+    }
+  },
+  {
+    "name": "flowers6",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@196"
+    }
+  },
+  {
+    "name": "flowers7",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@197"
+    }
+  },
+  {
+    "name": "flowers8",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@198"
+    }
+  },
+  {
+    "name": "tall_grass",
+    "isBillboard": true,
+    "faces": {
+      "All": "default2@192"
+    }
+  },
+  {
+    "name": "bedrock",
+    "isSolid": true,
+    "faces": {
+      "All": "default@47"
+    }
+  },
+  {
+    "name": "item_1",
+    "isItem": true,
+    "faces": {
+      "All": "default2@192"
+    }
+  },
+  {
+    "name": "snow",
+    "isSolid": true,
+    "faces": {
+      "All": "default@344"
+    }
+  },
+  {
+    "name": "sand",
+    "isSolid": true,
+    "faces": {
+      "All": "default@102"
+    }
+  },
+  {
+    "name": "sandstone",
+    "isSolid": true,
+    "faces": {
+      "All": "default@201"
+    }
+  },
+  {
+    "name": "ice",
+    "isSolid": true,
+    "faces": {
+      "All": "default@98"
+    }
+  },
+  {
+    "name": "light_1",
+    "isSolid": true,
+    "isOpaque": true,
+    "isBreakable": true,
+    "emitsLight": 15,
+    "emitColor": "#ff0000",
+    "faces": {
+      "All": "default@47"
+    }
+  }
+]

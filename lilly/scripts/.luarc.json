@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+  "runtime": {
+    "version": "Lua 5.4",
+    "path": [
+      "?.lua",
+      "?/init.lua",
+      "modules/?.lua",
+      "modules/?/init.lua"
+    ]
+  },
+  "workspace": {
+    "library": [
+      "/home/squid/lilly/scripts"
+    ],
+    "checkThirdParty": false
+  },
+  "diagnostics": {
+    "globals": [
+      "VERSION",
+      "ENGINE_VERSION",
+      "ENGINE",
+      "PLATFORM",
+      "log",
+      "delay",
+      "GameTime"
+    ]
+  },
+  "completion": {
+    "enable": true,
+    "callSnippet": "Replace"
+  },
+  "format": {
+    "enable": true,
+    "defaultConfig": {
+      "indent_style": "space",
+      "indent_size": "4"
+    }
+  }
+}
