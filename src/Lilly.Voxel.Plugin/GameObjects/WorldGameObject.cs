@@ -33,7 +33,7 @@ public sealed class WorldGameObject : Base3dGameObject
 
     private readonly IBlockRegistry _blockRegistry;
 
-    private readonly Dictionary<Vector3, ChunkGameObject> _activeChunks = new();
+    private readonly ConcurrentDictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
     private readonly List<Vector3> _targetOffsets = new();
     private readonly HashSet<Vector3> _targetScratch = new();
@@ -176,6 +176,11 @@ public sealed class WorldGameObject : Base3dGameObject
                         chunk,
                         (chunkCoords) =>
                         {
+                            if (_activeChunks.TryGetValue(chunkCoords, out var neighborGo))
+                            {
+                                return neighborGo.Chunk;
+                            }
+                            
                             var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
                                 (int)chunkCoords.X,
                                 (int)chunkCoords.Y,
@@ -281,6 +286,11 @@ public sealed class WorldGameObject : Base3dGameObject
                                 chunk,
                                 (chunkCoords) =>
                                 {
+                                    if (_activeChunks.TryGetValue(chunkCoords, out var nGo))
+                                    {
+                                        return nGo.Chunk;
+                                    }
+
                                     var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
                                         (int)chunkCoords.X,
                                         (int)chunkCoords.Y,
@@ -472,6 +482,11 @@ public sealed class WorldGameObject : Base3dGameObject
                     chunk,
                     chunkCoords =>
                     {
+                        if (_activeChunks.TryGetValue(chunkCoords, out var nGo))
+                        {
+                            return nGo.Chunk;
+                        }
+
                         var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
                             (int)chunkCoords.X,
                             (int)chunkCoords.Y,
