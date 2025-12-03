@@ -7,5 +7,5 @@ namespace Lilly.Voxel.Plugin.Actionables.Components;
 ///  Represents a sound action component that can be associated with a block or entity.
 /// </summary>
 /// <param name="soundId"></param>
-public record SoundComponent(string soundId) : IActionableComponent;
+public readonly struct SoundComponent(string SoundId) : IActionableComponent;
 

@@ -21,6 +21,9 @@ public class ComponentBag
 
     public IEnumerable<IActionableComponent> All => _map.Values;
 
+    public bool Has(Type componentType)
+        => _map.ContainsKey(componentType);
+
     public void Merge(ComponentBag other, bool overwrite = false)
     {
         foreach (var kv in other._map)

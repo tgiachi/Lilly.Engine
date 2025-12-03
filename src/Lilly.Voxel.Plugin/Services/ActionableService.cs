@@ -4,6 +4,7 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Voxel.Plugin.Actionables;
 using Lilly.Voxel.Plugin.Actionables.Components;
 using Lilly.Voxel.Plugin.Blocks;
+using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
@@ -18,6 +19,8 @@ public class ActionableService : IActionableService
     private readonly IChunkGeneratorService _chunkGenerator;
     private readonly IAudioService _audioService;
     private readonly IBlockRegistry _blockRegistry;
+
+    private readonly Dictionary<ActionEventType, List<IActionableListener>> _listeners = new();
 
     public ActionableService(
         IChunkGeneratorService chunkGenerator,
@@ -101,6 +104,17 @@ public class ActionableService : IActionableService
         }
     }
 
+    public void AddActionListener(IActionableListener listener)
+    {
+        if (!_listeners.TryGetValue(listener.EventType, out List<IActionableListener>? value))
+        {
+            value = new();
+            _listeners[listener.EventType] = value;
+        }
+
+        value.Add(listener);
+    }
+
     private void Dispatch(ActionEventContext ctx)
     {
         if (ctx.Instance is null)
@@ -108,16 +122,32 @@ public class ActionableService : IActionableService
             return;
         }
 
-        // Simple sound handling on use/place
-        if (ctx.Event is ActionEventType.OnUse or ActionEventType.OnPlace)
+        if (!_listeners.TryGetValue(ctx.Event, out var listeners))
         {
-            var sound = ctx.Instance.Components.Get<SoundComponent>();
-
-            if (sound != null)
-            {
-                _audioService.PlaySoundEffect3D(sound.soundId, ctx.WorldPosition);
-            }
+            return;
         }
+
+        foreach (var listener in listeners)
+        {
+            if (!listener.CanHandle(ctx.Instance))
+            {
+                continue;
+            }
+
+            _logger.Debug("Dispatching {Event} to listener {Listener}", ctx.Event, listener.GetType().Name);
+            listener.DispatchAction(ctx);
+        }
+
+        // // Simple sound handling on use/place
+        // if (ctx.Event is ActionEventType.OnUse or ActionEventType.OnPlace)
+        // {
+        //     var sound = ctx.Instance.Components.Get<SoundComponent>();
+        //
+        //     if (sound != null)
+        //     {
+        //         _audioService.PlaySoundEffect3D(sound.soundId, ctx.WorldPosition);
+        //     }
+        // }
     }
 
     private bool TryResolve(Vector3 worldPos, out ChunkEntity chunk, out int localIndex)
