@@ -17,7 +17,7 @@ public class QuakeConsoleModule
     [ScriptFunction("toggle", "Toggles the visibility of the console.")]
     public void ToggleConsole()
     {
-        var quakeConsole = _renderPipeline.GetGameObject<QuakeConsoleGameObject>();
+        var quakeConsole = _renderPipeline.GetGameObjectOfType<QuakeConsoleGameObject>();
 
         quakeConsole?.ToggleConsole();
 

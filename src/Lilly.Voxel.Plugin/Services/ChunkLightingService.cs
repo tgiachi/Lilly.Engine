@@ -320,6 +320,7 @@ public sealed class ChunkLightingService
             cache = BuildOpenSkyCache(chunk);
             _skyCache.Remove(chunk);
             _skyCache.Add(chunk, cache);
+            chunk.IsLightingDirty = false;
         }
 
         return cache;

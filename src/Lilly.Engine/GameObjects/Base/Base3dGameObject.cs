@@ -93,7 +93,7 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
             }
         }
 
-        return _gameObjectManager.GetGameObject<TGameObject>();
+        return _gameObjectManager.GetGameObjectOfType<TGameObject>();
     }
 
     /// <summary>

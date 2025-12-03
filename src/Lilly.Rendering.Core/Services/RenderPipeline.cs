@@ -196,7 +196,7 @@ public class RenderPipeline : IRenderPipeline
         }
     }
 
-    public TGameObject? GetGameObject<TGameObject>() where TGameObject : IGameObject
+    public TGameObject? GetGameObjectOfType<TGameObject>() where TGameObject : IGameObject
     {
         lock (_renderLayersLock)
         {

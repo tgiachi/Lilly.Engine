@@ -29,6 +29,7 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly IChunkGeneratorService _chunkGenerator;
     private readonly IGameObjectManager _gameObjectManager;
     private readonly ICamera3dService _cameraService;
+    private readonly ChunkLightPropagationService _lightPropagationService;
 
     private readonly IBlockRegistry _blockRegistry;
 
@@ -65,7 +66,8 @@ public sealed class WorldGameObject : Base3dGameObject
         IChunkGeneratorService chunkGenerator,
         IGameObjectManager gameObjectManager,
         ICamera3dService cameraService,
-        IBlockRegistry blockRegistry
+        IBlockRegistry blockRegistry,
+        ChunkLightPropagationService lightPropagationService
     ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
@@ -76,6 +78,7 @@ public sealed class WorldGameObject : Base3dGameObject
         _gameObjectManager = gameObjectManager;
         _cameraService = cameraService;
         _blockRegistry = blockRegistry;
+        _lightPropagationService = lightPropagationService;
         IgnoreFrustumCulling = true;
     }
 
@@ -84,7 +87,6 @@ public sealed class WorldGameObject : Base3dGameObject
         CreateGameObject<CrosshairGameObject>();
         CreateGameObject<BlockOutlineGameObject>();
         CreateGameObject<ChunkDebuggerViewerGameObject>();
-
 
         IsBlockOutlineVisible = true;
         IsChunkDebuggerVisible = true;
@@ -406,6 +408,20 @@ public sealed class WorldGameObject : Base3dGameObject
         UpdateNeighbors(chunkCoords);
     }
 
+    public bool RemoveBlockAtCurrentPosition()
+    {
+        var blockOutline = GetGameObject<BlockOutlineGameObject>();
+
+        if (blockOutline.TargetBlockPosition.HasValue)
+        {
+            RemoveBlockAtPosition(blockOutline.TargetBlockPosition.Value);
+
+            return true;
+        }
+
+        return false;
+    }
+
     public void RemoveBlockAtPosition(Vector3 position)
     {
         SetBlockAtPosition(position, _blockRegistry.Air);
@@ -423,6 +439,9 @@ public sealed class WorldGameObject : Base3dGameObject
             async ct =>
             {
                 var chunk = chunkGo.Chunk;
+
+                _lightPropagationService.PropagateLight(chunk);
+
                 var mesh = _meshBuilder.BuildMeshData(
                     chunk,
                     chunkCoords =>

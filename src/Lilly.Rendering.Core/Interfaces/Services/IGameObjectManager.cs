@@ -34,5 +34,5 @@ public interface IGameObjectManager
     /// </summary>
     /// <typeparam name="TGameObject">The type of the game object to retrieve, must implement IGameObject.</typeparam>
     /// <returns>The game object instance if found, otherwise null.</returns>
-    TGameObject? GetGameObject<TGameObject>() where TGameObject : IGameObject;
+    TGameObject? GetGameObjectOfType<TGameObject>() where TGameObject : IGameObject;
 }
