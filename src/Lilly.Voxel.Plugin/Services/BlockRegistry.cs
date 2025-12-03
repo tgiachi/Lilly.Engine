@@ -133,7 +133,7 @@ public class BlockRegistry : IBlockRegistry
                     .WithHardness(blockJson.Hardness)
                     .AsBreakable(blockJson.IsBreakable)
                     .AsBillboard(blockJson.IsBillboard)
-                    .AsItem(blockJson.IsItem);
+                    .AsActionable(blockJson.IsItem);
 
                 if (blockJson.EmitsLight > 0)
                 {

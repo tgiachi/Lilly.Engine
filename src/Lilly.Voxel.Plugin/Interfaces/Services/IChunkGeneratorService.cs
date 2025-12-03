@@ -4,7 +4,7 @@ using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Interfaces.Services;
 
-public interface IChunkGeneratorService
+public interface IChunkGeneratorService : IChunkProvider
 {
     int Seed { get; set; }
 

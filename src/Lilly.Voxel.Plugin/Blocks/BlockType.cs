@@ -50,7 +50,7 @@ public class BlockType
 
     public bool IsBillboard { get; set; }
 
-    public bool IsItem { get; set; }
+    public bool IsActionable { get; set; }
 
     public bool IsLightSource => EmitsLight > 0 && EmitsColor != Color4b.Transparent;
 
@@ -90,7 +90,7 @@ public class BlockType
                 return BlockRenderType.Fluid;
             }
 
-            if (IsItem)
+            if (IsActionable)
             {
                 return BlockRenderType.Item;
             }

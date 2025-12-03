@@ -116,6 +116,9 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         return _chunkCache.TryGet(chunkPosition, out chunk);
     }
 
+    public IEnumerable<ChunkEntity> GetActiveChunks()
+        => _chunkCache.GetAll();
+
     public async Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position)
     {
         // Normalize position to chunk coordinates

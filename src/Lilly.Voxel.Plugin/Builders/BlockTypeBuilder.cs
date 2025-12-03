@@ -19,7 +19,7 @@ public class BlockTypeBuilder
     private float _hardness;
     private bool _isBreakable;
     private bool _isBillboard;
-    private bool _isItem;
+    private bool _isActionable;
     private float _emitsLight;
     private Color4b _emitsColor;
     private BlockTextureSet _textureSet;
@@ -74,9 +74,9 @@ public class BlockTypeBuilder
         return this;
     }
 
-    public BlockTypeBuilder AsItem(bool isItem = true)
+    public BlockTypeBuilder AsActionable(bool isActionable = true)
     {
-        _isItem = isItem;
+        _isActionable = isActionable;
         return this;
     }
 
@@ -217,7 +217,7 @@ public class BlockTypeBuilder
             IsBreakable = _isBreakable,
             TextureSet = _textureSet,
             IsBillboard = _isBillboard,
-            IsItem = _isItem
+            IsActionable = _isActionable
         };
     }
 

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
@@ -149,6 +150,21 @@ public class ChunkCache
             {
                 return _maxCapacity;
             }
+        }
+    }
+
+    /// <summary>
+    /// Returns a snapshot enumeration of all cached chunks.
+    /// </summary>
+    public IEnumerable<ChunkEntity> GetAll()
+    {
+        lock (_syncRoot)
+        {
+            // Return a copy to avoid threading issues while iterating.
+            return _cache.Values
+                .Select(entry => entry.Chunk)
+                .Where(chunk => chunk != null)!
+                .ToList();
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Types;
 using TrippyGL;
 
@@ -18,7 +19,6 @@ public class ChunkEntity
     /// Number of blocks along the Y axis.
     /// </summary>
     public const int Height = 32;
-
 
     /// <summary>
     ///  Gets or sets a value indicating whether the chunk has been modified since last save.
@@ -45,12 +45,13 @@ public class ChunkEntity
     /// </summary>
     public bool IsMeshDirty { get; set; } = true;
 
-
     /// <summary>
     /// Gets the number of non-air blocks in this chunk.
     /// Used for optimization to skip empty chunks.
     /// </summary>
     public int BlockCount { get; private set; }
+
+    public Dictionary<int, BlockInstance>? Actionables;
 
     /// <summary>
     /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.
@@ -60,6 +61,7 @@ public class ChunkEntity
     {
         Blocks = new ushort[Size * Size * Height];
         LightLevels = new byte[Size * Size * Height];
+
         // LightColors is lazy loaded
         // coordinates passed in are world-space chunk origin (already multiplied by Size/Height)
         Position = coordinates;
@@ -91,7 +93,10 @@ public class ChunkEntity
     {
         if (newLevels.Length != Size * Size * Height)
         {
-            throw new ArgumentException($"New light levels array must have length {Size * Size * Height}", nameof(newLevels));
+            throw new ArgumentException(
+                $"New light levels array must have length {Size * Size * Height}",
+                nameof(newLevels)
+            );
         }
         LightLevels = newLevels;
     }
@@ -138,7 +143,8 @@ public class ChunkEntity
         int index = x + y * Size + z * Size * Height;
         ushort oldBlock = Blocks[index];
 
-        if (oldBlock == blockId) return;
+        if (oldBlock == blockId)
+            return;
 
         if (oldBlock == 0 && blockId != 0)
         {
@@ -164,7 +170,8 @@ public class ChunkEntity
         int index = GetIndex(x, y, z);
         ushort oldBlock = Blocks[index];
 
-        if (oldBlock == block) return;
+        if (oldBlock == block)
+            return;
 
         if (oldBlock == 0 && block != 0)
         {
@@ -206,6 +213,7 @@ public class ChunkEntity
     public ushort GetBlock(int index)
     {
         ValidateIndex(index);
+
         return Blocks[index];
     }
 
@@ -217,9 +225,11 @@ public class ChunkEntity
     public void SetBlock(int index, ushort block)
     {
         ValidateIndex(index);
-        
+
         ushort oldBlock = Blocks[index];
-        if (oldBlock == block) return;
+
+        if (oldBlock == block)
+            return;
 
         if (oldBlock == 0 && block != 0)
         {
@@ -243,6 +253,7 @@ public class ChunkEntity
     public static int GetIndex(int x, int y, int z)
     {
         ValidateCoordinates(x, y, z);
+
         return x + y * Size + z * Size * Height;
     }
 
@@ -255,7 +266,6 @@ public class ChunkEntity
     {
         return GetIndex((int)position.X, (int)position.Y, (int)position.Z);
     }
-
 
     /// <summary>
     /// Provides array-style access to blocks using explicit coordinates.
@@ -304,6 +314,7 @@ public class ChunkEntity
         {
             return Color4b.White;
         }
+
         return LightColors[GetIndex(x, y, z)];
     }
 
@@ -330,6 +341,7 @@ public class ChunkEntity
     public void SetLightColors(Color4b[] colors)
     {
         int length = Size * Size * Height;
+
         if (colors.Length != length)
         {
             throw new ArgumentException($"Light colors array must have length {length}", nameof(colors));
@@ -352,9 +364,12 @@ public class ChunkEntity
 
     public bool IsInBounds(int x, int y, int z)
     {
-        return x >= 0 && x < Size &&
-               y >= 0 && y < Height &&
-               z >= 0 && z < Size;
+        return x >= 0 &&
+               x < Size &&
+               y >= 0 &&
+               y < Height &&
+               z >= 0 &&
+               z < Size;
     }
 
     public bool IsInBounds(Vector3 position)
@@ -411,9 +426,29 @@ public class ChunkEntity
     /// </summary>
     public void Clear()
     {
-        Array.Fill(Blocks, (ushort)0);  // 0 = Air block ID
+        Array.Fill(Blocks, (ushort)0); // 0 = Air block ID
         BlockCount = 0;
         IsMeshDirty = true;
+    }
+
+    public bool TryGetActionable(int idx, out BlockInstance inst)
+    {
+        inst = null;
+        var result = Actionables?.TryGetValue(idx, out inst);
+
+        return result.HasValue && result.Value;
+    }
+
+    public BlockInstance EnsureActionable(int idx, ushort blockTypeId)
+    {
+        Actionables ??= new();
+
+        return Actionables[idx] = new BlockInstance(idx, blockTypeId);
+    }
+
+    public void RemoveActionable(int idx)
+    {
+        Actionables?.Remove(idx);
     }
 
     /// <summary>
@@ -430,27 +465,28 @@ public class ChunkEntity
     /// </returns>
     public bool TryGetAdjacentBlock(int x, int y, int z, BlockFace face, out ushort block)
     {
-        block = 0;  // Default to air
+        block = 0; // Default to air
 
         // Calculate adjacent coordinates based on face direction
         var (adjX, adjY, adjZ) = face switch
         {
-            BlockFace.Top => (x, y + 1, z),           // Up: +Y
-            BlockFace.Bottom => (x, y - 1, z),        // Down: -Y
-            BlockFace.Right => (x + 1, y, z),         // Right: +X
-            BlockFace.Left => (x - 1, y, z),          // Left: -X
-            BlockFace.Front => (x, y, z + 1),         // Forward: +Z
-            BlockFace.Back => (x, y, z - 1),          // Backward: -Z
-            _ => (x, y, z)  // Invalid face
+            BlockFace.Top    => (x, y + 1, z), // Up: +Y
+            BlockFace.Bottom => (x, y - 1, z), // Down: -Y
+            BlockFace.Right  => (x + 1, y, z), // Right: +X
+            BlockFace.Left   => (x - 1, y, z), // Left: -X
+            BlockFace.Front  => (x, y, z + 1), // Forward: +Z
+            BlockFace.Back   => (x, y, z - 1), // Backward: -Z
+            _                => (x, y, z)      // Invalid face
         };
 
         // Check if adjacent coordinates are within this chunk's bounds
         if (IsInBounds(adjX, adjY, adjZ))
         {
             block = GetBlock(adjX, adjY, adjZ);
-            return true;  // Block is within this chunk
+
+            return true; // Block is within this chunk
         }
 
-        return false;  // Block is outside this chunk (in a neighbor)
+        return false; // Block is outside this chunk (in a neighbor)
     }
 }
