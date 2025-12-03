@@ -67,9 +67,12 @@ public class CaveGenerationStep : IGeneratorStep
                 var surfaceHeight = heightMap[z * chunkSize + x] - _surfaceBuffer;
 
                 var maxLocalY = Math.Min(ChunkEntity.Height - 1, surfaceHeight - chunkBaseY - 1);
-                for (var y = 1; y <= maxLocalY; y++)
+                for (var y = 0; y <= maxLocalY; y++)
                 {
                     var worldY = chunkBaseY + y;
+
+                    // Don't carve bedrock
+                    if (worldY <= -500) continue;
 
                     // Optimization: Don't calculate noise above surface buffer
                     if (worldY >= surfaceHeight)

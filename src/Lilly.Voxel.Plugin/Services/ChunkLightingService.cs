@@ -181,6 +181,10 @@ public sealed class ChunkLightingService
 
         // Use the stronger of propagated light and skylight so torches still light caves.
         float light = Math.Max(levelFactor, skyLight);
+        
+        // Enforce minimum light level from constants
+        float minLight = VoxelConstants.MinLightLevel / VoxelConstants.MaxLightLevelF;
+        light = Math.Max(light, minLight);
 
         float r = (lightColor.R / 255f) * light;
         float g = (lightColor.G / 255f) * light;
