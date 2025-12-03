@@ -49,6 +49,11 @@ public sealed class ChunkMeshBuilder
     {
         ArgumentNullException.ThrowIfNull(chunk);
 
+        if (chunk.BlockCount == 0)
+        {
+            return new ChunkMeshData(); // Return empty mesh immediately
+        }
+
         try
         {
             _threadContext ??= new();

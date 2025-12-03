@@ -1,3 +1,4 @@
+using System.Buffers;
 using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -27,33 +28,51 @@ public sealed class ChunkLightPropagationService
     /// </summary>
     public void PropagateLight(ChunkEntity chunk, ChunkEntity? topNeighbor = null)
     {
-        // 1. Create a new array for double buffering to prevent race conditions
-        var newLightLevels = new byte[chunk.LightLevels.Length];
-        // Array is already initialized to 0
-
-        var lightQueue = new Queue<int>();
-
-        // 2. Initialize Sources (Sunlight & Emissive Blocks)
-        InitializeSunlight(chunk, topNeighbor, lightQueue, newLightLevels);
-        InitializeBlockLights(chunk, lightQueue, newLightLevels);
-
-        int sourceCount = lightQueue.Count;
-
-        if (sourceCount == 0)
+        // 1. Rent buffer from ArrayPool to reduce GC pressure
+        int bufferSize = chunk.LightLevels.Length;
+        byte[] lightBuffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        
+        try 
         {
-            // Only warn if we really expect light. Underground chunks might legally be dark.
-            // _logger.Warning("..."); 
+            // Reset buffer (ArrayPool arrays are not guaranteed to be clean)
+            Array.Clear(lightBuffer, 0, bufferSize);
+    
+            var lightQueue = new Queue<int>();
+    
+            // 2. Initialize Sources (Sunlight & Emissive Blocks)
+            InitializeSunlight(chunk, topNeighbor, lightQueue, lightBuffer);
+            InitializeBlockLights(chunk, lightQueue, lightBuffer);
+    
+            int sourceCount = lightQueue.Count;
+    
+            if (sourceCount == 0)
+            {
+                // Only warn if we really expect light. Underground chunks might legally be dark.
+                // _logger.Warning("..."); 
+            }
+    
+            // 3. Propagate (Flood Fill)
+            ProcessLightQueue(chunk, lightQueue, lightBuffer);
+    
+            // 4. Swap atomically
+            // We must copy the data from the pooled array to a new permanent array for the chunk,
+            // because we are returning the pooled array immediately.
+            // (Alternatively, ChunkEntity could own the rented array, but that complicates lifecycle management).
+            // For now, copying is safer and still saves the massive allocation of the temporary buffer if we did "new byte[]" every time.
+            
+            var finalLevels = new byte[bufferSize];
+            Array.Copy(lightBuffer, finalLevels, bufferSize);
+            
+            chunk.ReplaceLightLevels(finalLevels);
+    
+            // 5. Mark clean
+            chunk.IsLightingDirty = false;
+            chunk.IsMeshDirty = true;
         }
-
-        // 3. Propagate (Flood Fill)
-        ProcessLightQueue(chunk, lightQueue, newLightLevels);
-
-        // 4. Swap atomically
-        chunk.ReplaceLightLevels(newLightLevels);
-
-        // 5. Mark clean
-        chunk.IsLightingDirty = false;
-        chunk.IsMeshDirty = true;
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(lightBuffer);
+        }
     }
 
     private void InitializeSunlight(ChunkEntity chunk, ChunkEntity? topNeighbor, Queue<int> lightQueue, byte[] lightLevels)

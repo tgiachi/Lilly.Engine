@@ -47,6 +47,12 @@ public class ChunkEntity
 
 
     /// <summary>
+    /// Gets the number of non-air blocks in this chunk.
+    /// Used for optimization to skip empty chunks.
+    /// </summary>
+    public int BlockCount { get; private set; }
+
+    /// <summary>
     /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.
     /// </summary>
     /// <param name="coordinates">Chunk coordinates in the world grid.</param>
@@ -64,6 +70,7 @@ public class ChunkEntity
         );
 
         Array.Fill(LightLevels, (byte)15);
+        BlockCount = 0;
     }
 
     /// <summary>
@@ -124,10 +131,25 @@ public class ChunkEntity
     /// <summary>
     /// Sets the block at the specified coordinates without bounds checking.
     /// USE ONLY when you are certain x, y, z are valid.
+    /// Updates BlockCount efficiently.
     /// </summary>
     public void SetBlockFast(int x, int y, int z, ushort blockId)
     {
-        Blocks[x + y * Size + z * Size * Height] = blockId;
+        int index = x + y * Size + z * Size * Height;
+        ushort oldBlock = Blocks[index];
+
+        if (oldBlock == blockId) return;
+
+        if (oldBlock == 0 && blockId != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && blockId == 0)
+        {
+            BlockCount--;
+        }
+
+        Blocks[index] = blockId;
     }
 
     /// <summary>
@@ -139,7 +161,21 @@ public class ChunkEntity
     /// <param name="block">Block entity to store.</param>
     public void SetBlock(int x, int y, int z, ushort block)
     {
-        Blocks[GetIndex(x, y, z)] = block;
+        int index = GetIndex(x, y, z);
+        ushort oldBlock = Blocks[index];
+
+        if (oldBlock == block) return;
+
+        if (oldBlock == 0 && block != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && block == 0)
+        {
+            BlockCount--;
+        }
+
+        Blocks[index] = block;
     }
 
     /// <summary>
@@ -181,6 +217,19 @@ public class ChunkEntity
     public void SetBlock(int index, ushort block)
     {
         ValidateIndex(index);
+        
+        ushort oldBlock = Blocks[index];
+        if (oldBlock == block) return;
+
+        if (oldBlock == 0 && block != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && block == 0)
+        {
+            BlockCount--;
+        }
+
         Blocks[index] = block;
     }
 
@@ -363,6 +412,7 @@ public class ChunkEntity
     public void Clear()
     {
         Array.Fill(Blocks, (ushort)0);  // 0 = Air block ID
+        BlockCount = 0;
         IsMeshDirty = true;
     }
 
