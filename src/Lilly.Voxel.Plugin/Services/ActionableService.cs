@@ -47,6 +47,7 @@ public class ActionableService : IActionableService
         if (!TryResolve(worldPos, out var chunk, out var localIndex))
         {
             _logger.Debug("OnPlace: chunk not loaded at {Position}", worldPos);
+
             return;
         }
 
@@ -87,7 +88,7 @@ public class ActionableService : IActionableService
 
             foreach (var instance in chunk.Actionables.Values)
             {
-                var worldPos = GetWorldPosition(chunk, instance.LocalIndex);
+                var worldPos = ChunkEntity.GetWorldPosition(chunk, instance.LocalIndex);
                 var ctx = new ActionEventContext(
                     ActionEventType.OnTick,
                     worldPos,
@@ -111,6 +112,7 @@ public class ActionableService : IActionableService
         if (ctx.Event is ActionEventType.OnUse or ActionEventType.OnPlace)
         {
             var sound = ctx.Instance.Components.Get<SoundComponent>();
+
             if (sound != null)
             {
                 _audioService.PlaySoundEffect3D(sound.soundId, ctx.WorldPosition);
@@ -146,20 +148,5 @@ public class ActionableService : IActionableService
         chunk = chunkEntity;
 
         return true;
-    }
-
-    private static Vector3 GetWorldPosition(ChunkEntity chunk, int localIndex)
-    {
-        var (x, y, z) = FromIndex(localIndex);
-        return chunk.Position + new Vector3(x, y, z);
-    }
-
-    private static (int X, int Y, int Z) FromIndex(int index)
-    {
-        var x = index % ChunkEntity.Size;
-        var temp = index / ChunkEntity.Size;
-        var y = temp % ChunkEntity.Height;
-        var z = temp / ChunkEntity.Height;
-        return (x, y, z);
     }
 }

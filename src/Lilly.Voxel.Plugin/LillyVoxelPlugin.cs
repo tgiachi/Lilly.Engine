@@ -17,7 +17,6 @@ using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
 using Lilly.Voxel.Plugin.Steps.World;
 using Lilly.Voxel.Plugin.Vertexs;
-
 using Lilly.Voxel.Plugin.Steps.Lighting;
 
 namespace Lilly.Voxel.Plugin;
@@ -82,9 +81,11 @@ public class LillyVoxelPlugin : ILillyPlugin
         container
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()
+            .RegisterService<IActionableService, ActionableService>()
             .RegisterService<ChunkLightingService>()
             .RegisterService<ChunkLightPropagationService>()
-            .RegisterService<ChunkMeshBuilder>();
+            .RegisterService<ChunkMeshBuilder>()
+            ;
 
         container.RegisterScriptModule<BlockRegistryModule>()
                  .RegisterScriptModule<GenerationModule>()

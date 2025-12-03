@@ -258,6 +258,34 @@ public class ChunkEntity
     }
 
     /// <summary>
+    ///  Calculates the world position of a block given its local index within the chunk.
+    /// </summary>
+    /// <param name="chunk"></param>
+    /// <param name="localIndex"></param>
+    /// <returns></returns>
+    public static Vector3 GetWorldPosition(ChunkEntity chunk, int localIndex)
+    {
+        var (x, y, z) = FromIndex(localIndex);
+
+        return chunk.Position + new Vector3(x, y, z);
+    }
+
+    /// <summary>
+    ///  Calculates the local block coordinates from a linear index.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public static (int X, int Y, int Z) FromIndex(int index)
+    {
+        var x = index % Size;
+        var temp = index / Size;
+        var y = temp % Height;
+        var z = temp / Height;
+
+        return (x, y, z);
+    }
+
+    /// <summary>
     /// Calculates the linear index for the provided vector position.
     /// </summary>
     /// <param name="position">Vector position of the block.</param>
