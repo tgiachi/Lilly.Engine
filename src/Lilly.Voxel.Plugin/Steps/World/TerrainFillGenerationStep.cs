@@ -116,10 +116,17 @@ public class TerrainFillGenerationStep : IGeneratorStep
                 {
                     var worldY = chunkBaseY + y;
 
-                    if (worldY == 0)
+                    // Bedrock layer at worldY = -500
+                    if (worldY == -500)
                     {
                         chunk.SetBlockFast(x, y, z, _bedrockId);
                         continue;
+                    }
+
+                    // Below bedrock is void (air)
+                    if (worldY < -500)
+                    {
+                        continue; // Leave as air
                     }
 
                     if (worldY > surfaceHeight)

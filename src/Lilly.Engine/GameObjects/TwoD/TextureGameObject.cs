@@ -32,6 +32,13 @@ public class TextureGameObject : Base2dGameObject
         }
     }
 
+
+    public Vector2 Position
+    {
+        set => Transform.Position = value;
+        get => Transform.Position;
+    }
+
     /// <summary>
     /// Gets or sets the size of the texture when rendered.
     /// If not set (Vector2.Zero), the texture will be drawn at its original size.
@@ -85,7 +92,7 @@ public class TextureGameObject : Base2dGameObject
 
         var textureInfo = _assetManager.GetTexture<Texture2D>(_textureName);
 
-        return textureInfo == null ? Vector2.Zero : new Vector2(textureInfo.Width, textureInfo.Height);
+        return textureInfo == null ? Vector2.Zero : new Vector2(textureInfo.Width, textureInfo.Height) * Transform.Scale;
     }
 
     /// <summary>

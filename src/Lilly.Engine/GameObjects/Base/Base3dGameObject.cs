@@ -64,7 +64,7 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
     /// Adds a 2D game object as a child.
     /// </summary>
     /// <param name="gameObject">The game object to add.</param>
-    protected void AddGameObject(params IGameObject3d[] gameObjects)
+    protected void AddGameObject(params IGameObject[] gameObjects)
     {
         ArgumentNullException.ThrowIfNull(gameObjects);
 
@@ -116,7 +116,11 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     protected TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
     {
-        return _gameObjectManager.CreateGameObject<TGameObject>();
+        var gameObject = _gameObjectManager.CreateGameObject<TGameObject>();
+
+        AddGameObject(gameObject);
+
+        return gameObject;
     }
 
     /// <summary>

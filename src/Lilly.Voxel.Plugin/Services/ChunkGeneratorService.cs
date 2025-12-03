@@ -41,6 +41,8 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     private readonly IJobSystemService _jobSystemService;
 
     private readonly int _initialChunkRadius = 3;
+    private readonly int _initialChunkMinLayer = -16; // Start from chunk Y=-512 (to include bedrock at worldY=-500)
+    private readonly int _initialChunkMaxLayer = 8;   // Up to chunk Y=256
     private readonly Vector3 _initialPosition = Vector3.Zero;
 
     // Configuration
@@ -178,16 +180,20 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         var centerChunkPos = ChunkUtils.NormalizeToChunkPosition(_initialPosition);
 
         // Calculate all chunk positions to generate in a radius around the initial position
-        for (int x = -_initialChunkRadius; x <= _initialChunkRadius; x++)
+        // Now including vertical layers (from minLayer to maxLayer)
+        for (int y = _initialChunkMinLayer; y <= _initialChunkMaxLayer; y++)
         {
-            for (int z = -_initialChunkRadius; z <= _initialChunkRadius; z++)
+            for (int x = -_initialChunkRadius; x <= _initialChunkRadius; x++)
             {
-                var chunkPos = new Vector3(
-                    centerChunkPos.X + (x * ChunkEntity.Size),
-                    centerChunkPos.Y,
-                    centerChunkPos.Z + (z * ChunkEntity.Size)
-                );
-                chunksToGenerate.Add(chunkPos);
+                for (int z = -_initialChunkRadius; z <= _initialChunkRadius; z++)
+                {
+                    var chunkPos = new Vector3(
+                        centerChunkPos.X + (x * ChunkEntity.Size),
+                        centerChunkPos.Y + (y * ChunkEntity.Height),
+                        centerChunkPos.Z + (z * ChunkEntity.Size)
+                    );
+                    chunksToGenerate.Add(chunkPos);
+                }
             }
         }
 

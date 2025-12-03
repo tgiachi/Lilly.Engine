@@ -81,9 +81,10 @@ public sealed class WorldGameObject : Base3dGameObject
 
     public override void Initialize()
     {
+        CreateGameObject<CrosshairGameObject>();
         CreateGameObject<BlockOutlineGameObject>();
         CreateGameObject<ChunkDebuggerViewerGameObject>();
-        CreateGameObject<CrosshairGameObject>();
+
 
         IsBlockOutlineVisible = true;
         IsChunkDebuggerVisible = true;

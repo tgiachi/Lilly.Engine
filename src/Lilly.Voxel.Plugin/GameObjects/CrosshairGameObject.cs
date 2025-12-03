@@ -19,8 +19,8 @@ public class CrosshairGameObject : TextureGameObject
     {
         _renderContext = renderContext;
         TextureName = "crosshair";
+        Transform.Scale = new Vector2(4, 4);
 
-        ZIndex = int.MaxValue; // Always on top
     }
 
     public override void Update(GameTime gameTime)
@@ -28,13 +28,12 @@ public class CrosshairGameObject : TextureGameObject
         var width = _renderContext.GraphicsDevice.Viewport.Width;
         var height = _renderContext.GraphicsDevice.Viewport.Height;
 
-
         var textureSize = GetTextureSize();
+        Transform.Position = new Vector2(width / 2f - textureSize.X / 2, height / 2f - textureSize.Y / 2);
 
-        Transform.Position = new Vector2(
-            (width - textureSize.X) / 2f,
-            (height - textureSize.Y) / 2f
-        );
+        //Size = GetTextureSize();
+
+
 
         base.Update(gameTime);
     }
