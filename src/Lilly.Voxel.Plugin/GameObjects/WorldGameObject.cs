@@ -263,6 +263,20 @@ public sealed class WorldGameObject : Base3dGameObject
                         {
                             var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
 
+                            ChunkEntity? topNeighbor = null;
+                            var topPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                (int)neighborCoord.X,
+                                (int)neighborCoord.Y + 1,
+                                (int)neighborCoord.Z
+                            );
+
+                            if (_chunkGenerator.TryGetCachedChunk(topPos, out var t))
+                            {
+                                topNeighbor = t;
+                            }
+
+                            _lightPropagationService.PropagateLight(chunk, topNeighbor);
+
                             var mesh = _meshBuilder.BuildMeshData(
                                 chunk,
                                 (chunkCoords) =>
@@ -440,7 +454,19 @@ public sealed class WorldGameObject : Base3dGameObject
             {
                 var chunk = chunkGo.Chunk;
 
-                _lightPropagationService.PropagateLight(chunk);
+                ChunkEntity? topNeighbor = null;
+                var topPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                    (int)coord.X,
+                    (int)coord.Y + 1,
+                    (int)coord.Z
+                );
+
+                if (_chunkGenerator.TryGetCachedChunk(topPos, out var t))
+                {
+                    topNeighbor = t;
+                }
+
+                _lightPropagationService.PropagateLight(chunk, topNeighbor);
 
                 var mesh = _meshBuilder.BuildMeshData(
                     chunk,

@@ -25,7 +25,7 @@ public sealed class ChunkLightPropagationService
     /// <summary>
     /// Calculates lighting for the entire chunk, including sunlight and block emissions.
     /// </summary>
-    public void PropagateLight(ChunkEntity chunk)
+    public void PropagateLight(ChunkEntity chunk, ChunkEntity? topNeighbor = null)
     {
         // 1. Reset light levels to 0 (darkness) so we can recalculate fresh
         Array.Fill(chunk.LightLevels, (byte)0);
@@ -33,17 +33,15 @@ public sealed class ChunkLightPropagationService
         var lightQueue = new Queue<int>();
 
         // 2. Initialize Sources (Sunlight & Emissive Blocks)
-        InitializeSunlight(chunk, lightQueue);
+        InitializeSunlight(chunk, topNeighbor, lightQueue);
         InitializeBlockLights(chunk, lightQueue);
 
         int sourceCount = lightQueue.Count;
 
         if (sourceCount == 0)
         {
-            _logger.Warning(
-                "Chunk {Chunk} has NO light sources (Queue is empty)! It will be pitch black.",
-                chunk.ChunkCoordinates
-            );
+            // Only warn if we really expect light. Underground chunks might legally be dark.
+            // _logger.Warning("..."); 
         }
 
         // 3. Propagate (Flood Fill)
@@ -54,7 +52,7 @@ public sealed class ChunkLightPropagationService
         chunk.IsMeshDirty = true;
     }
 
-    private void InitializeSunlight(ChunkEntity chunk, Queue<int> lightQueue)
+    private void InitializeSunlight(ChunkEntity chunk, ChunkEntity? topNeighbor, Queue<int> lightQueue)
     {
         // Simple vertical sunlight:
         // Iterate every column (X, Z).
@@ -67,6 +65,16 @@ public sealed class ChunkLightPropagationService
             for (int z = 0; z < ChunkEntity.Size; z++)
             {
                 bool inShadow = false;
+
+                // If we have a chunk above, check if it allows sunlight through
+                if (topNeighbor != null)
+                {
+                    // Check the light level at the bottom of the chunk above
+                    if (topNeighbor.GetLightLevel(x, 0, z) < VoxelConstants.MaxLightLevel)
+                    {
+                        inShadow = true;
+                    }
+                }
 
                 for (int y = ChunkEntity.Height - 1; y >= 0; y--)
                 {
