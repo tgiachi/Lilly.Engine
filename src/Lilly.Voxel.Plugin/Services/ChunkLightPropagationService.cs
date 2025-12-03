@@ -27,14 +27,15 @@ public sealed class ChunkLightPropagationService
     /// </summary>
     public void PropagateLight(ChunkEntity chunk, ChunkEntity? topNeighbor = null)
     {
-        // 1. Reset light levels to 0 (darkness) so we can recalculate fresh
-        Array.Fill(chunk.LightLevels, (byte)0);
+        // 1. Create a new array for double buffering to prevent race conditions
+        var newLightLevels = new byte[chunk.LightLevels.Length];
+        // Array is already initialized to 0
 
         var lightQueue = new Queue<int>();
 
         // 2. Initialize Sources (Sunlight & Emissive Blocks)
-        InitializeSunlight(chunk, topNeighbor, lightQueue);
-        InitializeBlockLights(chunk, lightQueue);
+        InitializeSunlight(chunk, topNeighbor, lightQueue, newLightLevels);
+        InitializeBlockLights(chunk, lightQueue, newLightLevels);
 
         int sourceCount = lightQueue.Count;
 
@@ -45,14 +46,17 @@ public sealed class ChunkLightPropagationService
         }
 
         // 3. Propagate (Flood Fill)
-        ProcessLightQueue(chunk, lightQueue);
+        ProcessLightQueue(chunk, lightQueue, newLightLevels);
 
-        // 4. Mark clean
+        // 4. Swap atomically
+        chunk.ReplaceLightLevels(newLightLevels);
+
+        // 5. Mark clean
         chunk.IsLightingDirty = false;
         chunk.IsMeshDirty = true;
     }
 
-    private void InitializeSunlight(ChunkEntity chunk, ChunkEntity? topNeighbor, Queue<int> lightQueue)
+    private void InitializeSunlight(ChunkEntity chunk, ChunkEntity? topNeighbor, Queue<int> lightQueue, byte[] lightLevels)
     {
         // Simple vertical sunlight:
         // Iterate every column (X, Z).
@@ -92,7 +96,7 @@ public sealed class ChunkLightPropagationService
                     if (!inShadow)
                     {
                         // Full sunlight
-                        chunk.LightLevels[index] = VoxelConstants.MaxLightLevel;
+                        lightLevels[index] = VoxelConstants.MaxLightLevel;
 
                         // Add to queue so it can spread sideways into caves/overhangs
                         lightQueue.Enqueue(index);
@@ -102,7 +106,7 @@ public sealed class ChunkLightPropagationService
         }
     }
 
-    private void InitializeBlockLights(ChunkEntity chunk, Queue<int> lightQueue)
+    private void InitializeBlockLights(ChunkEntity chunk, Queue<int> lightQueue, byte[] lightLevels)
     {
         // Scan for blocks that emit light (torches, lava, etc.)
         for (int i = 0; i < chunk.Blocks.Length; i++)
@@ -119,9 +123,9 @@ public sealed class ChunkLightPropagationService
                 // Map float 0-1 to byte 0-MaxLightLevel
                 byte intensity = (byte)(blockType.EmitsLight * VoxelConstants.MaxLightLevel);
 
-                if (intensity > chunk.LightLevels[i])
+                if (intensity > lightLevels[i])
                 {
-                    chunk.LightLevels[i] = intensity;
+                    lightLevels[i] = intensity;
 
                     // Also set color if applicable
                     if (blockType.EmitsColor != Color4b.Transparent)
@@ -140,7 +144,7 @@ public sealed class ChunkLightPropagationService
         }
     }
 
-    private void ProcessLightQueue(ChunkEntity chunk, Queue<int> lightQueue)
+    private void ProcessLightQueue(ChunkEntity chunk, Queue<int> lightQueue, byte[] lightLevels)
     {
         // Standard BFS Flood Fill
         while (lightQueue.Count > 0)
@@ -152,22 +156,22 @@ public sealed class ChunkLightPropagationService
             int y = (index / ChunkEntity.Size) % ChunkEntity.Height;
             int z = index / (ChunkEntity.Size * ChunkEntity.Height);
 
-            byte currentLevel = chunk.LightLevels[index];
+            byte currentLevel = lightLevels[index];
 
             if (currentLevel <= 1)
                 continue; // Logic stops at 1, next would be 0
 
             // Check all 6 neighbors
-            CheckNeighbor(chunk, x + 1, y, z, currentLevel, lightQueue);
-            CheckNeighbor(chunk, x - 1, y, z, currentLevel, lightQueue);
-            CheckNeighbor(chunk, x, y + 1, z, currentLevel, lightQueue);
-            CheckNeighbor(chunk, x, y - 1, z, currentLevel, lightQueue);
-            CheckNeighbor(chunk, x, y, z + 1, currentLevel, lightQueue);
-            CheckNeighbor(chunk, x, y, z - 1, currentLevel, lightQueue);
+            CheckNeighbor(chunk, x + 1, y, z, currentLevel, lightQueue, lightLevels);
+            CheckNeighbor(chunk, x - 1, y, z, currentLevel, lightQueue, lightLevels);
+            CheckNeighbor(chunk, x, y + 1, z, currentLevel, lightQueue, lightLevels);
+            CheckNeighbor(chunk, x, y - 1, z, currentLevel, lightQueue, lightLevels);
+            CheckNeighbor(chunk, x, y, z + 1, currentLevel, lightQueue, lightLevels);
+            CheckNeighbor(chunk, x, y, z - 1, currentLevel, lightQueue, lightLevels);
         }
     }
 
-    private void CheckNeighbor(ChunkEntity chunk, int x, int y, int z, byte currentLevel, Queue<int> lightQueue)
+    private void CheckNeighbor(ChunkEntity chunk, int x, int y, int z, byte currentLevel, Queue<int> lightQueue, byte[] lightLevels)
     {
         if (!chunk.IsInBounds(x, y, z))
             return;
@@ -190,9 +194,9 @@ public sealed class ChunkLightPropagationService
             newLevel = 0;
 
         // If we found a brighter path to this neighbor, update it and enqueue
-        if (chunk.LightLevels[neighborIndex] < newLevel)
+        if (lightLevels[neighborIndex] < newLevel)
         {
-            chunk.LightLevels[neighborIndex] = (byte)newLevel;
+            lightLevels[neighborIndex] = (byte)newLevel;
 
             // Propagate color (simplified: copy parent color if neighbor has none or weak)
             // Ideally we mix colors, but simple copy works for now.

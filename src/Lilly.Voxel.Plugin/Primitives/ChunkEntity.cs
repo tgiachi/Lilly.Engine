@@ -74,7 +74,20 @@ public class ChunkEntity
     /// <summary>
     /// Gets the raw backing array that stores light levels for the chunk.
     /// </summary>
-    public byte[] LightLevels { get; }
+    public byte[] LightLevels { get; private set; }
+
+    /// <summary>
+    /// Replaces the light levels array with a new one.
+    /// Used for atomic updates to prevent race conditions during lighting propagation.
+    /// </summary>
+    public void ReplaceLightLevels(byte[] newLevels)
+    {
+        if (newLevels.Length != Size * Size * Height)
+        {
+            throw new ArgumentException($"New light levels array must have length {Size * Size * Height}", nameof(newLevels));
+        }
+        LightLevels = newLevels;
+    }
 
     /// <summary>
     /// Gets the raw backing array that stores light colors for the chunk (for colored light propagation).
