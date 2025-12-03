@@ -32,6 +32,8 @@ void main()
 
     vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
     vec3 lighting = uAmbient + diffuse;
+    // Clamp total lighting to prevent over-exposure on bright surfaces
+    lighting = min(lighting, vec3(1.0));
     vec3 color = texResult.rgb * lighting * vertexLight;
     color *= uFade;
 
