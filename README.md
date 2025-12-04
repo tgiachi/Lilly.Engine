@@ -83,80 +83,106 @@ public class MyScene : BaseScene
 
 ## Scripting with Lua
 
-Scripts can hook into engine events and control game objects:
+Scripts have full access to the engine core, input, camera, and UI. The engine automatically generates a `definitions.lua` file for IDE autocompletion.
 
 ```lua
--- scripts/player.lua
+-- scripts/init.lua
 
-local player_speed = 5.0
+function on_initialize()
+    window.set_title("My Game")
+    camera.register_fps("main_cam")
+    camera.set_active("main_cam")
+end
 
-function on_update(delta_time)
-    local input = engine.input
+-- Input handling
+input_manager.bind_key("Space", function()
+    notifications.info("Jump!")
+end)
 
-    if input:is_key_down("W") then
-        player.position.y = player.position.y + player_speed * delta_time
+input_manager.bind_mouse(function(xDelta, yDelta, posX, posY)
+    local sensitivity = 0.003
+    camera.dispatch_mouse_fps(yDelta * sensitivity, xDelta * sensitivity)
+end)
+
+-- Update loop
+engine.on_update(function(dt)
+    if input_manager.is_key_down("W") then
+        camera.dispatch_keyboard_fps(1, 0, 0)
     end
-end
+end)
 
-function on_collision(other)
-    notifications.show("Hit something!", "Info")
-end
-```
-
-Register and run the script:
-
-```csharp
-var script = scriptEngine.LoadScript("scripts/player.lua");
-script.Call("on_update", deltaTime);
+-- UI with ImGui
+engine.on_update(function(dt)
+    if im_gui.begin_window("Debug") then
+        im_gui.text("FPS: " .. (1/dt))
+        im_gui.end_window()
+    end
+end)
 ```
 
 ## Voxel Worlds
 
-The voxel plugin includes a complete world generation pipeline:
+The `Lilly.Voxel.Plugin` provides a highly configurable world generation pipeline. You can inject steps for heightmaps, erosion, caves, and decoration.
 
 ```csharp
-// Register custom block types
-blockRegistry.Register(new BlockType
+// In your plugin's EngineReady method
+public void EngineReady(IContainer container)
 {
-    Id = 100,
-    Name = "custom_stone",
-    IsSolid = true,
-    Textures = new BlockTextureSet
-    {
-        Top = "blocks/stone_top.png",
-        Sides = "blocks/stone_side.png",
-        Bottom = "blocks/stone_bottom.png"
-    }
-});
-
-// Generate world with custom settings
-var world = new WorldGameObject(generationSettings);
-world.Generate();
+    var generator = container.Resolve<IChunkGeneratorService>();
+    var blockRegistry = container.Resolve<IBlockRegistry>();
+    
+    // Configure the pipeline
+    generator.AddGeneratorStep(new HeightMapGenerationStep());
+    generator.AddGeneratorStep(new TerrainErosionGenerationStep());
+    generator.AddGeneratorStep(new CaveGenerationStep());
+    generator.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+    
+    // Lighting must run last
+    var lighting = container.Resolve<ChunkLightPropagationService>();
+    generator.AddGeneratorStep(new LightingGenerationStep(lighting));
+}
 ```
 
 ## Plugins
 
-Creating a plugin is straightforward:
+Create plugins to extend the engine with new systems or game content.
 
 ```csharp
 public class MyPlugin : ILillyPlugin
 {
-    public LillyPluginData GetPluginData() => new()
-    {
-        Name = "MyPlugin",
-        Version = "1.0.0",
-        Author = "Your Name"
-    };
+    public LillyPluginData LillyData => new(
+        id: "com.example.myplugin",
+        name: "My Custom Plugin",
+        version: "1.0.0",
+        author: "Me",
+        dependencies: "com.tgiachi.lilly.voxel" // Optional dependencies
+    );
 
-    public void RegisterModule(IRegistrator registrator)
+    public IContainer RegisterModule(IContainer container)
     {
-        // Register services, singletons, etc.
-        registrator.Register<IMyService, MyService>(Reuse.Singleton);
+        // Register services and game objects
+        container.RegisterService<IMyService, MyService>();
+        container.RegisterGameObject<MyCustomEntity>();
+        
+        // Register script modules to expose C# to Lua
+        container.RegisterScriptModule<MyScriptModule>();
+        
+        return container;
     }
 
-    public void EngineInitialized(IContainer container)
+    public void EngineInitialized(IContainer container) { }
+
+    public void EngineReady(IContainer container)
     {
-        // Engine is ready, initialize your plugin
+        // Engine is fully loaded, safe to access all services
+        var assets = container.Resolve<IAssetManager>();
+        assets.LoadTexture("my_texture", "path/to/texture.png");
+    }
+
+    public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory factory)
+    {
+        // Automatically add objects to the scene
+        yield return factory.Create<MyCustomEntity>();
     }
 }
 ```

@@ -4,6 +4,12 @@
   href: getting-started.md
 - name: Architecture
   href: architecture.md
+- name: Audio System
+  href: audio-system.md
+- name: Job System
+  href: job-system.md
+- name: Voxel Plugin
+  href: voxel-plugin.md
 - name: Plugin Development
   href: plugin-development.md
 - name: Lua Scripting

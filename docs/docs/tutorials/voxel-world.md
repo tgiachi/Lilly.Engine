@@ -14,11 +14,13 @@ By the end of this tutorial, you'll have:
 
 ## Prerequisites
 
-Make sure the Voxel Plugin is enabled in your project:
+Make sure the Voxel Plugin is enabled in your `Program.cs`:
 
 ```csharp
-var pluginRegistry = new PluginRegistry();
-pluginRegistry.RegisterPlugin(new LillyVoxelPlugin());
+bootstrap.OnConfiguring += _ =>
+{
+    container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+};
 ```
 
 ## Step 1: Basic World Setup

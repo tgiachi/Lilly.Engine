@@ -61,101 +61,44 @@ Lilly.Engine/
 └── Lilly.Engine.sln                # Solution file
 ```
 
-## Creating Your First Scene
+## Your First Script
 
-Let's build a simple scene that displays a sprite and moves it with keyboard input.
+The easiest way to start creating is by modifying `lilly/scripts/init.lua`. This script is automatically loaded by the engine.
 
-### Step 1: Create a New Scene Class
+```lua
+function on_initialize()
+    -- Set window properties
+    window.set_title("My First Lilly Game")
+    
+    -- Setup camera
+    camera.register_fps("main")
+    camera.set_active("main")
+    
+    -- Create some objects using the factory
+    local cube = game_objects.new_simple_cube()
+    local sky = game_objects.new_sky()
+    
+    notifications.info("Welcome to Lilly Engine!")
+end
 
-In `Lilly.Engine.Game`, create a new file called `MyFirstScene.cs`:
-
-```csharp
-using Lilly.Engine.Core.Interfaces;
-using Lilly.Engine.Scenes;
-using Lilly.Engine.GameObjects;
-using Silk.NET.Maths;
-using System.Drawing;
-
-namespace Lilly.Engine.Game;
-
-public class MyFirstScene : BaseScene
-{
-    private readonly IAssetManager _assetManager;
-    private readonly IInputManagerService _input;
-    private TextureGameObject? _player;
-
-    private const float PlayerSpeed = 200f;
-
-    public MyFirstScene(
-        IAssetManager assetManager,
-        IInputManagerService input)
-    {
-        _assetManager = assetManager;
-        _input = input;
-    }
-
-    public override void Initialize()
-    {
-        // Create a simple colored rectangle as our player
-        _player = new TextureGameObject(null)
-        {
-            Position = new Vector2D<float>(400, 300),
-            Size = new Vector2D<float>(50, 50),
-            Color = Color.Blue
-        };
-
-        AddGameObject(_player);
-    }
-
-    public override void Update(float deltaTime)
-    {
-        base.Update(deltaTime);
-
-        if (_player == null) return;
-
-        // Handle input
-        var movement = Vector2D<float>.Zero;
-
-        if (_input.IsKeyDown(Silk.NET.Input.Key.W))
-            movement.Y -= 1;
-        if (_input.IsKeyDown(Silk.NET.Input.Key.S))
-            movement.Y += 1;
-        if (_input.IsKeyDown(Silk.NET.Input.Key.A))
-            movement.X -= 1;
-        if (_input.IsKeyDown(Silk.NET.Input.Key.D))
-            movement.X += 1;
-
-        // Normalize diagonal movement
-        if (movement.LengthSquared > 0)
-        {
-            var length = MathF.Sqrt(movement.X * movement.X + movement.Y * movement.Y);
-            movement.X /= length;
-            movement.Y /= length;
-        }
-
-        // Apply movement
-        _player.Position += movement * PlayerSpeed * deltaTime;
-    }
-}
+-- Add simple interaction
+input_manager.bind_key("Space", function()
+    notifications.success("Hello World!")
+end)
 ```
 
-### Step 2: Register Your Scene
+## Running the Engine
 
-Open `Program.cs` in `Lilly.Engine.Game` and register your scene:
+1. Navigate to the game project directory:
+   ```bash
+   cd src/Lilly.Engine.Game
+   ```
+2. Run the project:
+   ```bash
+   dotnet run
+   ```
 
-```csharp
-// Find the scene registration section and add:
-sceneManager.RegisterScene<MyFirstScene>("MyFirstScene");
-
-// Then activate it:
-sceneManager.ActivateScene("MyFirstScene");
-```
-
-### Step 3: Run It
-
-```bash
-dotnet run
-```
+You should see the window open with your title and the objects you created.
 
 You should see a blue square that moves when you press WASD keys.
 

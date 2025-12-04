@@ -13,18 +13,60 @@ Plugins have access to the full engine lifecycle:
 - Depend on other plugins
 - Provide custom assets
 
-## Plugin Interface
+## Plugin Structure
 
-Every plugin implements `ILillyPlugin`:
+To create a plugin, implement the `ILillyPlugin` interface.
 
 ```csharp
-public interface ILillyPlugin
+using Lilly.Engine.Interfaces.Plugins;
+using Lilly.Engine.Data.Plugins;
+using DryIoc;
+
+public class MyPlugin : ILillyPlugin
 {
-    LillyPluginData GetPluginData();
-    void RegisterModule(IRegistrator registrator);
-    void EngineInitialized(IContainer container);
-    void EngineReady(IContainer container);
-    IEnumerable<IGameObject> GetGlobalGameObjects(IContainer container);
+    // Define plugin metadata
+    public LillyPluginData LillyData => new(
+        "com.myname.myplugin",  // Unique ID
+        "My Plugin",            // Display Name
+        "1.0.0",                // Version
+        "Author Name",          // Author
+        "com.tgiachi.lilly.voxel" // Optional dependencies (comma separated)
+    );
+
+    // Register services, game objects, and script modules
+    public IContainer RegisterModule(IContainer container)
+    {
+        // Register a service
+        container.RegisterService<IMyService, MyService>();
+        
+        // Register a game object
+        container.RegisterGameObject<MyGameObject>();
+        
+        // Register a script module (exposing C# to Lua)
+        container.RegisterScriptModule<MyScriptModule>();
+
+        return container;
+    }
+
+    // Called when the engine container is built but before the game loop starts
+    public void EngineInitialized(IContainer container)
+    {
+        // Good place for late initialization or event subscriptions
+    }
+
+    // Called when the engine is fully ready and about to start the loop
+    public void EngineReady(IContainer container)
+    {
+        // Load assets, configure initial state
+        var assets = container.Resolve<IAssetManager>();
+        assets.LoadTexture("my_plugin_texture", "Assets/texture.png");
+    }
+
+    // Return game objects that should be automatically added to the global scene
+    public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory factory)
+    {
+        yield return factory.Create<MyGameObject>();
+    }
 }
 ```
 

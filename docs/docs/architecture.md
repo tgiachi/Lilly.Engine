@@ -463,10 +463,10 @@ Plugins extend the engine without modifying core code.
 public interface ILillyPlugin
 {
     // Metadata
-    LillyPluginData GetPluginData();
+    LillyPluginData LillyData { get; }
 
     // Register services with DI container
-    void RegisterModule(IRegistrator registrator);
+    IContainer RegisterModule(IContainer container);
 
     // Called after engine services are initialized
     void EngineInitialized(IContainer container);
@@ -475,7 +475,7 @@ public interface ILillyPlugin
     void EngineReady(IContainer container);
 
     // Global game objects (always rendered)
-    IEnumerable<IGameObject> GetGlobalGameObjects(IContainer container);
+    IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory factory);
 }
 ```
 
@@ -484,51 +484,53 @@ public interface ILillyPlugin
 ```csharp
 public class MyPlugin : ILillyPlugin
 {
-    public LillyPluginData GetPluginData() => new()
-    {
-        Name = "MyPlugin",
-        Version = "1.0.0",
-        Author = "Your Name",
-        Dependencies = new[] { "CorePlugin" }
-    };
+    public LillyPluginData LillyData => new(
+        "com.myname.myplugin",  // ID
+        "My Plugin",            // Name
+        "1.0.0",                // Version
+        "Author Name",          // Author
+        "com.dependency.plugin" // Dependencies
+    );
 
-    public void RegisterModule(IRegistrator registrator)
+    public IContainer RegisterModule(IContainer container)
     {
         // Register services
-        registrator.Register<IMyService, MyService>(Reuse.Singleton);
+        container.RegisterService<IMyService, MyService>();
+        
+        // Register script modules
+        container.RegisterScriptModule<MyScriptModule>();
+        
+        return container;
     }
 
     public void EngineInitialized(IContainer container)
+    {
+        // Early initialization
+    }
+
+    public void EngineReady(IContainer container)
     {
         // Engine is ready, initialize your plugin
         var myService = container.Resolve<IMyService>();
         myService.Initialize();
     }
 
-    public void EngineReady(IContainer container)
-    {
-        // All plugins loaded, game is starting
-    }
-
-    public IEnumerable<IGameObject> GetGlobalGameObjects(IContainer container)
+    public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory factory)
     {
         // Return objects that should always be rendered
-        yield return new DebugOverlay();
+        yield return factory.Create<DebugOverlay>();
     }
 }
 ```
 
 ### Plugin Registration
 
-In the game bootstrap:
+Plugins are typically registered in the application bootstrap (e.g., `Program.cs`):
 
 ```csharp
-var pluginRegistry = new PluginRegistry();
-pluginRegistry.RegisterPlugin(new MyPlugin());
-pluginRegistry.RegisterPlugin(new VoxelPlugin());
-pluginRegistry.RegisterPlugin(new LuaScriptingPlugin());
-
-pluginRegistry.InitializePlugins(container);
+// Register plugins from assemblies
+container.RegisterPlugin(typeof(MyPlugin).Assembly);
+container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
 ```
 
 Plugins can:
