@@ -248,6 +248,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<TextureGameObject>()
             .RegisterGameObject<StackLayoutGameObject>()
             .RegisterGameObject<VersionGameObject>()
+            .RegisterGameObject<SimplePlaneGameObject>()
             .RegisterGameObject<SimpleCubeGameObject>()
             ;
 

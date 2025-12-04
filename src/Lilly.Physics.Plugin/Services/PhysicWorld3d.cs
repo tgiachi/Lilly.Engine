@@ -2,9 +2,9 @@ using BepuPhysics;
 using BepuUtilities;
 using BepuUtilities.Memory;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Physics.Plugin.Callbacks;
 using Lilly.Physics.Plugin.Data;
-using Lilly.Physics.Plugin.Interfaces;
 using Lilly.Rendering.Core.Context;
 using Serilog;
 
