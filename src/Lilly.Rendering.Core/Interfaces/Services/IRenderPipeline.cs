@@ -1,10 +1,16 @@
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Pipeline;
 
 namespace Lilly.Rendering.Core.Interfaces.Services;
 
 public interface IRenderPipeline : IGameObjectManager
 {
+
+    delegate void GameObjectAddedHandler(IGameObject gameObject);
+
+    event GameObjectAddedHandler GameObjectAdded;
+
     IEnumerable<IRenderLayer> RenderLayers { get; }
     void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer;
 

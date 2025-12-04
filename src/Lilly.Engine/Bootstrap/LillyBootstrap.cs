@@ -212,24 +212,9 @@ public class LillyBootstrap : ILillyBootstrap
 
             pipeline.AddGameObject(versionGameObject);
 
-            foreach (var index in Enumerable.Range(0, 100))
-            {
-                var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
-
-                cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
-
-                cube.Transform.Position = new Vector3(
-                    (index % 5) * 2f - 4f,
-                    0f,
-                    (index / 5) * 2f - 1f
-                );
-                pipeline.AddGameObject(cube);
-            }
-
-            // Add plane under cubes
-
             var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
             plane.Transform.Position = new Vector3(0f, -10f, 0f);
+
             //plane.IgnoreFrustumCulling = true;
             plane.Transform.Scale = new Vector3(10f, 1f, 10f);
             plane.Width = 10f;
@@ -238,6 +223,35 @@ public class LillyBootstrap : ILillyBootstrap
 
             plane.TextureName = "ground_texture";
             pipeline.AddGameObject(plane);
+
+            foreach (var index in Enumerable.Range(0, 1000))
+            {
+                var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
+
+                cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
+
+                // cube.Transform.Rotation = new Vector3(;
+                //     Random.Shared.NextSingle() * MathF.PI,
+                //     Random.Shared.NextSingle() * MathF.PI,
+                //     Random.Shared.NextSingle() * MathF.PI
+                // );
+
+                    cube.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(
+                        Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
+                        Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
+                        Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
+                    );
+                    cube.Transform.Position = new Vector3(
+                    (index % 5) * 2f - 4f,
+                    +100f,
+                    (index / 5) * 2f - 1f
+                );
+                pipeline.AddGameObject(cube);
+            }
+
+            // Add plane under cubes
+
+
 
             var capsule = gameObjectFactory.Create<SimpleCapsuleGameObject>();
             capsule.Transform.Position = new Vector3(5f, 0f, 0f);

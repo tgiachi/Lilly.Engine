@@ -1,11 +1,13 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Extensions;
+using Lilly.Engine.Data.Physics;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Camera;
+using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.ThreeD;
@@ -13,26 +15,87 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Simple box object with customizable width, height, and depth dimensions.
 /// </summary>
-public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable
+public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
+    private readonly IPhysicWorld3d _physicWorld3d;
 
     private VertexBuffer<VertexColorTexture> _vertexBuffer;
     private ShaderProgram? _shaderProgram;
     private VertexColorTexture[] _boxVertices = [];
     private Texture2D? _texture;
+    private bool _needsRebuild;
 
-    public float Width { get; set; } = 1f;
-    public float Height { get; set; } = 1f;
-    public float Depth { get; set; } = 1f;
+    private float _width = 1f;
+    private float _height = 1f;
+    private float _depth = 1f;
+
+    private IPhysicsBodyHandle _body;
+
+    public float Width
+    {
+        get => _width;
+        set
+        {
+            if (_width != value)
+            {
+                _width = value;
+                _needsRebuild = true;
+            }
+        }
+    }
+
+    public float Height
+    {
+        get => _height;
+        set
+        {
+            if (_height != value)
+            {
+                _height = value;
+                _needsRebuild = true;
+            }
+        }
+    }
+
+    public float Depth
+    {
+        get => _depth;
+        set
+        {
+            if (_depth != value)
+            {
+                _depth = value;
+                _needsRebuild = true;
+            }
+        }
+    }
+
     public string TextureName { get; set; } = "box1";
     public Color4b BoxColor { get; set; } = Color4b.White;
+
+    public override BoundingBox BoundingBox
+    {
+        get
+        {
+            // Calculate half extents considering transform scale
+            var halfWidth = (Width * Transform.Scale.X) / 2f;
+            var halfHeight = (Height * Transform.Scale.Y) / 2f;
+            var halfDepth = (Depth * Transform.Scale.Z) / 2f;
+
+            var min = Transform.Position - new Vector3(halfWidth, halfHeight, halfDepth);
+            var max = Transform.Position + new Vector3(halfWidth, halfHeight, halfDepth);
+
+            return new BoundingBox(min, max);
+        }
+    }
 
     public SimpleBoxGameObject(
         GraphicsDevice graphicsDevice,
         IRenderPipeline gameObjectManager,
         IAssetManager assetManager,
+        IPhysicWorld3d physicWorld3d,
         float width = 1f,
         float height = 1f,
         float depth = 1f
@@ -40,6 +103,7 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
+        _physicWorld3d = physicWorld3d;
         Width = width;
         Height = height;
         Depth = depth;
@@ -62,6 +126,11 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
             return;
         }
 
+        if (_needsRebuild)
+        {
+            RebuildGeometry();
+        }
+
         graphicsDevice.ShaderProgram = _shaderProgram;
 
         _shaderProgram.Uniforms["World"].SetValueMat4(Transform.GetTransformationMatrix());
@@ -82,7 +151,20 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
             return;
         }
 
+        var pose = _physicWorld3d.GetPose(_body);
+
+        Transform.Position = pose.Position;
+        Transform.Rotation = pose.Rotation;
+
         base.Update(gameTime);
+    }
+
+    private void RebuildGeometry()
+    {
+        _boxVertices = CreateBoxVertices();
+        _vertexBuffer.Dispose();
+        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
+        _needsRebuild = false;
     }
 
     private VertexColorTexture[] CreateBoxVertices()
@@ -171,5 +253,17 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
 
         // Do not dispose _shaderProgram here as it is managed by AssetManager
         GC.SuppressFinalize(this);
+    }
+
+    public bool IsStatic => true;
+
+    public PhysicsBodyConfig BuildBodyConfig()
+    {
+        return new PhysicsBodyConfig(new BoxShape(Width * Transform.Scale.X, Height * Transform.Scale.Y, Depth * Transform.Scale.Z), 0f, new RigidPose(Transform.Position, Transform.Rotation));
+    }
+    public void OnPhysicsAttached(IPhysicsBodyHandle h)
+    {
+        _body = h;
+
     }
 }

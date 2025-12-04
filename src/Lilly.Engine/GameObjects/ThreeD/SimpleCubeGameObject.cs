@@ -1,11 +1,14 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Data.Physics;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Primitives;
 using TrippyGL;
 
 namespace Lilly.Engine.GameObjects.ThreeD;
@@ -13,7 +16,7 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Simple animated cube that randomizes its vertex colors over time.
 /// </summary>
-public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable
+public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -23,18 +26,42 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     private VertexColorTexture[] _cubeVertices = [];
     private Texture2D? _texture;
 
+    private readonly IPhysicWorld3d _physicWorld3d;
+
     public float XRotationSpeed { get; set; }
-    public float YRotationSpeed { get; set; } = 0.01f;
+    public float YRotationSpeed { get; set; }
     public float ZRotationSpeed { get; set; }
+    public float Mass { get; set; } = 1f;
+
+    private IPhysicsBodyHandle _body;
+
+    public override BoundingBox BoundingBox
+    {
+        get
+        {
+            // Cube size is 1x1x1, calculate half extents considering transform scale
+            var halfSize = 0.5f;
+            var halfWidth = halfSize * Transform.Scale.X;
+            var halfHeight = halfSize * Transform.Scale.Y;
+            var halfDepth = halfSize * Transform.Scale.Z;
+
+            var min = Transform.Position - new Vector3(halfWidth, halfHeight, halfDepth);
+            var max = Transform.Position + new Vector3(halfWidth, halfHeight, halfDepth);
+
+            return new BoundingBox(min, max);
+        }
+    }
 
     public SimpleCubeGameObject(
         GraphicsDevice graphicsDevice,
         IRenderPipeline gameObjectManager,
-        IAssetManager assetManager
+        IAssetManager assetManager,
+        IPhysicWorld3d physicWorld3d
     ) : base("SimpleCube", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
+        _physicWorld3d = physicWorld3d;
     }
 
     public void Initialize()
@@ -75,9 +102,14 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             return;
         }
 
-        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, YRotationSpeed);
-        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, ZRotationSpeed);
-        Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitX, XRotationSpeed);
+        var pose = _physicWorld3d.GetPose(_body);
+        Transform.Position = pose.Position;
+        Transform.Rotation = pose.Rotation;
+
+
+        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, YRotationSpeed);
+        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, ZRotationSpeed);
+        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitX, XRotationSpeed);
 
         base.Update(gameTime);
     }
@@ -170,5 +202,18 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
 
         // Do not dispose _shaderProgram here as it is managed by AssetManager
         GC.SuppressFinalize(this);
+    }
+
+    public bool IsStatic => false;
+
+    public PhysicsBodyConfig BuildBodyConfig()
+    {
+        // Cube size is 1x1x1 (from -0.5 to 0.5 in all dimensions)
+        return new PhysicsBodyConfig(new BoxShape(1, 1, 1f), Mass, new RigidPose(Transform.Position, Transform.Rotation));
+    }
+
+    public void OnPhysicsAttached(IPhysicsBodyHandle h)
+    {
+        _body = h;
     }
 }

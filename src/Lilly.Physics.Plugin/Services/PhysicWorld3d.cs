@@ -6,10 +6,13 @@ using BepuUtilities.Memory;
 using System.Linq;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
+using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Physics.Plugin.Callbacks;
 using Lilly.Physics.Plugin.Data;
 using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Serilog;
 using BepuRigidPose = BepuPhysics.RigidPose;
 using EngineRigidPose = Lilly.Engine.Data.Physics.RigidPose;
@@ -23,6 +26,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
     private readonly Dictionary<PhysicsShape, TypedIndex> _shapeCache = new();
     private int _nextId = 1;
 
+    private readonly IRenderPipeline _renderPipeline;
+
     private readonly ILogger _logger = Log.ForContext<PhysicWorld3d>();
     public BufferPool Pool { get; }
 
@@ -30,19 +35,40 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     public Simulation Simulation { get; private set; }
 
-    public PhysicWorld3d(World3dPhysicConfig config, RenderContext renderContext)
+    public PhysicWorld3d(World3dPhysicConfig config, RenderContext renderContext, IRenderPipeline renderPipeline)
     {
         _config = config;
+        _renderPipeline = renderPipeline;
         Pool = new BufferPool();
         ThreadDispatcher = new ThreadDispatcher(config.ThreadCount);
         renderContext.Renderer.OnUpdate += Update;
 
         _logger.Information("Starting Physic World3d with {ThreadCount} threads", config.ThreadCount);
+
+        _renderPipeline.GameObjectAdded += RenderPipelineOnGameObjectAdded;
+    }
+
+    private void RenderPipelineOnGameObjectAdded(IGameObject gameObject)
+    {
+        if (gameObject is IPhysicsGameObject3d physicsGameObject)
+        {
+            var cfg = physicsGameObject.BuildBodyConfig();
+            var handle = physicsGameObject.IsStatic
+                             ? CreateStatic(cfg.Shape, cfg.Pose)
+                             : CreateDynamic(cfg);
+            physicsGameObject.OnPhysicsAttached(handle);
+
+            _logger.Debug(
+                "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world.",
+                gameObject.Name,
+                gameObject.Id
+            );
+        }
     }
 
     private void Update(GameTime gameTime)
     {
-        Simulation.Timestep(gameTime.GetElapsedSeconds(), ThreadDispatcher);
+        Simulation.Timestep(1 / 60f, ThreadDispatcher);
     }
 
     public void Dispose()

@@ -20,6 +20,8 @@ public class RenderPipeline : IRenderPipeline
 
     private readonly IGameObjectFactory _gameObjectFactory;
 
+    public event IRenderPipeline.GameObjectAddedHandler? GameObjectAdded;
+
     public IEnumerable<IRenderLayer> RenderLayers
     {
         get
@@ -158,6 +160,11 @@ public class RenderPipeline : IRenderPipeline
                 _logger.Debug("Initializing entity {EntityType}", entity.Name);
                 initializable.Initialize();
             }
+
+            GameObjectAdded?.Invoke(entity);
+
+
+
 
             _logger.Information(
                 "Entity of type {EntityType} (Parent: {Parent}) was added to render layers: {RenderLayers}",
