@@ -3,6 +3,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Voxel.Plugin.Contexts;
+using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Data.Cache;
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -39,15 +40,10 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     private readonly IBlockRegistry _blockRegistry;
 
     private readonly IJobSystemService _jobSystemService;
-
-    private readonly int _initialChunkRadius = 3;
-    private readonly int _initialChunkMinLayer = -16; // Start from chunk Y=-512 (to include bedrock at worldY=-500)
-    private readonly int _initialChunkMaxLayer = 8;   // Up to chunk Y=256
-    private readonly Vector3 _initialPosition = Vector3.Zero;
+    private readonly ChunkStreamingConfiguration _config;
 
     // Configuration
-    private int _maxCachedChunks = 128;
-    private bool _useJobSystem = true;
+    private readonly bool _useJobSystem = true;
 
     // Metrics counters
     private long _totalChunksGenerated;
@@ -58,15 +54,19 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     /// Initializes a new instance of the <see cref="ChunkGeneratorService"/> class.
     /// </summary>
     /// <param name="timerService">Timer service for cache management.</param>
-    /// <param name="config">Chunk generator configuration.</param>
+    /// <param name="blockRegistry">Block registry for chunk generation.</param>
+    /// <param name="jobSystemService">Job system for async chunk generation.</param>
+    /// <param name="config">Chunk streaming configuration.</param>
     public ChunkGeneratorService(
         ITimerService timerService,
         IBlockRegistry blockRegistry,
-        IJobSystemService jobSystemService
+        IJobSystemService jobSystemService,
+        ChunkStreamingConfiguration config
     )
     {
         _blockRegistry = blockRegistry;
         _jobSystemService = jobSystemService;
+        _config = config;
 
         // Initialize concurrency limit (cap at half logical cores to avoid pegging CPU)
         var maxConcurrentGenerations = Math.Max(1, Environment.ProcessorCount / 2);
@@ -80,7 +80,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         InitializeNoiseGenerator();
 
         // Initialize cache with expiration time
-        _chunkCache = new ChunkCache(timerService, TimeSpan.FromMinutes(5), _maxCachedChunks);
+        _chunkCache = new ChunkCache(timerService, TimeSpan.FromMinutes(5), _config.MaxCacheSizeChunks);
         _logger.Information("Chunk cache initialized with {Minutes} minute expiration", 5);
     }
 
@@ -170,48 +170,40 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
     public async Task GenerateInitialChunksAsync()
     {
-        var startTime = Stopwatch.GetTimestamp();
         _logger.Information(
             "Generating initial chunks with radius {Radius} around position {Position}",
-            _initialChunkRadius,
-            _initialPosition
+            _config.InitialChunkRadius,
+            _config.InitialPosition
         );
 
-        var chunksToGenerate = new List<Vector3>();
+        // var chunksToGenerate = new List<Vector3>();
 
-        // Normalize the initial position to chunk coordinates
-        var centerChunkPos = ChunkUtils.NormalizeToChunkPosition(_initialPosition);
+        // // Normalize the initial position to chunk coordinates
+        var centerChunkPos = ChunkUtils.NormalizeToChunkPosition(_config.InitialPosition);
 
-        // Calculate all chunk positions to generate in a radius around the initial position
-        // Now including vertical layers (from minLayer to maxLayer)
-        for (int y = _initialChunkMinLayer; y <= _initialChunkMaxLayer; y++)
+        //
+        // // Calculate all chunk positions to generate in a radius around the initial position
+        // // Now including vertical layers (from minLayer to maxLayer)
+        for (int y = _config.InitialChunkMinLayer; y <= _config.InitialChunkMaxLayer; y++)
         {
-            for (int x = -_initialChunkRadius; x <= _initialChunkRadius; x++)
+            for (int x = -_config.InitialChunkRadius; x <= _config.InitialChunkRadius; x++)
             {
-                for (int z = -_initialChunkRadius; z <= _initialChunkRadius; z++)
+                for (int z = -_config.InitialChunkRadius; z <= _config.InitialChunkRadius; z++)
                 {
                     var chunkPos = new Vector3(
                         centerChunkPos.X + (x * ChunkEntity.Size),
                         centerChunkPos.Y + (y * ChunkEntity.Height),
                         centerChunkPos.Z + (z * ChunkEntity.Size)
                     );
-                    chunksToGenerate.Add(chunkPos);
+
+                    //chunksToGenerate.Add(chunkPos);
+
+                    GetChunkByWorldPosition(chunkPos);
                 }
             }
         }
 
-        _logger.Information("Generating {Count} initial chunks", chunksToGenerate.Count);
 
-        // Generate chunks in parallel
-        var tasks = chunksToGenerate.Select(GetChunkByWorldPosition);
-        await Task.WhenAll(tasks);
-
-        var elapsed = Stopwatch.GetElapsedTime(startTime);
-        _logger.Information(
-            "Initial chunk generation completed. Generated {Count} chunks in {Elapsed:F2}ms",
-            chunksToGenerate.Count,
-            elapsed.TotalMilliseconds
-        );
     }
 
     private async Task<ChunkEntity> GenerateChunkWrap(Vector3 chunkPosition)
@@ -271,30 +263,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
                 try
                 {
-                    // context.CloudAreas.Clear();
                     await step.ExecuteAsync(context);
-
-                    //
-                    // if (context.CloudAreas.Count > 0)
-                    // {
-                    //     _logger.Debug(
-                    //         "Step '{StepName}' identified {CloudCount} cloud areas in chunk at {Position}",
-                    //         step.Name,
-                    //         context.CloudAreas.Count,
-                    //         chunkPosition
-                    //     );
-
-                    // var cloudGameObject = SquidVoxEngineContext.GetService<RenderLayerCollection>()
-                    //     .GetComponent<CloudsGameObject>();
-                    //
-                    // if (cloudGameObject != null)
-                    // {
-                    //     foreach (var area in context.CloudAreas)
-                    //     {
-                    //         cloudGameObject.AddCloud(new Cloud(area.Position, area.Size));
-                    //     }
-                    // }
-                    // }
                 }
 
                 catch (Exception ex)
@@ -331,19 +300,19 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     /// </summary>
     public int MaxCachedChunks
     {
-        get => _maxCachedChunks;
+        get => _config.MaxCacheSizeChunks;
         set
         {
             var newValue = Math.Max(1, value);
 
-            if (_maxCachedChunks == newValue)
+            if (_config.MaxCacheSizeChunks == newValue)
             {
                 return;
             }
 
-            _maxCachedChunks = newValue;
-            _chunkCache.SetCapacity(_maxCachedChunks);
-            _logger.Information("Chunk cache capacity updated to {Capacity}", _maxCachedChunks);
+            _config.MaxCacheSizeChunks = newValue;
+            _chunkCache.SetCapacity(_config.MaxCacheSizeChunks);
+            _logger.Information("Chunk cache capacity updated to {Capacity}", _config.MaxCacheSizeChunks);
         }
     }
 
@@ -451,7 +420,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         }
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    public async Task StartAsync()
     {
         _logger.Information("Starting ChunkGeneratorService");
 
@@ -466,6 +435,11 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
             throw;
         }
+    }
+
+    public Task ShutdownAsync()
+    {
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

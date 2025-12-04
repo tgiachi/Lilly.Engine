@@ -159,8 +159,6 @@
     "isSolid": true,
     "isOpaque": true,
     "isBreakable": true,
-    "emitsLight": 15,
-    "emitColor": "#ff0000",
     "faces": {
       "All": "default@47"
     }

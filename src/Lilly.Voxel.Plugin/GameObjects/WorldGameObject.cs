@@ -10,6 +10,7 @@ using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.Actionables;
 using Lilly.Voxel.Plugin.Blocks;
+using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Services;
@@ -45,10 +46,7 @@ public sealed class WorldGameObject : Base3dGameObject
     private int _cachedVerticalBelow = int.MinValue;
     private int _cachedVerticalAbove = int.MinValue;
 
-    public int HorizontalRadiusChunks { get; set; } = 4;
-    public int VerticalBelowChunks { get; set; } = 1;
-    public int VerticalAboveChunks { get; set; } = 4;
-    public int MaxConcurrentJobs { get; set; } = 4;
+    public ChunkStreamingConfiguration StreamingConfig { get; } = new();
 
     public bool IsChunkDebuggerVisible
     {
@@ -121,23 +119,23 @@ public sealed class WorldGameObject : Base3dGameObject
 
     private void RebuildTargetOffsetsIfNeeded()
     {
-        if (_cachedHorizontalRadius == HorizontalRadiusChunks &&
-            _cachedVerticalBelow == VerticalBelowChunks &&
-            _cachedVerticalAbove == VerticalAboveChunks)
+        if (_cachedHorizontalRadius == StreamingConfig.HorizontalRadiusChunks &&
+            _cachedVerticalBelow == StreamingConfig.VerticalBelowChunks &&
+            _cachedVerticalAbove == StreamingConfig.VerticalAboveChunks)
         {
             return;
         }
 
-        _cachedHorizontalRadius = HorizontalRadiusChunks;
-        _cachedVerticalBelow = VerticalBelowChunks;
-        _cachedVerticalAbove = VerticalAboveChunks;
+        _cachedHorizontalRadius = StreamingConfig.HorizontalRadiusChunks;
+        _cachedVerticalBelow = StreamingConfig.VerticalBelowChunks;
+        _cachedVerticalAbove = StreamingConfig.VerticalAboveChunks;
         _targetOffsets.Clear();
 
-        for (int dx = -HorizontalRadiusChunks; dx <= HorizontalRadiusChunks; dx++)
+        for (int dx = -StreamingConfig.HorizontalRadiusChunks; dx <= StreamingConfig.HorizontalRadiusChunks; dx++)
         {
-            for (int dz = -HorizontalRadiusChunks; dz <= HorizontalRadiusChunks; dz++)
+            for (int dz = -StreamingConfig.HorizontalRadiusChunks; dz <= StreamingConfig.HorizontalRadiusChunks; dz++)
             {
-                for (int dy = -VerticalBelowChunks; dy <= VerticalAboveChunks; dy++)
+                for (int dy = -StreamingConfig.VerticalBelowChunks; dy <= StreamingConfig.VerticalAboveChunks; dy++)
                 {
                     _targetOffsets.Add(new Vector3(dx, dy, dz));
                 }
@@ -167,7 +165,7 @@ public sealed class WorldGameObject : Base3dGameObject
                 continue;
             }
 
-            if (_pending.Count >= MaxConcurrentJobs)
+            if (_pending.Count >= StreamingConfig.MaxConcurrentJobs)
             {
                 break;
             }

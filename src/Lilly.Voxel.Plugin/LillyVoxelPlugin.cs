@@ -9,6 +9,7 @@ using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.GameObjects;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Json.Contexts;
@@ -78,6 +79,9 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public IContainer RegisterModule(IContainer container)
     {
+        // Register chunk streaming configuration as singleton
+        container.RegisterInstance(new ChunkStreamingConfiguration());
+
         container
             .RegisterService<IBlockRegistry, BlockRegistry>()
             .RegisterService<IChunkGeneratorService, ChunkGeneratorService>()

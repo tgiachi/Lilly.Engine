@@ -1,18 +1,17 @@
 using System.Numerics;
+using Lilly.Engine.Core.Interfaces.Services.Base;
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Interfaces.Services;
 
-public interface IChunkGeneratorService : IChunkProvider
+public interface IChunkGeneratorService : IChunkProvider, ILillyService
 {
     int Seed { get; set; }
 
     Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position);
 
     bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk);
-
-    Task StartAsync(CancellationToken cancellationToken = default);
 
     Task<ChunkEntity> GetChunkByWorldPosition(int chunkX, int chunkY, int chunkZ);
 

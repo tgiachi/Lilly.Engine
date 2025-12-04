@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using Lilly.Engine.Core.Data.Dispatchers;
 using Lilly.Engine.Core.Data.Privimitives;
+using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Rendering.Core.Interfaces.Renderers;
 using Serilog;
@@ -14,11 +17,20 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
 {
     private readonly int _mainThreadId;
 
-    private readonly ConcurrentQueue<Action> _actionQueue = new();
+    private readonly ConcurrentQueue<NamedAction> _actionQueue = new();
 
     private readonly ILogger _logger = Log.ForContext<MainThreadDispatcher>();
 
     private readonly IGraphicRenderer _renderer;
+
+    private readonly List<ActionExecutionRecord> _recentActions = new(50);
+    private readonly Lock _metricsLock = new();
+
+    private long _totalActionsExecuted;
+    private long _failedActionsCount;
+    private double _totalExecutionTimeMs;
+
+    private readonly record struct NamedAction(string Name, Action Action);
 
     /// <summary>
     /// Initializes a new instance of the MainThreadDispatcher class.
@@ -34,6 +46,26 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
     public int QueuedActionCount => _actionQueue.Count;
 
     public int ConcurrentActionCount => 3;
+
+    public long TotalActionsExecuted => _totalActionsExecuted;
+
+    public long FailedActionsCount => _failedActionsCount;
+
+    public double AverageExecutionTimeMs
+        => _totalActionsExecuted > 0
+               ? _totalExecutionTimeMs / _totalActionsExecuted
+               : 0.0;
+
+    public IReadOnlyList<ActionExecutionRecord> RecentActions
+    {
+        get
+        {
+            lock (_metricsLock)
+            {
+                return _recentActions.ToList();
+            }
+        }
+    }
 
     /// <summary>
     /// Disposes the MainThreadDispatcher and releases resources.
@@ -53,7 +85,20 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
     {
         ArgumentNullException.ThrowIfNull(action);
 
-        _actionQueue.Enqueue(action);
+        _actionQueue.Enqueue(new NamedAction("Unnamed Action", action));
+    }
+
+    /// <summary>
+    /// Enqueues a named action to be executed on the main thread.
+    /// </summary>
+    /// <param name="name">The name of the action for diagnostics.</param>
+    /// <param name="action">The action to enqueue.</param>
+    public void EnqueueAction(string name, Action action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        _actionQueue.Enqueue(new NamedAction(name.ToSnakeCase(), action));
     }
 
     /// <summary>
@@ -72,13 +117,13 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
             return;
         }
 
-        var actionsToExecute = new List<Action>();
+        var actionsToExecute = new List<NamedAction>();
 
         for (var i = 0; i < ConcurrentActionCount; i++)
         {
-            if (_actionQueue.TryDequeue(out var action))
+            if (_actionQueue.TryDequeue(out var namedAction))
             {
-                actionsToExecute.Add(action);
+                actionsToExecute.Add(namedAction);
             }
             else
             {
@@ -86,19 +131,50 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
             }
         }
 
-        foreach (var action in actionsToExecute)
+        foreach (var namedAction in actionsToExecute)
         {
+            var stopwatch = Stopwatch.StartNew();
+            var status = ActionExecutionStatus.Succeeded;
+
             try
             {
-                action();
+                namedAction.Action();
             }
             catch (Exception ex)
             {
+                status = ActionExecutionStatus.Failed;
+                Interlocked.Increment(ref _failedActionsCount);
+
                 _logger.Error(
                     ex,
-                    "Error executing action on main thread from thread: {ThreadId}",
-                    Environment.CurrentManagedThreadId
+                    "Error executing action '{ActionName}' on main thread",
+                    namedAction.Name
                 );
+            }
+            finally
+            {
+                stopwatch.Stop();
+                var durationMs = stopwatch.Elapsed.TotalMilliseconds;
+
+                Interlocked.Increment(ref _totalActionsExecuted);
+                _totalExecutionTimeMs += durationMs;
+
+                var record = new ActionExecutionRecord(
+                    namedAction.Name,
+                    status,
+                    durationMs,
+                    DateTime.UtcNow
+                );
+
+                lock (_metricsLock)
+                {
+                    _recentActions.Add(record);
+
+                    if (_recentActions.Count > 50)
+                    {
+                        _recentActions.RemoveAt(0);
+                    }
+                }
             }
         }
     }
