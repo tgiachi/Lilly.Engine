@@ -1,12 +1,12 @@
 using System.Text.Json.Serialization;
 using Lilly.Voxel.Plugin.Blocks;
+using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Json.Converters;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Json.Entities;
-
 
 public class BlockDefinitionJson
 {
@@ -22,17 +22,17 @@ public class BlockDefinitionJson
 
     public float Hardness { get; set; }
 
-    public bool IsBreakable { get; set;  }
+    public bool IsBreakable { get; set; }
 
     public bool IsBillboard { get; set; }
 
     public bool IsItem { get; set; }
 
 
-    public float EmitsLight { get; set; }
-
     [JsonConverter(typeof(HexColorConverter))]
     public Color4b EmitColor { get; set; } = Color4b.Transparent;
+
+    public IActionableComponent[] Components { get; set; } = [];
 
     /// <summary>
     ///  Gets or sets the texture objects for each face of the block.
@@ -45,6 +45,7 @@ public class BlockDefinitionJson
 
     public override string ToString()
     {
-        return $"BlockDefinitionJson(Name={Name}, IsSolid={IsSolid}, IsLiquid={IsLiquid}, IsOpaque={IsOpaque}, IsTransparent={IsTransparent}, Hardness={Hardness}, IsBreakable={IsBreakable}, IsBillboard={IsBillboard}, IsItem={IsItem}, Faces=[{string.Join(", ", Faces)}])";
+        return
+            $"BlockDefinitionJson(Name={Name}, IsSolid={IsSolid}, IsLiquid={IsLiquid}, IsOpaque={IsOpaque}, IsTransparent={IsTransparent}, Hardness={Hardness}, IsBreakable={IsBreakable}, IsBillboard={IsBillboard}, IsItem={IsItem}, Faces=[{string.Join(", ", Faces)}])";
     }
 }

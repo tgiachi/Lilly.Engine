@@ -6,8 +6,14 @@
   href: architecture.md
 - name: Audio System
   href: audio-system.md
+- name: Event Bus
+  href: event-bus.md
+- name: Input System
+  href: input-system.md
 - name: Job System
   href: job-system.md
+- name: Notification System
+  href: notification-system.md
 - name: Voxel Plugin
   href: voxel-plugin.md
 - name: Plugin Development
