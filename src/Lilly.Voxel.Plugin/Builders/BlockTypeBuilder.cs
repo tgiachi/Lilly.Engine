@@ -20,9 +20,8 @@ public class BlockTypeBuilder
     private bool _isBreakable;
     private bool _isBillboard;
     private bool _isActionable;
-    private float _emitsLight;
-    private Color4b _emitsColor;
-    private BlockTextureSet _textureSet;
+
+    private BlockTextureSet? _textureSet;
 
     private BlockTextureObject? _topTexture;
     private BlockTextureObject? _bottomTexture;
@@ -83,13 +82,6 @@ public class BlockTypeBuilder
     public BlockTypeBuilder WithHardness(float hardness)
     {
         _hardness = hardness;
-        return this;
-    }
-
-    public BlockTypeBuilder EmitsLight(float intensity, Color4b color)
-    {
-        _emitsLight = intensity;
-        _emitsColor = color;
         return this;
     }
 

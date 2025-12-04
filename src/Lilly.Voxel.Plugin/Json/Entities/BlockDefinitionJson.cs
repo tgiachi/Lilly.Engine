@@ -28,11 +28,10 @@ public class BlockDefinitionJson
 
     public bool IsItem { get; set; }
 
-
     [JsonConverter(typeof(HexColorConverter))]
     public Color4b EmitColor { get; set; } = Color4b.Transparent;
 
-    public IActionableComponent[] Components { get; set; } = [];
+    public BlockComponentsJson Components { get; set; } = new();
 
     /// <summary>
     ///  Gets or sets the texture objects for each face of the block.

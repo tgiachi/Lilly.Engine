@@ -135,11 +135,6 @@ public class BlockRegistry : IBlockRegistry
                     .AsBillboard(blockJson.IsBillboard)
                     .AsActionable(blockJson.IsItem);
 
-                if (blockJson.EmitsLight > 0)
-                {
-                    builder.EmitsLight(blockJson.EmitsLight, blockJson.EmitColor);
-                }
-
                 foreach (var face in blockJson.Faces)
                 {
                     builder.WithTexture(face.Key, face.Value.AtlasName, face.Value.Index);

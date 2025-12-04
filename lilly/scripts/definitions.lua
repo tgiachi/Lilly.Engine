@@ -2,7 +2,7 @@
 
 ---
 --- Lilly.Engine vVersionInfoData { AppName = Lilly.Engine, CodeName = Oceanus, Version = 0.5.0.0 } Lua API
---- Auto-generated on 2025-12-03 12:48:14
+--- Auto-generated on 2025-12-04 11:14:20
 ---
 
 --- Global constants
@@ -1523,7 +1523,7 @@ type_validation_flags = {}
 ---@field hardness number # Property
 ---@field is_breakable boolean # Property
 ---@field is_billboard boolean # Property
----@field is_item boolean # Property
+---@field is_actionable boolean # Property
 ---@field is_light_source boolean # Property
 ---@field emits_light number # Property
 ---@field emits_color Color4b # Property

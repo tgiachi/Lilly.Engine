@@ -10,6 +10,7 @@ namespace Lilly.Voxel.Plugin.Interfaces.Actionables;
 [
     JsonPolymorphic(TypeDiscriminatorPropertyName = "$type"),
     JsonDerivedType(typeof(SoundComponent), typeDiscriminator: "sound"),
-    JsonDerivedType(typeof(NotificationComponent), typeDiscriminator: "notification")
+    JsonDerivedType(typeof(NotificationComponent), typeDiscriminator: "notification"),
+    JsonDerivedType(typeof(LightComponent), typeDiscriminator: "light")
 ]
 public interface IActionableComponent;
