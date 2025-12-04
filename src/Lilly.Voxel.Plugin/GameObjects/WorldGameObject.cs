@@ -8,10 +8,12 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
+using Lilly.Voxel.Plugin.Actionables;
 using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Services;
+using Lilly.Voxel.Plugin.Types;
 using Lilly.Voxel.Plugin.Utils;
 using TrippyGL;
 
@@ -30,6 +32,8 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly IGameObjectManager _gameObjectManager;
     private readonly ICamera3dService _cameraService;
     private readonly ChunkLightPropagationService _lightPropagationService;
+
+    private readonly IActionableService _actionableService;
 
     private readonly IBlockRegistry _blockRegistry;
 
@@ -67,7 +71,8 @@ public sealed class WorldGameObject : Base3dGameObject
         IGameObjectManager gameObjectManager,
         ICamera3dService cameraService,
         IBlockRegistry blockRegistry,
-        ChunkLightPropagationService lightPropagationService
+        ChunkLightPropagationService lightPropagationService,
+        IActionableService actionableService
     ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
@@ -79,6 +84,7 @@ public sealed class WorldGameObject : Base3dGameObject
         _cameraService = cameraService;
         _blockRegistry = blockRegistry;
         _lightPropagationService = lightPropagationService;
+        _actionableService = actionableService;
         IgnoreFrustumCulling = true;
     }
 
@@ -104,6 +110,8 @@ public sealed class WorldGameObject : Base3dGameObject
         ScheduleMissingChunks(targets);
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
+
+        _actionableService.Update(gameTime);
     }
 
     private Vector3 GetStreamingOrigin()
@@ -180,7 +188,7 @@ public sealed class WorldGameObject : Base3dGameObject
                             {
                                 return neighborGo.Chunk;
                             }
-                            
+
                             var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
                                 (int)chunkCoords.X,
                                 (int)chunkCoords.Y,
@@ -430,6 +438,54 @@ public sealed class WorldGameObject : Base3dGameObject
 
         EnqueueChunkRebuild(chunkCoords, chunkGo);
         UpdateNeighbors(chunkCoords);
+
+        if (blockType == _blockRegistry.Air)
+        {
+            _actionableService.OnRemove(position);
+            _actionableService.Handle(
+                new ActionEventContext
+                {
+                    Event = ActionEventType.OnBreak,
+                    WorldPosition = position,
+                    Instance = null
+                }
+            );
+        }
+        else
+        {
+            _actionableService.OnPlace(position, blockType.Id, blockType);
+
+            _actionableService.Handle(
+                new ActionEventContext
+                {
+                    Event = ActionEventType.OnPlace,
+                    WorldPosition = position,
+                    Instance = null
+                }
+            );
+        }
+    }
+
+    public void UseBlockAtCurrentPosition()
+    {
+        var blockOutline = GetGameObject<BlockOutlineGameObject>();
+
+        if (blockOutline.TargetBlockPosition.HasValue)
+        {
+            var pos = blockOutline.TargetBlockPosition.Value;
+
+            if (GetBlockAtPosition(pos, out var blockType))
+            {
+                var ctx = new ActionEventContext
+                {
+                    Event = ActionEventType.OnUse,
+                    WorldPosition = pos,
+                    Instance = null
+                };
+
+                _actionableService.Handle(ctx);
+            }
+        }
     }
 
     public bool RemoveBlockAtCurrentPosition()

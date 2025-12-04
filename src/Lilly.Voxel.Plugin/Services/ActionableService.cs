@@ -1,8 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Voxel.Plugin.Actionables;
-using Lilly.Voxel.Plugin.Actionables.Components;
 using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -17,20 +16,21 @@ public class ActionableService : IActionableService
 {
     private readonly ILogger _logger = Log.ForContext<ActionableService>();
     private readonly IChunkGeneratorService _chunkGenerator;
-    private readonly IAudioService _audioService;
     private readonly IBlockRegistry _blockRegistry;
+
+    private readonly IMainThreadDispatcher _mainThreadDispatcher;
 
     private readonly Dictionary<ActionEventType, List<IActionableListener>> _listeners = new();
 
     public ActionableService(
         IChunkGeneratorService chunkGenerator,
-        IAudioService audioService,
-        IBlockRegistry blockRegistry
+        IBlockRegistry blockRegistry,
+        IMainThreadDispatcher mainThreadDispatcher
     )
     {
         _chunkGenerator = chunkGenerator;
-        _audioService = audioService;
         _blockRegistry = blockRegistry;
+        _mainThreadDispatcher = mainThreadDispatcher;
     }
 
     public bool TryGetInstance(Vector3 worldPos, out BlockInstance inst)
@@ -55,7 +55,7 @@ public class ActionableService : IActionableService
         }
 
         chunk.EnsureActionable(localIndex, blockTypeId);
-        _ = type; // preserve hook for future component defaults
+        _ = type;
     }
 
     public void OnRemove(Vector3 worldPos)
@@ -80,7 +80,7 @@ public class ActionableService : IActionableService
         Dispatch(ctx with { Instance = instance });
     }
 
-    public void TickActive(GameTime gameTime)
+    public void Update(GameTime gameTime)
     {
         foreach (var chunk in _chunkGenerator.GetActiveChunks())
         {
@@ -134,8 +134,13 @@ public class ActionableService : IActionableService
                 continue;
             }
 
-            _logger.Debug("Dispatching {Event} to listener {Listener}", ctx.Event, listener.GetType().Name);
-            listener.DispatchAction(ctx);
+            _logger.Debug(
+                "Dispatching {Event} to listener {Listener} via MainThreadDispatcher",
+                ctx.Event,
+                listener.GetType().Name
+            );
+
+            _mainThreadDispatcher.EnqueueAction(() => listener.DispatchAction(ctx));
         }
 
         // // Simple sound handling on use/place
