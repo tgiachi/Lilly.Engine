@@ -15,9 +15,9 @@ public class LillyPhysicPlugin : ILillyPlugin
     public LillyPluginData LillyData
         => new(
             "com.tgiachi.lilly.physics",
+            "1.0.0",
             "Lilly Physics Plugin",
-            "Provides 3D physics simulation capabilities to the Lilly Engine.",
-            "1.0.0"
+            "squid"
         );
 
     public void EngineInitialized(IContainer container) { }

@@ -230,7 +230,7 @@ public class LillyBootstrap : ILillyBootstrap
 
             var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
             plane.Transform.Position = new Vector3(0f, -10f, 0f);
-            plane.IgnoreFrustumCulling = true;
+            //plane.IgnoreFrustumCulling = true;
             plane.Transform.Scale = new Vector3(10f, 1f, 10f);
             plane.Width = 10f;
             plane.Height = 4f;
