@@ -11,6 +11,7 @@ using Lilly.Engine.Data.Config;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
+using Lilly.Physics.Plugin;
 using Lilly.Rendering.Core.Data.Config;
 using Lilly.Voxel.Plugin;
 using Serilog;
@@ -57,6 +58,7 @@ await ConsoleApp.RunAsync(
                                    {
                                        container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
                                        container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+                                       container.RegisterPlugin(typeof(LillyPhysicPlugin).Assembly);
                                    };
 
         await bootstrap.InitializeAsync(config);
