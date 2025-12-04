@@ -51,7 +51,7 @@ public class ChunkEntity
     /// </summary>
     public int BlockCount { get; private set; }
 
-    public Dictionary<int, BlockInstance>? Actionables;
+    public Dictionary<int, BlockInstance>? Actionables { get; set; }
 
     /// <summary>
     /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.

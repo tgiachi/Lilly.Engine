@@ -29,4 +29,8 @@
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Interfaces\Physics\" />
+    </ItemGroup>
+
 </Project>

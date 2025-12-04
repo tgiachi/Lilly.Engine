@@ -57,7 +57,7 @@ await ConsoleApp.RunAsync(
         bootstrap.OnConfiguring += _ =>
                                    {
                                        container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
-                                       container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+                                //       container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
                                        container.RegisterPlugin(typeof(LillyPhysicPlugin).Assembly);
                                    };
 

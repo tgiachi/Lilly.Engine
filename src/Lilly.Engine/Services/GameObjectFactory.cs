@@ -3,6 +3,8 @@ using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Data.Internal;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Physics;
+using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Context;
@@ -81,6 +83,34 @@ public class GameObjectFactory : IGameObjectFactory
             instance.Name,
             objectId
         );
+
+        if (instance is IPhysicsGameObject3d physicsGameObject)
+        {
+            if (_container.IsRegistered<IPhysicWorld3d>())
+            {
+                var physicsService = _container.Resolve<IPhysicWorld3d>();
+
+                var cfg = physicsGameObject.BuildBodyConfig();
+                var handle = physicsGameObject.IsStatic
+                                 ? physicsService.CreateStatic(cfg.Shape, cfg.Pose)
+                                 : physicsService.CreateDynamic(cfg);
+                physicsGameObject.OnPhysicsAttached(handle);
+
+                _logger.Debug(
+                    "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world.",
+                    instance.Name,
+                    objectId
+                );
+            }
+            else
+            {
+                _logger.Warning(
+                    "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was created, but no IPhysicWorld3d is registered in the container.",
+                    instance.Name,
+                    objectId
+                );
+            }
+        }
 
         return instance;
     }

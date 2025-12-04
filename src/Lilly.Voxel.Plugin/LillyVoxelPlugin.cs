@@ -24,7 +24,7 @@ namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
 {
-    private readonly bool _isWorldFlat;
+
 
     public LillyPluginData LillyData
         => new LillyPluginData(
@@ -44,12 +44,13 @@ public class LillyVoxelPlugin : ILillyPlugin
 
     public void EngineReady(IContainer container)
     {
+        var isWorldFlat = false;
         LoadAssets(container.Resolve<IAssetManager>());
         var blockRegistry = container.Resolve<IBlockRegistry>();
         var chunkGeneratorService = container.Resolve<IChunkGeneratorService>();
         var lightingService = container.Resolve<ChunkLightPropagationService>();
 
-        if (_isWorldFlat)
+        if (isWorldFlat)
         {
             chunkGeneratorService.AddGeneratorStep(new FlatWorldGenerationStep());
             chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));

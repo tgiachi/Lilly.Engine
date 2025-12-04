@@ -225,6 +225,25 @@ public class LillyBootstrap : ILillyBootstrap
                 );
                 pipeline.AddGameObject(cube);
             }
+
+            // Add plane under cubes
+
+            var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
+            plane.Transform.Position = new Vector3(0f, -10f, 0f);
+            plane.IgnoreFrustumCulling = true;
+            plane.Transform.Scale = new Vector3(10f, 1f, 10f);
+            plane.Width = 10f;
+            plane.Height = 4f;
+            plane.Depth = 10f;
+
+            plane.TextureName = "ground_texture";
+            pipeline.AddGameObject(plane);
+
+            var capsule = gameObjectFactory.Create<SimpleCapsuleGameObject>();
+            capsule.Transform.Position = new Vector3(5f, 0f, 0f);
+            capsule.Height = 3f;
+            capsule.Radius = 0.5f;
+            pipeline.AddGameObject(capsule);
         }
         OnRender?.Invoke(gameTime);
     }
@@ -248,8 +267,9 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<TextureGameObject>()
             .RegisterGameObject<StackLayoutGameObject>()
             .RegisterGameObject<VersionGameObject>()
-            .RegisterGameObject<SimplePlaneGameObject>()
+            .RegisterGameObject<SimpleBoxGameObject>()
             .RegisterGameObject<SimpleCubeGameObject>()
+            .RegisterGameObject<SimpleCapsuleGameObject>()
             ;
 
         _container
