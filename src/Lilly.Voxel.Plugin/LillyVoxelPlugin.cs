@@ -89,6 +89,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterService<IActionableService, ActionableService>()
             .RegisterService<ChunkLightingService>()
             .RegisterService<ChunkLightPropagationService>()
+            .RegisterService<ChunkColliderBuilder>()
             .RegisterService<ChunkMeshBuilder>()
             ;
 

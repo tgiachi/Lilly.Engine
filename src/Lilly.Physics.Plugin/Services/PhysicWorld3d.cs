@@ -44,9 +44,12 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     public Simulation Simulation { get; private set; }
 
+    private readonly RenderContext _renderContext;
+
     public PhysicWorld3d(World3dPhysicConfig config, RenderContext renderContext, IRenderPipeline renderPipeline)
     {
         _config = config;
+        _renderContext = renderContext;
         _renderPipeline = renderPipeline;
         Pool = new BufferPool();
         ThreadDispatcher = new ThreadDispatcher(config.ThreadCount);
@@ -300,9 +303,13 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     private void AttachOrReplaceBody(IPhysicsGameObject3d physicsGameObject, bool subscribe)
     {
+        var sw = Stopwatch.StartNew();
+        var isReplace = false;
+
         if (_subscriptions.TryGetValue(physicsGameObject, out var existing))
         {
             RemoveInternal(new PhysicsBodyHandle(existing.BodyId));
+            isReplace = true;
         }
 
         var cfg = physicsGameObject.BuildBodyConfig();
@@ -328,6 +335,13 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         {
             _subscriptions[physicsGameObject] = sub with { BodyId = handle.Id };
         }
+
+        _logger.Warning(
+            "[PHYSICS] AttachOrReplaceBody for {GameObjectName} ({IsReplace}) took {ElapsedMs}ms",
+            physicsGameObject.GetType().Name,
+            isReplace ? "REPLACE" : "NEW",
+            sw.Elapsed.TotalMilliseconds
+        );
     }
 
     private void HandleShapeDirty(IPhysicsGameObject3d physicsGameObject)

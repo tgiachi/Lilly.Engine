@@ -3,6 +3,8 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Jobs;
 using Lilly.Engine.Core.Interfaces.Services;
+using Lilly.Engine.Data.Physics;
+using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
@@ -28,11 +30,13 @@ public sealed class WorldGameObject : Base3dGameObject
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
     private readonly ChunkMeshBuilder _meshBuilder;
+    private readonly ChunkColliderBuilder _colliderBuilder;
     private readonly IJobSystemService _jobSystem;
     private readonly IChunkGeneratorService _chunkGenerator;
     private readonly IGameObjectManager _gameObjectManager;
     private readonly ICamera3dService _cameraService;
     private readonly ChunkLightPropagationService _lightPropagationService;
+    private readonly IPhysicWorld3d _physicsWorld;
 
     private readonly IActionableService _actionableService;
 
@@ -40,6 +44,9 @@ public sealed class WorldGameObject : Base3dGameObject
 
     private readonly ConcurrentDictionary<Vector3, ChunkGameObject> _activeChunks = new();
     private readonly ConcurrentDictionary<Vector3, IJobHandle<ChunkBuildResult>> _pending = new();
+    private readonly ConcurrentDictionary<Vector3, ChunkColliderData> _colliderCache = new();
+    private readonly ConcurrentDictionary<Vector3, List<IPhysicsBodyHandle>> _physicsBodies = new();
+    private readonly HashSet<Vector3> _physicsDirty = new();
     private readonly List<Vector3> _targetOffsets = new();
     private readonly HashSet<Vector3> _targetScratch = new();
     private int _cachedHorizontalRadius = int.MinValue;
@@ -64,18 +71,21 @@ public sealed class WorldGameObject : Base3dGameObject
         GraphicsDevice graphicsDevice,
         IAssetManager assetManager,
         ChunkMeshBuilder meshBuilder,
+        ChunkColliderBuilder colliderBuilder,
         IJobSystemService jobSystem,
         IChunkGeneratorService chunkGenerator,
         IGameObjectManager gameObjectManager,
         ICamera3dService cameraService,
         IBlockRegistry blockRegistry,
         ChunkLightPropagationService lightPropagationService,
-        IActionableService actionableService
+        IActionableService actionableService,
+        IPhysicWorld3d physicsWorld
     ) : base("World", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
         _meshBuilder = meshBuilder;
+        _colliderBuilder = colliderBuilder;
         _jobSystem = jobSystem;
         _chunkGenerator = chunkGenerator;
         _gameObjectManager = gameObjectManager;
@@ -83,6 +93,7 @@ public sealed class WorldGameObject : Base3dGameObject
         _blockRegistry = blockRegistry;
         _lightPropagationService = lightPropagationService;
         _actionableService = actionableService;
+        _physicsWorld = physicsWorld;
         IgnoreFrustumCulling = true;
     }
 
@@ -104,10 +115,12 @@ public sealed class WorldGameObject : Base3dGameObject
 
         var playerChunk = ChunkUtils.GetChunkCoordinates(GetStreamingOrigin());
         var targets = BuildTargetSet(playerChunk);
+        var physicsTargets = BuildPhysicsTargetSet(playerChunk);
 
         ScheduleMissingChunks(targets);
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
+        UpdatePhysicsAttachments(physicsTargets);
 
         _actionableService.Update(gameTime);
     }
@@ -156,6 +169,26 @@ public sealed class WorldGameObject : Base3dGameObject
         return _targetScratch;
     }
 
+    private HashSet<Vector3> BuildPhysicsTargetSet(Vector3 playerChunk)
+    {
+        var targets = new HashSet<Vector3>();
+
+        for (int dx = -StreamingConfig.PhysicsRadiusChunks; dx <= StreamingConfig.PhysicsRadiusChunks; dx++)
+        {
+            for (int dz = -StreamingConfig.PhysicsRadiusChunks; dz <= StreamingConfig.PhysicsRadiusChunks; dz++)
+            {
+                for (int dy = -StreamingConfig.PhysicsVerticalBelowChunks;
+                     dy <= StreamingConfig.PhysicsVerticalAboveChunks;
+                     dy++)
+                {
+                    targets.Add(playerChunk + new Vector3(dx, dy, dz));
+                }
+            }
+        }
+
+        return targets;
+    }
+
     private void ScheduleMissingChunks(HashSet<Vector3> targets)
     {
         foreach (var coord in targets)
@@ -202,7 +235,9 @@ public sealed class WorldGameObject : Base3dGameObject
                         }
                     );
 
-                    return new ChunkBuildResult(chunk, mesh);
+                    var collider = _colliderBuilder.Build(chunk);
+
+                    return new ChunkBuildResult(chunk, mesh, collider);
                 }
             );
 
@@ -230,17 +265,22 @@ public sealed class WorldGameObject : Base3dGameObject
             if (_activeChunks.TryGetValue(coord, out var existing))
             {
                 existing.SetPendingMesh(result.MeshData);
+                existing.ColliderData = result.ColliderData;
             }
             else
             {
                 var chunkGo = new ChunkGameObject(result.Chunk, _graphicsDevice, _assetManager, _gameObjectManager);
                 chunkGo.SetPendingMesh(result.MeshData);
+                chunkGo.ColliderData = result.ColliderData;
                 _activeChunks[coord] = chunkGo;
                 isNewChunk = true;
 
                 // Add to scene graph so it gets rendered and updated automatically
                 AddGameObject(chunkGo);
             }
+
+            _colliderCache[coord] = result.ColliderData;
+            _physicsDirty.Add(coord);
 
             // If a new chunk was added, notify neighbors to rebuild their mesh
             // (so they can hide faces that are now touching this new chunk)
@@ -312,7 +352,9 @@ public sealed class WorldGameObject : Base3dGameObject
                                 }
                             );
 
-                            return new ChunkBuildResult(chunk, mesh);
+                            var collider = _colliderBuilder.Build(chunk);
+
+                            return new ChunkBuildResult(chunk, mesh, collider);
                         }
                     );
 
@@ -339,11 +381,107 @@ public sealed class WorldGameObject : Base3dGameObject
             if (_activeChunks.Remove(coord, out var chunk))
             {
                 chunk.DisposeBuffers();
+                RemovePhysics(coord);
+                _colliderCache.TryRemove(coord, out _);
 
                 // Remove from scene graph
                 RemoveGameObject(chunk);
             }
         }
+    }
+
+    private void UpdatePhysicsAttachments(HashSet<Vector3> physicsTargets)
+    {
+        var attachBudget = Math.Max(1, StreamingConfig.PhysicsAttachPerFrame);
+        var attachedThisFrame = 0;
+
+        foreach (var target in physicsTargets)
+        {
+            if (!_activeChunks.TryGetValue(target, out var chunkGo))
+            {
+                continue;
+            }
+
+            if (_pending.ContainsKey(target) && _physicsDirty.Contains(target))
+            {
+                RemovePhysics(target);
+                continue;
+            }
+
+            if (!_colliderCache.TryGetValue(target, out var colliders) || colliders.IsEmpty)
+            {
+                continue;
+            }
+
+            var needsAttach = !_physicsBodies.ContainsKey(target) || _physicsDirty.Contains(target);
+
+            if (!needsAttach || attachedThisFrame >= attachBudget)
+            {
+                continue;
+            }
+
+            RemovePhysics(target);
+            AttachPhysics(target, chunkGo, colliders);
+            _physicsDirty.Remove(target);
+            attachedThisFrame++;
+        }
+
+        var toDetach = new List<Vector3>();
+
+        foreach (var kvp in _physicsBodies)
+        {
+            if (!physicsTargets.Contains(kvp.Key))
+            {
+                toDetach.Add(kvp.Key);
+            }
+        }
+
+        foreach (var coord in toDetach)
+        {
+            RemovePhysics(coord);
+        }
+    }
+
+    private void AttachPhysics(Vector3 coord, ChunkGameObject chunkGo, ChunkColliderData colliderData)
+    {
+        if (colliderData.IsEmpty)
+        {
+            return;
+        }
+
+        var handles = new List<IPhysicsBodyHandle>(colliderData.Boxes.Count);
+
+        foreach (var box in colliderData.Boxes)
+        {
+            var size = box.Max - box.Min;
+            var center = box.Min + size * 0.5f + chunkGo.Chunk.Position;
+
+            var cfg = new PhysicsBodyConfig(
+                new BoxShape(size.X, size.Y, size.Z),
+                0f,
+                new RigidPose(center, Quaternion.Identity)
+            );
+
+            var handle = _physicsWorld.CreateStatic(cfg.Shape, cfg.Pose);
+            handles.Add(handle);
+        }
+
+        if (handles.Count > 0)
+        {
+            _physicsBodies[coord] = handles;
+        }
+    }
+
+    private void RemovePhysics(Vector3 coord)
+    {
+        if (_physicsBodies.TryRemove(coord, out var handles))
+        {
+            foreach (var handle in handles)
+            {
+                _physicsWorld.Remove(handle);
+            }
+        }
+        _physicsDirty.Remove(coord);
     }
 
     public bool Raycast(Ray ray, float maxDistance, out Vector3 blockPosition)
@@ -433,6 +571,7 @@ public sealed class WorldGameObject : Base3dGameObject
         chunk.IsLightingDirty = true;
         chunk.IsMeshDirty = true;
         chunk.IsModified = true;
+        _physicsDirty.Add(chunkCoords);
 
         EnqueueChunkRebuild(chunkCoords, chunkGo);
         UpdateNeighbors(chunkCoords);
@@ -551,7 +690,9 @@ public sealed class WorldGameObject : Base3dGameObject
                     }
                 );
 
-                return new ChunkBuildResult(chunk, mesh);
+                var collider = _colliderBuilder.Build(chunk);
+
+                return new ChunkBuildResult(chunk, mesh, collider);
             }
         );
 

@@ -1,15 +1,15 @@
+using System.Diagnostics;
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Physics;
 using Lilly.Engine.GameObjects.Base;
-using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Camera;
-using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
+using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Vertexs;
-using System.Numerics;
-using Lilly.Rendering.Core.Primitives;
+using Serilog;
 using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.GameObjects;
@@ -17,7 +17,7 @@ namespace Lilly.Voxel.Plugin.GameObjects;
 /// <summary>
 /// Renders a single chunk using prebuilt mesh data. Buffers are reused until new mesh data arrives.
 /// </summary>
-public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d , IPhysicsGameObject3d
+public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -41,7 +41,8 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 
     private ChunkMeshData? _pendingMesh;
     private ChunkMeshData? _currentMesh;
-    private IPhysicsBodyHandle? _physicsHandle;
+    public ChunkColliderData? ColliderData { get; set; }
+    private readonly ILogger _logger = Log.ForContext<ChunkGameObject>();
 
     public ChunkEntity Chunk { get; }
 
@@ -90,6 +91,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         base.Update(gameTime);
 
         var now = gameTime.GetTotalGameTimeSeconds();
+
         if (_spawnTimeSeconds < 0)
         {
             _spawnTimeSeconds = now;
@@ -111,6 +113,9 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
 
     private void ApplyMesh(ChunkMeshData mesh)
     {
+        var sw = Stopwatch.StartNew();
+        var oldMesh = _currentMesh;
+
         _solidAtlasName = mesh.SolidAtlasName;
         _billboardAtlasName = mesh.BillboardAtlasName;
         _itemAtlasName = mesh.ItemAtlasName;
@@ -120,7 +125,8 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         UploadBillboards(mesh);
         UploadItems(mesh);
         UploadFluids(mesh);
-        PhysicsShapeDirty?.Invoke();
+
+
     }
 
     private void UploadSolid(ChunkMeshData mesh)
@@ -370,41 +376,4 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
     }
 
     public bool IsStatic => true;
-
-    public PhysicsBodyConfig BuildBodyConfig()
-    {
-        var pose = new RigidPose(Transform.Position, Transform.Rotation);
-
-        if (_currentMesh?.HasSolidGeometry == true)
-        {
-            var vertices = new Vector3[_currentMesh.Vertices.Length];
-            for (var i = 0; i < _currentMesh.Vertices.Length; i++)
-            {
-                vertices[i] = _currentMesh.Vertices[i].Position;
-            }
-
-            return new PhysicsBodyConfig(
-                new MeshShape(vertices, _currentMesh.Indices),
-                1f,
-                pose
-            );
-        }
-
-        // Fallback tiny box to keep the body valid when no solid geometry exists.
-        return new PhysicsBodyConfig(
-            new BoxShape(0.01f, 0.01f, 0.01f),
-            1f,
-            pose
-        );
-    }
-
-    public void OnPhysicsAttached(IPhysicsBodyHandle h) => _physicsHandle = h;
-
-    public event Action? PhysicsShapeDirty;
-
-    public Transform3D PhysicsTransform => Transform;
-
-    public PhysicsSyncMode SyncMode => PhysicsSyncMode.None;
-
-    public void OnPhysicsDetached() => _physicsHandle = null;
 }

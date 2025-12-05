@@ -29,7 +29,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
     private readonly ICamera3dService _camera3dService;
     public bool DebugDrawBoundingBoxes { get; set; } = false;
-    public bool DebugDrawPhysicsShapes { get; set; } = false;
+    public bool DebugDrawPhysicsShapes { get; set; } = true;
     public Color4b DebugBoundsColor { get; set; } = Color4b.Green;
     public Color4b DebugPhysicsColor { get; set; } = Color4b.Magenta;
     public float DebugLineWidth { get; set; } = 1.5f;

@@ -51,6 +51,27 @@ public class ChunkStreamingConfiguration
     public int InitialChunkMaxLayer { get; set; } = 8;
 
     /// <summary>
+    /// Radius (in chunks) around the player for which physics colliders are attached.
+    /// Keep this smaller than render radius for performance.
+    /// </summary>
+    public int PhysicsRadiusChunks { get; set; } = 2;
+
+    /// <summary>
+    /// Vertical range (below player chunk) for physics colliders.
+    /// </summary>
+    public int PhysicsVerticalBelowChunks { get; set; } = 1;
+
+    /// <summary>
+    /// Vertical range (above player chunk) for physics colliders.
+    /// </summary>
+    public int PhysicsVerticalAboveChunks { get; set; } = 1;
+
+    /// <summary>
+    /// Limits how many chunk colliders are attached per frame to avoid spikes.
+    /// </summary>
+    public int PhysicsAttachPerFrame { get; set; } = 2;
+
+    /// <summary>
     /// Initial spawn position for chunk generation.
     /// </summary>
     public Vector3 InitialPosition { get; set; } = Vector3.Zero;
