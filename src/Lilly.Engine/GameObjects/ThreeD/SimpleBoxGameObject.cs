@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
@@ -19,7 +20,6 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
-    private readonly IPhysicWorld3d _physicWorld3d;
 
     private VertexBuffer<VertexColorTexture> _vertexBuffer;
     private ShaderProgram? _shaderProgram;
@@ -31,7 +31,6 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     private float _height = 1f;
     private float _depth = 1f;
 
-    private IPhysicsBodyHandle _body;
 
     public float Width
     {
@@ -95,7 +94,6 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         GraphicsDevice graphicsDevice,
         IRenderPipeline gameObjectManager,
         IAssetManager assetManager,
-        IPhysicWorld3d physicWorld3d,
         float width = 1f,
         float height = 1f,
         float depth = 1f
@@ -103,7 +101,6 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
-        _physicWorld3d = physicWorld3d;
         Width = width;
         Height = height;
         Depth = depth;
@@ -144,20 +141,7 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
-    public void Update(GameTime gameTime)
-    {
-        if (!IsActive)
-        {
-            return;
-        }
-
-        var pose = _physicWorld3d.GetPose(_body);
-
-        Transform.Position = pose.Position;
-        Transform.Rotation = pose.Rotation;
-
-        base.Update(gameTime);
-    }
+    public void Update(GameTime gameTime) => base.Update(gameTime);
 
     private void RebuildGeometry()
     {
@@ -261,9 +245,19 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     {
         return new PhysicsBodyConfig(new BoxShape(Width * Transform.Scale.X, Height * Transform.Scale.Y, Depth * Transform.Scale.Z), 0f, new RigidPose(Transform.Position, Transform.Rotation));
     }
+
+    public event Action? PhysicsShapeDirty;
+
+    public Transform3D PhysicsTransform => Transform;
+
+    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
     public void OnPhysicsAttached(IPhysicsBodyHandle h)
     {
-        _body = h;
 
+    }
+
+    public void OnPhysicsDetached()
+    {
     }
 }

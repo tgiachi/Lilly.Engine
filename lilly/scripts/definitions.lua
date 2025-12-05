@@ -2,7 +2,7 @@
 
 ---
 --- Lilly.Engine vVersionInfoData { AppName = Lilly.Engine, CodeName = Oceanus, Version = 0.5.0.0 } Lua API
---- Auto-generated on 2025-12-04 20:51:11
+--- Auto-generated on 2025-12-05 09:49:03
 ---
 
 --- Global constants
@@ -1265,6 +1265,13 @@ function game_objects.new_notification_hud(...) end
 ---@param ... any
 ---@return any
 function game_objects.new_performance_debugger(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_physic_world_debugger(...) end
 
 ---
 --- Dynamically registered function

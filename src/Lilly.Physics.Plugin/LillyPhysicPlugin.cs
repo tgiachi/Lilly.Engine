@@ -1,9 +1,11 @@
 using DryIoc;
 using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Data.Plugins;
+using Lilly.Engine.Extensions;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Physics.Plugin.Data;
+using Lilly.Physics.Plugin.Debuggers;
 using Lilly.Physics.Plugin.Services;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -26,13 +28,15 @@ public class LillyPhysicPlugin : ILillyPlugin
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
-        yield break;
+        yield return gameObjectFactory.Create<PhysicWorldDebugger>();
     }
 
     public IContainer RegisterModule(IContainer container)
     {
         container.RegisterInstance(new World3dPhysicConfig());
         container.RegisterService<IPhysicWorld3d, PhysicWorld3d>();
+
+        container.RegisterGameObject<PhysicWorldDebugger>();
 
         return container;
     }

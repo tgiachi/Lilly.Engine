@@ -1,6 +1,7 @@
 using System.Numerics;
 using BepuPhysics;
 using BepuUtilities;
+using Lilly.Physics.Plugin.Data;
 
 namespace Lilly.Physics.Plugin.Callbacks;
 
@@ -11,9 +12,9 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
     private Vector<float> angularDampingDt;
 
     /// <summary>
-    /// Gravity to apply to dynamic bodies in the simulation.
+    /// Gravity provider.
     /// </summary>
-    private readonly Vector3 Gravity;
+    private readonly World3dPhysicConfig _config;
 
     /// <summary>
     /// Fraction of dynamic body linear velocity to remove per unit of time. Values range from 0 to 1. 0 is fully undamped, while values very close to 1 will remove most velocity.
@@ -51,9 +52,9 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
         //If you had a simulation with per body gravity stored in a CollidableProperty<T> or something similar, having the simulation provided in a callback can be helpful.
     }
 
-    public DefaultPoseIntegratorCallbacks(Vector3 gravity, float linearDamping = .03f, float angularDamping = .03f) : this()
+    public DefaultPoseIntegratorCallbacks(World3dPhysicConfig config, float linearDamping = .03f, float angularDamping = .03f) : this()
     {
-        Gravity = gravity;
+        _config = config;
         LinearDamping = linearDamping;
         AngularDamping = angularDamping;
     }
@@ -72,7 +73,7 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
         //Since these callbacks don't use per-body damping values, we can precalculate everything.
         linearDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - LinearDamping, 0, 1), dt));
         angularDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - AngularDamping, 0, 1), dt));
-        gravityWideDt = Vector3Wide.Broadcast(Gravity * dt);
+        gravityWideDt = Vector3Wide.Broadcast(_config.Gravity * dt);
     }
 
     /// <summary>

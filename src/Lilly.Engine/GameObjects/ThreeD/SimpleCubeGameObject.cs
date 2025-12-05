@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
@@ -26,8 +27,6 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     private VertexColorTexture[] _cubeVertices = [];
     private Texture2D? _texture;
 
-    private readonly IPhysicWorld3d _physicWorld3d;
-
     public float XRotationSpeed { get; set; }
     public float YRotationSpeed { get; set; }
     public float ZRotationSpeed { get; set; }
@@ -55,13 +54,11 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     public SimpleCubeGameObject(
         GraphicsDevice graphicsDevice,
         IRenderPipeline gameObjectManager,
-        IAssetManager assetManager,
-        IPhysicWorld3d physicWorld3d
+        IAssetManager assetManager
     ) : base("SimpleCube", gameObjectManager)
     {
         _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
-        _physicWorld3d = physicWorld3d;
     }
 
     public void Initialize()
@@ -95,24 +92,7 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
-    public void Update(GameTime gameTime)
-    {
-        if (!IsActive)
-        {
-            return;
-        }
-
-        var pose = _physicWorld3d.GetPose(_body);
-        Transform.Position = pose.Position;
-        Transform.Rotation = pose.Rotation;
-
-
-        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, YRotationSpeed);
-        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, ZRotationSpeed);
-        // Transform.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitX, XRotationSpeed);
-
-        base.Update(gameTime);
-    }
+    public void Update(GameTime gameTime) => base.Update(gameTime);
 
     private static VertexColorTexture[] CreateCubeVertices()
     {
@@ -212,8 +192,19 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         return new PhysicsBodyConfig(new BoxShape(1, 1, 1f), Mass, new RigidPose(Transform.Position, Transform.Rotation));
     }
 
+    public event Action? PhysicsShapeDirty;
+
+    public Transform3D PhysicsTransform => Transform;
+
+    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
     public void OnPhysicsAttached(IPhysicsBodyHandle h)
     {
         _body = h;
+    }
+
+    public void OnPhysicsDetached()
+    {
+        _body = default!;
     }
 }

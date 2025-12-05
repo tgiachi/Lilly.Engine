@@ -20,5 +20,20 @@ public interface IPhysicWorld3d : ILillyService
     void SetVelocity(IPhysicsBodyHandle handle, Vector3 linear, Vector3 angular);
     void ApplyImpulse(IPhysicsBodyHandle handle, Vector3 impulse, Vector3 offset);
 
+    /// <summary>
+    /// Gets current gravity vector used by the physics world.
+    /// </summary>
+    Vector3 Gravity { get; }
 
+    /// <summary>
+    /// Updates gravity at runtime.
+    /// </summary>
+    void SetGravity(Vector3 gravity);
+
+    /// <summary>
+    /// Forces all dynamic bodies to wake up.
+    /// </summary>
+    void WakeAllBodies();
+
+    PhysicsWorldStats GetStats();
 }
