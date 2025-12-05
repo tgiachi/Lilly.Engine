@@ -10,27 +10,34 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj" />
+        <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
         <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AssimpNet.Mobile.Core" Version="5.1.0" />
-        
-        
-        <PackageReference Include="AssimpNet.Mobile.Native.Windows" Version="5.1.0"
-                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('win')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('win'))" />
-        <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"
-                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('linux')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('linux'))" />
-        <PackageReference Include="AssimpNet.Mobile.Native.Mac" Version="5.1.0"
-                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('osx')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('osx'))" />
-        
-        
+        <PackageReference Include="AssimpNet.Mobile.Core" Version="5.1.0"/>
+
+
+        <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"/>
+<!--        <PackageReference Include="AssimpNet.Mobile.Native.Windows" Version="5.1.0"-->
+<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('win')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('win'))"/>-->
+<!--        <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"-->
+<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('linux')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('linux'))"/>-->
+<!--        <PackageReference Include="AssimpNet.Mobile.Native.Mac" Version="5.1.0"-->
+<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('osx')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('osx'))"/>-->
+
+
+<!--        <PackageReference Include="Assimp.redist" Version="3.0.0" />-->
+
+
+<!--        <PackageReference Include="AssimpNet" Version="4.1.0" />-->
+
+
         <PackageReference Include="FontStashSharp.Base" Version="1.2.2"/>
         <PackageReference Include="FontStashSharp.PlatformAgnostic" Version="1.5.2"/>
         <PackageReference Include="ImGui.NET" Version="1.91.6.1"/>
         <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.0"/>
-        <PackageReference Include="MP3Sharp" Version="1.0.5" />
+        <PackageReference Include="MP3Sharp" Version="1.0.5"/>
         <PackageReference Include="Serilog" Version="4.3.0"/>
         <PackageReference Include="Silk.NET.GLFW" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Input" Version="2.22.0"/>
@@ -47,8 +54,8 @@
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
         <PackageReference Include="TrippyGL.ImageSharp" Version="1.2.2"/>
         <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.100">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
 
 
@@ -61,7 +68,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="GameObjects\ThreeD\" />
+        <Folder Include="GameObjects\ThreeD\"/>
     </ItemGroup>
 
 </Project>

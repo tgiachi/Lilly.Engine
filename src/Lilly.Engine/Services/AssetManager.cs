@@ -45,6 +45,9 @@ public class AssetManager : IAssetManager, IDisposable
                                                                  PostProcessSteps.JoinIdenticalVertices |
                                                                  PostProcessSteps.FlipUVs;
 
+
+    private readonly Dictionary<string, Scene> _loadedModels = new();
+
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
         var shaders = new Dictionary<ShaderType, string>();
@@ -112,6 +115,7 @@ public class AssetManager : IAssetManager, IDisposable
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
         _assimpContext.SetConfig(new NormalSmoothingAngleConfig(66.0f));
 
+        AssimpNet.Platform.Init();
     }
 
     /// <summary>
@@ -591,6 +595,13 @@ public class AssetManager : IAssetManager, IDisposable
             Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath),
             _defaultPostProcessSteps
         );
+
+
+        _loadedModels[modelName] = model;
+
+        _logger.Information("Loaded model {ModelName} with {MeshCount} meshes", modelName, model.MeshCount);
+
+
     }
 
     /// <summary>

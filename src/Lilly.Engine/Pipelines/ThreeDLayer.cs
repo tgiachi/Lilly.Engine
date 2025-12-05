@@ -28,8 +28,8 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     public float WireframeLineWidth { get; set; } = 1.0f;
 
     private readonly ICamera3dService _camera3dService;
-    public bool DebugDrawBoundingBoxes { get; set; } = true;
-    public bool DebugDrawPhysicsShapes { get; set; } = true;
+    public bool DebugDrawBoundingBoxes { get; set; } = false;
+    public bool DebugDrawPhysicsShapes { get; set; } = false;
     public Color4b DebugBoundsColor { get; set; } = Color4b.Green;
     public Color4b DebugPhysicsColor { get; set; } = Color4b.Magenta;
     public float DebugLineWidth { get; set; } = 1.5f;

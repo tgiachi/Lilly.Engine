@@ -17,7 +17,7 @@ namespace Lilly.Voxel.Plugin.GameObjects;
 /// <summary>
 /// Renders a single chunk using prebuilt mesh data. Buffers are reused until new mesh data arrives.
 /// </summary>
-public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d, IPhysicsGameObject3d
+public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d , IPhysicsGameObject3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;

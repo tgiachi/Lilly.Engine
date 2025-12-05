@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
@@ -85,17 +86,20 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             return;
         }
 
+        var start = Stopwatch.GetTimestamp();
         AttachOrReplaceBody(physicsGameObject, subscribe: true);
 
         _logger.Debug(
-            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world.",
+            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world. took {ElapsedMilliseconds} ms",
             gameObject.Name,
-            gameObject.Id
+            gameObject.Id,
+            Stopwatch.GetElapsedTime(start)
         );
     }
 
     private void Update(GameTime gameTime)
     {
+
         Simulation.Timestep(1 / 60f, ThreadDispatcher);
 
         // Sync dynamic bodies back to their game object transforms
@@ -103,6 +107,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         {
             var entry = _syncEntries[i];
             var body = Simulation.Bodies.GetBodyReference(entry.BodyHandle);
+
             if (!body.Exists)
             {
                 continue;
@@ -116,6 +121,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
                 entry.Transform.Rotation = pose.Orientation;
             }
         }
+
+
     }
 
     public void Dispose()
@@ -283,6 +290,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
             var bodyHandle = pair.Value.BodyHandle;
             var bodyRef = Simulation.Bodies.GetBodyReference(bodyHandle);
+
             if (bodyRef.Exists)
             {
                 bodyRef.Awake = true;
@@ -418,6 +426,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     private Mesh CreateMesh(MeshShape meshShape)
     {
+        var start = Stopwatch.GetTimestamp();
         var indices = meshShape.Indices;
         var vertices = meshShape.Vertices;
 
@@ -438,6 +447,12 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             ref var tri = ref triangles[i];
             tri = new Triangle(vertices[i0], vertices[i1], vertices[i2]);
         }
+
+        _logger.Debug(
+            "Created triangle mesh with {TriangleCount} triangles in {ElapsedMilliseconds} ms",
+            triangleCount,
+            Stopwatch.GetElapsedTime(start)
+        );
 
         return new Mesh(triangles, new Vector3(1f), Pool);
     }
