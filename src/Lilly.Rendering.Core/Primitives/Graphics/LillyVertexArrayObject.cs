@@ -32,7 +32,7 @@ public class LillyVertexArrayObject<TVertexType, TIndexType> : IDisposable
      * <param name="fieldName">The name of the field of the vertex type</param>
      */
     public void VertexAttributePointer(uint index, int count, VertexAttribPointerType type, string fieldName)
-        => VertexAttributePointer(index, count, type, (int)Marshal.OffsetOf(typeof(TVertexType), fieldName));
+        => VertexAttributePointer(index, count, type, (int)Marshal.OffsetOf<TVertexType>(fieldName));
 
     public unsafe void VertexAttributePointer(uint index, int count, VertexAttribPointerType type, int offset)
     {
@@ -50,7 +50,7 @@ public class LillyVertexArrayObject<TVertexType, TIndexType> : IDisposable
      * <param name="fieldName">The name of the field of the vertex type</param>
      */
     public void VertexAttributeIPointer(uint index, int count, VertexAttribIType type, string fieldName)
-        => VertexAttributeIPointer(index, count, type, (int)Marshal.OffsetOf(typeof(TVertexType), fieldName));
+        => VertexAttributeIPointer(index, count, type, (int)Marshal.OffsetOf<TVertexType>(fieldName));
 
     public unsafe void VertexAttributeIPointer(uint index, int count, VertexAttribIType type, int offset)
     {

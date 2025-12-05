@@ -113,13 +113,13 @@ public class LillyShader : IDisposable
     }
 
     public void SetUniform(string name, ReadOnlySpan<Vector2> values)
-        => SetUniformVectorArray(name, values, 2, (loc, count, data) => gl.Uniform2(loc, count, data));
+        => SetUniformVectorArray(name, values, 2, (loc, count, ref float data) => gl.Uniform2(loc, count, ref data));
 
     public void SetUniform(string name, ReadOnlySpan<Vector3> values)
-        => SetUniformVectorArray(name, values, 3, (loc, count, data) => gl.Uniform3(loc, count, data));
+        => SetUniformVectorArray(name, values, 3, (loc, count, ref float data) => gl.Uniform3(loc, count, ref data));
 
     public void SetUniform(string name, ReadOnlySpan<Vector4> values)
-        => SetUniformVectorArray(name, values, 4, (loc, count, data) => gl.Uniform4(loc, count, data));
+        => SetUniformVectorArray(name, values, 4, (loc, count, ref float data) => gl.Uniform4(loc, count, ref data));
 
     public int GetUniformLocation(string name)
     {
@@ -197,7 +197,7 @@ public class LillyShader : IDisposable
         string name,
         ReadOnlySpan<T> values,
         int componentsPerElement,
-        Action<int, uint, IntPtr> upload
+        Action<int, uint, ref float> upload
     ) where T : struct
     {
         if (values.IsEmpty) return;
@@ -210,7 +210,7 @@ public class LillyShader : IDisposable
         {
             Span<float> buffer = stackalloc float[stackThreshold];
             FillFlatten(values, componentsPerElement, buffer);
-            upload(location, (uint)values.Length, (IntPtr)Unsafe.AsPointer(ref buffer.GetPinnableReference()));
+            upload(location, (uint)values.Length, ref buffer[0]);
         }
         else
         {
@@ -220,7 +220,7 @@ public class LillyShader : IDisposable
             {
                 var span = rented.AsSpan(0, floatCount);
                 FillFlatten(values, componentsPerElement, span);
-                upload(location, (uint)values.Length, (IntPtr)Unsafe.AsPointer(ref span[0]));
+                upload(location, (uint)values.Length, ref span[0]);
             }
             finally
             {
