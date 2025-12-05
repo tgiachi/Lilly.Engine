@@ -136,6 +136,8 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
         RestoreState();
         EndRenderTimer();
+
+        _renderContext.GraphicsDevice.ResetStates();
     }
 
     private void CheckWireframe()
