@@ -28,6 +28,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Services;
 using Lilly.Engine.Services.Input;
 using Lilly.Engine.Utils;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Renderers;
@@ -107,6 +108,15 @@ public class LillyBootstrap : ILillyBootstrap
                 "Assets/Shaders/simple_cube_shader.shader"
             ),
             ["Position", "Color", "TexCoords"]
+        );
+
+        assetManager.LoadShaderFromMemory<PositionVertex>(
+            "debug_line",
+            ResourceUtils.GetEmbeddedResourceString(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Shaders/debug_line.shader"
+            ),
+            ["Position"]
         );
 
         assetManager.LoadFontFromMemory(

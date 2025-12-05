@@ -1,4 +1,5 @@
 using System.Numerics;
+using System;
 
 namespace Lilly.Rendering.Core.Primitives;
 
@@ -7,20 +8,56 @@ namespace Lilly.Rendering.Core.Primitives;
 /// </summary>
 public class Transform3D
 {
+    private Vector3 _position = Vector3.Zero;
+    private Quaternion _rotation = Quaternion.Identity;
+    private Vector3 _scale = Vector3.One;
+
+    /// <summary>
+    /// Raised whenever any component of the transform changes.
+    /// </summary>
+    public event Action<Transform3D>? Changed;
+
     /// <summary>
     /// Gets or sets the position of the transform in 3D space.
     /// </summary>
-    public Vector3 Position { get; set; } = Vector3.Zero;
+    public Vector3 Position
+    {
+        get => _position;
+        set
+        {
+            if (_position == value) return;
+            _position = value;
+            OnChanged();
+        }
+    }
 
     /// <summary>
     /// Gets or sets the rotation represented as a quaternion.
     /// </summary>
-    public Quaternion Rotation { get; set; } = Quaternion.Identity;
+    public Quaternion Rotation
+    {
+        get => _rotation;
+        set
+        {
+            if (_rotation == value) return;
+            _rotation = value;
+            OnChanged();
+        }
+    }
 
     /// <summary>
     /// Gets or sets the scale factors for x, y, and z axes.
     /// </summary>
-    public Vector3 Scale { get; set; } = Vector3.One;
+    public Vector3 Scale
+    {
+        get => _scale;
+        set
+        {
+            if (_scale == value) return;
+            _scale = value;
+            OnChanged();
+        }
+    }
 
     /// <summary>
     /// Gets the transformation matrix combining translation, rotation, and scaling.
@@ -39,4 +76,6 @@ public class Transform3D
     {
         return $"Position: {Position}, Rotation: {Rotation}, Scale: {Scale}";
     }
+
+    private void OnChanged() => Changed?.Invoke(this);
 }

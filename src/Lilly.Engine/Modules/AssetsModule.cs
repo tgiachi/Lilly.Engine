@@ -27,7 +27,6 @@ public class AssetsModule
         return textureName;
     }
 
-
     [ScriptFunction("load_atlas", "Loads a texture atlas from the specified file path and returns its name.")]
     public string LoadTextureAtlas(
         string atlasName,
@@ -41,5 +40,11 @@ public class AssetsModule
         _assetManager.LoadTextureAtlasFromFile(atlasName, atlasPath, tileWidth, tileHeight, margin, spacing);
 
         return atlasName;
+    }
+
+    [ScriptFunction("load_model", "Loads a 3D model from the specified file path and returns its name.")]
+    public void LoadModel(string modelName, string modelPath)
+    {
+        _assetManager.LoadModelFromFile(modelName, modelPath);
     }
 }

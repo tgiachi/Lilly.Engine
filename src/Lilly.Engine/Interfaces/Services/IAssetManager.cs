@@ -154,6 +154,14 @@ public interface IAssetManager
     /// <param name="stream">The stream containing the texture data.</param>
     void LoadTextureFromMemory(string textureName, Stream stream);
 
+
+    /// <summary>
+    ///  Loads a 3D model from a file.
+    /// </summary>
+    /// <param name="modelName"></param>
+    /// <param name="modelPath"></param>
+    void LoadModelFromFile(string modelName, string modelPath);
+
     /// <summary>
     /// Creates a vertex buffer from vertex data.
     /// </summary>

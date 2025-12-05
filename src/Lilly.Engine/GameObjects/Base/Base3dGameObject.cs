@@ -1,3 +1,5 @@
+using System;
+using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
 using Lilly.Rendering.Core.Interfaces.Camera;
@@ -43,12 +45,84 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     public bool IgnoreFrustumCulling { get; set; }
 
-    public Transform3D Transform { get; set; } = new();
+    private Transform3D _transform = new();
+
+    public Transform3D Transform
+    {
+        get => _transform;
+        set
+        {
+            if (value == null)
+            {
+                return;
+            }
+
+            if (_transform == value)
+            {
+                return;
+            }
+
+            _transform.Changed -= HandleTransformChanged;
+            _transform = value;
+            _transform.Changed += HandleTransformChanged;
+            HandleTransformChanged(_transform);
+        }
+    }
+
+    public Vector3 Position
+    {
+        get => Transform.Position;
+        set => Transform.Position = value;
+    }
+
+    public Quaternion Rotation
+    {
+        get => Transform.Rotation;
+        set => Transform.Rotation = value;
+    }
+
+    public Vector3 Scale
+    {
+        get => Transform.Scale;
+        set => Transform.Scale = value;
+    }
 
     public virtual BoundingBox BoundingBox
-        => new BoundingBox(Transform.Position, Transform.Position + System.Numerics.Vector3.One);
+    {
+        get
+        {
+            var center = Transform.Position;
+            var half = Vector3.Abs(Transform.Scale) * 0.5f;
+
+            Span<Vector3> offsets =
+            [
+                new(-half.X, -half.Y, -half.Z),
+                new(-half.X, -half.Y,  half.Z),
+                new(-half.X,  half.Y, -half.Z),
+                new(-half.X,  half.Y,  half.Z),
+                new( half.X, -half.Y, -half.Z),
+                new( half.X, -half.Y,  half.Z),
+                new( half.X,  half.Y, -half.Z),
+                new( half.X,  half.Y,  half.Z)
+            ];
+
+            var min = new Vector3(float.PositiveInfinity);
+            var max = new Vector3(float.NegativeInfinity);
+
+            foreach (var offset in offsets)
+            {
+                var world = Vector3.Transform(offset, Transform.Rotation) + center;
+                min = Vector3.Min(min, world);
+                max = Vector3.Max(max, world);
+            }
+
+            return new BoundingBox(min, max);
+        }
+    }
 
     private readonly IGameObjectManager _gameObjectManager;
+
+    public event Action? TransformChanged;
 
     public virtual void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera) { }
 
@@ -58,6 +132,7 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
         _gameObjectManager = gameObjectManager;
         ZIndex = zIndex;
         IsActive = true;
+        _transform.Changed += HandleTransformChanged;
     }
 
     /// <summary>
@@ -136,4 +211,9 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
     }
 
     public virtual void Initialize() { }
+
+    private void HandleTransformChanged(Transform3D obj)
+    {
+        TransformChanged?.Invoke();
+    }
 }

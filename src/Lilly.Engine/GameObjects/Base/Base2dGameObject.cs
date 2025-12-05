@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
@@ -74,7 +75,32 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// <summary>
     /// Gets the 2D transform containing position, rotation, scale, and size.
     /// </summary>
-    public Transform2D Transform { get; } = new Transform2D();
+    private readonly Transform2D _transform = new();
+    public Transform2D Transform => _transform;
+
+    public Vector2 Position
+    {
+        get => Transform.Position;
+        set => Transform.Position = value;
+    }
+
+    public float Rotation
+    {
+        get => Transform.Rotation;
+        set => Transform.Rotation = value;
+    }
+
+    public Vector2 Scale
+    {
+        get => Transform.Scale;
+        set => Transform.Scale = value;
+    }
+
+    public Vector2 Size
+    {
+        get => Transform.Size;
+        set => Transform.Size = value;
+    }
 
     /// <summary>
     /// Optional render context, used to read the current viewport size for anchoring helpers.
@@ -88,6 +114,8 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     private Vector2 _manualViewportSize = Vector2.Zero;
     private readonly IGameObjectManager _gameObjectManager;
 
+    public event Action? TransformChanged;
+
     /// <summary>
     /// Initializes a new instance of the Base2dGameObject class.
     /// </summary>
@@ -99,6 +127,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         _gameObjectManager = gameObjectManager;
         ZIndex = zIndex;
         IsActive = true;
+        _transform.Changed += HandleTransformChanged;
     }
 
     /// <summary>
@@ -265,6 +294,11 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     ///  Initializes the game object. Override to implement custom initialization logic.
     /// </summary>
     public virtual void Initialize() { }
+
+    private void HandleTransformChanged(Transform2D obj)
+    {
+        TransformChanged?.Invoke();
+    }
 
     /// <summary>
     /// Sets the render context so the object can react to viewport changes (e.g., ToCenter, ToLeft).

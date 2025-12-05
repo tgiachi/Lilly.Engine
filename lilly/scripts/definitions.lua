@@ -2,7 +2,7 @@
 
 ---
 --- Lilly.Engine vVersionInfoData { AppName = Lilly.Engine, CodeName = Oceanus, Version = 0.5.0.0 } Lua API
---- Auto-generated on 2025-12-05 09:49:03
+--- Auto-generated on 2025-12-05 12:07:52
 ---
 
 --- Global constants
@@ -109,6 +109,7 @@ function console.warn(...) end
 assets.load_font = function() end
 assets.load_texture = function() end
 assets.load_atlas = function() end
+assets.load_model = function() end
 assets = {}
 
 ---
@@ -138,6 +139,13 @@ function assets.load_texture(texture_name, texture_path) end
 ---@param spacing number The spacing value (optional)
 ---@return string The resulting text
 function assets.load_atlas(atlas_name, atlas_path, tile_width, tile_height, margin, spacing) end
+
+---
+--- Loads a 3D model from the specified file path and returns its name.
+---
+---@param model_name string The modelname text
+---@param model_path string The modelpath text
+function assets.load_model(model_name, model_path) end
 
 ---
 --- EngineModule module

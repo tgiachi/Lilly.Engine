@@ -1,4 +1,6 @@
 using System.Reflection;
+using Assimp;
+using Assimp.Configs;
 using FontStashSharp;
 using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
@@ -35,6 +37,13 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly Dictionary<string, ShaderProgram> _shaderPrograms = new();
 
     private readonly Dictionary<string, AtlasDefinition> _textureAtlases = new();
+
+    private readonly AssimpContext _assimpContext = new();
+
+    private readonly PostProcessSteps _defaultPostProcessSteps = PostProcessSteps.Triangulate |
+                                                                 PostProcessSteps.CalculateTangentSpace |
+                                                                 PostProcessSteps.JoinIdenticalVertices |
+                                                                 PostProcessSteps.FlipUVs;
 
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
@@ -101,6 +110,8 @@ public class AssetManager : IAssetManager, IDisposable
         _context = context;
         GetWhiteTexture<Texture2D>();
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
+        _assimpContext.SetConfig(new NormalSmoothingAngleConfig(66.0f));
+
     }
 
     /// <summary>
@@ -116,7 +127,7 @@ public class AssetManager : IAssetManager, IDisposable
 
         if (_dynamicSpriteFonts.TryGetValue(key, out var font))
         {
-            return font ;
+            return font;
         }
 
         if (_fontSystems.TryGetValue(fontName, out var fontSystem))
@@ -130,8 +141,6 @@ public class AssetManager : IAssetManager, IDisposable
         throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
     }
 
-
-
     /// <summary>
     /// Retrieves a previously loaded shader program by name.
     /// </summary>
@@ -140,7 +149,7 @@ public class AssetManager : IAssetManager, IDisposable
     public ShaderProgram GetShaderProgram(string shaderName)
         => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
                ? shaderProgram
-                : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+               : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
 
     /// <summary>
     /// Loads a texture atlas from a file.
@@ -164,7 +173,7 @@ public class AssetManager : IAssetManager, IDisposable
 
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
 
-        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin        );
+        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin);
     }
 
     /// <summary>
@@ -574,6 +583,14 @@ public class AssetManager : IAssetManager, IDisposable
         var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, processedStream, true);
         _texture2Ds[textureName] = texture;
         _logger.Information("Loaded texture {TextureName} (magenta pixels converted to transparent)", textureName);
+    }
+
+    public void LoadModelFromFile(string modelName, string modelPath)
+    {
+        var model = _assimpContext.ImportFile(
+            Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath),
+            _defaultPostProcessSteps
+        );
     }
 
     /// <summary>
