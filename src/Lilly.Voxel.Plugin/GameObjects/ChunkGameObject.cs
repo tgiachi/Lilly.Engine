@@ -344,7 +344,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         var oldCullingEnabled = _graphicsDevice.FaceCullingEnabled;
         var oldCullMode = _graphicsDevice.CullFaceMode;
 
-        // Configure for transparency: depth test and write so adjacent chunks don't double-blend at seams
+        // Configure for transparency: depth test on, depth write off to see stacked fluid layers
         _graphicsDevice.DepthState = new DepthState(true, DepthFunction.LessOrEqual);
         _graphicsDevice.BlendState = BlendState.AlphaBlend;
         _graphicsDevice.FaceCullingEnabled = true;
