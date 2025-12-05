@@ -24,6 +24,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
     private readonly World3dPhysicConfig _config;
     private readonly Dictionary<int, BodyRecord> _bodies = new();
     private readonly Dictionary<PhysicsShape, TypedIndex> _shapeCache = new();
+    private readonly Dictionary<uint, IPhysicsBodyHandle> _gameObjectsMap = new();
+
     private int _nextId = 1;
 
     private readonly IRenderPipeline _renderPipeline;
@@ -46,6 +48,25 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         _logger.Information("Starting Physic World3d with {ThreadCount} threads", config.ThreadCount);
 
         _renderPipeline.GameObjectAdded += RenderPipelineOnGameObjectAdded;
+        _renderPipeline.GameObjectRemoved += RenderPipelineOnGameObjectRemoved;
+    }
+
+    private void RenderPipelineOnGameObjectRemoved(IGameObject gameObject)
+    {
+        if (gameObject is IPhysicsGameObject3d physicsGameObject)
+        {
+            if (!_gameObjectsMap.TryGetValue(gameObject.Id, out var bodyId))
+            {
+                return;
+            }
+            Remove(bodyId);
+
+            _logger.Debug(
+                "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was removed from physics world.",
+                gameObject.Name,
+                gameObject.Id
+            );
+        }
     }
 
     private void RenderPipelineOnGameObjectAdded(IGameObject gameObject)
@@ -57,6 +78,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
                              ? CreateStatic(cfg.Shape, cfg.Pose)
                              : CreateDynamic(cfg);
             physicsGameObject.OnPhysicsAttached(handle);
+
+            _gameObjectsMap[gameObject.Id] = handle;
 
             _logger.Debug(
                 "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world.",

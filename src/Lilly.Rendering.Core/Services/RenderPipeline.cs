@@ -21,6 +21,7 @@ public class RenderPipeline : IRenderPipeline
     private readonly IGameObjectFactory _gameObjectFactory;
 
     public event IRenderPipeline.GameObjectAddedHandler? GameObjectAdded;
+    public event IRenderPipeline.GameObjectRemovedHandler? GameObjectRemoved;
 
     public IEnumerable<IRenderLayer> RenderLayers
     {
@@ -198,7 +199,9 @@ public class RenderPipeline : IRenderPipeline
                     }
                 }
 
+
                 entity.OnRemoved();
+                GameObjectRemoved?.Invoke(entity);
             }
         }
     }

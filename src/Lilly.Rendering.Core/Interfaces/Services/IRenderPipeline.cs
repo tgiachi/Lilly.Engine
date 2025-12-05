@@ -9,7 +9,11 @@ public interface IRenderPipeline : IGameObjectManager
 
     delegate void GameObjectAddedHandler(IGameObject gameObject);
 
+    delegate void GameObjectRemovedHandler(IGameObject gameObject);
+
     event GameObjectAddedHandler GameObjectAdded;
+
+    event GameObjectRemovedHandler GameObjectRemoved;
 
     IEnumerable<IRenderLayer> RenderLayers { get; }
     void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer;
