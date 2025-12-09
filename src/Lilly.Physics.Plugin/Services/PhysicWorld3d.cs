@@ -305,44 +305,6 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         };
     }
 
-    private BodyInertia CreateCompoundInertia(CompoundShape compoundShape, float mass)
-    {
-        var count = compoundShape.Children.Count;
-        Pool.Take<BepuPhysics.Collidables.CompoundChild>(count, out var children);
-
-        try
-        {
-            for (var i = 0; i < count; i++)
-            {
-                var child = compoundShape.Children[i];
-                if (!_shapeCache.TryGetValue(child.Shape, out var childIndex))
-                {
-                    // This should not happen if GetOrCreateShape was called before ComputeInertia
-                    // But just in case, ensure it exists.
-                    childIndex = GetOrCreateShape(child.Shape);
-                }
-
-                children[i] = new BepuPhysics.Collidables.CompoundChild(
-                    new BepuPhysics.RigidPose(child.LocalPose.Position, child.LocalPose.Rotation),
-                    childIndex
-                );
-            }
-
-            var childMasses = new float[count];
-            var massPerChild = mass / count;
-            for (var i = 0; i < count; i++)
-            {
-                childMasses[i] = massPerChild;
-            }
-
-            var compound = new Compound(children);
-            return compound.ComputeInertia(childMasses.AsSpan(), Simulation.Shapes);
-        }
-        finally
-        {
-            Pool.Return(ref children);
-        }
-    }
     private Mesh CreateMesh(MeshShape meshShape)
     {
         var start = Stopwatch.GetTimestamp();
@@ -399,33 +361,6 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         return hull;
     }
 
-    private TypedIndex CreateCompound(CompoundShape compoundShape)
-    {
-        var count = compoundShape.Children.Count;
-        Pool.Take<BepuPhysics.Collidables.CompoundChild>(count, out var children);
-
-        try
-        {
-            for (var i = 0; i < count; i++)
-            {
-                var child = compoundShape.Children[i];
-                var childIndex = GetOrCreateShape(child.Shape);
-
-                children[i] = new BepuPhysics.Collidables.CompoundChild(
-                    new BepuPhysics.RigidPose(child.LocalPose.Position, child.LocalPose.Rotation),
-                    childIndex
-                );
-            }
-
-            var compound = new Compound(children);
-            return Simulation.Shapes.Add(compound);
-        }
-        finally
-        {
-            Pool.Return(ref children);
-        }
-    }
-
     private TypedIndex GetOrCreateShape(PhysicsShape shape)
     {
         if (_shapeCache.TryGetValue(shape, out var cached))
@@ -440,7 +375,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             CapsuleShape c    => Simulation.Shapes.Add(new Capsule(c.Radius, c.Length)),
             ConvexHullShape h => Simulation.Shapes.Add(CreateConvexHull(h)),
             MeshShape m       => Simulation.Shapes.Add(CreateMesh(m)),
-            CompoundShape cp  => CreateCompound(cp),
+
             _                 => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
         };
 

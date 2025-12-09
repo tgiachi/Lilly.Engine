@@ -34,7 +34,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
     public Vector3 Ambient { get; set; } = new(0.15f, 0.15f, 0.15f);
     public Vector4 Tint { get; set; } = Vector4.One;
     public bool IsStatic { get; set; }
-    public bool UseCompoundShape { get; set; }
+
     public float Mass { get; set; } = 1f;
 
     public ModelGameObject(
@@ -230,52 +230,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
         if (_model == null && !string.IsNullOrEmpty(_modelName))
         {
             RefreshModel();
-        }
-
-        if (UseCompoundShape && _model != null)
-        {
-            var children = new List<CompoundChild>();
-
-            foreach (var instance in _model.Instances)
-            {
-                if (instance.MeshIndex < 0 || instance.MeshIndex >= _model.Meshes.Count)
-                {
-                    continue;
-                }
-
-                if (!Matrix4x4.Decompose(instance.Transform, out var iScale, out var iRot, out var iPos))
-                {
-                    continue;
-                }
-
-                var effectiveScale = iScale * Transform.Scale;
-                var effectivePos = iPos * Transform.Scale; // Assume parent scale applies to position offset
-
-                var mesh = _model.Meshes[instance.MeshIndex];
-                var childVerts = new List<Vector3>(mesh.Positions.Count);
-
-                foreach (var p in mesh.Positions)
-                {
-                    childVerts.Add(p * effectiveScale);
-                }
-
-                if (childVerts.Count > 0)
-                {
-                    children.Add(new CompoundChild(
-                        new ConvexHullShape(childVerts),
-                        new RigidPose(effectivePos, iRot)
-                    ));
-                }
-            }
-
-            if (children.Count > 0)
-            {
-                return new PhysicsBodyConfig(
-                    new CompoundShape(children),
-                    Mass,
-                    new RigidPose(Transform.Position, Transform.Rotation)
-                );
-            }
         }
 
         var verts = new List<Vector3>();
