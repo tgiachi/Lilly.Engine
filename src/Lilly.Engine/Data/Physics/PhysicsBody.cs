@@ -56,6 +56,12 @@ public record CapsuleShape(float Radius, float Length) : PhysicsShape;
 public record MeshShape(IReadOnlyList<Vector3> Vertices, IReadOnlyList<int> Indices) : PhysicsShape;
 
 /// <summary>
+/// Convex hull shape built from a set of points.
+/// </summary>
+/// <param name="Vertices">Hull vertices.</param>
+public record ConvexHullShape(IReadOnlyList<Vector3> Vertices) : PhysicsShape;
+
+/// <summary>
 /// Configuration used to create a dynamic body.
 /// </summary>
 /// <param name="Shape">Collision shape.</param>

@@ -69,6 +69,12 @@ public class LillyDemoPlugin : ILillyPlugin
         capsule.Radius = 0.5f;
 
         yield return capsule;
+
+        var model = gameObjectFactory.Create<ModelGameObject>();
+        model.ModelName = "crate";
+        model.Transform.Position = new(-5f, 3f, 0f);
+
+        yield return model;
     }
 
     public IContainer RegisterModule(IContainer container)

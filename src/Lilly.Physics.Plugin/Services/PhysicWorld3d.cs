@@ -296,11 +296,12 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
     {
         return shape switch
         {
-            BoxShape b     => new Box(b.Width, b.Height, b.Depth).ComputeInertia(mass),
-            SphereShape s  => new Sphere(s.Radius).ComputeInertia(mass),
-            CapsuleShape c => new Capsule(c.Radius, c.Length).ComputeInertia(mass),
-            MeshShape      => throw new NotSupportedException("Triangle meshes are intended for static bodies in BEPU."),
-            _              => default
+            BoxShape b        => new Box(b.Width, b.Height, b.Depth).ComputeInertia(mass),
+            SphereShape s     => new Sphere(s.Radius).ComputeInertia(mass),
+            CapsuleShape c    => new Capsule(c.Radius, c.Length).ComputeInertia(mass),
+            ConvexHullShape h => CreateConvexHull(h).ComputeInertia(mass),
+            MeshShape         => throw new NotSupportedException("Triangle meshes are intended for static bodies in BEPU."),
+            _                 => default
         };
     }
 
@@ -337,6 +338,29 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         return new(triangles, new(1f), Pool);
     }
 
+    private ConvexHull CreateConvexHull(ConvexHullShape hullShape)
+    {
+        var start = Stopwatch.GetTimestamp();
+        var points = hullShape.Vertices;
+
+        Pool.Take(points.Count, out Buffer<Vector3> buffer);
+        for (var i = 0; i < points.Count; i++)
+        {
+            buffer[i] = points[i];
+        }
+
+        var hull = new ConvexHull(buffer, Pool, out _);
+
+        _logger.Debug(
+            "Created convex hull with {VertexCount} vertices in {ElapsedMilliseconds} ms",
+            points.Count,
+            Stopwatch.GetElapsedTime(start)
+        );
+
+
+        return hull;
+    }
+
     private TypedIndex GetOrCreateShape(PhysicsShape shape)
     {
         if (_shapeCache.TryGetValue(shape, out var cached))
@@ -349,6 +373,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             BoxShape b     => Simulation.Shapes.Add(new Box(b.Width, b.Height, b.Depth)),
             SphereShape s  => Simulation.Shapes.Add(new Sphere(s.Radius)),
             CapsuleShape c => Simulation.Shapes.Add(new Capsule(c.Radius, c.Length)),
+            ConvexHullShape h => Simulation.Shapes.Add(CreateConvexHull(h)),
             MeshShape m    => Simulation.Shapes.Add(CreateMesh(m)),
             _              => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
         };

@@ -313,6 +313,41 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 
                     break;
                 }
+            case ConvexHullShape hull:
+                {
+                    for (var i = 0; i < hull.Vertices.Count; i++)
+                    {
+                        vertices.Add(Vector3.Transform(hull.Vertices[i], pose.Rotation) + pose.Position);
+                    }
+
+                    // For visualization, draw edges of a convex hull by connecting each pair of vertices that form a hull edge is non-trivial without the faces.
+                    // As a simple fallback, draw a bounding box around hull points.
+                    if (vertices.Count > 0)
+                    {
+                        var min = vertices[0];
+                        var max = vertices[0];
+                        foreach (var v in vertices)
+                        {
+                            min = Vector3.Min(min, v);
+                            max = Vector3.Max(max, v);
+                        }
+
+                        var bbox = new BoundingBox(min, max);
+                        var cornersArray = new Vector3[8];
+                        bbox.GetCorners(cornersArray);
+                        vertices.Clear();
+                        vertices.AddRange(cornersArray);
+
+                        edges.AddRange(new[]
+                        {
+                            (0, 1), (1, 2), (2, 3), (3, 0), // top
+                            (4, 5), (5, 6), (6, 7), (7, 4), // bottom
+                            (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
+                        });
+                    }
+
+                    break;
+                }
             default:
                 return;
         }

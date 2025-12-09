@@ -39,14 +39,12 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
     public ModelGameObject(
         IRenderPipeline gameObjectManager,
         IAssetManager assetManager,
-        string modelName,
         string shaderName = "model",
         string? textureName = null,
         string name = "Model"
     ) : base(name, gameObjectManager)
     {
         _assetManager = assetManager;
-        _modelName = modelName;
         _shaderName = shaderName;
         _textureOverrideName = textureName;
     }
@@ -259,14 +257,30 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
 
         PhysicsShape shape;
 
-        if (verts.Count > 0 && inds.Count >= 3)
+        if (IsStatic)
         {
-            shape = new MeshShape(verts, inds);
+            if (verts.Count > 0 && inds.Count >= 3)
+            {
+                shape = new MeshShape(verts, inds);
+            }
+            else
+            {
+                var size = _localBounds.Size;
+                shape = new BoxShape(size.X, size.Y, size.Z);
+            }
         }
         else
         {
-            var size = _localBounds.Size;
-            shape = new BoxShape(size.X, size.Y, size.Z);
+            // Dynamic: use convex hull if we have verts, else fallback to box.
+            if (verts.Count > 0)
+            {
+                shape = new ConvexHullShape(verts);
+            }
+            else
+            {
+                var size = _localBounds.Size;
+                shape = new BoxShape(size.X, size.Y, size.Z);
+            }
         }
 
         return new PhysicsBodyConfig(
