@@ -7,6 +7,7 @@ using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Interfaces.Services.Base;
+using Lilly.Engine.Core.Json;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Data.Config;
 using Lilly.Engine.Data.Plugins;
@@ -19,6 +20,7 @@ using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Json;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
 using Lilly.Engine.Lua.Scripting.Services;
 using Lilly.Engine.Modules;
@@ -37,6 +39,7 @@ using Lilly.Rendering.Core.Renderers;
 using Lilly.Rendering.Core.Services;
 using Serilog;
 using TrippyGL;
+using LillyEngineJsonContext = Lilly.Engine.Json.Context.LillyEngineJsonContext;
 
 namespace Lilly.Engine.Bootstrap;
 
@@ -60,6 +63,8 @@ public class LillyBootstrap : ILillyBootstrap
 
     public async Task InitializeAsync(InitialEngineOptions options)
     {
+        JsonUtils.RegisterJsonContext(LillyEngineJsonContext.Default);
+
         var directoriesConfig = _container.Resolve<DirectoriesConfig>();
 
         _logger.Information("Root Directory: {RootDirectory}", directoriesConfig.Root);

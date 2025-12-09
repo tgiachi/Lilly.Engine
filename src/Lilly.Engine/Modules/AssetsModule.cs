@@ -1,5 +1,8 @@
 using Lilly.Engine.Core.Attributes.Scripts;
+using Lilly.Engine.Core.Data.Directories;
+using Lilly.Engine.Core.Json;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Json.Assets;
 
 namespace Lilly.Engine.Modules;
 
@@ -8,8 +11,13 @@ public class AssetsModule
 {
     private readonly IAssetManager _assetManager;
 
-    public AssetsModule(IAssetManager assetManager)
-        => _assetManager = assetManager;
+    private readonly DirectoriesConfig _directoriesConfig;
+
+    public AssetsModule(IAssetManager assetManager, DirectoriesConfig directoriesConfig)
+    {
+        _assetManager = assetManager;
+        _directoriesConfig = directoriesConfig;
+    }
 
     [ScriptFunction("load_font", "Loads a font from the specified file path and returns its name.")]
     public string LoadFont(string fontName, string fontPath)
@@ -46,5 +54,12 @@ public class AssetsModule
         _assetManager.LoadTextureAtlasFromFile(atlasName, atlasPath, tileWidth, tileHeight, margin, spacing);
 
         return atlasName;
+    }
+
+    public void LoadAssetsFromJson(string jsonPath)
+    {
+        var fullPath = Path.GetFullPath(jsonPath);
+
+        var assetFile = JsonUtils.DeserializeFromFile<LillyEngineAssetJson>(jsonPath);
     }
 }

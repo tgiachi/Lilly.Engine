@@ -11,6 +11,11 @@ public enum AssetType
     Texture,
 
     /// <summary>
+    ///  Atlas asset (sprite sheets, texture atlases).
+    /// </summary>
+    Atlas,
+
+    /// <summary>
     /// Sound asset (audio files, music, sound effects).
     /// </summary>
     Sound,
