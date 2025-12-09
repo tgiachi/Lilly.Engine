@@ -2,6 +2,7 @@ using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Json;
+using Lilly.Engine.Exceptions;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Json.Assets;
 using Serilog;
@@ -104,6 +105,11 @@ public class AssetsModule
                         var spacing = Convert.ToInt32(asset.Metadata.GetValueOrDefault("spacing") ?? 0);
                         var margin = Convert.ToInt32(asset.Metadata.GetValueOrDefault("margin") ?? 0);
 
+                        if (tileHeight == 0 || tileWidth == 0)
+                        {
+                            throw new AssetAtlasInvalidSizeException("Invalid tile height/width/height");
+                        }
+
                         _assetManager.LoadTextureAtlasFromFile(
                             asset.Name,
                             asset.Path,
@@ -116,6 +122,7 @@ public class AssetsModule
 
                     break;
                 case AssetType.Sound:
+                    _assetManager.LoadSoundFromFile(asset.Name, asset.Path);
 
                     break;
                 case AssetType.Shader:
