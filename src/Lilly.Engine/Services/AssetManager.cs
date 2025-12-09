@@ -5,6 +5,7 @@ using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using AssimpMatrix4x4 = Assimp.Matrix4x4;
 using AssimpVector3D = Assimp.Vector3D;
+using BoundingBox = Lilly.Rendering.Core.Primitives.BoundingBox;
 using Assimp;
 using Assimp.Configs;
 using FontStashSharp;
@@ -17,6 +18,7 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Primitives;
 using Serilog;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -641,7 +643,9 @@ public class AssetManager : IAssetManager, IDisposable
         var instances = new List<ModelInstance>();
         CollectModelInstances(scene.RootNode, Matrix4x4.Identity, instances);
 
-        return new ModelAsset(meshes, instances);
+        var bounds = ComputeModelBounds(meshes, instances);
+
+        return new ModelAsset(meshes, instances, bounds);
     }
 
     private ModelMeshData CreateMeshData(Assimp.Mesh mesh)
@@ -689,7 +693,9 @@ public class AssetManager : IAssetManager, IDisposable
             vertexBuffer.IndexSubset.SetData(CollectionsMarshal.AsSpan(indices), 0);
         }
 
-        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex);
+        var bounds = ComputeBounds(vertices);
+
+        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds);
     }
 
     private void CollectModelInstances(Node node, Matrix4x4 parentTransform, List<ModelInstance> instances)
@@ -735,6 +741,70 @@ public class AssetManager : IAssetManager, IDisposable
 
     private static Vector2 ToVector2(AssimpVector3D vector)
         => new(vector.X, vector.Y);
+
+    private static BoundingBox ComputeBounds(ReadOnlySpan<VertexPositionNormalTex> vertices)
+    {
+        if (vertices.IsEmpty)
+        {
+            return new BoundingBox(Vector3.Zero, Vector3.Zero);
+        }
+
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+
+        foreach (var v in vertices)
+        {
+            min = Vector3.Min(min, v.Position);
+            max = Vector3.Max(max, v.Position);
+        }
+
+        return new BoundingBox(min, max);
+    }
+
+    private static BoundingBox ComputeModelBounds(IReadOnlyList<ModelMeshData> meshes, IReadOnlyList<ModelInstance> instances)
+    {
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+
+        var any = false;
+        foreach (var instance in instances)
+        {
+            var meshBounds = meshes[instance.MeshIndex].Bounds;
+            var transformed = TransformBounds(meshBounds, instance.Transform);
+            min = Vector3.Min(min, transformed.Min);
+            max = Vector3.Max(max, transformed.Max);
+            any = true;
+        }
+
+        return any ? new BoundingBox(min, max) : new BoundingBox(Vector3.Zero, Vector3.Zero);
+    }
+
+    private static BoundingBox TransformBounds(BoundingBox bounds, Matrix4x4 transform)
+    {
+        Span<Vector3> corners =
+        [
+            new(bounds.Min.X, bounds.Min.Y, bounds.Min.Z),
+            new(bounds.Max.X, bounds.Min.Y, bounds.Min.Z),
+            new(bounds.Min.X, bounds.Max.Y, bounds.Min.Z),
+            new(bounds.Max.X, bounds.Max.Y, bounds.Min.Z),
+            new(bounds.Min.X, bounds.Min.Y, bounds.Max.Z),
+            new(bounds.Max.X, bounds.Min.Y, bounds.Max.Z),
+            new(bounds.Min.X, bounds.Max.Y, bounds.Max.Z),
+            new(bounds.Max.X, bounds.Max.Y, bounds.Max.Z)
+        ];
+
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+
+        foreach (var corner in corners)
+        {
+            var v = Vector3.Transform(corner, transform);
+            min = Vector3.Min(min, v);
+            max = Vector3.Max(max, v);
+        }
+
+        return new BoundingBox(min, max);
+    }
 
     /// <summary>
     /// Creates a vertex buffer from vertex data.

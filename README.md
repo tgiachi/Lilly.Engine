@@ -6,13 +6,18 @@ A modern, modular game engine built in C# for .NET. Designed for developers who 
 
 - **Modular plugin architecture** - Use only what you need, extend the rest
 - **Voxel world generation** - Build Minecraft-style worlds with custom terrain generation
+- **3D model loading** - Support for glTF, FBX, OBJ and other 3D formats via Assimp
 - **Lua scripting** - Script game logic without recompiling
 - **Hardware-accelerated rendering** - OpenGL-based rendering with sprite batching
+- **Physics engine** - 3D physics simulation with dynamic and static bodies
 - **Job system** - Multi-threaded task execution for better performance
 - **Comprehensive UI framework** - Buttons, text fields, combo boxes, and custom controls
 - **Audio system** - 3D positional audio with OpenAL
 - **Input handling** - Keyboard, mouse, and gamepad support with customizable bindings
-- **Built-in debuggers** - Visualize job system, rendering pipeline, and performance metrics
+- **Command system** - Easy-to-use command registration and execution
+- **Event bus** - Loosely-coupled event messaging throughout the engine
+- **Performance profiling** - Built-in performance metrics and profiling tools
+- **Built-in debuggers** - Visualize job system, rendering pipeline, camera state, and chunk data
 
 ## Quick Start
 
@@ -24,7 +29,7 @@ A modern, modular game engine built in C# for .NET. Designed for developers who 
 ### Building
 
 ```bash
-git clone https://github.com/yourusername/Lilly.Engine.git
+git clone https://github.com/{your-username}/Lilly.Engine.git
 cd Lilly.Engine
 dotnet build
 ```
@@ -40,12 +45,20 @@ dotnet run
 
 The engine is organized into several layers:
 
+### Core Layers
 - **Lilly.Engine.Core** - Foundation layer with interfaces and core utilities
 - **Lilly.Rendering.Core** - Graphics rendering abstraction
+
+### Main Engine
 - **Lilly.Engine** - Main engine with rendering, audio, input, and scene management
 - **Lilly.Engine.GameObjects** - UI controls and game object implementations
-- **Lilly.Voxel.Plugin** - Complete voxel world generation and rendering
-- **Lilly.Engine.Lua.Scripting** - Lua integration using MoonSharp
+
+### Plugins
+- **Lilly.Voxel.Plugin** - Complete voxel world generation and rendering with terrain features
+- **Lilly.Physics.Plugin** - 3D physics simulation engine
+- **Lilly.Engine.Lua.Scripting** - Lua integration using MoonSharp for dynamic scripting
+
+### Application
 - **Lilly.Engine.Game** - Entry point and application bootstrap
 
 Everything is wired together using dependency injection (DryIoc), making it easy to swap implementations or add your own.
@@ -120,6 +133,63 @@ engine.on_update(function(dt)
 end)
 ```
 
+## Engine Systems
+
+The engine provides several core systems you can leverage:
+
+### Command System
+Execute console commands at runtime:
+
+```csharp
+var commands = container.Resolve<ICommandSystemService>();
+commands.Register("mute_audio", () => {
+    var audio = container.Resolve<IAudioService>();
+    audio.Mute();
+});
+```
+
+### Timer Service
+Schedule callbacks with delays:
+
+```csharp
+var timers = container.Resolve<ITimerService>();
+timers.RegisterTimeout("my_timeout", 3f, () => {
+    Debug.WriteLine("Called after 3 seconds");
+});
+```
+
+### Event Bus
+Publish and listen for events:
+
+```csharp
+var events = container.Resolve<IEventBusService>();
+events.Subscribe<PlayerDeathEvent>(OnPlayerDeath);
+events.Publish(new PlayerDeathEvent { Position = Vector3.Zero });
+```
+
+### Notifications
+Display in-game notifications:
+
+```csharp
+var notifications = container.Resolve<INotificationService>();
+notifications.Info("Entering cave system");
+notifications.Warning("Low health!");
+notifications.Error("Failed to load asset");
+```
+
+### Console
+The engine includes a built-in Quake-style console with ImGui integration. Press `` ` `` to toggle. Use the command system to add console commands.
+
+### Performance Profiling
+Use the performance profiler to measure system performance:
+
+```csharp
+var profiler = container.Resolve<IPerformanceProfilerService>();
+var context = profiler.BeginSection("expensive_operation");
+// ... do work ...
+profiler.EndSection(context);
+```
+
 ## Voxel Worlds
 
 The `Lilly.Voxel.Plugin` provides a highly configurable world generation pipeline. You can inject steps for heightmaps, erosion, caves, and decoration.
@@ -189,13 +259,13 @@ public class MyPlugin : ILillyPlugin
 
 ## Documentation
 
-Full documentation is available at [your-docs-url] including:
+Documentation is available in the `docs/` directory. Key guides include:
 
-- [Getting Started Guide](docs/docs/getting-started.md)
-- [Architecture Overview](docs/docs/architecture.md)
-- [Plugin Development](docs/docs/plugin-development.md)
-- [Lua Scripting Reference](docs/docs/lua-scripting.md)
-- [API Reference](docs/api/)
+- Getting Started - Quick setup and first project
+- Architecture Overview - Engine design and patterns
+- Plugin Development - Creating custom plugins
+- Lua Scripting Reference - Scripting API and examples
+- API Reference - Auto-generated from XML documentation
 
 ## Building Documentation
 
@@ -216,20 +286,25 @@ This is an active personal project that has grown into a fully-featured engine. 
 ### What's Working
 
 - Core rendering pipeline with 2D/3D support
-- Complete voxel world generation with lighting
+- Complete voxel world generation with lighting and terrain features
+- 3D model loading and rendering
+- Physics engine with dynamic and static bodies
 - Lua scripting with hot reload
 - UI system with multiple controls
 - Audio system with 3D positioning
 - Job system with thread pooling
 - Scene management and transitions
+- Command system for runtime commands
+- Event bus for message passing
+- Performance profiling and built-in debuggers (job system, rendering pipeline, camera, chunks)
 
 ### Planned Features
 
 - Networking/multiplayer support
-- Physics integration
-- More example games
+- More example games and demo scenes
 - Visual editor
-- Better documentation and tutorials
+- Enhanced documentation and tutorials
+- Particle systems
 
 ## Contributing
 

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Numerics;
-using TrippyGL;
 using Lilly.Engine.Vertexts;
+using Lilly.Rendering.Core.Primitives;
+using TrippyGL;
 
 namespace Lilly.Engine.Data.Assets;
 
@@ -10,12 +11,14 @@ public sealed class ModelMeshData : IDisposable
     public VertexBuffer<VertexPositionNormalTex> VertexBuffer { get; }
     public uint IndexCount { get; }
     public int MaterialIndex { get; }
+    public BoundingBox Bounds { get; }
 
-    public ModelMeshData(VertexBuffer<VertexPositionNormalTex> vertexBuffer, uint indexCount, int materialIndex)
+    public ModelMeshData(VertexBuffer<VertexPositionNormalTex> vertexBuffer, uint indexCount, int materialIndex, BoundingBox bounds)
     {
         VertexBuffer = vertexBuffer;
         IndexCount = indexCount;
         MaterialIndex = materialIndex;
+        Bounds = bounds;
     }
 
     public void Dispose()
@@ -40,11 +43,13 @@ public sealed class ModelAsset : IDisposable
 {
     public IReadOnlyList<ModelMeshData> Meshes { get; }
     public IReadOnlyList<ModelInstance> Instances { get; }
+    public BoundingBox Bounds { get; }
 
-    public ModelAsset(IReadOnlyList<ModelMeshData> meshes, IReadOnlyList<ModelInstance> instances)
+    public ModelAsset(IReadOnlyList<ModelMeshData> meshes, IReadOnlyList<ModelInstance> instances, BoundingBox bounds)
     {
         Meshes = meshes;
         Instances = instances;
+        Bounds = bounds;
     }
 
     public void Dispose()
