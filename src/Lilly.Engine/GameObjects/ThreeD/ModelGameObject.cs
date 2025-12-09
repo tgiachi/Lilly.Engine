@@ -92,9 +92,10 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
         }
 
         graphicsDevice.ShaderProgram = _shaderProgram;
-        graphicsDevice.BlendState = BlendState.NonPremultiplied;
-        graphicsDevice.DepthState = DepthState.Default;
-        graphicsDevice.FaceCullingEnabled = true;
+
+        //     graphicsDevice.BlendState = BlendState.NonPremultiplied;
+        //    graphicsDevice.DepthState = DepthState.Default;
+        //    graphicsDevice.FaceCullingEnabled = true;
 
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
@@ -217,7 +218,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
         return new(min, max);
     }
 
-
     public event Action? PhysicsShapeDirty;
     public Transform3D PhysicsTransform => Transform;
     public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
@@ -296,5 +296,4 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
 
     public void MarkPhysicsDirty()
         => PhysicsShapeDirty?.Invoke();
-
 }
