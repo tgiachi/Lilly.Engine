@@ -19,6 +19,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TrippyGL;
 using TrippyGL.ImageSharp;
+using System.IO.Compression;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
@@ -49,6 +50,7 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly Dictionary<string, AtlasDefinition> _textureAtlases = new();
 
     private readonly AssimpContext _assimpContext = new();
+    private readonly Dictionary<string, string> _modelExtractionDirectories = new();
 
     private readonly PostProcessSteps _defaultPostProcessSteps = PostProcessSteps.Triangulate |
                                                                  PostProcessSteps.CalculateTangentSpace |
@@ -104,6 +106,21 @@ public class AssetManager : IAssetManager, IDisposable
     /// </summary>
     public void Dispose()
     {
+        foreach (var (_, dir) in _modelExtractionDirectories)
+        {
+            try
+            {
+                if (Directory.Exists(dir))
+                {
+                    Directory.Delete(dir, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to cleanup extraction directory {Dir}", dir);
+            }
+        }
+
         GC.SuppressFinalize(this);
     }
 
@@ -298,6 +315,12 @@ public class AssetManager : IAssetManager, IDisposable
     public void LoadModelFromFile(string modelName, string modelPath)
     {
         var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath);
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"Model file not found at path: {fullPath}");
+        }
+
         var scene = _assimpContext.ImportFile(fullPath, _defaultPostProcessSteps);
 
         if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
@@ -307,7 +330,9 @@ public class AssetManager : IAssetManager, IDisposable
             return;
         }
 
-        var modelAsset = BuildModelAsset(modelName, scene);
+        var modelDirectory = Path.GetDirectoryName(fullPath) ?? _directoriesConfig[DirectoryType.Assets];
+
+        var modelAsset = BuildModelAsset(modelName, scene, modelDirectory);
 
         if (_loadedModels.TryGetValue(modelName, out var existingModel))
         {
@@ -321,6 +346,66 @@ public class AssetManager : IAssetManager, IDisposable
             modelAsset.Meshes.Count,
             modelAsset.Instances.Count
         );
+
+        CleanupExtractionDirectory(modelName);
+    }
+
+    public void LoadModelFromZip(string modelName, string zipPath, string modelPathInZip)
+    {
+        var fullZipPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], zipPath);
+
+        if (!File.Exists(fullZipPath))
+        {
+            _logger.Warning("Zip file not found for model {ModelName} at {Path}", modelName, fullZipPath);
+            return;
+        }
+
+        var extractionDir = CreateExtractionDirectory(modelName);
+
+        try
+        {
+            ZipFile.ExtractToDirectory(fullZipPath, extractionDir, overwriteFiles: true);
+
+            var modelFullPath = Path.Combine(extractionDir, modelPathInZip);
+            if (!File.Exists(modelFullPath))
+            {
+                _logger.Warning("Model file {ModelPathInZip} not found inside zip {ZipPath}", modelPathInZip, zipPath);
+                return;
+            }
+
+            var scene = _assimpContext.ImportFile(modelFullPath, _defaultPostProcessSteps);
+
+            if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
+            {
+                _logger.Warning("Failed to load model {ModelName} from zip {ZipPath}", modelName, zipPath);
+                return;
+            }
+
+            var modelDirectory = Path.GetDirectoryName(modelFullPath) ?? extractionDir;
+            var modelAsset = BuildModelAsset(modelName, scene, modelDirectory);
+
+            if (_loadedModels.TryGetValue(modelName, out var existingModel))
+            {
+                existingModel.Dispose();
+            }
+
+            _loadedModels[modelName] = modelAsset;
+            _modelExtractionDirectories[modelName] = extractionDir;
+
+            _logger.Information(
+                "Loaded model {ModelName} from zip {ZipPath} with {MeshCount} meshes and {InstanceCount} instances",
+                modelName,
+                zipPath,
+                modelAsset.Meshes.Count,
+                modelAsset.Instances.Count
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading model {ModelName} from zip {ZipPath}", modelName, zipPath);
+            CleanupExtractionDirectory(modelName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -579,9 +664,9 @@ public class AssetManager : IAssetManager, IDisposable
         _logger.Information("Loaded texture {TextureName} (magenta pixels converted to transparent)", textureName);
     }
 
-    private ModelAsset BuildModelAsset(string modelName, Scene scene)
+    private ModelAsset BuildModelAsset(string modelName, Scene scene, string modelDirectory)
     {
-        var materialTextures = LoadMaterialTextures(modelName, scene);
+        var materialTextures = LoadMaterialTextures(modelName, scene, modelDirectory);
 
         var meshes = new List<ModelMeshData>(scene.MeshCount);
 
@@ -705,7 +790,7 @@ public class AssetManager : IAssetManager, IDisposable
         return new(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds, textureKey);
     }
 
-    private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene)
+    private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene, string modelDirectory)
     {
         var result = new Dictionary<int, string>();
 
@@ -739,11 +824,11 @@ public class AssetManager : IAssetManager, IDisposable
                 }
 
                 // External texture relative to model directory
-                var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
-
+                var fullPath = Path.Combine(modelDirectory, texturePath);
                 if (File.Exists(fullPath))
                 {
-                    LoadTextureFromFile(key, texturePath);
+                    using var fs = File.OpenRead(fullPath);
+                    LoadTextureFromMemory(key, fs);
                     result[i] = key;
                 }
             }
@@ -877,5 +962,38 @@ public class AssetManager : IAssetManager, IDisposable
         }
 
         return new(min, max);
+    }
+
+    private string CreateExtractionDirectory(string modelName)
+    {
+        CleanupExtractionDirectory(modelName);
+
+        var baseDir = Path.Combine(Path.GetTempPath(), "LillyModels");
+        Directory.CreateDirectory(baseDir);
+
+        var dir = Path.Combine(baseDir, $"{modelName}_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+
+        return dir;
+    }
+
+    private void CleanupExtractionDirectory(string modelName)
+    {
+        if (_modelExtractionDirectories.TryGetValue(modelName, out var dir))
+        {
+            try
+            {
+                if (Directory.Exists(dir))
+                {
+                    Directory.Delete(dir, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to cleanup extraction directory for model {ModelName} at {Dir}", modelName, dir);
+            }
+
+            _modelExtractionDirectories.Remove(modelName);
+        }
     }
 }

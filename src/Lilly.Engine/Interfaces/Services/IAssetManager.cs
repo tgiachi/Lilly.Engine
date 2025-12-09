@@ -101,6 +101,14 @@ public interface IAssetManager
     void LoadModelFromFile(string modelName, string modelPath);
 
     /// <summary>
+    /// Loads a 3D model from a zip archive located under the assets directory.
+    /// </summary>
+    /// <param name="modelName">Key to store the model.</param>
+    /// <param name="zipPath">Zip path relative to assets.</param>
+    /// <param name="modelPathInZip">Relative path to the model file inside the zip.</param>
+    void LoadModelFromZip(string modelName, string zipPath, string modelPathInZip);
+
+    /// <summary>
     /// Loads a shader from files.
     /// </summary>
     /// <typeparam name="TVertex">The vertex type.</typeparam>

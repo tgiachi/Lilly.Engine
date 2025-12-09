@@ -86,6 +86,13 @@ public class AssetsModule
 
                     break;
                 case AssetType.Model:
+                    if (asset.Path.EndsWith(".zip"))
+                    {
+                        var tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                        _assetManager.LoadModelFromZip(asset.Name, asset.Path, tmpDir);
+
+                        break;
+                    }
                     _assetManager.LoadModelFromFile(asset.Name, asset.Path);
 
                     break;
