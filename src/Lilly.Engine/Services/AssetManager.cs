@@ -1,13 +1,21 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using Vector2 = System.Numerics.Vector2;
+using Vector3 = System.Numerics.Vector3;
+using AssimpMatrix4x4 = Assimp.Matrix4x4;
+using AssimpVector3D = Assimp.Vector3D;
 using Assimp;
 using Assimp.Configs;
 using FontStashSharp;
 using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
+using Lilly.Engine.Data.Assets;
 using Lilly.Engine.Data.Atlas;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
 using Serilog;
 using Silk.NET.Maths;
@@ -45,8 +53,7 @@ public class AssetManager : IAssetManager, IDisposable
                                                                  PostProcessSteps.JoinIdenticalVertices |
                                                                  PostProcessSteps.FlipUVs;
 
-
-    private readonly Dictionary<string, Scene> _loadedModels = new();
+    private readonly Dictionary<string, ModelAsset> _loadedModels = new();
 
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)
     {
@@ -591,18 +598,143 @@ public class AssetManager : IAssetManager, IDisposable
 
     public void LoadModelFromFile(string modelName, string modelPath)
     {
-        var model = _assimpContext.ImportFile(
-            Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath),
-            _defaultPostProcessSteps
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath);
+        var scene = _assimpContext.ImportFile(fullPath, _defaultPostProcessSteps);
+
+        if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
+        {
+            _logger.Warning("Failed to load model {ModelName} from {Path}", modelName, fullPath);
+
+            return;
+        }
+
+        var modelAsset = BuildModelAsset(scene);
+
+        if (_loadedModels.TryGetValue(modelName, out var existingModel))
+        {
+            existingModel.Dispose();
+        }
+        _loadedModels[modelName] = modelAsset;
+
+        _logger.Information(
+            "Loaded model {ModelName} with {MeshCount} meshes and {InstanceCount} instances",
+            modelName,
+            modelAsset.Meshes.Count,
+            modelAsset.Instances.Count
+        );
+    }
+
+    public ModelAsset GetModel(string modelName)
+        => _loadedModels.TryGetValue(modelName, out var model)
+               ? model
+               : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
+
+    private ModelAsset BuildModelAsset(Scene scene)
+    {
+        var meshes = new List<ModelMeshData>(scene.MeshCount);
+
+        for (int i = 0; i < scene.MeshCount; i++)
+        {
+            meshes.Add(CreateMeshData(scene.Meshes[i]));
+        }
+
+        var instances = new List<ModelInstance>();
+        CollectModelInstances(scene.RootNode, Matrix4x4.Identity, instances);
+
+        return new ModelAsset(meshes, instances);
+    }
+
+    private ModelMeshData CreateMeshData(Assimp.Mesh mesh)
+    {
+        var vertices = new VertexPositionNormalTex[mesh.VertexCount];
+
+        var hasNormals = mesh.HasNormals;
+        var hasTexCoords = mesh.HasTextureCoords(0);
+
+        for (int i = 0; i < mesh.VertexCount; i++)
+        {
+            var pos = ToVector3(mesh.Vertices[i]);
+            var norm = hasNormals ? ToVector3(mesh.Normals[i]) : Vector3.Zero;
+            var uv = hasTexCoords ? mesh.TextureCoordinateChannels[0][i] : default;
+
+            vertices[i] = new VertexPositionNormalTex(pos, norm, ToVector2(uv));
+        }
+
+        var indices = new List<uint>(mesh.FaceCount * 3);
+
+        foreach (var face in mesh.Faces)
+        {
+            if (face.IndexCount != 3)
+            {
+                continue;
+            }
+
+            indices.Add((uint)face.Indices[0]);
+            indices.Add((uint)face.Indices[1]);
+            indices.Add((uint)face.Indices[2]);
+        }
+
+        var vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(
+            _context.GraphicsDevice,
+            (uint)vertices.Length,
+            (uint)indices.Count,
+            ElementType.UnsignedInt,
+            BufferUsage.StaticCopy,
+            vertices,
+            0
         );
 
+        if (indices.Count > 0 && vertexBuffer.IndexSubset != null)
+        {
+            vertexBuffer.IndexSubset.SetData(CollectionsMarshal.AsSpan(indices), 0);
+        }
 
-        _loadedModels[modelName] = model;
-
-        _logger.Information("Loaded model {ModelName} with {MeshCount} meshes", modelName, model.MeshCount);
-
-
+        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex);
     }
+
+    private void CollectModelInstances(Node node, Matrix4x4 parentTransform, List<ModelInstance> instances)
+    {
+        var nodeTransform = ToMatrix(node.Transform);
+        var combined = nodeTransform * parentTransform;
+
+        foreach (var meshIndex in node.MeshIndices)
+        {
+            instances.Add(new ModelInstance(meshIndex, combined));
+        }
+
+        foreach (var child in node.Children)
+        {
+            CollectModelInstances(child, combined, instances);
+        }
+    }
+
+    private static Matrix4x4 ToMatrix(AssimpMatrix4x4 matrix)
+    {
+        return new Matrix4x4(
+            matrix.A1,
+            matrix.A2,
+            matrix.A3,
+            matrix.A4,
+            matrix.B1,
+            matrix.B2,
+            matrix.B3,
+            matrix.B4,
+            matrix.C1,
+            matrix.C2,
+            matrix.C3,
+            matrix.C4,
+            matrix.D1,
+            matrix.D2,
+            matrix.D3,
+            matrix.D4
+        );
+    }
+
+    private static Vector3 ToVector3(AssimpVector3D vector)
+        => new(vector.X, vector.Y, vector.Z);
+
+    private static Vector2 ToVector2(AssimpVector3D vector)
+        => new(vector.X, vector.Y);
 
     /// <summary>
     /// Creates a vertex buffer from vertex data.

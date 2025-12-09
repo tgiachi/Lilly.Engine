@@ -1,5 +1,6 @@
 using FontStashSharp;
 using Lilly.Engine.Data.Atlas;
+using Lilly.Engine.Data.Assets;
 using TrippyGL;
 
 namespace Lilly.Engine.Interfaces.Services;
@@ -161,6 +162,13 @@ public interface IAssetManager
     /// <param name="modelName"></param>
     /// <param name="modelPath"></param>
     void LoadModelFromFile(string modelName, string modelPath);
+
+    /// <summary>
+    /// Retrieves a previously loaded 3D model.
+    /// </summary>
+    /// <param name="modelName"></param>
+    /// <returns></returns>
+    ModelAsset GetModel(string modelName);
 
     /// <summary>
     /// Creates a vertex buffer from vertex data.
