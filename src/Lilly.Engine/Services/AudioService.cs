@@ -1,4 +1,6 @@
 using System.Numerics;
+using System.Collections.Generic;
+using System.IO;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Camera;
@@ -23,6 +25,7 @@ public class AudioService : IAudioService
     private readonly Dictionary<string, AudioEffect> _soundEffects = new();
     private readonly Dictionary<string, AudioStream> _streams = new();
     private readonly Dictionary<string, AlBuffer> _cachedBuffers = new();
+    private readonly List<string> _tempFiles = new();
 
     public AudioService()
     {
@@ -76,6 +79,22 @@ stream.Close();
             }
             _cachedBuffers.Clear();
 
+            foreach (var temp in _tempFiles)
+            {
+                try
+                {
+                    if (File.Exists(temp))
+                    {
+                        File.Delete(temp);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warning(ex, "Failed to delete temp audio file {Temp}", temp);
+                }
+            }
+            _tempFiles.Clear();
+
             _logger.Information("Audio Service disposed");
         }
         catch (Exception ex)
@@ -114,6 +133,33 @@ stream.Close();
         }
     }
 
+    private string CreateTempFileForAudio(Stream stream, AudioType audioType)
+    {
+        var extension = audioType switch
+        {
+            AudioType.Mp3 => ".mp3",
+            _ => ".ogg"
+        };
+
+        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), extension);
+
+        using (var fs = File.Open(tempPath, FileMode.Create, FileAccess.Write))
+        {
+            stream.CopyTo(fs);
+        }
+
+        _tempFiles.Add(tempPath);
+        stream.Position = 0;
+
+        return tempPath;
+    }
+
+    public void LoadAudioStream(string streamName, Stream stream, AudioType audioType = AudioType.Ogg, bool isLooping = true)
+    {
+        var tempPath = CreateTempFileForAudio(stream, audioType);
+        LoadAudioStream(streamName, tempPath, audioType, isLooping);
+    }
+
     /// <summary>
     /// Loads a sound effect from file.
     /// </summary>
@@ -129,6 +175,12 @@ stream.Close();
         {
             _logger.Error(ex, "Error loading sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
         }
+    }
+
+    public void LoadSoundEffect(string soundName, Stream stream)
+    {
+        var tempPath = CreateTempFileForAudio(stream, AudioType.Ogg);
+        LoadSoundEffect(soundName, tempPath);
     }
 
     /// <summary>

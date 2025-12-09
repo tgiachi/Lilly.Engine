@@ -1,9 +1,11 @@
 using System.Reflection;
+using System.Text;
 using System.Runtime.InteropServices;
 using Assimp;
 using Assimp.Configs;
 using AssimpNet;
 using FontStashSharp;
+using Lilly.Engine.Audio;
 using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
@@ -51,6 +53,8 @@ public class AssetManager : IAssetManager, IDisposable
 
     private readonly AssimpContext _assimpContext = new();
     private readonly Dictionary<string, string> _modelExtractionDirectories = new();
+    private readonly Dictionary<string, AudioEffect> _soundEffects = new();
+    private readonly List<string> _tempAudioFiles = new();
 
     private readonly PostProcessSteps _defaultPostProcessSteps = PostProcessSteps.Triangulate |
                                                                  PostProcessSteps.CalculateTangentSpace |
@@ -106,6 +110,19 @@ public class AssetManager : IAssetManager, IDisposable
     /// </summary>
     public void Dispose()
     {
+        foreach (var effect in _soundEffects.Values)
+        {
+            try
+            {
+                effect.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to dispose sound effect");
+            }
+        }
+        _soundEffects.Clear();
+
         foreach (var (_, dir) in _modelExtractionDirectories)
         {
             try
@@ -120,6 +137,23 @@ public class AssetManager : IAssetManager, IDisposable
                 _logger.Warning(ex, "Failed to cleanup extraction directory {Dir}", dir);
             }
         }
+        _modelExtractionDirectories.Clear();
+
+        foreach (var temp in _tempAudioFiles)
+        {
+            try
+            {
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to delete temp audio file {Temp}", temp);
+            }
+        }
+        _tempAudioFiles.Clear();
 
         GC.SuppressFinalize(this);
     }
@@ -211,6 +245,66 @@ public class AssetManager : IAssetManager, IDisposable
         => _loadedModels.TryGetValue(modelName, out var model)
                ? model
                : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
+
+    public void LoadSoundFromFile(string soundName, string soundPath, AudioType audioType = AudioType.Ogg)
+    {
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], soundPath);
+
+        if (!File.Exists(fullPath))
+        {
+            _logger.Warning("Sound file not found at {Path}", fullPath);
+            return;
+        }
+
+        try
+        {
+            var effect = new AudioEffect(fullPath);
+            _soundEffects[soundName] = effect;
+            _logger.Information("Loaded sound {SoundName} from {Path}", soundName, fullPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading sound {SoundName} from {Path}", soundName, fullPath);
+        }
+    }
+
+    public void LoadSoundFromStream(string soundName, Stream stream, AudioType audioType = AudioType.Ogg)
+    {
+        try
+        {
+            var tempPath = CreateTempAudioFile(stream, audioType);
+            LoadSoundFromFile(soundName, tempPath, audioType);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading sound {SoundName} from stream", soundName);
+        }
+    }
+
+    private string CreateTempAudioFile(Stream stream, AudioType audioType)
+    {
+        var extension = audioType switch
+        {
+            AudioType.Mp3 => ".mp3",
+            _ => ".ogg"
+        };
+
+        var tempPath = Path.ChangeExtension(Path.GetTempFileName(), extension);
+
+        using (var fs = File.Open(tempPath, FileMode.Create, FileAccess.Write))
+        {
+            stream.CopyTo(fs);
+        }
+
+        _tempAudioFiles.Add(tempPath);
+
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+
+        return tempPath;
+    }
 
     /// <summary>
     /// Retrieves a previously loaded shader program by name.
@@ -654,12 +748,24 @@ public class AssetManager : IAssetManager, IDisposable
         // Replace magenta pixels with transparent ones
         ReplaceMagentaWithTransparency(image);
 
-        // Save the processed image to a memory stream and load it as texture
-        using var processedStream = new MemoryStream();
-        image.SaveAsPng(processedStream);
-        processedStream.Seek(0, SeekOrigin.Begin);
+        // Create the texture
+        var texture = new Texture2D(_context.GraphicsDevice, (uint)image.Width, (uint)image.Height);
 
-        var texture = Texture2DExtensions.FromStream(_context.GraphicsDevice, processedStream, true);
+        // Get access to the contiguous pixel memory if possible, or copy to an array
+        if (!image.DangerousTryGetSinglePixelMemory(out var memory))
+        {
+            var pixels = new Rgba32[image.Width * image.Height];
+            image.CopyPixelDataTo(pixels);
+            memory = pixels.AsMemory();
+        }
+
+        // Upload data directly to the GPU
+        var pixelSpan = MemoryMarshal.Cast<Rgba32, Color4b>(memory.Span);
+        texture.SetData(pixelSpan, PixelFormat.Rgba);
+
+        // Generate mipmaps
+        texture.GenerateMipmaps();
+
         _texture2Ds[textureName] = texture;
         _logger.Information("Loaded texture {TextureName} (magenta pixels converted to transparent)", textureName);
     }
@@ -841,41 +947,41 @@ public class AssetManager : IAssetManager, IDisposable
     {
         var shaders = new Dictionary<ShaderType, string>();
 
-        // Split by shader type markers
-        var lines = source.Split('\n');
+        using var reader = new StringReader(source);
+        string? line;
         ShaderType? currentType = null;
-        var currentShader = new List<string>();
+        var currentShaderBuilder = new StringBuilder();
 
-        foreach (var line in lines)
+        while ((line = reader.ReadLine()) != null)
         {
             if (line.StartsWith("#shader vertex", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentType.HasValue && currentShader.Count > 0)
+                if (currentType.HasValue && currentShaderBuilder.Length > 0)
                 {
-                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                    shaders[currentType.Value] = currentShaderBuilder.ToString().Trim();
+                    currentShaderBuilder.Clear();
                 }
                 currentType = ShaderType.VertexShader;
-                currentShader.Clear();
             }
             else if (line.StartsWith("#shader fragment", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentType.HasValue && currentShader.Count > 0)
+                if (currentType.HasValue && currentShaderBuilder.Length > 0)
                 {
-                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                    shaders[currentType.Value] = currentShaderBuilder.ToString().Trim();
+                    currentShaderBuilder.Clear();
                 }
                 currentType = ShaderType.FragmentShader;
-                currentShader.Clear();
             }
             else if (currentType.HasValue)
             {
-                currentShader.Add(line);
+                currentShaderBuilder.AppendLine(line);
             }
         }
 
         // Add the last shader
-        if (currentType.HasValue && currentShader.Count > 0)
+        if (currentType.HasValue && currentShaderBuilder.Length > 0)
         {
-            shaders[currentType.Value] = string.Join('\n', currentShader);
+            shaders[currentType.Value] = currentShaderBuilder.ToString().Trim();
         }
 
         return shaders;

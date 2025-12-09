@@ -115,6 +115,10 @@ public class AssetsModule
                     }
 
                     break;
+                case AssetType.Sound:
+
+                    break;
+                case AssetType.Shader:
                 default:
                     _logger.Warning("Unsupported asset type: {Type} for asset: {Name}", asset.Type, asset.Name);
 

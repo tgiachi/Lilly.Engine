@@ -20,9 +20,19 @@ public interface IAudioService : IDisposable
     void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true);
 
     /// <summary>
+    /// Loads an audio stream from a stream.
+    /// </summary>
+    void LoadAudioStream(string streamName, Stream stream, AudioType audioType = AudioType.Ogg, bool isLooping = true);
+
+    /// <summary>
     /// Loads a sound effect from file.
     /// </summary>
     void LoadSoundEffect(string soundName, string filePath);
+
+    /// <summary>
+    /// Loads a sound effect from a stream.
+    /// </summary>
+    void LoadSoundEffect(string soundName, Stream stream);
 
     /// <summary>
     /// Plays a sound effect at the listener's position (non-spatial).

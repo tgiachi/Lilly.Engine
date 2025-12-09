@@ -1,4 +1,5 @@
 using FontStashSharp;
+using Lilly.Engine.Audio;
 using Lilly.Engine.Data.Assets;
 using Lilly.Engine.Data.Atlas;
 using TrippyGL;
@@ -99,6 +100,22 @@ public interface IAssetManager
     /// <param name="modelName"></param>
     /// <param name="modelPath"></param>
     void LoadModelFromFile(string modelName, string modelPath);
+
+    /// <summary>
+    /// Loads a sound effect from a file located under the assets directory.
+    /// </summary>
+    /// <param name="soundName">Key used to store the sound.</param>
+    /// <param name="soundPath">Path relative to assets.</param>
+    /// <param name="audioType">Audio format hint.</param>
+    void LoadSoundFromFile(string soundName, string soundPath, AudioType audioType = AudioType.Ogg);
+
+    /// <summary>
+    /// Loads a sound effect from a stream.
+    /// </summary>
+    /// <param name="soundName">Key used to store the sound.</param>
+    /// <param name="stream">Stream containing audio data.</param>
+    /// <param name="audioType">Audio format hint.</param>
+    void LoadSoundFromStream(string soundName, Stream stream, AudioType audioType = AudioType.Ogg);
 
     /// <summary>
     /// Loads a 3D model from a zip archive located under the assets directory.
