@@ -366,6 +366,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<SimpleBoxGameObject>()
             .RegisterGameObject<SimpleCubeGameObject>()
             .RegisterGameObject<SimpleCapsuleGameObject>()
+            .RegisterGameObject<ModelGameObject>()
             ;
 
         _container
@@ -481,6 +482,8 @@ public class LillyBootstrap : ILillyBootstrap
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
+
+            //AddDemoGameObjects(gameObjectFactory, pipeline);
         }
         OnRender?.Invoke(gameTime);
     }

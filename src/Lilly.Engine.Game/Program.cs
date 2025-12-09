@@ -1,5 +1,6 @@
 using ConsoleAppFramework;
 using DryIoc;
+using Lilly.Demo.Plugin;
 using Lilly.Engine.Bootstrap;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
@@ -56,7 +57,9 @@ await ConsoleApp.RunAsync(
         bootstrap.OnConfiguring += _ =>
                                    {
                                        container.RegisterPlugin(typeof(LillyGameObjectPlugin).Assembly);
-                                       container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+
+                                       //container.RegisterPlugin(typeof(LillyVoxelPlugin).Assembly);
+                                       container.RegisterPlugin(typeof(LillyDemoPlugin).Assembly);
                                        container.RegisterPlugin(typeof(LillyPhysicPlugin).Assembly);
                                    };
 

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Voxel.Plugin", "src\L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Physics.Plugin", "src\Lilly.Physics.Plugin\Lilly.Physics.Plugin.csproj", "{0D023BA7-43CE-4C8B-9000-E83F7F0DC6A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lilly.Demo.Plugin", "src\Lilly.Demo.Plugin\Lilly.Demo.Plugin.csproj", "{0A26A712-5678-4D20-8100-6CB7CFF15CA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,5 +62,9 @@ Global
 		{0D023BA7-43CE-4C8B-9000-E83F7F0DC6A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D023BA7-43CE-4C8B-9000-E83F7F0DC6A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D023BA7-43CE-4C8B-9000-E83F7F0DC6A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A26A712-5678-4D20-8100-6CB7CFF15CA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A26A712-5678-4D20-8100-6CB7CFF15CA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A26A712-5678-4D20-8100-6CB7CFF15CA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A26A712-5678-4D20-8100-6CB7CFF15CA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -284,8 +284,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             _subscriptions[physicsGameObject] = sub with { BodyId = handle.Id };
         }
 
-        _logger.Warning(
-            "[PHYSICS] AttachOrReplaceBody for {GameObjectName} ({IsReplace}) took {ElapsedMs}ms",
+        _logger.Debug(
+            "AttachOrReplaceBody for {GameObjectName} ({IsReplace}) took {ElapsedMs}ms",
             physicsGameObject.GetType().Name,
             isReplace ? "REPLACE" : "NEW",
             sw.Elapsed.TotalMilliseconds

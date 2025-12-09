@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj"/>
+        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj"/>
+    </ItemGroup>
+</Project>
