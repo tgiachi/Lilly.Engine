@@ -5,6 +5,7 @@ using Lilly.Engine.Data.Physics;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -21,9 +22,9 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
 
-    private VertexBuffer<VertexColorTexture> _vertexBuffer;
+    private VertexBuffer<VertexPositionNormalTex> _vertexBuffer;
     private ShaderProgram? _shaderProgram;
-    private VertexColorTexture[] _boxVertices = [];
+    private VertexPositionNormalTex[] _boxVertices = [];
     private Texture2D? _texture;
     private bool _needsRebuild;
 
@@ -111,9 +112,9 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         _boxVertices = CreateBoxVertices();
         _texture = _assetManager.GetTexture<Texture2D>(TextureName);
 
-        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
+        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
 
-        _shaderProgram = _assetManager.GetShaderProgram("simple_cube");
+        _shaderProgram = _assetManager.GetShaderProgram("model");
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
@@ -134,6 +135,10 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
+        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new Vector3(-0.4f, -1.0f, -0.2f));
+        _shaderProgram.Uniforms["LightColor"].SetValueVec3(Vector3.One);
+        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new Vector3(0.15f, 0.15f, 0.15f));
+        _shaderProgram.Uniforms["Tint"].SetValueVec4(ToVector4(BoxColor));
 
         graphicsDevice.VertexArray = _vertexBuffer;
         graphicsDevice.BlendState = BlendState.NonPremultiplied;
@@ -147,11 +152,11 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     {
         _boxVertices = CreateBoxVertices();
         _vertexBuffer.Dispose();
-        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
+        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
         _needsRebuild = false;
     }
 
-    private VertexColorTexture[] CreateBoxVertices()
+    private VertexPositionNormalTex[] CreateBoxVertices()
     {
         var halfWidth = Width / 2f;
         var halfHeight = Height / 2f;
@@ -176,58 +181,58 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         return
         [
             // Front (+Z)
-            new(frontBottomLeft, BoxColor, uvBottomLeft),
-            new(frontBottomRight, BoxColor, uvBottomRight),
-            new(frontTopLeft, BoxColor, uvTopLeft),
+            new(frontBottomLeft, Vector3.UnitZ, uvBottomLeft),
+            new(frontBottomRight, Vector3.UnitZ, uvBottomRight),
+            new(frontTopLeft, Vector3.UnitZ, uvTopLeft),
 
-            new(frontBottomRight, BoxColor, uvBottomRight),
-            new(frontTopRight, BoxColor, uvTopRight),
-            new(frontTopLeft, BoxColor, uvTopLeft),
+            new(frontBottomRight, Vector3.UnitZ, uvBottomRight),
+            new(frontTopRight, Vector3.UnitZ, uvTopRight),
+            new(frontTopLeft, Vector3.UnitZ, uvTopLeft),
 
             // Back (-Z)
-            new(backBottomRight, BoxColor, uvBottomLeft),
-            new(backBottomLeft, BoxColor, uvBottomRight),
-            new(backTopRight, BoxColor, uvTopLeft),
+            new(backBottomRight, -Vector3.UnitZ, uvBottomLeft),
+            new(backBottomLeft, -Vector3.UnitZ, uvBottomRight),
+            new(backTopRight, -Vector3.UnitZ, uvTopLeft),
 
-            new(backBottomLeft, BoxColor, uvBottomRight),
-            new(backTopLeft, BoxColor, uvTopRight),
-            new(backTopRight, BoxColor, uvTopLeft),
+            new(backBottomLeft, -Vector3.UnitZ, uvBottomRight),
+            new(backTopLeft, -Vector3.UnitZ, uvTopRight),
+            new(backTopRight, -Vector3.UnitZ, uvTopLeft),
 
             // Right (+X)
-            new(frontBottomRight, BoxColor, uvBottomLeft),
-            new(backBottomRight, BoxColor, uvBottomRight),
-            new(frontTopRight, BoxColor, uvTopLeft),
+            new(frontBottomRight, Vector3.UnitX, uvBottomLeft),
+            new(backBottomRight, Vector3.UnitX, uvBottomRight),
+            new(frontTopRight, Vector3.UnitX, uvTopLeft),
 
-            new(backBottomRight, BoxColor, uvBottomRight),
-            new(backTopRight, BoxColor, uvTopRight),
-            new(frontTopRight, BoxColor, uvTopLeft),
+            new(backBottomRight, Vector3.UnitX, uvBottomRight),
+            new(backTopRight, Vector3.UnitX, uvTopRight),
+            new(frontTopRight, Vector3.UnitX, uvTopLeft),
 
             // Left (-X)
-            new(backBottomLeft, BoxColor, uvBottomLeft),
-            new(frontBottomLeft, BoxColor, uvBottomRight),
-            new(backTopLeft, BoxColor, uvTopLeft),
+            new(backBottomLeft, -Vector3.UnitX, uvBottomLeft),
+            new(frontBottomLeft, -Vector3.UnitX, uvBottomRight),
+            new(backTopLeft, -Vector3.UnitX, uvTopLeft),
 
-            new(frontBottomLeft, BoxColor, uvBottomRight),
-            new(frontTopLeft, BoxColor, uvTopRight),
-            new(backTopLeft, BoxColor, uvTopLeft),
+            new(frontBottomLeft, -Vector3.UnitX, uvBottomRight),
+            new(frontTopLeft, -Vector3.UnitX, uvTopRight),
+            new(backTopLeft, -Vector3.UnitX, uvTopLeft),
 
             // Top (+Y)
-            new(backTopLeft, BoxColor, uvTopLeft),
-            new(frontTopLeft, BoxColor, uvBottomLeft),
-            new(backTopRight, BoxColor, uvTopRight),
+            new(backTopLeft, Vector3.UnitY, uvTopLeft),
+            new(frontTopLeft, Vector3.UnitY, uvBottomLeft),
+            new(backTopRight, Vector3.UnitY, uvTopRight),
 
-            new(frontTopLeft, BoxColor, uvBottomLeft),
-            new(frontTopRight, BoxColor, uvBottomRight),
-            new(backTopRight, BoxColor, uvTopRight),
+            new(frontTopLeft, Vector3.UnitY, uvBottomLeft),
+            new(frontTopRight, Vector3.UnitY, uvBottomRight),
+            new(backTopRight, Vector3.UnitY, uvTopRight),
 
             // Bottom (-Y)
-            new(backBottomLeft, BoxColor, uvTopLeft),
-            new(backBottomRight, BoxColor, uvTopRight),
-            new(frontBottomLeft, BoxColor, uvBottomLeft),
+            new(backBottomLeft, -Vector3.UnitY, uvTopLeft),
+            new(backBottomRight, -Vector3.UnitY, uvTopRight),
+            new(frontBottomLeft, -Vector3.UnitY, uvBottomLeft),
 
-            new(frontBottomLeft, BoxColor, uvBottomLeft),
-            new(backBottomRight, BoxColor, uvTopRight),
-            new(frontBottomRight, BoxColor, uvBottomRight)
+            new(frontBottomLeft, -Vector3.UnitY, uvBottomLeft),
+            new(backBottomRight, -Vector3.UnitY, uvTopRight),
+            new(frontBottomRight, -Vector3.UnitY, uvBottomRight)
         ];
     }
 
@@ -259,5 +264,11 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
 
     public void OnPhysicsDetached()
     {
+    }
+
+    private static Vector4 ToVector4(Color4b color)
+    {
+        const float inv = 1f / 255f;
+        return new Vector4(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
     }
 }

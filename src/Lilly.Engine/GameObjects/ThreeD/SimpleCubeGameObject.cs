@@ -5,6 +5,7 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -21,9 +22,9 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
 
-    private VertexBuffer<VertexColorTexture> _vertexBuffer;
+    private VertexBuffer<VertexPositionNormalTex> _vertexBuffer;
     private ShaderProgram? _shaderProgram;
-    private VertexColorTexture[] _cubeVertices = [];
+    private VertexPositionNormalTex[] _cubeVertices = [];
     private Texture2D? _texture;
 
     public float XRotationSpeed { get; set; }
@@ -66,9 +67,9 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         var randomBoxTexture = Random.Shared.Next(1, 5);
         _texture = _assetManager.GetTexture<Texture2D>($"box{randomBoxTexture}");
 
-        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
+        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
 
-        _shaderProgram = _assetManager.GetShaderProgram("simple_cube");
+        _shaderProgram = _assetManager.GetShaderProgram("model");
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
@@ -84,6 +85,10 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
+        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new Vector3(-0.4f, -1.0f, -0.2f));
+        _shaderProgram.Uniforms["LightColor"].SetValueVec3(Vector3.One);
+        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new Vector3(0.15f, 0.15f, 0.15f));
+        _shaderProgram.Uniforms["Tint"].SetValueVec4(Vector4.One);
 
         graphicsDevice.VertexArray = _vertexBuffer;
         graphicsDevice.BlendState = BlendState.NonPremultiplied;
@@ -93,15 +98,8 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
 
     public void Update(GameTime gameTime) => base.Update(gameTime);
 
-    private static VertexColorTexture[] CreateCubeVertices()
+    private static VertexPositionNormalTex[] CreateCubeVertices()
     {
-        var frontColor = Color4b.White;
-        var backColor = Color4b.White;
-        var leftColor = Color4b.White.ApplyAlpha(0.3f);
-        var rightColor = Color4b.White;
-        var topColor = Color4b.White;
-        var bottomColor = Color4b.White;
-
         var frontBottomLeft = new Vector3(-0.5f, -0.5f, 0.5f);
         var frontBottomRight = new Vector3(0.5f, -0.5f, 0.5f);
         var frontTopLeft = new Vector3(-0.5f, 0.5f, 0.5f);
@@ -120,58 +118,58 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         return
         [
             // Front (+Z)
-            new(frontBottomLeft, frontColor, uvBottomLeft),
-            new(frontBottomRight, frontColor, uvBottomRight),
-            new(frontTopLeft, frontColor, uvTopLeft),
+            new(frontBottomLeft, Vector3.UnitZ, uvBottomLeft),
+            new(frontBottomRight, Vector3.UnitZ, uvBottomRight),
+            new(frontTopLeft, Vector3.UnitZ, uvTopLeft),
 
-            new(frontBottomRight, frontColor, uvBottomRight),
-            new(frontTopRight, frontColor, uvTopRight),
-            new(frontTopLeft, frontColor, uvTopLeft),
+            new(frontBottomRight, Vector3.UnitZ, uvBottomRight),
+            new(frontTopRight, Vector3.UnitZ, uvTopRight),
+            new(frontTopLeft, Vector3.UnitZ, uvTopLeft),
 
             // Back (-Z)
-            new(backBottomRight, backColor, uvBottomLeft),
-            new(backBottomLeft, backColor, uvBottomRight),
-            new(backTopRight, backColor, uvTopLeft),
+            new(backBottomRight, -Vector3.UnitZ, uvBottomLeft),
+            new(backBottomLeft, -Vector3.UnitZ, uvBottomRight),
+            new(backTopRight, -Vector3.UnitZ, uvTopLeft),
 
-            new(backBottomLeft, backColor, uvBottomRight),
-            new(backTopLeft, backColor, uvTopRight),
-            new(backTopRight, backColor, uvTopLeft),
+            new(backBottomLeft, -Vector3.UnitZ, uvBottomRight),
+            new(backTopLeft, -Vector3.UnitZ, uvTopRight),
+            new(backTopRight, -Vector3.UnitZ, uvTopLeft),
 
             // Right (+X)
-            new(frontBottomRight, rightColor, uvBottomLeft),
-            new(backBottomRight, rightColor, uvBottomRight),
-            new(frontTopRight, rightColor, uvTopLeft),
+            new(frontBottomRight, Vector3.UnitX, uvBottomLeft),
+            new(backBottomRight, Vector3.UnitX, uvBottomRight),
+            new(frontTopRight, Vector3.UnitX, uvTopLeft),
 
-            new(backBottomRight, rightColor, uvBottomRight),
-            new(backTopRight, rightColor, uvTopRight),
-            new(frontTopRight, rightColor, uvTopLeft),
+            new(backBottomRight, Vector3.UnitX, uvBottomRight),
+            new(backTopRight, Vector3.UnitX, uvTopRight),
+            new(frontTopRight, Vector3.UnitX, uvTopLeft),
 
             // Top (+Y)
-            new(backTopLeft, topColor, uvTopLeft),
-            new(frontTopLeft, topColor, uvBottomLeft),
-            new(backTopRight, topColor, uvTopRight),
+            new(backTopLeft, Vector3.UnitY, uvTopLeft),
+            new(frontTopLeft, Vector3.UnitY, uvBottomLeft),
+            new(backTopRight, Vector3.UnitY, uvTopRight),
 
-            new(frontTopLeft, topColor, uvBottomLeft),
-            new(frontTopRight, topColor, uvBottomRight),
-            new(backTopRight, topColor, uvTopRight),
+            new(frontTopLeft, Vector3.UnitY, uvBottomLeft),
+            new(frontTopRight, Vector3.UnitY, uvBottomRight),
+            new(backTopRight, Vector3.UnitY, uvTopRight),
 
             // Bottom (-Y)
-            new(backBottomLeft, bottomColor, uvTopLeft),
-            new(backBottomRight, bottomColor, uvTopRight),
-            new(frontBottomLeft, bottomColor, uvBottomLeft),
+            new(backBottomLeft, -Vector3.UnitY, uvTopLeft),
+            new(backBottomRight, -Vector3.UnitY, uvTopRight),
+            new(frontBottomLeft, -Vector3.UnitY, uvBottomLeft),
 
-            new(frontBottomLeft, bottomColor, uvBottomLeft),
-            new(backBottomRight, bottomColor, uvTopRight),
-            new(frontBottomRight, bottomColor, uvBottomRight),
+            new(frontBottomLeft, -Vector3.UnitY, uvBottomLeft),
+            new(backBottomRight, -Vector3.UnitY, uvTopRight),
+            new(frontBottomRight, -Vector3.UnitY, uvBottomRight),
 
-            // Left (-X) - Moved to end for transparency
-            new(backBottomLeft, leftColor, uvBottomLeft),
-            new(frontBottomLeft, leftColor, uvBottomRight),
-            new(backTopLeft, leftColor, uvTopLeft),
+            // Left (-X)
+            new(backBottomLeft, -Vector3.UnitX, uvBottomLeft),
+            new(frontBottomLeft, -Vector3.UnitX, uvBottomRight),
+            new(backTopLeft, -Vector3.UnitX, uvTopLeft),
 
-            new(frontBottomLeft, leftColor, uvBottomRight),
-            new(frontTopLeft, leftColor, uvTopRight),
-            new(backTopLeft, leftColor, uvTopLeft)
+            new(frontBottomLeft, -Vector3.UnitX, uvBottomRight),
+            new(frontTopLeft, -Vector3.UnitX, uvTopRight),
+            new(backTopLeft, -Vector3.UnitX, uvTopLeft)
         ];
     }
 

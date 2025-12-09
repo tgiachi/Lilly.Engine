@@ -11,14 +11,22 @@ public sealed class ModelMeshData : IDisposable
     public VertexBuffer<VertexPositionNormalTex> VertexBuffer { get; }
     public uint IndexCount { get; }
     public int MaterialIndex { get; }
+    public string? TextureKey { get; }
     public BoundingBox Bounds { get; }
 
-    public ModelMeshData(VertexBuffer<VertexPositionNormalTex> vertexBuffer, uint indexCount, int materialIndex, BoundingBox bounds)
+    public ModelMeshData(
+        VertexBuffer<VertexPositionNormalTex> vertexBuffer,
+        uint indexCount,
+        int materialIndex,
+        BoundingBox bounds,
+        string? textureKey
+    )
     {
         VertexBuffer = vertexBuffer;
         IndexCount = indexCount;
         MaterialIndex = materialIndex;
         Bounds = bounds;
+        TextureKey = textureKey;
     }
 
     public void Dispose()

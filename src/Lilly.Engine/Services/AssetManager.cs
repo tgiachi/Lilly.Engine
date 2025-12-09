@@ -5,6 +5,7 @@ using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 using AssimpMatrix4x4 = Assimp.Matrix4x4;
 using AssimpVector3D = Assimp.Vector3D;
+using AssimpTextureType = Assimp.TextureType;
 using BoundingBox = Lilly.Rendering.Core.Primitives.BoundingBox;
 using Assimp;
 using Assimp.Configs;
@@ -610,7 +611,7 @@ public class AssetManager : IAssetManager, IDisposable
             return;
         }
 
-        var modelAsset = BuildModelAsset(scene);
+        var modelAsset = BuildModelAsset(modelName, scene);
 
         if (_loadedModels.TryGetValue(modelName, out var existingModel))
         {
@@ -631,13 +632,15 @@ public class AssetManager : IAssetManager, IDisposable
                ? model
                : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
 
-    private ModelAsset BuildModelAsset(Scene scene)
+    private ModelAsset BuildModelAsset(string modelName, Scene scene)
     {
+        var materialTextures = LoadMaterialTextures(modelName, scene);
+
         var meshes = new List<ModelMeshData>(scene.MeshCount);
 
         for (int i = 0; i < scene.MeshCount; i++)
         {
-            meshes.Add(CreateMeshData(scene.Meshes[i]));
+            meshes.Add(CreateMeshData(scene.Meshes[i], materialTextures));
         }
 
         var instances = new List<ModelInstance>();
@@ -648,7 +651,7 @@ public class AssetManager : IAssetManager, IDisposable
         return new ModelAsset(meshes, instances, bounds);
     }
 
-    private ModelMeshData CreateMeshData(Assimp.Mesh mesh)
+    private ModelMeshData CreateMeshData(Assimp.Mesh mesh, IReadOnlyDictionary<int, string> materialTextures)
     {
         var vertices = new VertexPositionNormalTex[mesh.VertexCount];
 
@@ -694,8 +697,9 @@ public class AssetManager : IAssetManager, IDisposable
         }
 
         var bounds = ComputeBounds(vertices);
+        materialTextures.TryGetValue(mesh.MaterialIndex, out var textureKey);
 
-        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds);
+        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds, textureKey);
     }
 
     private void CollectModelInstances(Node node, Matrix4x4 parentTransform, List<ModelInstance> instances)
@@ -777,6 +781,50 @@ public class AssetManager : IAssetManager, IDisposable
         }
 
         return any ? new BoundingBox(min, max) : new BoundingBox(Vector3.Zero, Vector3.Zero);
+    }
+
+    private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene)
+    {
+        var result = new Dictionary<int, string>();
+
+        for (int i = 0; i < scene.MaterialCount; i++)
+        {
+            var material = scene.Materials[i];
+            var key = $"{modelName}_mat{i}";
+
+            if (material.GetMaterialTextureCount(AssimpTextureType.Diffuse) == 0)
+            {
+                continue;
+            }
+
+            if (material.GetMaterialTexture(AssimpTextureType.Diffuse, 0, out var texSlot))
+            {
+                var texturePath = texSlot.FilePath;
+
+                // Embedded texture (starts with '*')
+                if (!string.IsNullOrEmpty(texturePath) && texturePath.StartsWith("*"))
+                {
+                    int index = int.Parse(texturePath[1..]);
+                    if (index >= 0 && index < scene.TextureCount)
+                    {
+                        var embedded = scene.Textures[index];
+                        LoadTextureFromMemory(key, new MemoryStream(embedded.CompressedData));
+                        result[i] = key;
+                        continue;
+                    }
+                }
+
+                // External texture relative to model directory
+                var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
+                if (File.Exists(fullPath))
+                {
+                    LoadTextureFromFile(key, texturePath);
+                    result[i] = key;
+                }
+            }
+        }
+
+        return result;
     }
 
     private static BoundingBox TransformBounds(BoundingBox bounds, Matrix4x4 transform)

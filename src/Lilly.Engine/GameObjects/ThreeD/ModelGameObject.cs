@@ -21,7 +21,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
     private readonly IAssetManager _assetManager;
     private string _modelName;
     private readonly string _shaderName;
-    private readonly string _textureName;
+    private readonly string? _textureOverrideName;
 
     private ShaderProgram? _shaderProgram;
     private Texture2D? _texture;
@@ -48,7 +48,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         _assetManager = assetManager;
         _modelName = modelName;
         _shaderName = shaderName;
-        _textureName = textureName ?? DefaultTextures.WhiteTextureKey;
+        _textureOverrideName = textureName;
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
     {
         RefreshModel();
         _shaderProgram = _assetManager.GetShaderProgram(_shaderName);
-        _texture = _assetManager.GetTexture<Texture2D>(_textureName);
+        _texture = ResolveTexture(_model?.Meshes.FirstOrDefault()?.TextureKey);
         _initialized = true;
     }
 
@@ -108,7 +108,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable
 
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
-        _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
         _shaderProgram.Uniforms["LightDir"].SetValueVec3(LightDirection);
         _shaderProgram.Uniforms["LightColor"].SetValueVec3(LightColor);
         _shaderProgram.Uniforms["Ambient"].SetValueVec3(Ambient);
@@ -129,8 +128,15 @@ public class ModelGameObject : Base3dGameObject, IInitializable
                 continue;
             }
 
+            var texture = ResolveTexture(mesh.TextureKey);
+            if (texture == null)
+            {
+                continue;
+            }
+
             var world = instance.Transform * objectTransform;
             _shaderProgram.Uniforms["World"].SetValueMat4(world);
+            _shaderProgram.Uniforms["Texture"].SetValueTexture(texture);
 
             graphicsDevice.VertexArray = mesh.VertexBuffer;
             graphicsDevice.DrawElements(PrimitiveType.Triangles, 0, mesh.IndexCount);
@@ -148,6 +154,28 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         {
             _model = null;
             _localBounds = new BoundingBox(Vector3.Zero, Vector3.Zero);
+        }
+    }
+
+    private Texture2D? ResolveTexture(string? meshTextureKey)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_textureOverrideName))
+            {
+                return _assetManager.GetTexture<Texture2D>(_textureOverrideName);
+            }
+
+            if (!string.IsNullOrEmpty(meshTextureKey))
+            {
+                return _assetManager.GetTexture<Texture2D>(meshTextureKey);
+            }
+
+            return _assetManager.GetWhiteTexture<Texture2D>();
+        }
+        catch
+        {
+            return _assetManager.GetWhiteTexture<Texture2D>();
         }
     }
 

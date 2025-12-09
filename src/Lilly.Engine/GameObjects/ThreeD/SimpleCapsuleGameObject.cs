@@ -2,6 +2,7 @@ using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -17,9 +18,9 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
 
-    private VertexBuffer<VertexColorTexture> _vertexBuffer;
+    private VertexBuffer<VertexPositionNormalTex> _vertexBuffer;
     private ShaderProgram? _shaderProgram;
-    private VertexColorTexture[] _vertices = [];
+    private VertexPositionNormalTex[] _vertices = [];
     private Texture2D? _texture;
 
     public float Radius { get; set; } = 0.5f;
@@ -44,8 +45,8 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
         _vertices = CreateCapsuleVertices();
         _texture = _assetManager.GetTexture<Texture2D>(TextureName);
 
-        _vertexBuffer = new VertexBuffer<VertexColorTexture>(_graphicsDevice, _vertices, BufferUsage.DynamicCopy);
-        _shaderProgram = _assetManager.GetShaderProgram("simple_cube");
+        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _vertices, BufferUsage.DynamicCopy);
+        _shaderProgram = _assetManager.GetShaderProgram("model");
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
@@ -61,6 +62,10 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
+        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new Vector3(-0.4f, -1.0f, -0.2f));
+        _shaderProgram.Uniforms["LightColor"].SetValueVec3(Vector3.One);
+        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new Vector3(0.15f, 0.15f, 0.15f));
+        _shaderProgram.Uniforms["Tint"].SetValueVec4(ToVector4(CapsuleColor));
 
         graphicsDevice.VertexArray = _vertexBuffer;
         graphicsDevice.BlendState = BlendState.NonPremultiplied;
@@ -78,7 +83,7 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
         base.Update(gameTime);
     }
 
-    private VertexColorTexture[] CreateCapsuleVertices()
+    private VertexPositionNormalTex[] CreateCapsuleVertices()
     {
         var cappedHeight = MathF.Max(Height, Radius * 2f);
         var halfCylinder = MathF.Max(0, cappedHeight * 0.5f - Radius);
@@ -108,7 +113,7 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
             rings.Add((y, r));
         }
 
-        var vertices = new List<VertexColorTexture>();
+        var vertices = new List<VertexPositionNormalTex>();
         var sliceCount = Math.Max(3, Slices);
 
         for (var ring = 0; ring < rings.Count - 1; ring++)
@@ -120,27 +125,27 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
             {
                 var nextSlice = (slice + 1) % sliceCount;
 
-                var (v00, uv00) = CreateVertexOnRing(r0, y0, slice, sliceCount);
-                var (v01, uv01) = CreateVertexOnRing(r0, y0, nextSlice, sliceCount);
-                var (v10, uv10) = CreateVertexOnRing(r1, y1, slice, sliceCount);
-                var (v11, uv11) = CreateVertexOnRing(r1, y1, nextSlice, sliceCount);
+                var (v00, uv00, n00) = CreateVertexOnRing(r0, y0, slice, sliceCount, halfCylinder);
+                var (v01, uv01, n01) = CreateVertexOnRing(r0, y0, nextSlice, sliceCount, halfCylinder);
+                var (v10, uv10, n10) = CreateVertexOnRing(r1, y1, slice, sliceCount, halfCylinder);
+                var (v11, uv11, n11) = CreateVertexOnRing(r1, y1, nextSlice, sliceCount, halfCylinder);
 
                 // First triangle
-                vertices.Add(new VertexColorTexture(v00, CapsuleColor, uv00));
-                vertices.Add(new VertexColorTexture(v10, CapsuleColor, uv10));
-                vertices.Add(new VertexColorTexture(v01, CapsuleColor, uv01));
+                vertices.Add(new VertexPositionNormalTex(v00, n00, uv00));
+                vertices.Add(new VertexPositionNormalTex(v10, n10, uv10));
+                vertices.Add(new VertexPositionNormalTex(v01, n01, uv01));
 
                 // Second triangle
-                vertices.Add(new VertexColorTexture(v01, CapsuleColor, uv01));
-                vertices.Add(new VertexColorTexture(v10, CapsuleColor, uv10));
-                vertices.Add(new VertexColorTexture(v11, CapsuleColor, uv11));
+                vertices.Add(new VertexPositionNormalTex(v01, n01, uv01));
+                vertices.Add(new VertexPositionNormalTex(v10, n10, uv10));
+                vertices.Add(new VertexPositionNormalTex(v11, n11, uv11));
             }
         }
 
         return vertices.ToArray();
     }
 
-    private static (Vector3 position, Vector2 uv) CreateVertexOnRing(float radius, float y, int slice, int sliceCount)
+    private static (Vector3 position, Vector2 uv, Vector3 normal) CreateVertexOnRing(float radius, float y, int slice, int sliceCount, float halfCylinder)
     {
         var angle = (slice / (float)sliceCount) * MathF.Tau;
         var x = radius * MathF.Cos(angle);
@@ -148,12 +153,31 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
 
         var u = slice / (float)sliceCount;
         var v = 0.5f + y; // simple mapping; caller may scale object for better UVs
-        return (new Vector3(x, y, z), new Vector2(u, v));
+        var position = new Vector3(x, y, z);
+
+        var normal = y > halfCylinder + 1e-4f
+            ? Vector3.Normalize(new Vector3(x, y - halfCylinder, z))
+            : y < -halfCylinder - 1e-4f
+                ? Vector3.Normalize(new Vector3(x, y + halfCylinder, z))
+                : Vector3.Normalize(new Vector3(x, 0f, z));
+
+        if (float.IsNaN(normal.X))
+        {
+            normal = Vector3.UnitY;
+        }
+
+        return (position, new Vector2(u, v), normal);
     }
 
     public void Dispose()
     {
         _vertexBuffer.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private static Vector4 ToVector4(Color4b color)
+    {
+        const float inv = 1f / 255f;
+        return new Vector4(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
     }
 }

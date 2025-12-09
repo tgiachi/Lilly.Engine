@@ -127,6 +127,15 @@ public class LillyBootstrap : ILillyBootstrap
             ),
             ["Position", "Normal", "TexCoords"]
         );
+
+        assetManager.LoadShaderFromMemory<VertexPositionNormalTex>(
+            "model",
+            ResourceUtils.GetEmbeddedResourceString(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Shaders/model.shader"
+            ),
+            ["Position", "Normal", "TexCoords"]
+        );
         assetManager.LoadFontFromMemory(
             "default",
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Fonts/DefaultMonoFont.ttf")
