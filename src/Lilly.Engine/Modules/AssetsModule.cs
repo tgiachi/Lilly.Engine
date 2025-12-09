@@ -1,8 +1,10 @@
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Data.Directories;
+using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Json.Assets;
+using Serilog;
 
 namespace Lilly.Engine.Modules;
 
@@ -12,6 +14,8 @@ public class AssetsModule
     private readonly IAssetManager _assetManager;
 
     private readonly DirectoriesConfig _directoriesConfig;
+
+    private readonly ILogger _logger = Log.ForContext<AssetsModule>();
 
     public AssetsModule(IAssetManager assetManager, DirectoriesConfig directoriesConfig)
     {
@@ -58,8 +62,57 @@ public class AssetsModule
 
     public void LoadAssetsFromJson(string jsonPath)
     {
-        var fullPath = Path.GetFullPath(jsonPath);
+        var fullPath = Path.Combine(_directoriesConfig.Root, jsonPath);
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"Asset JSON file not found at path: {fullPath}");
+        }
 
         var assetFile = JsonUtils.DeserializeFromFile<LillyEngineAssetJson>(jsonPath);
+
+        _logger.Debug("Loading assets from file: {FullPath} with {Count} entries", fullPath, assetFile.Assets.Length);
+
+        foreach (var asset in assetFile.Assets)
+        {
+            switch (asset.Type)
+            {
+                case AssetType.Font:
+                    _assetManager.LoadFontFromFile(asset.Name, asset.Path);
+
+                    break;
+                case AssetType.Texture:
+                    _assetManager.LoadTextureFromFile(asset.Name, asset.Path);
+
+                    break;
+                case AssetType.Model:
+                    _assetManager.LoadModelFromFile(asset.Name, asset.Path);
+
+                    break;
+
+                case AssetType.Atlas:
+                    {
+                        var tileWidth = Convert.ToInt32(asset.Metadata.GetValueOrDefault("tileWidth") ?? 0);
+                        var tileHeight = Convert.ToInt32(asset.Metadata.GetValueOrDefault("tileHeight") ?? 0);
+                        var spacing = Convert.ToInt32(asset.Metadata.GetValueOrDefault("spacing") ?? 0);
+                        var margin = Convert.ToInt32(asset.Metadata.GetValueOrDefault("margin") ?? 0);
+
+                        _assetManager.LoadTextureAtlasFromFile(
+                            asset.Name,
+                            asset.Path,
+                            tileWidth,
+                            tileHeight,
+                            spacing,
+                            margin
+                        );
+                    }
+
+                    break;
+                default:
+                    _logger.Warning("Unsupported asset type: {Type} for asset: {Name}", asset.Type, asset.Name);
+
+                    break;
+            }
+        }
     }
 }
