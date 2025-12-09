@@ -1,7 +1,9 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Assets;
+using Lilly.Engine.Data.Physics;
 using Lilly.Engine.GameObjects.Base;
+using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
@@ -14,9 +16,8 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Renders a cached Assimp model using the model shader (pos/norm/uv).
 /// </summary>
-public class ModelGameObject : Base3dGameObject, IInitializable
+public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObject3d
 {
-    private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
     private string _modelName;
     private readonly string _shaderName;
@@ -32,9 +33,10 @@ public class ModelGameObject : Base3dGameObject, IInitializable
     public Vector3 LightColor { get; set; } = Vector3.One;
     public Vector3 Ambient { get; set; } = new(0.15f, 0.15f, 0.15f);
     public Vector4 Tint { get; set; } = Vector4.One;
+    public bool IsStatic { get; set; }
+    public float Mass { get; set; } = 1f;
 
     public ModelGameObject(
-        GraphicsDevice graphicsDevice,
         IRenderPipeline gameObjectManager,
         IAssetManager assetManager,
         string modelName,
@@ -43,7 +45,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         string name = "Model"
     ) : base(name, gameObjectManager)
     {
-        _graphicsDevice = graphicsDevice;
         _assetManager = assetManager;
         _modelName = modelName;
         _shaderName = shaderName;
@@ -217,4 +218,69 @@ public class ModelGameObject : Base3dGameObject, IInitializable
 
         return new(min, max);
     }
+
+
+    public event Action? PhysicsShapeDirty;
+    public Transform3D PhysicsTransform => Transform;
+    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
+    public PhysicsBodyConfig BuildBodyConfig()
+    {
+        var verts = new List<Vector3>();
+        var inds = new List<int>();
+
+        if (_model != null)
+        {
+            var scaleMatrix = Matrix4x4.CreateScale(Transform.Scale);
+
+            foreach (var instance in _model.Instances)
+            {
+                if (instance.MeshIndex < 0 || instance.MeshIndex >= _model.Meshes.Count)
+                {
+                    continue;
+                }
+
+                var mesh = _model.Meshes[instance.MeshIndex];
+                var baseIndex = verts.Count;
+
+                foreach (var p in mesh.Positions)
+                {
+                    var pos = Vector3.Transform(p, instance.Transform);
+                    pos = Vector3.Transform(pos, scaleMatrix);
+                    verts.Add(pos);
+                }
+
+                foreach (var idx in mesh.Indices)
+                {
+                    inds.Add(baseIndex + idx);
+                }
+            }
+        }
+
+        PhysicsShape shape;
+
+        if (verts.Count > 0 && inds.Count >= 3)
+        {
+            shape = new MeshShape(verts, inds);
+        }
+        else
+        {
+            var size = _localBounds.Size;
+            shape = new BoxShape(size.X, size.Y, size.Z);
+        }
+
+        return new PhysicsBodyConfig(
+            shape,
+            IsStatic ? 0f : Mass,
+            new RigidPose(Transform.Position, Transform.Rotation)
+        );
+    }
+
+    public void OnPhysicsAttached(IPhysicsBodyHandle h) { }
+
+    public void OnPhysicsDetached() { }
+
+    public void MarkPhysicsDirty()
+        => PhysicsShapeDirty?.Invoke();
+
 }

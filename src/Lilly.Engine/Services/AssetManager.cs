@@ -1,12 +1,13 @@
+using System.IO.Compression;
 using System.Reflection;
-using System.Text;
 using System.Runtime.InteropServices;
+using System.Text;
 using Assimp;
 using Assimp.Configs;
 using AssimpNet;
 using FontStashSharp;
-using Lilly.Engine.Audio;
 using Lilly.Engine.Attributes;
+using Lilly.Engine.Audio;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
 using Lilly.Engine.Data.Assets;
@@ -20,8 +21,6 @@ using Silk.NET.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TrippyGL;
-using TrippyGL.ImageSharp;
-using System.IO.Compression;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
@@ -253,6 +252,7 @@ public class AssetManager : IAssetManager, IDisposable
         if (!File.Exists(fullPath))
         {
             _logger.Warning("Sound file not found at {Path}", fullPath);
+
             return;
         }
 
@@ -286,7 +286,7 @@ public class AssetManager : IAssetManager, IDisposable
         var extension = audioType switch
         {
             AudioType.Mp3 => ".mp3",
-            _ => ".ogg"
+            _             => ".ogg"
         };
 
         var tempPath = Path.ChangeExtension(Path.GetTempFileName(), extension);
@@ -451,6 +451,7 @@ public class AssetManager : IAssetManager, IDisposable
         if (!File.Exists(fullZipPath))
         {
             _logger.Warning("Zip file not found for model {ModelName} at {Path}", modelName, fullZipPath);
+
             return;
         }
 
@@ -461,9 +462,11 @@ public class AssetManager : IAssetManager, IDisposable
             ZipFile.ExtractToDirectory(fullZipPath, extractionDir, overwriteFiles: true);
 
             var modelFullPath = Path.Combine(extractionDir, modelPathInZip);
+
             if (!File.Exists(modelFullPath))
             {
                 _logger.Warning("Model file {ModelPathInZip} not found inside zip {ZipPath}", modelPathInZip, zipPath);
+
                 return;
             }
 
@@ -472,6 +475,7 @@ public class AssetManager : IAssetManager, IDisposable
             if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
             {
                 _logger.Warning("Failed to load model {ModelName} from zip {ZipPath}", modelName, zipPath);
+
                 return;
             }
 
@@ -498,6 +502,7 @@ public class AssetManager : IAssetManager, IDisposable
         {
             _logger.Error(ex, "Error loading model {ModelName} from zip {ZipPath}", modelName, zipPath);
             CleanupExtractionDirectory(modelName);
+
             throw;
         }
     }
@@ -849,6 +854,7 @@ public class AssetManager : IAssetManager, IDisposable
     private ModelMeshData CreateMeshData(Mesh mesh, IReadOnlyDictionary<int, string> materialTextures)
     {
         var vertices = new VertexPositionNormalTex[mesh.VertexCount];
+        var positions = new List<Vector3>(mesh.VertexCount);
 
         var hasNormals = mesh.HasNormals;
         var hasTexCoords = mesh.HasTextureCoords(0);
@@ -860,9 +866,11 @@ public class AssetManager : IAssetManager, IDisposable
             var uv = hasTexCoords ? mesh.TextureCoordinateChannels[0][i] : default;
 
             vertices[i] = new(pos, norm, ToVector2(uv));
+            positions.Add(pos);
         }
 
         var indices = new List<uint>(mesh.FaceCount * 3);
+        var indicesInt = new List<int>(mesh.FaceCount * 3);
 
         foreach (var face in mesh.Faces)
         {
@@ -874,6 +882,10 @@ public class AssetManager : IAssetManager, IDisposable
             indices.Add((uint)face.Indices[0]);
             indices.Add((uint)face.Indices[1]);
             indices.Add((uint)face.Indices[2]);
+
+            indicesInt.Add(face.Indices[0]);
+            indicesInt.Add(face.Indices[1]);
+            indicesInt.Add(face.Indices[2]);
         }
 
         var vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(
@@ -893,7 +905,15 @@ public class AssetManager : IAssetManager, IDisposable
         var bounds = ComputeBounds(vertices);
         materialTextures.TryGetValue(mesh.MaterialIndex, out var textureKey);
 
-        return new(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds, textureKey);
+        return new(
+            vertexBuffer,
+            (uint)indices.Count,
+            mesh.MaterialIndex,
+            bounds,
+            textureKey,
+            positions,
+            indicesInt
+        );
     }
 
     private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene, string modelDirectory)
@@ -931,9 +951,16 @@ public class AssetManager : IAssetManager, IDisposable
 
                 // External texture relative to model directory
                 var fullPath = Path.Combine(modelDirectory, texturePath);
+
                 if (File.Exists(fullPath))
                 {
                     using var fs = File.OpenRead(fullPath);
+                    _logger.Information(
+                        "Loading texture for material {MaterialIndex} of {ModelName} from {TexturePath}",
+                        i,
+                        modelName,
+                        fullPath
+                    );
                     LoadTextureFromMemory(key, fs);
                     result[i] = key;
                 }

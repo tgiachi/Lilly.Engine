@@ -12,13 +12,17 @@ public sealed class ModelMeshData : IDisposable
     public int MaterialIndex { get; }
     public string? TextureKey { get; }
     public BoundingBox Bounds { get; }
+    public IReadOnlyList<Vector3> Positions { get; }
+    public IReadOnlyList<int> Indices { get; }
 
     public ModelMeshData(
         VertexBuffer<VertexPositionNormalTex> vertexBuffer,
         uint indexCount,
         int materialIndex,
         BoundingBox bounds,
-        string? textureKey
+        string? textureKey,
+        IReadOnlyList<Vector3> positions,
+        IReadOnlyList<int> indices
     )
     {
         VertexBuffer = vertexBuffer;
@@ -26,6 +30,8 @@ public sealed class ModelMeshData : IDisposable
         MaterialIndex = materialIndex;
         Bounds = bounds;
         TextureKey = textureKey;
+        Positions = positions;
+        Indices = indices;
     }
 
     public void Dispose()
