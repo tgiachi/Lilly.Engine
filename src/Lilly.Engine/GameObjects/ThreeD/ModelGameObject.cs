@@ -1,11 +1,9 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Assets;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
-using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -21,14 +19,15 @@ public class ModelGameObject : Base3dGameObject, IInitializable
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
-    private readonly string _modelName;
+    private string _modelName;
     private readonly string _shaderName;
     private readonly string _textureName;
 
     private ShaderProgram? _shaderProgram;
     private Texture2D? _texture;
-    private Data.Assets.ModelAsset? _model;
+    private ModelAsset? _model;
     private BoundingBox _localBounds;
+    private bool _initialized;
 
     public Vector3 LightDirection { get; set; } = Vector3.Normalize(new Vector3(-0.4f, -1.0f, -0.2f));
     public Vector3 LightColor { get; set; } = Vector3.One;
@@ -52,12 +51,34 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         _textureName = textureName ?? DefaultTextures.WhiteTextureKey;
     }
 
+    /// <summary>
+    /// Name of the model registered in AssetManager. Updating it reloads the model reference.
+    /// </summary>
+    public string ModelName
+    {
+        get => _modelName;
+        set
+        {
+            if (string.Equals(_modelName, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _modelName = value;
+
+            if (_initialized)
+            {
+                RefreshModel();
+            }
+        }
+    }
+
     public void Initialize()
     {
-        _model = _assetManager.GetModel(_modelName);
+        RefreshModel();
         _shaderProgram = _assetManager.GetShaderProgram(_shaderName);
         _texture = _assetManager.GetTexture<Texture2D>(_textureName);
-        _localBounds = _model.Bounds;
+        _initialized = true;
     }
 
     public override BoundingBox BoundingBox
@@ -113,6 +134,20 @@ public class ModelGameObject : Base3dGameObject, IInitializable
 
             graphicsDevice.VertexArray = mesh.VertexBuffer;
             graphicsDevice.DrawElements(PrimitiveType.Triangles, 0, mesh.IndexCount);
+        }
+    }
+
+    private void RefreshModel()
+    {
+        try
+        {
+            _model = _assetManager.GetModel(_modelName);
+            _localBounds = _model.Bounds;
+        }
+        catch
+        {
+            _model = null;
+            _localBounds = new BoundingBox(Vector3.Zero, Vector3.Zero);
         }
     }
 
