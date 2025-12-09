@@ -75,6 +75,15 @@ public class LillyDemoPlugin : ILillyPlugin
         model.Transform.Position = new(-5f, 3f, 0f);
 
         yield return model;
+
+
+        var jeep = gameObjectFactory.Create<ModelGameObject>();
+        jeep.ModelName = "jeep";
+        jeep.UseCompoundShape = true;
+        jeep.IsStatic = false;
+        jeep.Transform.Position = new(-3f, 3f, 0f);
+
+        yield return jeep;
     }
 
     public IContainer RegisterModule(IContainer container)
