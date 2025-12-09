@@ -61,7 +61,7 @@ public class FPSCamera : Base3dCamera
         // Update yaw first (rotate around world Y axis)
         if (MathF.Abs(yawDelta) > Epsilon)
         {
-            var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), -yawDelta);
+            var yawRotation = Quaternion.CreateFromAxisAngle(new(0, 1, 0), -yawDelta);
             Rotation = yawRotation * Rotation;
             CurrentYaw += -yawDelta;
         }
@@ -75,6 +75,7 @@ public class FPSCamera : Base3dCamera
 
             // Only apply if within bounds
             var actualPitchDelta = newPitch - CurrentPitch;
+
             if (MathF.Abs(actualPitchDelta) > Epsilon)
             {
                 var pitchRotation = Quaternion.CreateFromAxisAngle(Right, actualPitchDelta);
@@ -96,7 +97,7 @@ public class FPSCamera : Base3dCamera
     public void LookWithMouse(float mouseDeltaX, float mouseDeltaY)
     {
         var pitchDelta = -mouseDeltaY * _mouseSensitivity; // Negate: mouse down (positive) = look down (negative pitch)
-        var yawDelta = mouseDeltaX * _mouseSensitivity;     // Direct: mouse right (positive) = look right (positive yaw)
+        var yawDelta = mouseDeltaX * _mouseSensitivity;    // Direct: mouse right (positive) = look right (positive yaw)
 
         Look(pitchDelta, yawDelta);
     }
@@ -119,14 +120,22 @@ public class FPSCamera : Base3dCamera
         var rightFlatLen = rightFlat.Length();
 
         if (forwardFlatLen > Epsilon)
+        {
             forwardFlat = Vector3.Normalize(forwardFlat);
+        }
         else
+        {
             forwardFlat = Vector3.Zero;
+        }
 
         if (rightFlatLen > Epsilon)
+        {
             rightFlat = Vector3.Normalize(rightFlat);
+        }
         else
+        {
             rightFlat = Vector3.Zero;
+        }
 
         // Calculate horizontal movement with normalized projected vectors
         var horizontalMove = (forwardFlat * forward + rightFlat * right) * _movementSpeed * deltaTime;

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lilly.Voxel.Plugin.Blocks;
-using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
 
 namespace Lilly.Voxel.Plugin.Json.Converters;
@@ -17,7 +16,8 @@ public class BlockFaceDictionaryConverter : JsonConverter<Dictionary<BlockFace, 
     public override Dictionary<BlockFace, BlockTextureObject> Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
-        JsonSerializerOptions options)
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType != JsonTokenType.StartObject)
         {
@@ -67,7 +67,7 @@ public class BlockFaceDictionaryConverter : JsonConverter<Dictionary<BlockFace, 
         // Apply default texture to all faces if specified
         if (defaultTexture.HasValue)
         {
-            foreach (BlockFace face in Enum.GetValues<BlockFace>())
+            foreach (var face in Enum.GetValues<BlockFace>())
             {
                 result[face] = defaultTexture.Value;
             }
@@ -82,7 +82,9 @@ public class BlockFaceDictionaryConverter : JsonConverter<Dictionary<BlockFace, 
             }
             else
             {
-                throw new JsonException($"Invalid BlockFace name: '{key}'. Valid values are: {string.Join(", ", Enum.GetNames<BlockFace>())}");
+                throw new JsonException(
+                    $"Invalid BlockFace name: '{key}'. Valid values are: {string.Join(", ", Enum.GetNames<BlockFace>())}"
+                );
             }
         }
 
@@ -92,7 +94,8 @@ public class BlockFaceDictionaryConverter : JsonConverter<Dictionary<BlockFace, 
     public override void Write(
         Utf8JsonWriter writer,
         Dictionary<BlockFace, BlockTextureObject> value,
-        JsonSerializerOptions options)
+        JsonSerializerOptions options
+    )
     {
         ArgumentNullException.ThrowIfNull(value);
 
@@ -101,7 +104,9 @@ public class BlockFaceDictionaryConverter : JsonConverter<Dictionary<BlockFace, 
         // Check if all faces have the same texture
         var allFaces = Enum.GetValues<BlockFace>();
         var firstTexture = value.Count > 0 ? value.Values.FirstOrDefault() : (BlockTextureObject?)null;
-        var allSame = firstTexture.HasValue && value.Count == allFaces.Length && value.Values.All(t => t.Equals(firstTexture.Value));
+        var allSame = firstTexture.HasValue &&
+                      value.Count == allFaces.Length &&
+                      value.Values.All(t => t.Equals(firstTexture.Value));
 
         if (allSame && firstTexture.HasValue)
         {

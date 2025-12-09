@@ -20,14 +20,16 @@ public class FpsGameObject : TextGameObject
     /// </summary>
     public string FpsFormat { get; set; } = "FPS: {0:F1}";
 
-
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="FpsGameObject"/> class with an AssetManager.
+    /// Initializes a new instance of the <see cref="FpsGameObject" /> class with an AssetManager.
     /// </summary>
     /// <param name="assetManager">Optional AssetManager for automatic text size calculation.</param>
     /// <param name="updateInterval">The interval in seconds at which to update the FPS display. Default is 0.5 seconds.</param>
-    public FpsGameObject(IAssetManager? assetManager, IGameObjectManager gameObjectManager,  double updateInterval = 0.5) : base(assetManager, gameObjectManager)
+    public FpsGameObject(
+        IAssetManager? assetManager,
+        IGameObjectManager gameObjectManager,
+        double updateInterval = 0.5
+    ) : base(assetManager, gameObjectManager)
     {
         _updateInterval = updateInterval;
         _fpsUpdateTimer = 0;

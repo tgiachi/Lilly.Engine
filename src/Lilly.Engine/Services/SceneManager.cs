@@ -45,6 +45,7 @@ public class SceneManager : ISceneManager, IGameObject
         _renderPipeline = renderPipeline;
 
         _logger.Information("Initializing Scene Manager");
+
         if (registeredSceneObjects != null)
         {
             foreach (var sceneObject in _registeredSceneObjects)
@@ -203,6 +204,8 @@ public class SceneManager : ISceneManager, IGameObject
         return null;
     }
 
+    public void OnRemoved() { }
+
     /// <summary>
     /// Registers a scene with the scene manager.
     /// </summary>
@@ -217,7 +220,6 @@ public class SceneManager : ISceneManager, IGameObject
         _registeredScenes[scene.Name] = scene;
         _logger.Debug("Registered scene {Name}", scene.Name);
     }
-
 
     /// <summary>
     /// Unregisters a scene from the scene manager.
@@ -310,6 +312,4 @@ public class SceneManager : ISceneManager, IGameObject
             _nextScene.Load();
         }
     }
-
-    public void OnRemoved() { }
 }

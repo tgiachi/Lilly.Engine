@@ -5,4 +5,3 @@ namespace Lilly.Engine.Core.Data.Services;
 /// </summary>
 /// <param name="WorkerCount">The number of worker threads to use in the job system.</param>
 public record JobServiceConfig(int WorkerCount);
-

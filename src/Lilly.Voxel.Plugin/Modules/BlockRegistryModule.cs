@@ -31,27 +31,6 @@ public class BlockRegistryModule
         _directoriesConfig = directoriesConfig;
     }
 
-    [ScriptFunction(
-        "register_block",
-        "Registers a new block type with the given name and properties defined in the builder closure."
-    )]
-    public void RegisterBlock(string name, Closure builder)
-    {
-        _blockRegistry.RegisterBlock(
-            name,
-            typeBuilder =>
-            {
-                builder.Call(typeBuilder);
-            }
-        );
-    }
-
-    [ScriptFunction("new_block", "Creates a new block type with the specified name.")]
-    public BlockType NewBlock(string name)
-    {
-        return _blockRegistry.NewBlock(name);
-    }
-
     [ScriptFunction("load_blocks_from_data", "Loads block definitions from a JSON file in the data directory.")]
     public void LoadBlocksFromData(string fileName)
     {
@@ -72,5 +51,24 @@ public class BlockRegistryModule
         }
 
         throw new FileNotFoundException($"The file {fileName} was not found.");
+    }
+
+    [ScriptFunction("new_block", "Creates a new block type with the specified name.")]
+    public BlockType NewBlock(string name)
+        => _blockRegistry.NewBlock(name);
+
+    [ScriptFunction(
+        "register_block",
+        "Registers a new block type with the given name and properties defined in the builder closure."
+    )]
+    public void RegisterBlock(string name, Closure builder)
+    {
+        _blockRegistry.RegisterBlock(
+            name,
+            typeBuilder =>
+            {
+                builder.Call(typeBuilder);
+            }
+        );
     }
 }

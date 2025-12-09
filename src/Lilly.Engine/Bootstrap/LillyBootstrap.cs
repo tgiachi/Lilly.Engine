@@ -14,8 +14,8 @@ using Lilly.Engine.Debuggers;
 using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Exceptions;
 using Lilly.Engine.Extensions;
-using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.GameObjects.ThreeD;
+using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
@@ -56,9 +56,7 @@ public class LillyBootstrap : ILillyBootstrap
     public event ILillyBootstrap.ConfiguringHandler? OnConfiguring;
 
     public LillyBootstrap(IContainer container)
-    {
-        _container = container;
-    }
+        => _container = container;
 
     public async Task InitializeAsync(InitialEngineOptions options)
     {
@@ -82,6 +80,184 @@ public class LillyBootstrap : ILillyBootstrap
         Renderer.OnRender += RendererOnOnRender;
         Renderer.OnUpdate += RendererOnOnUpdate;
         Renderer.OnReady += RendererOnOnReady;
+    }
+
+    public async Task RunAsync()
+        => Renderer.Run();
+
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
+    private void AddDemoGameObjects(IGameObjectFactory gameObjectFactory, IRenderPipeline pipeline)
+    {
+        var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
+        plane.Transform.Position = new(0f, -10f, 0f);
+
+        //plane.IgnoreFrustumCulling = true;
+        plane.Transform.Scale = new(10f, 1f, 10f);
+        plane.Width = 10f;
+        plane.Height = 4f;
+        plane.Depth = 10f;
+
+        plane.TextureName = "ground_texture";
+        pipeline.AddGameObject(plane);
+
+        foreach (var index in Enumerable.Range(0, 1000))
+        {
+            var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
+
+            cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
+
+            // cube.Transform.Rotation = new Vector3(;
+            //     Random.Shared.NextSingle() * MathF.PI,
+            //     Random.Shared.NextSingle() * MathF.PI,
+            //     Random.Shared.NextSingle() * MathF.PI
+            // );
+
+            cube.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(
+                Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
+                Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
+                Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
+            );
+            cube.Transform.Position = new(
+                index % 5 * 2f - 4f,
+                +100f,
+                index / 5 * 2f - 1f
+            );
+            pipeline.AddGameObject(cube);
+        }
+
+        var capsule = gameObjectFactory.Create<SimpleCapsuleGameObject>();
+        capsule.Transform.Position = new(5f, 0f, 0f);
+        capsule.Height = 3f;
+        capsule.Radius = 0.5f;
+        pipeline.AddGameObject(capsule);
+    }
+
+    private void InitializePlugins()
+    {
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        var pluginRegistrations = _container.Resolve<List<EnginePluginRegistration>>();
+
+        _logger.Debug("Discovering plugins...");
+
+        var allPluginData = pluginRegistrations
+                            .Select(pluginRegistration => (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType))
+                            .Select(plugin => plugin.LillyData)
+                            .ToList();
+
+        _logger.Information("Discovered {PluginCount} plugins", allPluginData.Count);
+
+        _logger.Debug("Checking for circular dependencies...");
+        var circularDependencies = pluginRegistry.CheckForCircularDependencies(allPluginData);
+
+        if (circularDependencies.Count != 0)
+        {
+            var cycle = string.Join(" -> ", circularDependencies);
+            _logger.Fatal("Circular dependency detected: {Cycle}", cycle);
+
+            throw new PluginLoadException(
+                $"Circular dependency detected in plugin chain: {cycle}",
+                "circular-dependency",
+                allPluginData.First(),
+                allPluginData
+            );
+        }
+
+        _logger.Debug("Loading plugins in dependency order...");
+        var sortedPluginData = pluginRegistry.GetPluginsInDependencyOrder(allPluginData).ToList();
+
+        foreach (var pluginData in sortedPluginData)
+        {
+            var pluginRegistration = pluginRegistrations.First(
+                pr =>
+                {
+                    var plugin = (ILillyPlugin)_container.Resolve(pr.PluginType);
+
+                    return plugin.LillyData.Id == pluginData.Id;
+                }
+            );
+
+            try
+            {
+                _logger.Debug("Loading plugin from assembly {Assembly}", pluginRegistration.Assembly.FullName);
+
+                var plugin = (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType);
+
+                _logger.Information(
+                    "Registering plugin {PluginId} v{Version} by {Author}",
+                    plugin.LillyData.Id,
+                    plugin.LillyData.Version,
+                    plugin.LillyData.Author
+                );
+
+                pluginRegistry.RegisterPlugin(plugin);
+
+                _logger.Debug("Registering modules for plugin {PluginId}", plugin.LillyData.Id);
+                plugin.RegisterModule(_container);
+            }
+            catch (PluginLoadException ex)
+            {
+                _logger.Fatal(ex, "Failed to load plugin {PluginId}", pluginData.Id);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.Fatal(ex, "Unexpected error loading plugin {PluginId}", pluginData.Id);
+
+                throw new PluginLoadException(
+                    $"Unexpected error loading plugin '{pluginData.Id}': {ex.Message}",
+                    pluginData.Id,
+                    pluginData,
+                    pluginRegistry.GetLoadedPluginData(),
+                    ex
+                );
+            }
+        }
+    }
+
+    private async Task InitializeServicesAsync()
+    {
+        var services = _container.Resolve<List<AutostartRegistration>>();
+
+        foreach (var service in services)
+        {
+            _logger.Debug("Initializing {Name}", service.ServiceType.Name);
+            _container.Resolve(service.ServiceType);
+        }
+    }
+
+    private void InizializeGameObjectFromPlugins()
+    {
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+        var loadedPlugins = pluginRegistry.GetLoadedPlugins().ToList();
+        var renderPipeline = _container.Resolve<IRenderPipeline>();
+
+        foreach (var plugin in loadedPlugins)
+        {
+            _logger.Debug("Loading global game objects from plugin {PluginId}", plugin.LillyData.Id);
+
+            plugin.EngineReady(_container);
+
+            foreach (var globalGameObject in plugin.GetGlobalGameObjects(_container.Resolve<IGameObjectFactory>()))
+            {
+                _logger.Debug(
+                    "Adding game object {GameObjectType} from plugin {PluginId}",
+                    globalGameObject.GetType().Name,
+                    plugin.LillyData.Id
+                );
+
+                renderPipeline.AddGameObject(globalGameObject);
+            }
+        }
+    }
+
+    private void IntializeRenders()
+    {
+        var renderPipeLine = _container.Resolve<IRenderPipeline>();
+        _container.RegisterInstance<IGameObjectManager>(renderPipeLine);
     }
 
     private void LoadDefaultAssets()
@@ -173,16 +349,26 @@ public class LillyBootstrap : ILillyBootstrap
         );
     }
 
-    private void RendererOnOnReady(RenderContext context)
+    private void RegisterGameObjects()
     {
-        _container.RegisterInstance(context);
+        _container
+            .RegisterGameObject<TextGameObject>()
+            .RegisterGameObject<RectangleGameObject>()
+            .RegisterGameObject<FpsGameObject>()
+            .RegisterGameObject<TextureGameObject>()
+            .RegisterGameObject<StackLayoutGameObject>()
+            .RegisterGameObject<VersionGameObject>()
+            .RegisterGameObject<SimpleBoxGameObject>()
+            .RegisterGameObject<SimpleCubeGameObject>()
+            .RegisterGameObject<SimpleCapsuleGameObject>()
+            ;
 
-        _container.RegisterInstance(context.Renderer);
-        _container.RegisterInstance(context.GraphicsDevice);
-        _container.RegisterInstance(context.Input);
-        _container.RegisterInstance(context.OpenGl);
-        _container.RegisterInstance(context.Window);
-        _container.RegisterInstance(context.DpiManager);
+        _container
+            .RegisterGameObject<RenderPipelineDebugger>()
+            .RegisterGameObject<PerformanceDebugger>()
+            .RegisterGameObject<CameraDebugger>()
+            .RegisterGameObject<JobSystemDebugger>()
+            ;
     }
 
     private void RegisterRenderLayers()
@@ -196,9 +382,61 @@ public class LillyBootstrap : ILillyBootstrap
             ;
     }
 
-    private void RendererOnOnUpdate(GameTime gameTime)
+    private void RegisterScriptModules()
     {
-        OnUpdate?.Invoke(gameTime);
+        _container
+            .RegisterScriptModule<ConsoleModule>()
+            .RegisterScriptModule<AssetsModule>()
+            .RegisterScriptModule<EngineModule>()
+            .RegisterScriptModule<NotificationsModule>()
+            .RegisterScriptModule<JobSystemModule>()
+            .RegisterScriptModule<InputManagerModule>()
+            .RegisterScriptModule<WindowModule>()
+            .RegisterScriptModule<CameraModule>()
+            .RegisterScriptModule<ScenesModule>()
+            .RegisterScriptModule<CommandsModule>()
+            .RegisterScriptModule<Rendering3dModule>()
+            .RegisterScriptModule<ImGuiModule>()
+            ;
+
+        _container.RegisterLuaUserData<GameTime>();
+    }
+
+    private void RegisterServices()
+    {
+        _container
+            .RegisterService<IEventBusService, EventBusService>()
+            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
+            .RegisterService<INotificationService, NotificationService>()
+            .RegisterService<IRenderPipeline, RenderPipeline>()
+            .RegisterService<IAssetManager, AssetManager>()
+            .RegisterService<IInputManagerService, InputManagerService>()
+            .RegisterService<IVersionService, VersionService>()
+            .RegisterService<IJobSystemService, JobSystemService>()
+            .RegisterService<ICommandSystemService, CommandSystemService>()
+            .RegisterService<IAudioService, AudioService>()
+            .RegisterService<ITimerService, TimerService>()
+            .RegisterService<ICamera3dService, Camera3dService>()
+            .RegisterService<IGameObjectFactory, GameObjectFactory>()
+            .RegisterService<ISceneManager, SceneManager>()
+            .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
+            .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
+            .RegisterService<PluginRegistry>()
+            ;
+
+        _container.RegisterInstance(new JobServiceConfig(Environment.ProcessorCount - 1));
+    }
+
+    private void RendererOnOnReady(RenderContext context)
+    {
+        _container.RegisterInstance(context);
+
+        _container.RegisterInstance(context.Renderer);
+        _container.RegisterInstance(context.GraphicsDevice);
+        _container.RegisterInstance(context.Input);
+        _container.RegisterInstance(context.OpenGl);
+        _container.RegisterInstance(context.Window);
+        _container.RegisterInstance(context.DpiManager);
     }
 
     private void RendererOnOnRender(GameTime gameTime)
@@ -242,144 +480,9 @@ public class LillyBootstrap : ILillyBootstrap
         OnRender?.Invoke(gameTime);
     }
 
-    private void AddDemoGameObjects(IGameObjectFactory gameObjectFactory, IRenderPipeline pipeline)
+    private void RendererOnOnUpdate(GameTime gameTime)
     {
-        var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
-        plane.Transform.Position = new Vector3(0f, -10f, 0f);
-
-        //plane.IgnoreFrustumCulling = true;
-        plane.Transform.Scale = new Vector3(10f, 1f, 10f);
-        plane.Width = 10f;
-        plane.Height = 4f;
-        plane.Depth = 10f;
-
-        plane.TextureName = "ground_texture";
-        pipeline.AddGameObject(plane);
-
-        foreach (var index in Enumerable.Range(0, 1000))
-        {
-            var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
-
-            cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
-
-            // cube.Transform.Rotation = new Vector3(;
-            //     Random.Shared.NextSingle() * MathF.PI,
-            //     Random.Shared.NextSingle() * MathF.PI,
-            //     Random.Shared.NextSingle() * MathF.PI
-            // );
-
-            cube.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
-            );
-            cube.Transform.Position = new Vector3(
-                (index % 5) * 2f - 4f,
-                +100f,
-                (index / 5) * 2f - 1f
-            );
-            pipeline.AddGameObject(cube);
-        }
-
-        var capsule = gameObjectFactory.Create<SimpleCapsuleGameObject>();
-        capsule.Transform.Position = new Vector3(5f, 0f, 0f);
-        capsule.Height = 3f;
-        capsule.Radius = 0.5f;
-        pipeline.AddGameObject(capsule);
-    }
-
-    public async Task RunAsync()
-    {
-        Renderer.Run();
-    }
-
-    public Task ShutdownAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    private void RegisterGameObjects()
-    {
-        _container
-            .RegisterGameObject<TextGameObject>()
-            .RegisterGameObject<RectangleGameObject>()
-            .RegisterGameObject<FpsGameObject>()
-            .RegisterGameObject<TextureGameObject>()
-            .RegisterGameObject<StackLayoutGameObject>()
-            .RegisterGameObject<VersionGameObject>()
-            .RegisterGameObject<SimpleBoxGameObject>()
-            .RegisterGameObject<SimpleCubeGameObject>()
-            .RegisterGameObject<SimpleCapsuleGameObject>()
-            ;
-
-        _container
-            .RegisterGameObject<RenderPipelineDebugger>()
-            .RegisterGameObject<PerformanceDebugger>()
-            .RegisterGameObject<CameraDebugger>()
-            .RegisterGameObject<JobSystemDebugger>()
-            ;
-    }
-
-    private void RegisterServices()
-    {
-        _container
-            .RegisterService<IEventBusService, EventBusService>()
-            .RegisterService<IMainThreadDispatcher, MainThreadDispatcher>()
-            .RegisterService<INotificationService, NotificationService>()
-            .RegisterService<IRenderPipeline, RenderPipeline>()
-            .RegisterService<IAssetManager, AssetManager>()
-            .RegisterService<IInputManagerService, InputManagerService>()
-            .RegisterService<IVersionService, VersionService>()
-            .RegisterService<IJobSystemService, JobSystemService>()
-            .RegisterService<ICommandSystemService, CommandSystemService>()
-            .RegisterService<IAudioService, AudioService>()
-            .RegisterService<ITimerService, TimerService>()
-            .RegisterService<ICamera3dService, Camera3dService>()
-            .RegisterService<IGameObjectFactory, GameObjectFactory>()
-            .RegisterService<ISceneManager, SceneManager>()
-            .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
-            .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
-            .RegisterService<PluginRegistry>()
-            ;
-
-        _container.RegisterInstance(new JobServiceConfig(Environment.ProcessorCount - 1));
-    }
-
-    private void RegisterScriptModules()
-    {
-        _container
-            .RegisterScriptModule<ConsoleModule>()
-            .RegisterScriptModule<AssetsModule>()
-            .RegisterScriptModule<EngineModule>()
-            .RegisterScriptModule<NotificationsModule>()
-            .RegisterScriptModule<JobSystemModule>()
-            .RegisterScriptModule<InputManagerModule>()
-            .RegisterScriptModule<WindowModule>()
-            .RegisterScriptModule<CameraModule>()
-            .RegisterScriptModule<ScenesModule>()
-            .RegisterScriptModule<CommandsModule>()
-            .RegisterScriptModule<Rendering3dModule>()
-            .RegisterScriptModule<ImGuiModule>()
-            ;
-
-        _container.RegisterLuaUserData<GameTime>();
-    }
-
-    private void IntializeRenders()
-    {
-        var renderPipeLine = _container.Resolve<IRenderPipeline>();
-        _container.RegisterInstance<IGameObjectManager>(renderPipeLine);
-    }
-
-    private async Task InitializeServicesAsync()
-    {
-        var services = _container.Resolve<List<AutostartRegistration>>();
-
-        foreach (var service in services)
-        {
-            _logger.Debug("Initializing {Name}", service.ServiceType.Name);
-            _container.Resolve(service.ServiceType);
-        }
+        OnUpdate?.Invoke(gameTime);
     }
 
     private async Task StartServicesAsync()
@@ -394,115 +497,6 @@ public class LillyBootstrap : ILillyBootstrap
             {
                 _logger.Debug("Starting {Name}", instance.GetType().Name);
                 await instance.StartAsync();
-            }
-        }
-    }
-
-    private void InizializeGameObjectFromPlugins()
-    {
-        var pluginRegistry = _container.Resolve<PluginRegistry>();
-        var loadedPlugins = pluginRegistry.GetLoadedPlugins().ToList();
-        var renderPipeline = _container.Resolve<IRenderPipeline>();
-
-        foreach (var plugin in loadedPlugins)
-        {
-            _logger.Debug("Loading global game objects from plugin {PluginId}", plugin.LillyData.Id);
-
-            plugin.EngineReady(_container);
-
-            foreach (var globalGameObject in plugin.GetGlobalGameObjects(_container.Resolve<IGameObjectFactory>()))
-            {
-                _logger.Debug(
-                    "Adding game object {GameObjectType} from plugin {PluginId}",
-                    globalGameObject.GetType().Name,
-                    plugin.LillyData.Id
-                );
-
-                renderPipeline.AddGameObject(globalGameObject);
-            }
-        }
-    }
-
-    private void InitializePlugins()
-    {
-        var pluginRegistry = _container.Resolve<PluginRegistry>();
-
-        var pluginRegistrations = _container.Resolve<List<EnginePluginRegistration>>();
-
-        _logger.Debug("Discovering plugins...");
-
-        var allPluginData = pluginRegistrations
-                            .Select(pluginRegistration => (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType))
-                            .Select(plugin => plugin.LillyData)
-                            .ToList();
-
-        _logger.Information("Discovered {PluginCount} plugins", allPluginData.Count);
-
-        _logger.Debug("Checking for circular dependencies...");
-        var circularDependencies = pluginRegistry.CheckForCircularDependencies(allPluginData);
-
-        if (circularDependencies.Count != 0)
-        {
-            var cycle = string.Join(" -> ", circularDependencies);
-            _logger.Fatal("Circular dependency detected: {Cycle}", cycle);
-
-            throw new PluginLoadException(
-                $"Circular dependency detected in plugin chain: {cycle}",
-                "circular-dependency",
-                allPluginData.First(),
-                allPluginData
-            );
-        }
-
-        _logger.Debug("Loading plugins in dependency order...");
-        var sortedPluginData = pluginRegistry.GetPluginsInDependencyOrder(allPluginData).ToList();
-
-        foreach (var pluginData in sortedPluginData)
-        {
-            var pluginRegistration = pluginRegistrations.First(
-                pr =>
-                {
-                    var plugin = (ILillyPlugin)_container.Resolve(pr.PluginType);
-
-                    return plugin.LillyData.Id == pluginData.Id;
-                }
-            );
-
-            try
-            {
-                _logger.Debug("Loading plugin from assembly {Assembly}", pluginRegistration.Assembly.FullName);
-
-                var plugin = (ILillyPlugin)_container.Resolve(pluginRegistration.PluginType);
-
-                _logger.Information(
-                    "Registering plugin {PluginId} v{Version} by {Author}",
-                    plugin.LillyData.Id,
-                    plugin.LillyData.Version,
-                    plugin.LillyData.Author
-                );
-
-                pluginRegistry.RegisterPlugin(plugin);
-
-                _logger.Debug("Registering modules for plugin {PluginId}", plugin.LillyData.Id);
-                plugin.RegisterModule(_container);
-            }
-            catch (PluginLoadException ex)
-            {
-                _logger.Fatal(ex, "Failed to load plugin {PluginId}", pluginData.Id);
-
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.Fatal(ex, "Unexpected error loading plugin {PluginId}", pluginData.Id);
-
-                throw new PluginLoadException(
-                    $"Unexpected error loading plugin '{pluginData.Id}': {ex.Message}",
-                    pluginData.Id,
-                    pluginData,
-                    pluginRegistry.GetLoadedPluginData(),
-                    ex
-                );
             }
         }
     }

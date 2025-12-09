@@ -10,9 +10,7 @@ public class QuakeConsoleModule
     private readonly IRenderPipeline _renderPipeline;
 
     public QuakeConsoleModule(IRenderPipeline renderPipeline)
-    {
-        _renderPipeline = renderPipeline;
-    }
+        => _renderPipeline = renderPipeline;
 
     [ScriptFunction("toggle", "Toggles the visibility of the console.")]
     public void ToggleConsole()
@@ -20,6 +18,5 @@ public class QuakeConsoleModule
         var quakeConsole = _renderPipeline.GetGameObjectOfType<QuakeConsoleGameObject>();
 
         quakeConsole?.ToggleConsole();
-
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Numerics;
 
 namespace Lilly.Engine.Data.Physics;

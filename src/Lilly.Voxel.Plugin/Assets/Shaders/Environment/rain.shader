@@ -15,20 +15,20 @@ uniform float uTime;
 
 void main()
 {
-    float density = clamp(uIntensity, 0.0, 1.0);
-    if (density <= 0.001)
-        discard;
+float density = clamp(uIntensity, 0.0, 1.0);
+if (density <= 0.001)
+discard;
 
-    float headFade = clamp(1.0 - vCorner.y, 0.0, 1.0);
-    float streakFade = clamp(0.35 + headFade * 0.65, 0.0, 1.0);
-    float shimmer = 0.5 + 0.5 * sin((vLength * 0.6) + uTime * 12.0 + vCorner.y * 9.42);
+float headFade = clamp(1.0 - vCorner.y, 0.0, 1.0);
+float streakFade = clamp(0.35 + headFade * 0.65, 0.0, 1.0);
+float shimmer = 0.5 + 0.5 * sin((vLength * 0.6) + uTime * 12.0 + vCorner.y * 9.42);
 
-    float alpha = clamp(vAlpha * density * streakFade, 0.0, 1.0);
-    float brightness = clamp(0.6 + shimmer * 0.3, 0.0, 1.0);
+float alpha = clamp(vAlpha * density * streakFade, 0.0, 1.0);
+float brightness = clamp(0.6 + shimmer * 0.3, 0.0, 1.0);
 
-    vec3 color = vec3(0.55, 0.68, 0.9) * brightness;
+vec3 color = vec3(0.55, 0.68, 0.9) * brightness;
 
-    FragColor = vec4(color, alpha);
+FragColor = vec4(color, alpha);
 }
 
 #shader vertex
@@ -55,18 +55,18 @@ out float vLength;
 
 void main()
 {
-    vec3 basePos = (uWorld * vec4(aPosition, 1.0)).xyz;
-    vec3 right = normalize(uCameraRight);
-    vec3 direction = normalize(uRainDirection);
+vec3 basePos = (uWorld * vec4(aPosition, 1.0)).xyz;
+vec3 right = normalize(uCameraRight);
+vec3 direction = normalize(uRainDirection);
 
-    float widthOffset = (aCorner.x - 0.5) * uDropWidth;
-    float lengthOffset = aCorner.y * aLength;
-    vec3 worldPos = basePos + right * widthOffset + direction * lengthOffset;
+float widthOffset = (aCorner.x - 0.5) * uDropWidth;
+float lengthOffset = aCorner.y * aLength;
+vec3 worldPos = basePos + right * widthOffset + direction * lengthOffset;
 
-    vec4 viewPos = uView * vec4(worldPos, 1.0);
-    gl_Position = uProjection * viewPos;
-    
-    vCorner = aCorner;
-    vAlpha = aAlpha;
-    vLength = aLength;
+vec4 viewPos = uView * vec4(worldPos, 1.0);
+gl_Position = uProjection * viewPos;
+
+vCorner = aCorner;
+vAlpha = aAlpha;
+vLength = aLength;
 }

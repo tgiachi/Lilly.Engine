@@ -70,9 +70,7 @@ public sealed class ChunkLightingService
     };
 
     public ChunkLightingService(IBlockRegistry blockRegistry)
-    {
-        _blockRegistry = blockRegistry;
-    }
+        => _blockRegistry = blockRegistry;
 
     /// <summary>
     /// Computes the face lighting color using ambient occlusion heuristics.
@@ -96,19 +94,19 @@ public sealed class ChunkLightingService
         var openSkyCache = GetOpenSkyCache(chunk);
 
         // Calculate AO at each corner of the face
-        float ao0 = CalculateCornerAO(chunk, x, y, z, face, 0);
-        float ao1 = CalculateCornerAO(chunk, x, y, z, face, 1);
-        float ao2 = CalculateCornerAO(chunk, x, y, z, face, 2);
-        float ao3 = CalculateCornerAO(chunk, x, y, z, face, 3);
+        var ao0 = CalculateCornerAO(chunk, x, y, z, face, 0);
+        var ao1 = CalculateCornerAO(chunk, x, y, z, face, 1);
+        var ao2 = CalculateCornerAO(chunk, x, y, z, face, 2);
+        var ao3 = CalculateCornerAO(chunk, x, y, z, face, 3);
 
         // Average the AO values
-        float averageAO = (ao0 + ao1 + ao2 + ao3) / 4f;
+        var averageAO = (ao0 + ao1 + ao2 + ao3) / 4f;
         averageAO = Math.Clamp(averageAO, 0f, 1f);
 
-        bool openSky = IsColumnSkyOpen(openSkyCache, x, z);
+        var openSky = IsColumnSkyOpen(openSkyCache, x, z);
 
         // Sky light (AO modulated). Underground should be dark unless near an open column.
-        float skyLight = openSky ? averageAO : 0f;
+        var skyLight = openSky ? averageAO : 0f;
 
         // If the column above is blocked, allow some skylight when neighboring columns are exposed.
         if (!openSky && IsSideFace(face) && HasAdjacentSky(chunk, openSkyCache, x, y, z, face))
@@ -119,8 +117,8 @@ public sealed class ChunkLightingService
         // Calculate neighbor position to sample light from (because solid blocks are dark inside)
         var (nx, ny, nz) = GetNeighborPosition(x, y, z, face);
         byte lightLevel = 0;
-        Color4b lightColor = Color4b.White;
-        bool foundLight = false;
+        var lightColor = Color4b.White;
+        var foundLight = false;
 
         if (chunk.IsInBounds(nx, ny, nz))
         {
@@ -131,15 +129,27 @@ public sealed class ChunkLightingService
         else if (neighbor != null)
         {
             // Wrap coordinates to neighbor space
-            int wx = nx;
-            int wy = ny;
-            int wz = nz;
+            var wx = nx;
+            var wy = ny;
+            var wz = nz;
 
-            if (wx < 0) wx += ChunkEntity.Size;
-            else if (wx >= ChunkEntity.Size) wx -= ChunkEntity.Size;
+            if (wx < 0)
+            {
+                wx += ChunkEntity.Size;
+            }
+            else if (wx >= ChunkEntity.Size)
+            {
+                wx -= ChunkEntity.Size;
+            }
 
-            if (wz < 0) wz += ChunkEntity.Size;
-            else if (wz >= ChunkEntity.Size) wz -= ChunkEntity.Size;
+            if (wz < 0)
+            {
+                wz += ChunkEntity.Size;
+            }
+            else if (wz >= ChunkEntity.Size)
+            {
+                wz -= ChunkEntity.Size;
+            }
 
             if (neighbor.IsInBounds(wx, wy, wz))
             {
@@ -166,13 +176,14 @@ public sealed class ChunkLightingService
                 // This might cause black borders on surface until chunks load, but that's better than artifacts.
                 lightLevel = 0;
             }
+
             // Use current block's color as fallback
             lightColor = chunk.GetLightColor(x, y, z);
         }
 
         // Baked/propagated light level (0-15). Treat the default "unlit" state (15 with dirty lighting) as 0
         // so we don't wash out caves before lighting is computed.
-        float levelFactor = Math.Clamp(lightLevel / VoxelConstants.MaxLightLevelF, 0f, 1f);
+        var levelFactor = Math.Clamp(lightLevel / VoxelConstants.MaxLightLevelF, 0f, 1f);
 
         if (chunk.IsLightingDirty && lightLevel >= VoxelConstants.MaxLightLevel)
         {
@@ -180,35 +191,44 @@ public sealed class ChunkLightingService
         }
 
         // Use the stronger of propagated light and skylight so torches still light caves.
-        float light = Math.Max(levelFactor, skyLight);
-        
+        var light = Math.Max(levelFactor, skyLight);
+
         // Enforce minimum light level from constants
-        float minLight = VoxelConstants.MinLightLevel / VoxelConstants.MaxLightLevelF;
+        var minLight = VoxelConstants.MinLightLevel / VoxelConstants.MaxLightLevelF;
         light = Math.Max(light, minLight);
 
-        float r = (lightColor.R / 255f) * light;
-        float g = (lightColor.G / 255f) * light;
-        float b = (lightColor.B / 255f) * light;
+        var r = lightColor.R / 255f * light;
+        var g = lightColor.G / 255f * light;
+        var b = lightColor.B / 255f * light;
 
-        byte rByte = (byte)(Math.Clamp(r, 0f, 1f) * 255f);
-        byte gByte = (byte)(Math.Clamp(g, 0f, 1f) * 255f);
-        byte bByte = (byte)(Math.Clamp(b, 0f, 1f) * 255f);
+        var rByte = (byte)(Math.Clamp(r, 0f, 1f) * 255f);
+        var gByte = (byte)(Math.Clamp(g, 0f, 1f) * 255f);
+        var bByte = (byte)(Math.Clamp(b, 0f, 1f) * 255f);
 
         return new(rByte, gByte, bByte, GetDirectionIndex(face));
     }
 
-    private static (int x, int y, int z) GetNeighborPosition(int x, int y, int z, BlockFace face)
+    /// <summary>
+    /// Determines whether a block should stop skylight when scanning a column.
+    /// </summary>
+    private static bool BlocksSkyLight(BlockType blockType)
+        => !blockType.IsTransparent &&
+           !blockType.IsBillboard &&
+           blockType.RenderType is not BlockRenderType.Item;
+
+    private bool[] BuildOpenSkyCache(ChunkEntity chunk)
     {
-        return face switch
+        var cache = new bool[ChunkEntity.Size * ChunkEntity.Size];
+
+        for (var z = 0; z < ChunkEntity.Size; z++)
         {
-            BlockFace.Top => (x, y + 1, z),
-            BlockFace.Bottom => (x, y - 1, z),
-            BlockFace.Front => (x, y, z + 1),
-            BlockFace.Back => (x, y, z - 1),
-            BlockFace.Left => (x - 1, y, z),
-            BlockFace.Right => (x + 1, y, z),
-            _ => (x, y, z)
-        };
+            for (var x = 0; x < ChunkEntity.Size; x++)
+            {
+                cache[z * ChunkEntity.Size + x] = ColumnHasOpenSky(chunk, x, z);
+            }
+        }
+
+        return cache;
     }
 
     /// <summary>
@@ -218,18 +238,18 @@ public sealed class ChunkLightingService
     private static float CalculateCornerAO(ChunkEntity chunk, int x, int y, int z, BlockFace face, int corner)
     {
         // Each corner checks 3 adjacent blocks for occlusion
-        int solidCount = 0;
-        int faceIndex = (int)face;
+        var solidCount = 0;
+        var faceIndex = (int)face;
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             int dx = CornerOffsets[faceIndex, corner, i, 0];
             int dy = CornerOffsets[faceIndex, corner, i, 1];
             int dz = CornerOffsets[faceIndex, corner, i, 2];
 
-            int checkX = x + dx;
-            int checkY = y + dy;
-            int checkZ = z + dz;
+            var checkX = x + dx;
+            var checkY = y + dy;
+            var checkZ = z + dz;
 
             // Check bounds manually
             if (checkX < 0 ||
@@ -246,7 +266,7 @@ public sealed class ChunkLightingService
             }
 
             // Safe to use GetBlockFast as we just checked bounds
-            ushort neighborBlockId = chunk.GetBlockFast(checkX, checkY, checkZ);
+            var neighborBlockId = chunk.GetBlockFast(checkX, checkY, checkZ);
 
             if (neighborBlockId > 0) // Any non-air block
             {
@@ -255,7 +275,74 @@ public sealed class ChunkLightingService
         }
 
         // AO brightness: 3 solids = 0.3 (70% dark), 0 solids = 1.0 (fully bright)
-        return 1.0f - (solidCount / 3.0f * 0.7f);
+        return 1.0f - solidCount / 3.0f * 0.7f;
+    }
+
+    private bool ColumnHasOpenSky(ChunkEntity chunk, int x, int z)
+    {
+        for (var ty = ChunkEntity.Height - 1; ty >= 0; ty--)
+        {
+            var blockId = chunk.GetBlockFast(x, ty, z);
+
+            if (blockId == 0)
+            {
+                continue;
+            }
+
+            var blockType = _blockRegistry.GetById(blockId);
+
+            // Only explicitly see-through elements (transparent/billboard/item) let skylight pass through.
+            if (!BlocksSkyLight(blockType))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the direction index for encoding in vertex alpha channel.
+    /// </summary>
+    private static byte GetDirectionIndex(BlockFace face)
+        => face switch
+        {
+            BlockFace.Front  => 0,
+            BlockFace.Back   => 1,
+            BlockFace.Right  => 2,
+            BlockFace.Left   => 3,
+            BlockFace.Top    => 4,
+            BlockFace.Bottom => 5,
+            _                => 6
+        };
+
+    private static (int x, int y, int z) GetNeighborPosition(int x, int y, int z, BlockFace face)
+    {
+        return face switch
+        {
+            BlockFace.Top    => (x, y + 1, z),
+            BlockFace.Bottom => (x, y - 1, z),
+            BlockFace.Front  => (x, y, z + 1),
+            BlockFace.Back   => (x, y, z - 1),
+            BlockFace.Left   => (x - 1, y, z),
+            BlockFace.Right  => (x + 1, y, z),
+            _                => (x, y, z)
+        };
+    }
+
+    private bool[] GetOpenSkyCache(ChunkEntity chunk)
+    {
+        if (!_skyCache.TryGetValue(chunk, out var cache) || chunk.IsLightingDirty)
+        {
+            cache = BuildOpenSkyCache(chunk);
+            _skyCache.Remove(chunk);
+            _skyCache.Add(chunk, cache);
+            chunk.IsLightingDirty = false;
+        }
+
+        return cache;
     }
 
     private bool HasAdjacentSky(ChunkEntity chunk, bool[] openSkyCache, int x, int y, int z, BlockFace face)
@@ -280,8 +367,8 @@ public sealed class ChunkLightingService
 
         foreach (var (dx, dz) in offsets)
         {
-            int sx = x + dx;
-            int sz = z + dz;
+            var sx = x + dx;
+            var sz = z + dz;
 
             if (!IsWithinChunkBounds(sx, sz) || IsColumnSkyOpen(openSkyCache, sx, sz))
             {
@@ -292,97 +379,12 @@ public sealed class ChunkLightingService
         return false;
     }
 
-    private static bool IsWithinChunkBounds(int x, int z)
-    {
-        return x >= 0 && x < ChunkEntity.Size && z >= 0 && z < ChunkEntity.Size;
-    }
+    private static bool IsColumnSkyOpen(bool[] cache, int x, int z)
+        => cache[z * ChunkEntity.Size + x];
 
     private static bool IsSideFace(BlockFace face)
-    {
-        return face is BlockFace.Front or BlockFace.Back or BlockFace.Left or BlockFace.Right;
-    }
+        => face is BlockFace.Front or BlockFace.Back or BlockFace.Left or BlockFace.Right;
 
-    /// <summary>
-    /// Gets the direction index for encoding in vertex alpha channel.
-    /// </summary>
-    private static byte GetDirectionIndex(BlockFace face)
-        => face switch
-        {
-            BlockFace.Front  => 0,
-            BlockFace.Back   => 1,
-            BlockFace.Right  => 2,
-            BlockFace.Left   => 3,
-            BlockFace.Top    => 4,
-            BlockFace.Bottom => 5,
-            _                => 6
-        };
-
-    private bool[] GetOpenSkyCache(ChunkEntity chunk)
-    {
-        if (!_skyCache.TryGetValue(chunk, out var cache) || chunk.IsLightingDirty)
-        {
-            cache = BuildOpenSkyCache(chunk);
-            _skyCache.Remove(chunk);
-            _skyCache.Add(chunk, cache);
-            chunk.IsLightingDirty = false;
-        }
-
-        return cache;
-    }
-
-    private bool[] BuildOpenSkyCache(ChunkEntity chunk)
-    {
-        var cache = new bool[ChunkEntity.Size * ChunkEntity.Size];
-
-        for (int z = 0; z < ChunkEntity.Size; z++)
-        {
-            for (int x = 0; x < ChunkEntity.Size; x++)
-            {
-                cache[z * ChunkEntity.Size + x] = ColumnHasOpenSky(chunk, x, z);
-            }
-        }
-
-        return cache;
-    }
-
-    private bool ColumnHasOpenSky(ChunkEntity chunk, int x, int z)
-    {
-        for (int ty = ChunkEntity.Height - 1; ty >= 0; ty--)
-        {
-            var blockId = chunk.GetBlockFast(x, ty, z);
-
-            if (blockId == 0)
-            {
-                continue;
-            }
-
-            var blockType = _blockRegistry.GetById(blockId);
-
-            // Only explicitly see-through elements (transparent/billboard/item) let skylight pass through.
-            if (!BlocksSkyLight(blockType))
-            {
-                continue;
-            }
-
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool IsColumnSkyOpen(bool[] cache, int x, int z)
-    {
-        return cache[z * ChunkEntity.Size + x];
-    }
-
-    /// <summary>
-    /// Determines whether a block should stop skylight when scanning a column.
-    /// </summary>
-    private static bool BlocksSkyLight(BlockType blockType)
-    {
-        return !blockType.IsTransparent &&
-               !blockType.IsBillboard &&
-               blockType.RenderType is not BlockRenderType.Item;
-    }
-
+    private static bool IsWithinChunkBounds(int x, int z)
+        => x >= 0 && x < ChunkEntity.Size && z >= 0 && z < ChunkEntity.Size;
 }

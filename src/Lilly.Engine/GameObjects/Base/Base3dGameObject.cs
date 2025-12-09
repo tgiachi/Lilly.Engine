@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
@@ -34,14 +33,6 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     public IGameObject? Parent { get; set; }
     public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject>();
-
-    public void OnRemoved()
-    {
-        foreach (var child in Children)
-        {
-            _gameObjectManager.RemoveGameObject(child);
-        }
-    }
 
     public bool IgnoreFrustumCulling { get; set; }
 
@@ -97,13 +88,13 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
             Span<Vector3> offsets =
             [
                 new(-half.X, -half.Y, -half.Z),
-                new(-half.X, -half.Y,  half.Z),
-                new(-half.X,  half.Y, -half.Z),
-                new(-half.X,  half.Y,  half.Z),
-                new( half.X, -half.Y, -half.Z),
-                new( half.X, -half.Y,  half.Z),
-                new( half.X,  half.Y, -half.Z),
-                new( half.X,  half.Y,  half.Z)
+                new(-half.X, -half.Y, half.Z),
+                new(-half.X, half.Y, -half.Z),
+                new(-half.X, half.Y, half.Z),
+                new(half.X, -half.Y, -half.Z),
+                new(half.X, -half.Y, half.Z),
+                new(half.X, half.Y, -half.Z),
+                new(half.X, half.Y, half.Z)
             ];
 
             var min = new Vector3(float.PositiveInfinity);
@@ -116,15 +107,13 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
                 max = Vector3.Max(max, world);
             }
 
-            return new BoundingBox(min, max);
+            return new(min, max);
         }
     }
 
     private readonly IGameObjectManager _gameObjectManager;
 
     public event Action? TransformChanged;
-
-    public virtual void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera) { }
 
     protected Base3dGameObject(string name, IGameObjectManager gameObjectManager, uint zIndex = 0)
     {
@@ -133,6 +122,27 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
         ZIndex = zIndex;
         IsActive = true;
         _transform.Changed += HandleTransformChanged;
+    }
+
+    public virtual void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera) { }
+
+    public virtual void Initialize() { }
+
+    public void OnRemoved()
+    {
+        foreach (var child in Children)
+        {
+            _gameObjectManager.RemoveGameObject(child);
+        }
+    }
+
+    /// <summary>
+    /// Updates the game object. Override to implement custom update logic.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    public virtual void Update(GameTime gameTime)
+    {
+        if (!IsActive) { }
     }
 
     /// <summary>
@@ -153,6 +163,15 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
                 _gameObjectManager.AddGameObject(gameObject);
             }
         }
+    }
+
+    protected TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
+    {
+        var gameObject = _gameObjectManager.CreateGameObject<TGameObject>();
+
+        AddGameObject(gameObject);
+
+        return gameObject;
     }
 
     protected TGameObject? GetGameObject<TGameObject>() where TGameObject : class, IGameObject
@@ -188,29 +207,6 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
             }
         }
     }
-
-    protected TGameObject CreateGameObject<TGameObject>() where TGameObject : class, IGameObject
-    {
-        var gameObject = _gameObjectManager.CreateGameObject<TGameObject>();
-
-        AddGameObject(gameObject);
-
-        return gameObject;
-    }
-
-    /// <summary>
-    /// Updates the game object. Override to implement custom update logic.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    public virtual void Update(GameTime gameTime)
-    {
-        if (!IsActive)
-        {
-            return;
-        }
-    }
-
-    public virtual void Initialize() { }
 
     private void HandleTransformChanged(Transform3D obj)
     {

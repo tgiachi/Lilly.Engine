@@ -31,7 +31,5 @@ public sealed class ShaderLinkException : Exception
 public sealed class UniformNotFoundException : Exception
 {
     public UniformNotFoundException(string name)
-        : base($"Uniform '{name}' not found on shader.")
-    {
-    }
+        : base($"Uniform '{name}' not found on shader.") { }
 }

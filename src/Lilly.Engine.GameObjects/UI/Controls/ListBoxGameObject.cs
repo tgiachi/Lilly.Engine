@@ -3,8 +3,8 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Utils;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.Input;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
@@ -429,6 +429,33 @@ public class ListBoxGameObject : Base2dGameObject, IInputReceiver
     private static bool RectContains(Rectangle<int> rect, Vector2 point)
         => rect.Contains(new Vector2D<int>((int)point.X, (int)point.Y));
 
+    private string TrimTextToFit(string text, float maxWidth)
+    {
+        const string ellipsis = "...";
+        var ellipsisWidth = TextMeasurement.MeasureStringWidth(_assetManager, ellipsis, Theme.FontName, Theme.FontSize);
+
+        if (maxWidth <= ellipsisWidth)
+        {
+            return string.Empty;
+        }
+
+        var current = text;
+
+        while (TextMeasurement.MeasureStringWidth(_assetManager, current, Theme.FontName, Theme.FontSize) >
+               maxWidth - ellipsisWidth &&
+               current.Length > 0)
+        {
+            current = current[..^1];
+        }
+
+        if (current.Length == text.Length)
+        {
+            return current;
+        }
+
+        return current + ellipsis;
+    }
+
     private void UpdateHoverState(Vector2 mousePos)
     {
         var bounds = Bounds;
@@ -454,31 +481,5 @@ public class ListBoxGameObject : Base2dGameObject, IInputReceiver
     private void UpdateTransformSize()
     {
         Transform.Size = new(_width, _height);
-    }
-
-    private string TrimTextToFit(string text, float maxWidth)
-    {
-        const string ellipsis = "...";
-        var ellipsisWidth = TextMeasurement.MeasureStringWidth(_assetManager, ellipsis, Theme.FontName, Theme.FontSize);
-
-        if (maxWidth <= ellipsisWidth)
-        {
-            return string.Empty;
-        }
-
-        var current = text;
-
-        while (TextMeasurement.MeasureStringWidth(_assetManager, current, Theme.FontName, Theme.FontSize) > maxWidth - ellipsisWidth &&
-               current.Length > 0)
-        {
-            current = current[..^1];
-        }
-
-        if (current.Length == text.Length)
-        {
-            return current;
-        }
-
-        return current + ellipsis;
     }
 }

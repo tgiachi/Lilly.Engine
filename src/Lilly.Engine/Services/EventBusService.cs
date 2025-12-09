@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Reactive.Subjects;
 using System.Threading.Channels;
@@ -29,7 +28,7 @@ public class EventBusService : IEventBusService, IDisposable
     public EventBusService()
     {
         _channel = Channel.CreateUnbounded<EventDispatchJob>(
-            new UnboundedChannelOptions
+            new()
             {
                 SingleReader = true,
                 SingleWriter = false
@@ -41,49 +40,85 @@ public class EventBusService : IEventBusService, IDisposable
         _logger.Information("EventBusService initialized with Channel");
     }
 
-    /// <summary>
-    /// Registers a listener for a specific event type.
-    /// </summary>
-    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
-    public IDisposable Subscribe<TEvent>(IEventBusListener<TEvent> listener) where TEvent : class
+    private sealed class Subscription<TEvent> : IDisposable where TEvent : class
     {
-        var eventType = typeof(TEvent);
-        var listeners = (ConcurrentBag<IEventBusListener<TEvent>>)_listeners.GetOrAdd(
-            eventType,
-            _ => new ConcurrentBag<IEventBusListener<TEvent>>()
-        );
+        private readonly EventBusService _eventBus;
+        private readonly IEventBusListener<TEvent> _listener;
+        private Action _unsubscribeAction;
 
-        listeners.Add(listener);
-        Interlocked.Increment(ref _totalListenerCount);
+        public Subscription(EventBusService eventBus, IEventBusListener<TEvent> listener)
+        {
+            _eventBus = eventBus;
+            _listener = listener;
+            _unsubscribeAction = () => _eventBus.Unsubscribe(_listener);
+        }
 
-        _logger.Verbose(
-            "Registered listener {ListenerType} for event {EventType}. Total listeners: {TotalCount}",
-            listener.GetType().Name,
-            eventType.Name,
-            _totalListenerCount
-        );
+        public void Dispose()
+        {
+            _unsubscribeAction?.Invoke();
+            _unsubscribeAction = null; // Prevent double un-subscription
+        }
+    }
 
-        return new Subscription<TEvent>(this, listener);
+    private sealed class FunctionSignalListener<TEvent> : IEventBusListener<TEvent> where TEvent : class
+    {
+        private readonly Func<TEvent, CancellationToken, Task> _handler;
+
+        public FunctionSignalListener(Func<TEvent, CancellationToken, Task> handler)
+            => _handler = handler;
+
+        public Task HandleAsync(TEvent evt, CancellationToken cancellationToken)
+            => _handler(evt, cancellationToken);
+
+        public bool HasSameHandler(Func<TEvent, CancellationToken, Task> handler)
+            => _handler == handler;
+    }
+
+    private abstract class EventDispatchJob
+    {
+        public abstract Task ExecuteAsync();
+    }
+
+    private sealed class EventDispatchJob<TEvent> : EventDispatchJob where TEvent : class
+    {
+        private readonly IEventBusListener<TEvent> _listener;
+        private readonly TEvent _eventData;
+
+        public EventDispatchJob(IEventBusListener<TEvent> listener, TEvent eventData)
+        {
+            _listener = listener;
+            _eventData = eventData;
+        }
+
+        public override Task ExecuteAsync()
+            => _listener.HandleAsync(_eventData, CancellationToken.None);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// Registers a function as a listener for a specific event type.
+    /// Returns total listener count.
     /// </summary>
-    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
-    public IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : class
+    public int GetListenerCount()
+        => _totalListenerCount;
+
+    /// <summary>
+    /// Returns listener count for a specific event type.
+    /// </summary>
+    public int GetListenerCount<TEvent>() where TEvent : class
     {
-        var listener = new FunctionSignalListener<TEvent>(handler);
+        if (_listeners.TryGetValue(typeof(TEvent), out var listenersObj))
+        {
+            var listeners = (ConcurrentBag<IEventBusListener<TEvent>>)listenersObj;
 
-        // We need to keep a reference to the listener to be able to unsubscribe it later
-        // A simple way is to wrap it in another object or use a tuple
-        var subscription = Subscribe(listener);
+            return listeners.Count;
+        }
 
-        _logger.Verbose("Registered function handler for event {EventType}", typeof(TEvent).Name);
-
-        // This is a bit of a hack to keep the original handler for unsubscription
-        var disposable = new Subscription<TEvent>(this, new FunctionSignalListener<TEvent>(handler));
-
-        return disposable;
+        return 0;
     }
 
     /// <summary>
@@ -154,24 +189,48 @@ public class EventBusService : IEventBusService, IDisposable
     }
 
     /// <summary>
-    /// Returns total listener count.
+    /// Registers a listener for a specific event type.
     /// </summary>
-    public int GetListenerCount()
-        => _totalListenerCount;
+    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
+    public IDisposable Subscribe<TEvent>(IEventBusListener<TEvent> listener) where TEvent : class
+    {
+        var eventType = typeof(TEvent);
+        var listeners = (ConcurrentBag<IEventBusListener<TEvent>>)_listeners.GetOrAdd(
+            eventType,
+            _ => new ConcurrentBag<IEventBusListener<TEvent>>()
+        );
+
+        listeners.Add(listener);
+        Interlocked.Increment(ref _totalListenerCount);
+
+        _logger.Verbose(
+            "Registered listener {ListenerType} for event {EventType}. Total listeners: {TotalCount}",
+            listener.GetType().Name,
+            eventType.Name,
+            _totalListenerCount
+        );
+
+        return new Subscription<TEvent>(this, listener);
+    }
 
     /// <summary>
-    /// Returns listener count for a specific event type.
+    /// Registers a function as a listener for a specific event type.
     /// </summary>
-    public int GetListenerCount<TEvent>() where TEvent : class
+    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
+    public IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : class
     {
-        if (_listeners.TryGetValue(typeof(TEvent), out var listenersObj))
-        {
-            var listeners = (ConcurrentBag<IEventBusListener<TEvent>>)listenersObj;
+        var listener = new FunctionSignalListener<TEvent>(handler);
 
-            return listeners.Count;
-        }
+        // We need to keep a reference to the listener to be able to unsubscribe it later
+        // A simple way is to wrap it in another object or use a tuple
+        var subscription = Subscribe(listener);
 
-        return 0;
+        _logger.Verbose("Registered function handler for event {EventType}", typeof(TEvent).Name);
+
+        // This is a bit of a hack to keep the original handler for unsubscription
+        var disposable = new Subscription<TEvent>(this, new FunctionSignalListener<TEvent>(handler));
+
+        return disposable;
     }
 
     /// <summary>
@@ -181,6 +240,54 @@ public class EventBusService : IEventBusService, IDisposable
     {
         _channel.Writer.Complete();
         await _processingTask;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            _cts.Cancel();
+            _channel.Writer.TryComplete();
+            _processingTask.Wait();
+            _cts.Dispose();
+        }
+
+        _disposed = true;
+    }
+
+    /// <summary>
+    /// Background processor for event dispatch jobs.
+    /// </summary>
+    private async Task ProcessEventsAsync()
+    {
+        try
+        {
+            await foreach (var job in _channel.Reader.ReadAllAsync(_cts.Token))
+            {
+                try
+                {
+                    await job.ExecuteAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex, "Error while executing event dispatch job {JobType}", job.GetType().Name);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // This is expected on shutdown
+            _logger.Information("Event processing task was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Unexpected error in event processing task");
+        }
     }
 
     private void Unsubscribe<TEvent>(IEventBusListener<TEvent> listener) where TEvent : class
@@ -243,119 +350,4 @@ public class EventBusService : IEventBusService, IDisposable
             _listeners.TryUpdate(eventType, updatedListeners, listeners);
         }
     }
-
-    /// <summary>
-    /// Background processor for event dispatch jobs.
-    /// </summary>
-    private async Task ProcessEventsAsync()
-    {
-        try
-        {
-            await foreach (var job in _channel.Reader.ReadAllAsync(_cts.Token))
-            {
-                try
-                {
-                    await job.ExecuteAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex, "Error while executing event dispatch job {JobType}", job.GetType().Name);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // This is expected on shutdown
-            _logger.Information("Event processing task was cancelled.");
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Unexpected error in event processing task");
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-            return;
-
-        if (disposing)
-        {
-            _cts.Cancel();
-            _channel.Writer.TryComplete();
-            _processingTask.Wait();
-            _cts.Dispose();
-        }
-
-        _disposed = true;
-    }
-
-    private sealed class Subscription<TEvent> : IDisposable where TEvent : class
-    {
-        private readonly EventBusService _eventBus;
-        private readonly IEventBusListener<TEvent> _listener;
-        private Action _unsubscribeAction;
-
-        public Subscription(EventBusService eventBus, IEventBusListener<TEvent> listener)
-        {
-            _eventBus = eventBus;
-            _listener = listener;
-            _unsubscribeAction = () => _eventBus.Unsubscribe(_listener);
-        }
-
-        public void Dispose()
-        {
-            _unsubscribeAction?.Invoke();
-            _unsubscribeAction = null; // Prevent double un-subscription
-        }
-    }
-
-    private sealed class FunctionSignalListener<TEvent> : IEventBusListener<TEvent> where TEvent : class
-    {
-        private readonly Func<TEvent, CancellationToken, Task> _handler;
-
-        public FunctionSignalListener(Func<TEvent, CancellationToken, Task> handler)
-        {
-            _handler = handler;
-        }
-
-        public Task HandleAsync(TEvent evt, CancellationToken cancellationToken)
-        {
-            return _handler(evt, cancellationToken);
-        }
-
-        public bool HasSameHandler(Func<TEvent, CancellationToken, Task> handler)
-        {
-            return _handler == handler;
-        }
-    }
-
-    private abstract class EventDispatchJob
-    {
-        public abstract Task ExecuteAsync();
-    }
-
-    private sealed class EventDispatchJob<TEvent> : EventDispatchJob where TEvent : class
-    {
-        private readonly IEventBusListener<TEvent> _listener;
-        private readonly TEvent _eventData;
-
-        public EventDispatchJob(IEventBusListener<TEvent> listener, TEvent eventData)
-        {
-            _listener = listener;
-            _eventData = eventData;
-        }
-
-        public override Task ExecuteAsync()
-        {
-            return _listener.HandleAsync(_eventData, CancellationToken.None);
-        }
-    }
-
 }

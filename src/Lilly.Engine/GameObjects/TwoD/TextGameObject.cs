@@ -16,7 +16,6 @@ public class TextGameObject : Base2dGameObject
     private int _fontSize = 16;
     private string _fontName = "default";
 
-
     private readonly IAssetManager? _assetManager;
 
     /// <summary>
@@ -81,9 +80,19 @@ public class TextGameObject : Base2dGameObject
     /// Initializes a new instance of the TextGameObject class.
     /// </summary>
     /// <param name="assetManager">The asset manager for loading fonts.</param>
-    public TextGameObject(IAssetManager? assetManager, IGameObjectManager gameObjectManager) : base("TextGameObject", gameObjectManager)
+    public TextGameObject(IAssetManager? assetManager, IGameObjectManager gameObjectManager) : base(
+        "TextGameObject",
+        gameObjectManager
+    )
+        => _assetManager = assetManager;
+
+    /// <summary>
+    /// Updates the game object and invokes the optional update action.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    public override void Update(GameTime gameTime)
     {
-        _assetManager = assetManager;
+        OnUpdateAction?.Invoke(gameTime);
     }
 
     /// <summary>
@@ -97,15 +106,6 @@ public class TextGameObject : Base2dGameObject
         var worldScale = GetWorldScale();
 
         SpriteBatcher.DrawText(FontName, FontSize, Text, worldPosition, Color, worldRotation, worldScale);
-    }
-
-    /// <summary>
-    /// Updates the game object and invokes the optional update action.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    public override void Update(GameTime gameTime)
-    {
-        OnUpdateAction?.Invoke(gameTime);
     }
 
     /// <summary>

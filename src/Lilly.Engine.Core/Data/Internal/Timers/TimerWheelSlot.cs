@@ -18,20 +18,14 @@ public class TimerWheelSlot
     /// <param name="timer">The timer to add</param>
     /// <returns>The linked list node for efficient removal</returns>
     public LinkedListNode<TimerDataObject> Add(TimerDataObject timer)
-    {
-        return _timers.AddLast(timer);
-    }
+        => _timers.AddLast(timer);
 
     /// <summary>
-    /// Removes a timer from this slot using its node reference
+    /// Clears all timers from this slot
     /// </summary>
-    /// <param name="node">The node to remove</param>
-    public void Remove(LinkedListNode<TimerDataObject> node)
+    public void Clear()
     {
-        if (node.List == _timers)
-        {
-            _timers.Remove(node);
-        }
+        _timers.Clear();
     }
 
     /// <summary>
@@ -48,6 +42,7 @@ public class TimerWheelSlot
         }
 
         _timers.Clear();
+
         return result;
     }
 
@@ -56,15 +51,17 @@ public class TimerWheelSlot
     /// </summary>
     /// <returns>Enumerator for the timers</returns>
     public LinkedList<TimerDataObject>.Enumerator GetEnumerator()
-    {
-        return _timers.GetEnumerator();
-    }
+        => _timers.GetEnumerator();
 
     /// <summary>
-    /// Clears all timers from this slot
+    /// Removes a timer from this slot using its node reference
     /// </summary>
-    public void Clear()
+    /// <param name="node">The node to remove</param>
+    public void Remove(LinkedListNode<TimerDataObject> node)
     {
-        _timers.Clear();
+        if (node.List == _timers)
+        {
+            _timers.Remove(node);
+        }
     }
 }

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Lilly.Voxel.Plugin.Blocks;
-using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Json.Converters;
 
@@ -49,7 +48,7 @@ public class BlockTextureObjectConverter : JsonConverter<BlockTextureObject>
             throw new JsonException($"Index must be non-negative in BlockTextureObject: {index}");
         }
 
-        return new BlockTextureObject(atlasName, index);
+        return new(atlasName, index);
     }
 
     public override void Write(Utf8JsonWriter writer, BlockTextureObject value, JsonSerializerOptions options)

@@ -26,9 +26,9 @@ public struct CloudsVertex : IVertex
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
     {
         // Position: vec3 (3 floats)
-        descriptions[0] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[0] = new(AttributeType.FloatVec3);
 
         // Normal: vec3 (3 floats)
-        descriptions[1] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[1] = new(AttributeType.FloatVec3);
     }
 }

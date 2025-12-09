@@ -128,20 +128,6 @@ public static partial class ResourceUtils
         return directoryPart.Replace('.', Path.DirectorySeparatorChar);
     }
 
-
-    public static string GetEmbeddedResourceString(Assembly assembly, string resourceName)
-    {
-        var stream = GetEmbeddedResourceStream(assembly, resourceName);
-
-        using (stream)
-        {
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
-        }
-
-
-    }
-
     /// <summary>
     /// Gets an embedded resource as a byte array wrapped in Memory
     /// </summary>
@@ -340,6 +326,18 @@ public static partial class ResourceUtils
         }
 
         return stream;
+    }
+
+    public static string GetEmbeddedResourceString(Assembly assembly, string resourceName)
+    {
+        var stream = GetEmbeddedResourceStream(assembly, resourceName);
+
+        using (stream)
+        {
+            using var reader = new StreamReader(stream);
+
+            return reader.ReadToEnd();
+        }
     }
 
     /// <summary>

@@ -19,18 +19,18 @@
 
 
         <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"/>
-<!--        <PackageReference Include="AssimpNet.Mobile.Native.Windows" Version="5.1.0"-->
-<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('win')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('win'))"/>-->
-<!--        <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"-->
-<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('linux')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('linux'))"/>-->
-<!--        <PackageReference Include="AssimpNet.Mobile.Native.Mac" Version="5.1.0"-->
-<!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('osx')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('osx'))"/>-->
+        <!--        <PackageReference Include="AssimpNet.Mobile.Native.Windows" Version="5.1.0"-->
+        <!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('win')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('win'))"/>-->
+        <!--        <PackageReference Include="AssimpNet.Mobile.Native.Linux" Version="5.1.0"-->
+        <!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('linux')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('linux'))"/>-->
+        <!--        <PackageReference Include="AssimpNet.Mobile.Native.Mac" Version="5.1.0"-->
+        <!--                          Condition="$([System.String]::Copy('$(RuntimeIdentifier)').ToLowerInvariant().StartsWith('osx')) OR $([System.String]::Copy('$(RuntimeIdentifiers)').ToLowerInvariant().Contains('osx'))"/>-->
 
 
-<!--        <PackageReference Include="Assimp.redist" Version="3.0.0" />-->
+        <!--        <PackageReference Include="Assimp.redist" Version="3.0.0" />-->
 
 
-<!--        <PackageReference Include="AssimpNet" Version="4.1.0" />-->
+        <!--        <PackageReference Include="AssimpNet" Version="4.1.0" />-->
 
 
         <PackageReference Include="FontStashSharp.Base" Version="1.2.2"/>

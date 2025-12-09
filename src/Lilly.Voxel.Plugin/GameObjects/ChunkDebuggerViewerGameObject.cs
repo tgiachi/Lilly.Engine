@@ -34,6 +34,42 @@ public sealed class ChunkDebuggerViewerGameObject : Base3dGameObject, IDisposabl
         IgnoreFrustumCulling = true;
     }
 
+    public void Dispose()
+    {
+        _vertexBuffer?.Dispose();
+        _shaderProgram?.Dispose();
+    }
+
+    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!_hasTarget || _vertexBuffer == null || _shaderProgram == null)
+        {
+            return;
+        }
+
+        graphicsDevice.ShaderProgram = _shaderProgram;
+        _shaderProgram.World = Transform.GetTransformationMatrix();
+        _shaderProgram.View = camera.View;
+        _shaderProgram.Projection = camera.Projection;
+
+        var oldBlend = graphicsDevice.BlendState;
+        var oldDepth = graphicsDevice.DepthState;
+        var oldCulling = graphicsDevice.FaceCullingEnabled;
+        var oldCullMode = graphicsDevice.CullFaceMode;
+
+        graphicsDevice.BlendState = BlendState.AlphaBlend;
+        graphicsDevice.DepthState = DepthState.Default;
+        graphicsDevice.FaceCullingEnabled = false;
+
+        graphicsDevice.VertexArray = _vertexBuffer;
+        graphicsDevice.DrawArrays(PrimitiveType.Lines, 0, _vertexBuffer.Value.StorageLength);
+
+        graphicsDevice.BlendState = oldBlend;
+        graphicsDevice.DepthState = oldDepth;
+        graphicsDevice.FaceCullingEnabled = oldCulling;
+        graphicsDevice.CullFaceMode = oldCullMode;
+    }
+
     public override void Initialize()
     {
         var p0 = new Vector3(0, 0, 0);
@@ -93,42 +129,6 @@ public sealed class ChunkDebuggerViewerGameObject : Base3dGameObject, IDisposabl
         const float inset = 0.01f;
         _hasTarget = true;
         Transform.Position = chunkOrigin - new Vector3(inset * 0.5f);
-        Transform.Scale = new Vector3(ChunkEntity.Size + inset, ChunkEntity.Height + inset, ChunkEntity.Size + inset);
-    }
-
-    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        if (!_hasTarget || _vertexBuffer == null || _shaderProgram == null)
-        {
-            return;
-        }
-
-        graphicsDevice.ShaderProgram = _shaderProgram;
-        _shaderProgram.World = Transform.GetTransformationMatrix();
-        _shaderProgram.View = camera.View;
-        _shaderProgram.Projection = camera.Projection;
-
-        var oldBlend = graphicsDevice.BlendState;
-        var oldDepth = graphicsDevice.DepthState;
-        var oldCulling = graphicsDevice.FaceCullingEnabled;
-        var oldCullMode = graphicsDevice.CullFaceMode;
-
-        graphicsDevice.BlendState = BlendState.AlphaBlend;
-        graphicsDevice.DepthState = DepthState.Default;
-        graphicsDevice.FaceCullingEnabled = false;
-
-        graphicsDevice.VertexArray = _vertexBuffer;
-        graphicsDevice.DrawArrays(PrimitiveType.Lines, 0, _vertexBuffer.Value.StorageLength);
-
-        graphicsDevice.BlendState = oldBlend;
-        graphicsDevice.DepthState = oldDepth;
-        graphicsDevice.FaceCullingEnabled = oldCulling;
-        graphicsDevice.CullFaceMode = oldCullMode;
-    }
-
-    public void Dispose()
-    {
-        _vertexBuffer?.Dispose();
-        _shaderProgram?.Dispose();
+        Transform.Scale = new(ChunkEntity.Size + inset, ChunkEntity.Height + inset, ChunkEntity.Size + inset);
     }
 }

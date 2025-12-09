@@ -22,27 +22,27 @@ uniform float uFade;
 
 void main()
 {
-    // Calculate the atlas texture coordinates using tile base and size
-    vec2 tiledCoord = fract(vec2(vTexCoord.x, 1.0 - vTexCoord.y));
-    vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
-    vec4 texResult = texture(uTexture, atlasCoord * uTexMultiplier);
+// Calculate the atlas texture coordinates using tile base and size
+vec2 tiledCoord = fract(vec2(vTexCoord.x, 1.0 - vTexCoord.y));
+vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
+vec4 texResult = texture(uTexture, atlasCoord * uTexMultiplier);
 
-    if (texResult.a < 0.001)
-        discard;
+if (texResult.a < 0.001)
+discard;
 
-    // Billboards are camera-facing, so use simplified lighting
-    vec3 vertexLight = clamp(vColor.rgb, 0.0, 1.0);
-    vertexLight = max(vertexLight, vec3(0.45)); // lift dark billboards
-    vec3 diffuse = vec3(0.5, 0.5, 0.5); // Fixed diffuse for billboards
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.1;
-    color *= uFade;
+// Billboards are camera-facing, so use simplified lighting
+vec3 vertexLight = clamp(vColor.rgb, 0.0, 1.0);
+vertexLight = max(vertexLight, vec3(0.45)); // lift dark billboards
+vec3 diffuse = vec3(0.5, 0.5, 0.5); // Fixed diffuse for billboards
+vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight + texResult.rgb * 0.1;
+color *= uFade;
 
-    if (uFogEnabled)
-    {
-        color = mix(uFogColor, color, vFogFactor);
-    }
+if (uFogEnabled)
+{
+color = mix(uFogColor, color, vFogFactor);
+}
 
-    FragColor = vec4(color, texResult.a * uFade);
+FragColor = vec4(color, texResult.a * uFade);
 }
 
 #shader vertex
@@ -74,23 +74,23 @@ out vec3 vBlockCoord;
 
 void main()
 {
-    vec4 worldPosition = vec4(aPosition + uModel, 1.0);
-    vec4 viewPosition = uView * worldPosition;
-    gl_Position = uProjection * viewPosition;
+vec4 worldPosition = vec4(aPosition + uModel, 1.0);
+vec4 viewPosition = uView * worldPosition;
+gl_Position = uProjection * viewPosition;
 
-    vTexCoord = aTexCoords;
-    vTileBase = aTileBase;
-    vTileSize = aTileSize;
-    vColor = aColor;
-    vBlockCoord = aBlockCoord;
+vTexCoord = aTexCoords;
+vTileBase = aTileBase;
+vTileSize = aTileSize;
+vColor = aColor;
+vBlockCoord = aBlockCoord;
 
-    if (uFogEnabled)
-    {
-        float distance = length(viewPosition.xyz);
-        vFogFactor = clamp((uFogEnd - distance) / (uFogEnd - uFogStart), 0.0, 1.0);
-    }
-    else
-    {
-        vFogFactor = 1.0;
-    }
+if (uFogEnabled)
+{
+float distance = length(viewPosition.xyz);
+vFogFactor = clamp((uFogEnd - distance) / (uFogEnd - uFogStart), 0.0, 1.0);
+}
+else
+{
+vFogFactor = 1.0;
+}
 }

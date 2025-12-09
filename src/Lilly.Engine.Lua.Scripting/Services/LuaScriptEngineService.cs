@@ -51,7 +51,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     private readonly ConcurrentDictionary<string, object> _loadedModules = new();
     private readonly ILogger _logger = Log.ForContext<LuaScriptEngineService>();
 
-
     // Script caching - using hash to avoid re-parsing identical scripts
     private readonly ConcurrentDictionary<string, string> _scriptCache = new();
     private readonly List<ScriptModuleData> _scriptModules;
@@ -565,6 +564,13 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
     }
 
     /// <summary>
+    /// Stops the script engine asynchronously.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
+    /// <summary>
     /// Starts the script engine asynchronously.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -614,13 +620,6 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
             throw;
         }
     }
-
-    /// <summary>
-    /// Stops the script engine asynchronously.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public Task ShutdownAsync()
-        => Task.CompletedTask;
 
     /// <summary>
     /// Converts a name to the script engine function name format.

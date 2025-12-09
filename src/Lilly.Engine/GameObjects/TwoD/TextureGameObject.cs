@@ -32,7 +32,6 @@ public class TextureGameObject : Base2dGameObject
         }
     }
 
-
     public Vector2 Position
     {
         set => Transform.Position = value;
@@ -72,16 +71,14 @@ public class TextureGameObject : Base2dGameObject
     public Rectangle? SourceRectangle { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TextureGameObject"/> class.
+    /// Initializes a new instance of the <see cref="TextureGameObject" /> class.
     /// </summary>
     /// <param name="textureName">The name of the texture to render.</param>
     /// <param name="name">The name of the game object (default: "TextureGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
     public TextureGameObject(IGameObjectManager gameObjectManager, IAssetManager assetManager)
         : base("TextureGameObject", gameObjectManager)
-    {
-        _assetManager = assetManager;
-    }
+        => _assetManager = assetManager;
 
     protected Vector2 GetTextureSize()
     {
@@ -126,15 +123,15 @@ public class TextureGameObject : Base2dGameObject
         }
 
         SpriteBatcher.DrawTexure(
-            texture: _textureName,
-            position: _size == Vector2.Zero ? worldPosition : null,
-            destination: destination,
-            source: SourceRectangle,
-            color: Color,
-            origin: Origin,
-            scale: _size == Vector2.Zero ? worldScale : null,
-            rotation: worldRotation,
-            depth: ZIndex
+            _textureName,
+            _size == Vector2.Zero ? worldPosition : null,
+            destination,
+            SourceRectangle,
+            Color,
+            Origin,
+            _size == Vector2.Zero ? worldScale : null,
+            worldRotation,
+            ZIndex
         );
     }
 }

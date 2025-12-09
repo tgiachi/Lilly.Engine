@@ -120,6 +120,31 @@ public class BlockType
         Name = name;
     }
 
+    public void SetBack(string assetName, int index)
+    {
+        TextureSet.Back = new(assetName, index);
+    }
+
+    public void SetBottom(string assetName, int index)
+    {
+        TextureSet.Bottom = new(assetName, index);
+    }
+
+    public void SetFront(string assetName, int index)
+    {
+        TextureSet.Front = new(assetName, index);
+    }
+
+    public void SetLeft(string assetName, int index)
+    {
+        TextureSet.Left = new(assetName, index);
+    }
+
+    public void SetRight(string assetName, int index)
+    {
+        TextureSet.Right = new(assetName, index);
+    }
+
     public void SetTexture(BlockFace face, string assetName, int index)
     {
         TextureSet.SetTexture(face, assetName, index);
@@ -127,31 +152,6 @@ public class BlockType
 
     public void SetTop(string assetName, int index)
     {
-        TextureSet.Top = new BlockTextureObject(assetName, index);
-    }
-
-    public void SetBottom(string assetName, int index)
-    {
-        TextureSet.Bottom = new BlockTextureObject(assetName, index);
-    }
-
-    public void SetLeft(string assetName, int index)
-    {
-        TextureSet.Left = new BlockTextureObject(assetName, index);
-    }
-
-    public void SetRight(string assetName, int index)
-    {
-        TextureSet.Right = new BlockTextureObject(assetName, index);
-    }
-
-    public void SetFront(string assetName, int index)
-    {
-        TextureSet.Front = new BlockTextureObject(assetName, index);
-    }
-
-    public void SetBack(string assetName, int index)
-    {
-        TextureSet.Back = new BlockTextureObject(assetName, index);
+        TextureSet.Top = new(assetName, index);
     }
 }

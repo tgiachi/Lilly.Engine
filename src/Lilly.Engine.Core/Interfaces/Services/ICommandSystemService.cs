@@ -9,18 +9,18 @@ namespace Lilly.Engine.Core.Interfaces.Services;
 public interface ICommandSystemService
 {
     /// <summary>
-    /// Executes a command asynchronously with the given parameters.
-    /// </summary>
-    /// <param name="parameters">The command and its parameters.</param>
-    /// <returns>The result of the command execution.</returns>
-    Task<CommandExecuteResult> ExecuteAsync(params string[] parameters);
-
-    /// <summary>
     /// Provides autocomplete suggestions for a partial command input.
     /// </summary>
     /// <param name="input">The partial command input.</param>
     /// <returns>A collection of autocomplete suggestions.</returns>
     IEnumerable<string> AutocompleteCommand(string input);
+
+    /// <summary>
+    /// Executes a command asynchronously with the given parameters.
+    /// </summary>
+    /// <param name="parameters">The command and its parameters.</param>
+    /// <returns>The result of the command execution.</returns>
+    Task<CommandExecuteResult> ExecuteAsync(params string[] parameters);
 
     /// <summary>
     /// Registers a command with the system.

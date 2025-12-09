@@ -1,5 +1,4 @@
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Rendering.Core.Collections;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Types;
 
@@ -21,37 +20,34 @@ public interface IRenderLayer
     RenderPriority Priority { get; }
 
     /// <summary>
-    ///  Gets or sets whether the render layer is active.
+    /// Gets or sets whether the render layer is active.
     /// </summary>
     bool IsActive { get; set; }
 
     /// <summary>
-    /// Initializes the render layer.
+    /// Gets the count of entities in the render layer.
     /// </summary>
-    void Initialize();
+    int ProcessedEntityCount { get; }
 
     /// <summary>
-    /// Updates the render layer with the given game time.
+    /// Gets the count of entities that were skipped during processing.
     /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    void Update(GameTime gameTime);
-
-
-    TEntity? GetEntity<TEntity>() where TEntity : IGameObject;
-
+    int SkippedEntityCount { get; }
 
     /// <summary>
-    /// Renders the layer with the given game time.
+    /// Gets the total count of entities ever added to the render layer.
     /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    void Render(GameTime gameTime);
+    int TotalEntityCount { get; }
 
     /// <summary>
-    /// Determines whether the specified entity type can be added to this layer.
+    /// Gets the time taken to render the layer in milliseconds.
     /// </summary>
-    /// <typeparam name="TEntity">The type of the entity.</typeparam>
-    /// <returns>True if the entity can be added; otherwise, false.</returns>
-    bool CanAdd<TEntity>(TEntity entity);
+    double RenderTimeMilliseconds { get; }
+
+    /// <summary>
+    /// Gets the time taken to update the layer in milliseconds.
+    /// </summary>
+    double UpdateTimeMilliseconds { get; }
 
     /// <summary>
     /// Adds the specified entity to the render layer.
@@ -61,6 +57,20 @@ public interface IRenderLayer
     void AddEntity<TEntity>(TEntity entity) where TEntity : IGameObject;
 
     /// <summary>
+    /// Determines whether the specified entity type can be added to this layer.
+    /// </summary>
+    /// <typeparam name="TEntity">The type of the entity.</typeparam>
+    /// <returns>True if the entity can be added; otherwise, false.</returns>
+    bool CanAdd<TEntity>(TEntity entity);
+
+    TEntity? GetEntity<TEntity>() where TEntity : IGameObject;
+
+    /// <summary>
+    /// Initializes the render layer.
+    /// </summary>
+    void Initialize();
+
+    /// <summary>
     /// Removes the specified entity from the render layer.
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity.</typeparam>
@@ -68,28 +78,14 @@ public interface IRenderLayer
     void RemoveEntity<TEntity>(TEntity entity) where TEntity : IGameObject;
 
     /// <summary>
-    ///  Gets the count of entities in the render layer.
+    /// Renders the layer with the given game time.
     /// </summary>
-    int ProcessedEntityCount { get; }
-
-
-    /// <summary>
-    ///  Gets the count of entities that were skipped during processing.
-    /// </summary>
-    int SkippedEntityCount { get; }
+    /// <param name="gameTime">The current game time.</param>
+    void Render(GameTime gameTime);
 
     /// <summary>
-    ///  Gets the total count of entities ever added to the render layer.
+    /// Updates the render layer with the given game time.
     /// </summary>
-    int TotalEntityCount { get; }
-
-    /// <summary>
-    ///  Gets the time taken to render the layer in milliseconds.
-    /// </summary>
-    double RenderTimeMilliseconds { get; }
-
-    /// <summary>
-    ///  Gets the time taken to update the layer in milliseconds.
-    /// </summary>
-    double UpdateTimeMilliseconds { get; }
+    /// <param name="gameTime">The current game time.</param>
+    void Update(GameTime gameTime);
 }

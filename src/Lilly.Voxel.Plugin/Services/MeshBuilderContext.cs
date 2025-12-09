@@ -31,7 +31,7 @@ internal sealed class MeshBuilderContext
 
     public MeshBuilderContext()
     {
-        int maxFaceSize = Math.Max(ChunkEntity.Size * ChunkEntity.Size, ChunkEntity.Size * ChunkEntity.Height);
+        var maxFaceSize = Math.Max(ChunkEntity.Size * ChunkEntity.Size, ChunkEntity.Size * ChunkEntity.Height);
         MaskBuffer = new FaceRenderInfo[maxFaceSize];
         BlockTypeCache = new BlockType[ChunkEntity.Size, ChunkEntity.Height, ChunkEntity.Size];
     }

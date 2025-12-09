@@ -27,7 +27,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
     private readonly ShaderProgram _fluidShader;
 
     private readonly Vector3 _defaultAmbient = new(0.8f, 0.8f, 0.8f);
-    private readonly Vector3 _defaultLightDir = Vector3.Normalize(new Vector3(0.3f, 1f, 0.3f));
+    private readonly Vector3 _defaultLightDir = Vector3.Normalize(new(0.3f, 1f, 0.3f));
 
     private string _solidAtlasName = string.Empty;
     private string _billboardAtlasName = string.Empty;
@@ -81,6 +81,63 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _currentFade = 0f;
     }
 
+    public bool IsStatic => true;
+
+    public void DisposeBuffers()
+    {
+        _solidVbo?.Dispose();
+        _billboardVbo?.Dispose();
+        _itemVbo?.Dispose();
+        _fluidVbo?.Dispose();
+    }
+
+    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!IsActive)
+        {
+            return;
+        }
+
+        DrawOpaque(gameTime, graphicsDevice, camera);
+        DrawTransparent(gameTime, graphicsDevice, camera);
+    }
+
+    public void DrawOpaque(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!IsActive)
+        {
+            return;
+        }
+
+        if (_solidVbo != null)
+        {
+            DrawSolid(camera);
+        }
+
+        if (_billboardVbo != null)
+        {
+            DrawBillboards(camera);
+        }
+
+        if (_itemVbo != null)
+        {
+            DrawItems(camera);
+        }
+    }
+
+    public void DrawTransparent(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!IsActive)
+        {
+            return;
+        }
+
+        if (_fluidVbo != null)
+        {
+            DrawFluids(gameTime, camera);
+        }
+    }
+
     public void SetPendingMesh(ChunkMeshData meshData)
     {
         _pendingMesh = meshData;
@@ -125,154 +182,6 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         UploadBillboards(mesh);
         UploadItems(mesh);
         UploadFluids(mesh);
-
-
-    }
-
-    private void UploadSolid(ChunkMeshData mesh)
-    {
-        if (mesh.Vertices.Length == 0 || mesh.Indices.Length == 0)
-        {
-            _solidVbo?.Dispose();
-            _solidVbo = null;
-
-            return;
-        }
-
-        var vertexData = Expand(mesh.Vertices, mesh.Indices);
-
-        _solidVbo?.Dispose();
-        _solidVbo = new VertexBuffer<ChunkVertex>(_graphicsDevice, vertexData, BufferUsage.StaticDraw);
-    }
-
-    private void UploadBillboards(ChunkMeshData mesh)
-    {
-        if (mesh.BillboardVertices.Length == 0 || mesh.BillboardIndices.Length == 0)
-        {
-            _billboardVbo?.Dispose();
-            _billboardVbo = null;
-
-            return;
-        }
-
-        var data = Expand(mesh.BillboardVertices, mesh.BillboardIndices);
-        _billboardVbo?.Dispose();
-        _billboardVbo = new VertexBuffer<ChunkVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
-    }
-
-    private void UploadItems(ChunkMeshData mesh)
-    {
-        if (mesh.ItemVertices.Length == 0 || mesh.ItemIndices.Length == 0)
-        {
-            _itemVbo?.Dispose();
-            _itemVbo = null;
-
-            return;
-        }
-
-        var data = Expand(mesh.ItemVertices, mesh.ItemIndices);
-        _itemVbo?.Dispose();
-        _itemVbo = new VertexBuffer<ChunkItemVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
-    }
-
-    private void UploadFluids(ChunkMeshData mesh)
-    {
-        if (mesh.FluidVertices.Length == 0 || mesh.FluidIndices.Length == 0)
-        {
-            _fluidVbo?.Dispose();
-            _fluidVbo = null;
-
-            return;
-        }
-
-        var data = Expand(mesh.FluidVertices, mesh.FluidIndices);
-        _fluidVbo?.Dispose();
-        _fluidVbo = new VertexBuffer<ChunkFluidVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
-    }
-
-    private static T[] Expand<T>(T[] vertices, int[] indices) where T : unmanaged, IVertex
-    {
-        if (indices.Length == 0)
-        {
-            return vertices;
-        }
-
-        var expanded = new T[indices.Length];
-
-        for (int i = 0; i < indices.Length; i++)
-        {
-            expanded[i] = vertices[indices[i]];
-        }
-
-        return expanded;
-    }
-
-    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        if (!IsActive)
-        {
-            return;
-        }
-
-        DrawOpaque(gameTime, graphicsDevice, camera);
-        DrawTransparent(gameTime, graphicsDevice, camera);
-    }
-
-    public void DrawOpaque(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        if (!IsActive)
-            return;
-
-        if (_solidVbo != null)
-        {
-            DrawSolid(camera);
-        }
-
-        if (_billboardVbo != null)
-        {
-            DrawBillboards(camera);
-        }
-
-        if (_itemVbo != null)
-        {
-            DrawItems(camera);
-        }
-    }
-
-    public void DrawTransparent(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        if (!IsActive)
-        {
-            return;
-        }
-
-        if (_fluidVbo != null)
-        {
-            DrawFluids(gameTime, camera);
-        }
-    }
-
-    private void DrawSolid(ICamera3D camera)
-    {
-        // Ensure standard opaque rendering states (Write=True, Test=Less)
-        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.Less);
-        _graphicsDevice.BlendState = _currentFade < 0.999f ? BlendState.AlphaBlend : BlendState.Opaque;
-        _graphicsDevice.FaceCullingEnabled = true;
-        _graphicsDevice.CullFaceMode = CullingMode.CullBack;
-
-        _graphicsDevice.ShaderProgram = _solidShader;
-        _solidShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
-        _solidShader.Uniforms["uView"].SetValueMat4(camera.View);
-        _solidShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
-        _solidShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_solidAtlasName));
-        _solidShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
-        _solidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
-        _solidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
-        _solidShader.Uniforms["uFogEnabled"].SetValueBool(false);
-        _solidShader.Uniforms["uFade"].SetValueFloat(_currentFade);
-
-        _graphicsDevice.VertexArray = _solidVbo;
-        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _solidVbo!.Value.StorageLength);
     }
 
     private void DrawBillboards(ICamera3D camera)
@@ -306,23 +215,6 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _graphicsDevice.CullFaceMode = oldCullMode;
     }
 
-    private void DrawItems(ICamera3D camera)
-    {
-        _graphicsDevice.ShaderProgram = _itemShader;
-        _itemShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
-        _itemShader.Uniforms["uView"].SetValueMat4(camera.View);
-        _itemShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
-        _itemShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
-        _itemShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_itemAtlasName));
-        _itemShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
-        _itemShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
-        _itemShader.Uniforms["uFogEnabled"].SetValueBool(false);
-        _itemShader.Uniforms["uFade"].SetValueFloat(_currentFade);
-
-        _graphicsDevice.VertexArray = _itemVbo;
-        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _itemVbo!.Value.StorageLength);
-    }
-
     private void DrawFluids(GameTime gameTime, ICamera3D camera)
     {
         _graphicsDevice.ShaderProgram = _fluidShader;
@@ -345,7 +237,7 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         var oldCullMode = _graphicsDevice.CullFaceMode;
 
         // Configure for transparency: depth test on, depth write off to see stacked fluid layers
-        _graphicsDevice.DepthState = new DepthState(true, DepthFunction.LessOrEqual);
+        _graphicsDevice.DepthState = new(true, DepthFunction.LessOrEqual);
         _graphicsDevice.BlendState = BlendState.AlphaBlend;
         _graphicsDevice.FaceCullingEnabled = true;
         _graphicsDevice.CullFaceMode = CullingMode.CullBack;
@@ -360,12 +252,61 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         _graphicsDevice.CullFaceMode = oldCullMode;
     }
 
-    public void DisposeBuffers()
+    private void DrawItems(ICamera3D camera)
     {
-        _solidVbo?.Dispose();
-        _billboardVbo?.Dispose();
-        _itemVbo?.Dispose();
-        _fluidVbo?.Dispose();
+        _graphicsDevice.ShaderProgram = _itemShader;
+        _itemShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
+        _itemShader.Uniforms["uView"].SetValueMat4(camera.View);
+        _itemShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
+        _itemShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
+        _itemShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_itemAtlasName));
+        _itemShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
+        _itemShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
+        _itemShader.Uniforms["uFogEnabled"].SetValueBool(false);
+        _itemShader.Uniforms["uFade"].SetValueFloat(_currentFade);
+
+        _graphicsDevice.VertexArray = _itemVbo;
+        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _itemVbo!.Value.StorageLength);
+    }
+
+    private void DrawSolid(ICamera3D camera)
+    {
+        // Ensure standard opaque rendering states (Write=True, Test=Less)
+        _graphicsDevice.DepthState = new(true);
+        _graphicsDevice.BlendState = _currentFade < 0.999f ? BlendState.AlphaBlend : BlendState.Opaque;
+        _graphicsDevice.FaceCullingEnabled = true;
+        _graphicsDevice.CullFaceMode = CullingMode.CullBack;
+
+        _graphicsDevice.ShaderProgram = _solidShader;
+        _solidShader.Uniforms["uModel"].SetValueVec3(Transform.Position);
+        _solidShader.Uniforms["uView"].SetValueMat4(camera.View);
+        _solidShader.Uniforms["uProjection"].SetValueMat4(camera.Projection);
+        _solidShader.Uniforms["uTexture"].SetValueTexture(GetAtlasTexture(_solidAtlasName));
+        _solidShader.Uniforms["uTexMultiplier"].SetValueFloat(1.0f);
+        _solidShader.Uniforms["uAmbient"].SetValueVec3(_defaultAmbient);
+        _solidShader.Uniforms["uLightDirection"].SetValueVec3(_defaultLightDir);
+        _solidShader.Uniforms["uFogEnabled"].SetValueBool(false);
+        _solidShader.Uniforms["uFade"].SetValueFloat(_currentFade);
+
+        _graphicsDevice.VertexArray = _solidVbo;
+        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _solidVbo!.Value.StorageLength);
+    }
+
+    private static T[] Expand<T>(T[] vertices, int[] indices) where T : unmanaged, IVertex
+    {
+        if (indices.Length == 0)
+        {
+            return vertices;
+        }
+
+        var expanded = new T[indices.Length];
+
+        for (var i = 0; i < indices.Length; i++)
+        {
+            expanded[i] = vertices[indices[i]];
+        }
+
+        return expanded;
     }
 
     private Texture2D GetAtlasTexture(string atlasName, string? fallbackAtlasName = null)
@@ -375,5 +316,64 @@ public sealed class ChunkGameObject : Base3dGameObject, ITransparentRenderable3d
         return _assetManager.GetTexture<Texture2D>(name);
     }
 
-    public bool IsStatic => true;
+    private void UploadBillboards(ChunkMeshData mesh)
+    {
+        if (mesh.BillboardVertices.Length == 0 || mesh.BillboardIndices.Length == 0)
+        {
+            _billboardVbo?.Dispose();
+            _billboardVbo = null;
+
+            return;
+        }
+
+        var data = Expand(mesh.BillboardVertices, mesh.BillboardIndices);
+        _billboardVbo?.Dispose();
+        _billboardVbo = new VertexBuffer<ChunkVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
+    }
+
+    private void UploadFluids(ChunkMeshData mesh)
+    {
+        if (mesh.FluidVertices.Length == 0 || mesh.FluidIndices.Length == 0)
+        {
+            _fluidVbo?.Dispose();
+            _fluidVbo = null;
+
+            return;
+        }
+
+        var data = Expand(mesh.FluidVertices, mesh.FluidIndices);
+        _fluidVbo?.Dispose();
+        _fluidVbo = new VertexBuffer<ChunkFluidVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
+    }
+
+    private void UploadItems(ChunkMeshData mesh)
+    {
+        if (mesh.ItemVertices.Length == 0 || mesh.ItemIndices.Length == 0)
+        {
+            _itemVbo?.Dispose();
+            _itemVbo = null;
+
+            return;
+        }
+
+        var data = Expand(mesh.ItemVertices, mesh.ItemIndices);
+        _itemVbo?.Dispose();
+        _itemVbo = new VertexBuffer<ChunkItemVertex>(_graphicsDevice, data, BufferUsage.StaticDraw);
+    }
+
+    private void UploadSolid(ChunkMeshData mesh)
+    {
+        if (mesh.Vertices.Length == 0 || mesh.Indices.Length == 0)
+        {
+            _solidVbo?.Dispose();
+            _solidVbo = null;
+
+            return;
+        }
+
+        var vertexData = Expand(mesh.Vertices, mesh.Indices);
+
+        _solidVbo?.Dispose();
+        _solidVbo = new VertexBuffer<ChunkVertex>(_graphicsDevice, vertexData, BufferUsage.StaticDraw);
+    }
 }

@@ -4,6 +4,5 @@ namespace Lilly.Engine.Data.Config;
 
 public class InitialEngineOptions
 {
-
     public RenderConfig RenderConfig { get; set; } = new();
 }

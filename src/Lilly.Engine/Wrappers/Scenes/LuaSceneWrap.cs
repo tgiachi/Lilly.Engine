@@ -1,4 +1,3 @@
-using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Scenes.Base;
 using Lilly.Rendering.Core.Interfaces.Services;
 using MoonSharp.Interpreter;

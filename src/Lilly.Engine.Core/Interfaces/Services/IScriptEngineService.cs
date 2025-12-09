@@ -136,7 +136,6 @@ public interface IScriptEngineService : ILillyService
     /// <param name="func">The delegate to register as a global function.</param>
     void RegisterGlobalFunction(string name, Delegate func);
 
-
     /// <summary>
     /// Converts a .NET method name to a JavaScript-compatible function name.
     /// </summary>

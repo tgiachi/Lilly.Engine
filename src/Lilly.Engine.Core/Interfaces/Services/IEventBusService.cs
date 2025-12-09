@@ -8,32 +8,26 @@ namespace Lilly.Engine.Core.Interfaces.Services;
 public interface IEventBusService
 {
     /// <summary>
-    ///  Observable that emits all events dispatched through the system.
+    /// Observable that emits all events dispatched through the system.
     /// </summary>
     IObservable<object> AllEventsObservable { get; }
 
     /// <summary>
-    ///  Registers a listener for a specific event type.
+    /// Gets the current number of registered listeners for all event types.
     /// </summary>
-    /// <param name="listener"></param>
-    /// <typeparam name="TEvent"></typeparam>
-    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
-    IDisposable Subscribe<TEvent>(IEventBusListener<TEvent> listener)
-        where TEvent : class;
+    /// <returns>The total number of registered listeners.</returns>
+    int GetListenerCount();
 
     /// <summary>
-    ///  Registers a listener for a specific event type.
+    /// Gets the current number of registered listeners for a specific event type.
     /// </summary>
-    /// <param name="handler"></param>
-    /// <typeparam name="TEvent"></typeparam>
-    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
-    IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler)
-        where TEvent : class;
-
+    /// <typeparam name="TEvent">The type of event.</typeparam>
+    /// <returns>The number of registered listeners for the specified event type.</returns>
+    int GetListenerCount<TEvent>() where TEvent : class;
 
     /// <summary>
-    ///  Dispatches an event to all registered listeners asynchronously via a channel.
-    ///  This is the preferred method for most events.
+    /// Dispatches an event to all registered listeners asynchronously via a channel.
+    /// This is the preferred method for most events.
     /// </summary>
     /// <param name="eventData"></param>
     /// <param name="cancellationToken"></param>
@@ -53,21 +47,25 @@ public interface IEventBusService
         where TEvent : class;
 
     /// <summary>
-    /// Gets the current number of registered listeners for all event types.
+    /// Registers a listener for a specific event type.
     /// </summary>
-    /// <returns>The total number of registered listeners.</returns>
-    int GetListenerCount();
+    /// <param name="listener"></param>
+    /// <typeparam name="TEvent"></typeparam>
+    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
+    IDisposable Subscribe<TEvent>(IEventBusListener<TEvent> listener)
+        where TEvent : class;
 
     /// <summary>
-    /// Gets the current number of registered listeners for a specific event type.
+    /// Registers a listener for a specific event type.
     /// </summary>
-    /// <typeparam name="TEvent">The type of event.</typeparam>
-    /// <returns>The number of registered listeners for the specified event type.</returns>
-    int GetListenerCount<TEvent>() where TEvent : class;
-
+    /// <param name="handler"></param>
+    /// <typeparam name="TEvent"></typeparam>
+    /// <returns>A subscription object that can be disposed to unsubscribe.</returns>
+    IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler)
+        where TEvent : class;
 
     /// <summary>
-    ///  Waits for all dispatched events in the channel to be processed.
+    /// Waits for all dispatched events in the channel to be processed.
     /// </summary>
     /// <returns></returns>
     Task WaitForCompletionAsync();

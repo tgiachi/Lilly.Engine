@@ -1,4 +1,3 @@
-using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.Interfaces.Services;
@@ -19,8 +18,7 @@ public class CrosshairGameObject : TextureGameObject
     {
         _renderContext = renderContext;
         TextureName = "crosshair";
-        Transform.Scale = new Vector2(4, 4);
-
+        Transform.Scale = new(4, 4);
     }
 
     public override void Update(GameTime gameTime)
@@ -29,11 +27,9 @@ public class CrosshairGameObject : TextureGameObject
         var height = _renderContext.GraphicsDevice.Viewport.Height;
 
         var textureSize = GetTextureSize();
-        Transform.Position = new Vector2(width / 2f - textureSize.X / 2, height / 2f - textureSize.Y / 2);
+        Transform.Position = new(width / 2f - textureSize.X / 2, height / 2f - textureSize.Y / 2);
 
         //Size = GetTextureSize();
-
-
 
         base.Update(gameTime);
     }

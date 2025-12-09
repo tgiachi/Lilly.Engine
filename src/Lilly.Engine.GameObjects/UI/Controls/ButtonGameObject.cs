@@ -1,11 +1,11 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.GameObjects.Types;
-using Lilly.Engine.Utils;
+using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.Input;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Silk.NET.Input;
@@ -302,7 +302,7 @@ public class ButtonGameObject : Base2dGameObject, IInputReceiver
         // Border
         SpriteBatcher.DrawHollowRectangle(
             Transform.Position,
-            new Vector2(Transform.Size.X, Transform.Size.Y),
+            new(Transform.Size.X, Transform.Size.Y),
             borderColor,
             Theme.BorderThickness
         );
@@ -319,6 +319,7 @@ public class ButtonGameObject : Base2dGameObject, IInputReceiver
         if (!string.IsNullOrEmpty(IconTextureName))
         {
             var iconSize = Theme.FontSize;
+
             // Note: DrawTexture would need to be implemented if icon support is needed
             currentX += iconSize + IconTextSpacing;
         }

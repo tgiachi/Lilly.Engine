@@ -2,8 +2,8 @@ using System.Numerics;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Camera;
-using Silk.NET.OpenAL;
 using Serilog;
+using Silk.NET.OpenAL;
 
 namespace Lilly.Engine.Services;
 
@@ -26,7 +26,6 @@ public class AudioService : IAudioService
 
     public AudioService()
     {
-
         /**
          *
          * // open the mp3 file.
@@ -51,221 +50,6 @@ stream.Close();
         UpdateListenerProperties();
 
         _logger.Information("Audio Service initialized");
-    }
-
-    /// <summary>
-    /// Sets the listener's position in 3D space.
-    /// </summary>
-    public void SetListenerPosition(Vector3 position)
-    {
-        _listenerPosition = position;
-        UpdateListenerProperties();
-    }
-
-    /// <summary>
-    /// Sets the listener's velocity (for Doppler effect).
-    /// </summary>
-    public void SetListenerVelocity(Vector3 velocity)
-    {
-        _listenerVelocity = velocity;
-        UpdateListenerProperties();
-    }
-
-    /// <summary>
-    /// Sets the listener's orientation (forward and up vectors).
-    /// </summary>
-    public void SetListenerOrientation(Vector3 forward, Vector3 up)
-    {
-        _listenerForward = forward;
-        _listenerUp = up;
-        UpdateListenerProperties();
-    }
-
-    public void Update(ICamera3D camera)
-    {
-        SetListenerPosition(camera.Position);
-        SetListenerOrientation(camera.Forward, camera.Up);
-    }
-
-    /// <summary>
-    /// Gets the current listener position.
-    /// </summary>
-    public Vector3 GetListenerPosition() => _listenerPosition;
-
-    /// <summary>
-    /// Plays a sound effect at the listener's position (non-spatial).
-    /// </summary>
-    public void PlaySoundEffect(string soundName, float volume = 1.0f)
-    {
-        try
-        {
-            if (!_soundEffects.TryGetValue(soundName, out var effect))
-            {
-                _logger.Warning("Sound effect '{SoundName}' not found", soundName);
-                return;
-            }
-
-            effect.SetVolume(volume);
-            effect.Play();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error playing sound effect '{SoundName}'", soundName);
-        }
-    }
-
-    /// <summary>
-    /// Plays a sound effect at a specific position in 3D space.
-    /// </summary>
-    public void PlaySoundEffect3D(string soundName, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f)
-    {
-        try
-        {
-            if (!_soundEffects.TryGetValue(soundName, out var effect))
-            {
-                _logger.Warning("Sound effect '{SoundName}' not found", soundName);
-                return;
-            }
-
-            effect.SetVolume(volume);
-            effect.SetPosition(position);
-            effect.SetReferenceDistance(referenceDistance);
-            effect.Play();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error playing 3D sound effect '{SoundName}'", soundName);
-        }
-    }
-
-    /// <summary>
-    /// Plays a looping audio stream.
-    /// </summary>
-    public void PlayStream(string streamName, float volume = 1.0f, bool isLooping = true)
-    {
-        try
-        {
-            if (!_streams.TryGetValue(streamName, out var stream))
-            {
-                _logger.Warning("Audio stream '{StreamName}' not found", streamName);
-                return;
-            }
-
-            stream.SetVolume(volume);
-            stream.SetLooping(isLooping);
-            stream.Play();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error playing stream '{StreamName}'", streamName);
-        }
-    }
-
-    /// <summary>
-    /// Plays a looping audio stream at a specific position in 3D space.
-    /// </summary>
-    public void PlayStream3D(string streamName, Vector3 position, float volume = 1.0f, bool isLooping = true, float referenceDistance = 1.0f)
-    {
-        try
-        {
-            if (!_streams.TryGetValue(streamName, out var stream))
-            {
-                _logger.Warning("Audio stream '{StreamName}' not found", streamName);
-                return;
-            }
-
-            stream.SetVolume(volume);
-            stream.SetLooping(isLooping);
-            stream.SetPosition(position);
-            stream.SetReferenceDistance(referenceDistance);
-            stream.Play();
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error playing 3D stream '{StreamName}'", streamName);
-        }
-    }
-
-    /// <summary>
-    /// Stops a stream.
-    /// </summary>
-    public void StopAudio(string soundName)
-    {
-        try
-        {
-            if (_streams.TryGetValue(soundName, out var stream))
-            {
-                stream.Stop();
-                return;
-            }
-
-            _logger.Warning("Stream '{SoundName}' not found", soundName);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error stopping stream '{SoundName}'", soundName);
-        }
-    }
-
-    /// <summary>
-    /// Stops all audio playback.
-    /// </summary>
-    public void StopAll()
-    {
-        foreach (var stream in _streams.Values)
-        {
-            stream.Stop();
-        }
-    }
-
-    /// <summary>
-    /// Loads a sound effect from file.
-    /// </summary>
-    public void LoadSoundEffect(string soundName, string filePath)
-    {
-        try
-        {
-            var effect = new Audio.AudioEffect(filePath);
-            _soundEffects[soundName] = effect;
-            _logger.Information("Loaded sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error loading sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
-        }
-    }
-
-    /// <summary>
-    /// Loads an audio stream from file.
-    /// </summary>
-    public void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true)
-    {
-        try
-        {
-            var stream = new AudioStream(filePath, audioType, isLooping);
-            _streams[streamName] = stream;
-            _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error loading audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
-        }
-    }
-
-    private void UpdateListenerProperties()
-    {
-        try
-        {
-            // Set listener position
-            _al.SetListenerProperty(ListenerVector3.Position, _listenerPosition.X, _listenerPosition.Y, _listenerPosition.Z);
-
-            // Set listener velocity
-            _al.SetListenerProperty(ListenerVector3.Velocity, _listenerVelocity.X, _listenerVelocity.Y, _listenerVelocity.Z);
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Error updating listener properties");
-        }
     }
 
     public void Dispose()
@@ -300,5 +84,237 @@ stream.Close();
         }
 
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Gets the current listener position.
+    /// </summary>
+    public Vector3 GetListenerPosition()
+        => _listenerPosition;
+
+    /// <summary>
+    /// Loads an audio stream from file.
+    /// </summary>
+    public void LoadAudioStream(
+        string streamName,
+        string filePath,
+        AudioType audioType = AudioType.Ogg,
+        bool isLooping = true
+    )
+    {
+        try
+        {
+            var stream = new AudioStream(filePath, audioType, isLooping);
+            _streams[streamName] = stream;
+            _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
+        }
+    }
+
+    /// <summary>
+    /// Loads a sound effect from file.
+    /// </summary>
+    public void LoadSoundEffect(string soundName, string filePath)
+    {
+        try
+        {
+            var effect = new AudioEffect(filePath);
+            _soundEffects[soundName] = effect;
+            _logger.Information("Loaded sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
+        }
+    }
+
+    /// <summary>
+    /// Plays a sound effect at the listener's position (non-spatial).
+    /// </summary>
+    public void PlaySoundEffect(string soundName, float volume = 1.0f)
+    {
+        try
+        {
+            if (!_soundEffects.TryGetValue(soundName, out var effect))
+            {
+                _logger.Warning("Sound effect '{SoundName}' not found", soundName);
+
+                return;
+            }
+
+            effect.SetVolume(volume);
+            effect.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing sound effect '{SoundName}'", soundName);
+        }
+    }
+
+    /// <summary>
+    /// Plays a sound effect at a specific position in 3D space.
+    /// </summary>
+    public void PlaySoundEffect3D(string soundName, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f)
+    {
+        try
+        {
+            if (!_soundEffects.TryGetValue(soundName, out var effect))
+            {
+                _logger.Warning("Sound effect '{SoundName}' not found", soundName);
+
+                return;
+            }
+
+            effect.SetVolume(volume);
+            effect.SetPosition(position);
+            effect.SetReferenceDistance(referenceDistance);
+            effect.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing 3D sound effect '{SoundName}'", soundName);
+        }
+    }
+
+    /// <summary>
+    /// Plays a looping audio stream.
+    /// </summary>
+    public void PlayStream(string streamName, float volume = 1.0f, bool isLooping = true)
+    {
+        try
+        {
+            if (!_streams.TryGetValue(streamName, out var stream))
+            {
+                _logger.Warning("Audio stream '{StreamName}' not found", streamName);
+
+                return;
+            }
+
+            stream.SetVolume(volume);
+            stream.SetLooping(isLooping);
+            stream.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing stream '{StreamName}'", streamName);
+        }
+    }
+
+    /// <summary>
+    /// Plays a looping audio stream at a specific position in 3D space.
+    /// </summary>
+    public void PlayStream3D(
+        string streamName,
+        Vector3 position,
+        float volume = 1.0f,
+        bool isLooping = true,
+        float referenceDistance = 1.0f
+    )
+    {
+        try
+        {
+            if (!_streams.TryGetValue(streamName, out var stream))
+            {
+                _logger.Warning("Audio stream '{StreamName}' not found", streamName);
+
+                return;
+            }
+
+            stream.SetVolume(volume);
+            stream.SetLooping(isLooping);
+            stream.SetPosition(position);
+            stream.SetReferenceDistance(referenceDistance);
+            stream.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing 3D stream '{StreamName}'", streamName);
+        }
+    }
+
+    /// <summary>
+    /// Sets the listener's orientation (forward and up vectors).
+    /// </summary>
+    public void SetListenerOrientation(Vector3 forward, Vector3 up)
+    {
+        _listenerForward = forward;
+        _listenerUp = up;
+        UpdateListenerProperties();
+    }
+
+    /// <summary>
+    /// Sets the listener's position in 3D space.
+    /// </summary>
+    public void SetListenerPosition(Vector3 position)
+    {
+        _listenerPosition = position;
+        UpdateListenerProperties();
+    }
+
+    /// <summary>
+    /// Sets the listener's velocity (for Doppler effect).
+    /// </summary>
+    public void SetListenerVelocity(Vector3 velocity)
+    {
+        _listenerVelocity = velocity;
+        UpdateListenerProperties();
+    }
+
+    /// <summary>
+    /// Stops all audio playback.
+    /// </summary>
+    public void StopAll()
+    {
+        foreach (var stream in _streams.Values)
+        {
+            stream.Stop();
+        }
+    }
+
+    /// <summary>
+    /// Stops a stream.
+    /// </summary>
+    public void StopAudio(string soundName)
+    {
+        try
+        {
+            if (_streams.TryGetValue(soundName, out var stream))
+            {
+                stream.Stop();
+
+                return;
+            }
+
+            _logger.Warning("Stream '{SoundName}' not found", soundName);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error stopping stream '{SoundName}'", soundName);
+        }
+    }
+
+    public void Update(ICamera3D camera)
+    {
+        SetListenerPosition(camera.Position);
+        SetListenerOrientation(camera.Forward, camera.Up);
+    }
+
+    private void UpdateListenerProperties()
+    {
+        try
+        {
+            // Set listener position
+            _al.SetListenerProperty(ListenerVector3.Position, _listenerPosition.X, _listenerPosition.Y, _listenerPosition.Z);
+
+            // Set listener velocity
+            _al.SetListenerProperty(ListenerVector3.Velocity, _listenerVelocity.X, _listenerVelocity.Y, _listenerVelocity.Z);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error updating listener properties");
+        }
     }
 }

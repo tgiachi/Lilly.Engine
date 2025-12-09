@@ -42,24 +42,13 @@ public class AlSource : IDisposable
         al.SetSourceProperty(SourceHandle, SourceInteger.Buffer, buffer.bufferhandle);
     }
 
-    public void SetProperty(SourceBoolean looping, bool b)
+    /// <summary>
+    /// Sets the maximum distance at which the source can be heard.
+    /// </summary>
+    /// <param name="distance">The maximum distance in units.</param>
+    public void SetMaxDistance(float distance)
     {
-        al.SetSourceProperty(SourceHandle, looping, b);
-    }
-
-    public void SetProperty(SourceFloat gain, float b)
-    {
-        al.SetSourceProperty(SourceHandle, gain, b);
-    }
-
-    public void Stop()
-    {
-        al.SourceStop(SourceHandle);
-    }
-
-    public void UnqueueBuffer(AlBuffer[] buffers)
-    {
-        al.SourceUnqueueBuffers(SourceHandle, buffers.Select(a => a.bufferhandle).ToArray());
+        al.SetSourceProperty(SourceHandle, SourceFloat.MaxDistance, distance);
     }
 
     /// <summary>
@@ -71,13 +60,14 @@ public class AlSource : IDisposable
         al.SetSourceProperty(SourceHandle, SourceVector3.Position, position.X, position.Y, position.Z);
     }
 
-    /// <summary>
-    /// Sets the velocity of the audio source (for Doppler effect).
-    /// </summary>
-    /// <param name="velocity">The velocity in 3D space.</param>
-    public void SetVelocity(Vector3D<float> velocity)
+    public void SetProperty(SourceBoolean looping, bool b)
     {
-        al.SetSourceProperty(SourceHandle, SourceVector3.Velocity, velocity.X, velocity.Y, velocity.Z);
+        al.SetSourceProperty(SourceHandle, looping, b);
+    }
+
+    public void SetProperty(SourceFloat gain, float b)
+    {
+        al.SetSourceProperty(SourceHandle, gain, b);
     }
 
     /// <summary>
@@ -90,15 +80,6 @@ public class AlSource : IDisposable
     }
 
     /// <summary>
-    /// Sets the maximum distance at which the source can be heard.
-    /// </summary>
-    /// <param name="distance">The maximum distance in units.</param>
-    public void SetMaxDistance(float distance)
-    {
-        al.SetSourceProperty(SourceHandle, SourceFloat.MaxDistance, distance);
-    }
-
-    /// <summary>
     /// Sets the rolloff factor (how quickly volume decreases with distance).
     /// Default is 1.0. Higher values = faster volume decrease.
     /// </summary>
@@ -106,5 +87,24 @@ public class AlSource : IDisposable
     public void SetRolloffFactor(float rolloff)
     {
         al.SetSourceProperty(SourceHandle, SourceFloat.RolloffFactor, rolloff);
+    }
+
+    /// <summary>
+    /// Sets the velocity of the audio source (for Doppler effect).
+    /// </summary>
+    /// <param name="velocity">The velocity in 3D space.</param>
+    public void SetVelocity(Vector3D<float> velocity)
+    {
+        al.SetSourceProperty(SourceHandle, SourceVector3.Velocity, velocity.X, velocity.Y, velocity.Z);
+    }
+
+    public void Stop()
+    {
+        al.SourceStop(SourceHandle);
+    }
+
+    public void UnqueueBuffer(AlBuffer[] buffers)
+    {
+        al.SourceUnqueueBuffers(SourceHandle, buffers.Select(a => a.bufferhandle).ToArray());
     }
 }

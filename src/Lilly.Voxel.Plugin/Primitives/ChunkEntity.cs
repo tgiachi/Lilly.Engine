@@ -21,7 +21,7 @@ public class ChunkEntity
     public const int Height = 32;
 
     /// <summary>
-    ///  Gets or sets a value indicating whether the chunk has been modified since last save.
+    /// Gets or sets a value indicating whether the chunk has been modified since last save.
     /// </summary>
     public bool IsModified { get; set; }
 
@@ -54,7 +54,7 @@ public class ChunkEntity
     public Dictionary<int, BlockInstance>? Actionables { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="ChunkEntity"/> at the provided chunk coordinates.
+    /// Initializes a new <see cref="ChunkEntity" /> at the provided chunk coordinates.
     /// </summary>
     /// <param name="coordinates">Chunk coordinates in the world grid.</param>
     public ChunkEntity(Vector3 coordinates)
@@ -65,7 +65,7 @@ public class ChunkEntity
         // LightColors is lazy loaded
         // coordinates passed in are world-space chunk origin (already multiplied by Size/Height)
         Position = coordinates;
-        ChunkCoordinates = new Vector3(
+        ChunkCoordinates = new(
             coordinates.X / Size,
             coordinates.Y / Height,
             coordinates.Z / Size
@@ -86,22 +86,6 @@ public class ChunkEntity
     public byte[] LightLevels { get; private set; }
 
     /// <summary>
-    /// Replaces the light levels array with a new one.
-    /// Used for atomic updates to prevent race conditions during lighting propagation.
-    /// </summary>
-    public void ReplaceLightLevels(byte[] newLevels)
-    {
-        if (newLevels.Length != Size * Size * Height)
-        {
-            throw new ArgumentException(
-                $"New light levels array must have length {Size * Size * Height}",
-                nameof(newLevels)
-            );
-        }
-        LightLevels = newLevels;
-    }
-
-    /// <summary>
     /// Gets the raw backing array that stores light colors for the chunk (for colored light propagation).
     /// Null if no colored lights are present (defaults to White).
     /// </summary>
@@ -111,189 +95,6 @@ public class ChunkEntity
     /// Gets or sets a value indicating whether the lighting needs to be recalculated.
     /// </summary>
     public bool IsLightingDirty { get; set; } = true;
-
-    /// <summary>
-    /// Retrieves the block stored at the specified coordinates without bounds checking.
-    /// USE ONLY when you are certain x, y, z are valid (0 to Size/Height-1).
-    /// </summary>
-    public ushort GetBlockFast(int x, int y, int z)
-    {
-        return Blocks[x + y * Size + z * Size * Height];
-    }
-
-    /// <summary>
-    /// Retrieves the block stored at the specified coordinates.
-    /// </summary>
-    /// <param name="x">Block coordinate along X.</param>
-    /// <param name="y">Block coordinate along Y.</param>
-    /// <param name="z">Block coordinate along Z.</param>
-    /// <returns>The block entity at the given coordinates.</returns>
-    public ushort GetBlock(int x, int y, int z)
-    {
-        return Blocks[GetIndex(x, y, z)];
-    }
-
-    /// <summary>
-    /// Sets the block at the specified coordinates without bounds checking.
-    /// USE ONLY when you are certain x, y, z are valid.
-    /// Updates BlockCount efficiently.
-    /// </summary>
-    public void SetBlockFast(int x, int y, int z, ushort blockId)
-    {
-        int index = x + y * Size + z * Size * Height;
-        ushort oldBlock = Blocks[index];
-
-        if (oldBlock == blockId)
-            return;
-
-        if (oldBlock == 0 && blockId != 0)
-        {
-            BlockCount++;
-        }
-        else if (oldBlock != 0 && blockId == 0)
-        {
-            BlockCount--;
-        }
-
-        Blocks[index] = blockId;
-    }
-
-    /// <summary>
-    /// Stores a block at the specified coordinates, replacing any previous value.
-    /// </summary>
-    /// <param name="x">Block coordinate along X.</param>
-    /// <param name="y">Block coordinate along Y.</param>
-    /// <param name="z">Block coordinate along Z.</param>
-    /// <param name="block">Block entity to store.</param>
-    public void SetBlock(int x, int y, int z, ushort block)
-    {
-        int index = GetIndex(x, y, z);
-        ushort oldBlock = Blocks[index];
-
-        if (oldBlock == block)
-            return;
-
-        if (oldBlock == 0 && block != 0)
-        {
-            BlockCount++;
-        }
-        else if (oldBlock != 0 && block == 0)
-        {
-            BlockCount--;
-        }
-
-        Blocks[index] = block;
-    }
-
-    /// <summary>
-    /// Retrieves the block at the specified vector position.
-    /// </summary>
-    /// <param name="position">Vector position of the block.</param>
-    /// <returns>The block entity at the position.</returns>
-    public ushort GetBlock(Vector3 position)
-    {
-        return GetBlock((int)position.X, (int)position.Y, (int)position.Z);
-    }
-
-    /// <summary>
-    /// Stores a block at the position represented by the vector.
-    /// </summary>
-    /// <param name="position">Vector position of the block.</param>
-    /// <param name="block">Block entity to store.</param>
-    public void SetBlock(Vector3 position, ushort block)
-    {
-        SetBlock((int)position.X, (int)position.Y, (int)position.Z, block);
-    }
-
-    /// <summary>
-    /// Retrieves the block stored at the specified linear index.
-    /// </summary>
-    /// <param name="index">Zero-based linear index into the chunk.</param>
-    /// <returns>The block entity at the given index.</returns>
-    public ushort GetBlock(int index)
-    {
-        ValidateIndex(index);
-
-        return Blocks[index];
-    }
-
-    /// <summary>
-    /// Stores a block at the specified linear index.
-    /// </summary>
-    /// <param name="index">Zero-based linear index.</param>
-    /// <param name="block">Block entity to store.</param>
-    public void SetBlock(int index, ushort block)
-    {
-        ValidateIndex(index);
-
-        ushort oldBlock = Blocks[index];
-
-        if (oldBlock == block)
-            return;
-
-        if (oldBlock == 0 && block != 0)
-        {
-            BlockCount++;
-        }
-        else if (oldBlock != 0 && block == 0)
-        {
-            BlockCount--;
-        }
-
-        Blocks[index] = block;
-    }
-
-    /// <summary>
-    /// Calculates the linear index for the provided block coordinates.
-    /// </summary>
-    /// <param name="x">Block coordinate along X.</param>
-    /// <param name="y">Block coordinate along Y.</param>
-    /// <param name="z">Block coordinate along Z.</param>
-    /// <returns>The corresponding linear index.</returns>
-    public static int GetIndex(int x, int y, int z)
-    {
-        ValidateCoordinates(x, y, z);
-
-        return x + y * Size + z * Size * Height;
-    }
-
-    /// <summary>
-    ///  Calculates the world position of a block given its local index within the chunk.
-    /// </summary>
-    /// <param name="chunk"></param>
-    /// <param name="localIndex"></param>
-    /// <returns></returns>
-    public static Vector3 GetWorldPosition(ChunkEntity chunk, int localIndex)
-    {
-        var (x, y, z) = FromIndex(localIndex);
-
-        return chunk.Position + new Vector3(x, y, z);
-    }
-
-    /// <summary>
-    ///  Calculates the local block coordinates from a linear index.
-    /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    public static (int X, int Y, int Z) FromIndex(int index)
-    {
-        var x = index % Size;
-        var temp = index / Size;
-        var y = temp % Height;
-        var z = temp / Height;
-
-        return (x, y, z);
-    }
-
-    /// <summary>
-    /// Calculates the linear index for the provided vector position.
-    /// </summary>
-    /// <param name="position">Vector position of the block.</param>
-    /// <returns>The corresponding linear index.</returns>
-    public int GetIndex(Vector3 position)
-    {
-        return GetIndex((int)position.X, (int)position.Y, (int)position.Z);
-    }
 
     /// <summary>
     /// Provides array-style access to blocks using explicit coordinates.
@@ -313,25 +114,97 @@ public class ChunkEntity
         set => SetBlock(position, value);
     }
 
-    public byte GetLightLevel(int x, int y, int z)
+    /// <summary>
+    /// Clears all blocks in the chunk, setting them to air (block ID 0).
+    /// Marks the chunk mesh as dirty for regeneration.
+    /// </summary>
+    public void Clear()
     {
-        return LightLevels[GetIndex(x, y, z)];
+        Array.Fill(Blocks, (ushort)0); // 0 = Air block ID
+        BlockCount = 0;
+        IsMeshDirty = true;
     }
 
-    public void SetLightLevel(int x, int y, int z, byte level)
+    public BlockInstance EnsureActionable(int idx, ushort blockTypeId)
     {
-        LightLevels[GetIndex(x, y, z)] = level;
+        Actionables ??= new();
+
+        return Actionables[idx] = new(idx, blockTypeId);
     }
 
-    public void SetLightLevels(byte[] levels)
+    /// <summary>
+    /// Calculates the local block coordinates from a linear index.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public static (int X, int Y, int Z) FromIndex(int index)
     {
-        if (levels.Length != LightLevels.Length)
-        {
-            throw new ArgumentException($"Light levels array must have length {LightLevels.Length}", nameof(levels));
-        }
+        var x = index % Size;
+        var temp = index / Size;
+        var y = temp % Height;
+        var z = temp / Height;
 
-        Array.Copy(levels, LightLevels, levels.Length);
+        return (x, y, z);
     }
+
+    /// <summary>
+    /// Retrieves the block stored at the specified coordinates.
+    /// </summary>
+    /// <param name="x">Block coordinate along X.</param>
+    /// <param name="y">Block coordinate along Y.</param>
+    /// <param name="z">Block coordinate along Z.</param>
+    /// <returns>The block entity at the given coordinates.</returns>
+    public ushort GetBlock(int x, int y, int z)
+        => Blocks[GetIndex(x, y, z)];
+
+    /// <summary>
+    /// Retrieves the block at the specified vector position.
+    /// </summary>
+    /// <param name="position">Vector position of the block.</param>
+    /// <returns>The block entity at the position.</returns>
+    public ushort GetBlock(Vector3 position)
+        => GetBlock((int)position.X, (int)position.Y, (int)position.Z);
+
+    /// <summary>
+    /// Retrieves the block stored at the specified linear index.
+    /// </summary>
+    /// <param name="index">Zero-based linear index into the chunk.</param>
+    /// <returns>The block entity at the given index.</returns>
+    public ushort GetBlock(int index)
+    {
+        ValidateIndex(index);
+
+        return Blocks[index];
+    }
+
+    /// <summary>
+    /// Retrieves the block stored at the specified coordinates without bounds checking.
+    /// USE ONLY when you are certain x, y, z are valid (0 to Size/Height-1).
+    /// </summary>
+    public ushort GetBlockFast(int x, int y, int z)
+        => Blocks[x + y * Size + z * Size * Height];
+
+    /// <summary>
+    /// Calculates the linear index for the provided block coordinates.
+    /// </summary>
+    /// <param name="x">Block coordinate along X.</param>
+    /// <param name="y">Block coordinate along Y.</param>
+    /// <param name="z">Block coordinate along Z.</param>
+    /// <returns>The corresponding linear index.</returns>
+    public static int GetIndex(int x, int y, int z)
+    {
+        ValidateCoordinates(x, y, z);
+
+        return x + y * Size + z * Size * Height;
+    }
+
+    /// <summary>
+    /// Calculates the linear index for the provided vector position.
+    /// </summary>
+    /// <param name="position">Vector position of the block.</param>
+    /// <returns>The corresponding linear index.</returns>
+    public int GetIndex(Vector3 position)
+        => GetIndex((int)position.X, (int)position.Y, (int)position.Z);
 
     /// <summary>
     /// Retrieves the light color at the specified coordinates.
@@ -344,6 +217,148 @@ public class ChunkEntity
         }
 
         return LightColors[GetIndex(x, y, z)];
+    }
+
+    public byte GetLightLevel(int x, int y, int z)
+        => LightLevels[GetIndex(x, y, z)];
+
+    /// <summary>
+    /// Calculates the world position of a block given its local index within the chunk.
+    /// </summary>
+    /// <param name="chunk"></param>
+    /// <param name="localIndex"></param>
+    /// <returns></returns>
+    public static Vector3 GetWorldPosition(ChunkEntity chunk, int localIndex)
+    {
+        var (x, y, z) = FromIndex(localIndex);
+
+        return chunk.Position + new Vector3(x, y, z);
+    }
+
+    public bool IsInBounds(int x, int y, int z)
+        => x >= 0 &&
+           x < Size &&
+           y >= 0 &&
+           y < Height &&
+           z >= 0 &&
+           z < Size;
+
+    public bool IsInBounds(Vector3 position)
+        => IsInBounds((int)position.X, (int)position.Y, (int)position.Z);
+
+    public void RemoveActionable(int idx)
+    {
+        Actionables?.Remove(idx);
+    }
+
+    /// <summary>
+    /// Replaces the light levels array with a new one.
+    /// Used for atomic updates to prevent race conditions during lighting propagation.
+    /// </summary>
+    public void ReplaceLightLevels(byte[] newLevels)
+    {
+        if (newLevels.Length != Size * Size * Height)
+        {
+            throw new ArgumentException(
+                $"New light levels array must have length {Size * Size * Height}",
+                nameof(newLevels)
+            );
+        }
+        LightLevels = newLevels;
+    }
+
+    /// <summary>
+    /// Stores a block at the specified coordinates, replacing any previous value.
+    /// </summary>
+    /// <param name="x">Block coordinate along X.</param>
+    /// <param name="y">Block coordinate along Y.</param>
+    /// <param name="z">Block coordinate along Z.</param>
+    /// <param name="block">Block entity to store.</param>
+    public void SetBlock(int x, int y, int z, ushort block)
+    {
+        var index = GetIndex(x, y, z);
+        var oldBlock = Blocks[index];
+
+        if (oldBlock == block)
+        {
+            return;
+        }
+
+        if (oldBlock == 0 && block != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && block == 0)
+        {
+            BlockCount--;
+        }
+
+        Blocks[index] = block;
+    }
+
+    /// <summary>
+    /// Stores a block at the position represented by the vector.
+    /// </summary>
+    /// <param name="position">Vector position of the block.</param>
+    /// <param name="block">Block entity to store.</param>
+    public void SetBlock(Vector3 position, ushort block)
+    {
+        SetBlock((int)position.X, (int)position.Y, (int)position.Z, block);
+    }
+
+    /// <summary>
+    /// Stores a block at the specified linear index.
+    /// </summary>
+    /// <param name="index">Zero-based linear index.</param>
+    /// <param name="block">Block entity to store.</param>
+    public void SetBlock(int index, ushort block)
+    {
+        ValidateIndex(index);
+
+        var oldBlock = Blocks[index];
+
+        if (oldBlock == block)
+        {
+            return;
+        }
+
+        if (oldBlock == 0 && block != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && block == 0)
+        {
+            BlockCount--;
+        }
+
+        Blocks[index] = block;
+    }
+
+    /// <summary>
+    /// Sets the block at the specified coordinates without bounds checking.
+    /// USE ONLY when you are certain x, y, z are valid.
+    /// Updates BlockCount efficiently.
+    /// </summary>
+    public void SetBlockFast(int x, int y, int z, ushort blockId)
+    {
+        var index = x + y * Size + z * Size * Height;
+        var oldBlock = Blocks[index];
+
+        if (oldBlock == blockId)
+        {
+            return;
+        }
+
+        if (oldBlock == 0 && blockId != 0)
+        {
+            BlockCount++;
+        }
+        else if (oldBlock != 0 && blockId == 0)
+        {
+            BlockCount--;
+        }
+
+        Blocks[index] = blockId;
     }
 
     /// <summary>
@@ -368,7 +383,7 @@ public class ChunkEntity
     /// </summary>
     public void SetLightColors(Color4b[] colors)
     {
-        int length = Size * Size * Height;
+        var length = Size * Size * Height;
 
         if (colors.Length != length)
         {
@@ -383,81 +398,23 @@ public class ChunkEntity
         Array.Copy(colors, LightColors, colors.Length);
     }
 
-    private void InitializeLightColors()
+    public void SetLightLevel(int x, int y, int z, byte level)
     {
-        int length = Size * Size * Height;
-        LightColors = new Color4b[length];
-        Array.Fill(LightColors, Color4b.White);
+        LightLevels[GetIndex(x, y, z)] = level;
     }
 
-    public bool IsInBounds(int x, int y, int z)
+    public void SetLightLevels(byte[] levels)
     {
-        return x >= 0 &&
-               x < Size &&
-               y >= 0 &&
-               y < Height &&
-               z >= 0 &&
-               z < Size;
-    }
-
-    public bool IsInBounds(Vector3 position)
-    {
-        return IsInBounds((int)position.X, (int)position.Y, (int)position.Z);
-    }
-
-    /// <summary>
-    /// Validates that the provided coordinates fall within chunk bounds.
-    /// </summary>
-    /// <param name="x">Block coordinate along X.</param>
-    /// <param name="y">Block coordinate along Y.</param>
-    /// <param name="z">Block coordinate along Z.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when any coordinate is outside the chunk dimensions.</exception>
-    private static void ValidateCoordinates(int x, int y, int z)
-    {
-        if ((uint)x >= Size)
+        if (levels.Length != LightLevels.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(x), x, $"Expected 0 <= x < {Size}.");
+            throw new ArgumentException($"Light levels array must have length {LightLevels.Length}", nameof(levels));
         }
 
-        if ((uint)y >= Height)
-        {
-            throw new ArgumentOutOfRangeException(nameof(y), y, $"Expected 0 <= y < {Height}.");
-        }
-
-        if ((uint)z >= Size)
-        {
-            throw new ArgumentOutOfRangeException(nameof(z), z, $"Expected 0 <= z < {Size}.");
-        }
+        Array.Copy(levels, LightLevels, levels.Length);
     }
 
     public override string ToString()
-    {
-        return $"{Position} ({Size})";
-    }
-
-    /// <summary>
-    /// Validates that the provided index falls within the bounds of the chunk.
-    /// </summary>
-    /// <param name="index">Linear index into the block array.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chunk range.</exception>
-    private void ValidateIndex(int index)
-    {
-        if ((uint)index >= (uint)Blocks.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(index), index, $"Expected 0 <= index < {Blocks.Length}.");
-        }
-    }
-
-    /// <summary>
-    /// Clears all blocks in the chunk, setting them to air (block ID 0).
-    /// Marks the chunk mesh as dirty for regeneration.
-    /// </summary>
-    public void Clear()
-    {
-        Array.Fill(Blocks, (ushort)0); // 0 = Air block ID
-        BlockCount = 0;
-        IsMeshDirty = true;
-    }
+        => $"{Position} ({Size})";
 
     public bool TryGetActionable(int idx, out BlockInstance inst)
     {
@@ -465,18 +422,6 @@ public class ChunkEntity
         var result = Actionables?.TryGetValue(idx, out inst);
 
         return result.HasValue && result.Value;
-    }
-
-    public BlockInstance EnsureActionable(int idx, ushort blockTypeId)
-    {
-        Actionables ??= new();
-
-        return Actionables[idx] = new BlockInstance(idx, blockTypeId);
-    }
-
-    public void RemoveActionable(int idx)
-    {
-        Actionables?.Remove(idx);
     }
 
     /// <summary>
@@ -516,5 +461,50 @@ public class ChunkEntity
         }
 
         return false; // Block is outside this chunk (in a neighbor)
+    }
+
+    private void InitializeLightColors()
+    {
+        var length = Size * Size * Height;
+        LightColors = new Color4b[length];
+        Array.Fill(LightColors, Color4b.White);
+    }
+
+    /// <summary>
+    /// Validates that the provided coordinates fall within chunk bounds.
+    /// </summary>
+    /// <param name="x">Block coordinate along X.</param>
+    /// <param name="y">Block coordinate along Y.</param>
+    /// <param name="z">Block coordinate along Z.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when any coordinate is outside the chunk dimensions.</exception>
+    private static void ValidateCoordinates(int x, int y, int z)
+    {
+        if ((uint)x >= Size)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x), x, $"Expected 0 <= x < {Size}.");
+        }
+
+        if ((uint)y >= Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(y), y, $"Expected 0 <= y < {Height}.");
+        }
+
+        if ((uint)z >= Size)
+        {
+            throw new ArgumentOutOfRangeException(nameof(z), z, $"Expected 0 <= z < {Size}.");
+        }
+    }
+
+    /// <summary>
+    /// Validates that the provided index falls within the bounds of the chunk.
+    /// </summary>
+    /// <param name="index">Linear index into the block array.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the chunk range.</exception>
+    private void ValidateIndex(int index)
+    {
+        if ((uint)index >= (uint)Blocks.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), index, $"Expected 0 <= index < {Blocks.Length}.");
+        }
     }
 }

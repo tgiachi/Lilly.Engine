@@ -216,8 +216,8 @@ public class NotificationHudGameObject : Base2dGameObject
         // Update Transform for proper bounds tracking
         if (minX != float.MaxValue)
         {
-            Transform.Position = new Vector2(minX, minY);
-            Transform.Size = new Vector2(maxX - minX, maxY - minY);
+            Transform.Position = new(minX, minY);
+            Transform.Size = new(maxX - minX, maxY - minY);
         }
 
         // Rendering pass
@@ -267,8 +267,7 @@ public class NotificationHudGameObject : Base2dGameObject
                     backgroundSize,
                     finalBackground,
                     0f,
-                    Vector2.Zero,
-                    0f
+                    Vector2.Zero
                 );
             }
 
@@ -284,14 +283,14 @@ public class NotificationHudGameObject : Base2dGameObject
 
                 SpriteBatcher.DrawTexure(
                     message.IconTextureName!,
-                    position: iconPosition,
-                    destination: null,
-                    source: null,
-                    color: iconColor,
-                    origin: null,
-                    scale: new Vector2(IconSize.X / 32f, IconSize.Y / 32f), // Assuming 32x32 base texture
-                    rotation: null,
-                    depth: 0.1f
+                    iconPosition,
+                    null,
+                    null,
+                    iconColor,
+                    null,
+                    new Vector2(IconSize.X / 32f, IconSize.Y / 32f), // Assuming 32x32 base texture
+                    null,
+                    0.1f
                 );
             }
 

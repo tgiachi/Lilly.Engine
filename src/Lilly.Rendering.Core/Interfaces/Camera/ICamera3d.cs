@@ -136,6 +136,18 @@ public interface ICamera3D
     BoundingFrustum Frustum { get; }
 
     /// <summary>
+    /// Gets or sets the culling distance for objects.
+    /// </summary>
+    float CullingDistance { get; set; }
+
+    /// <summary>
+    /// Calculates the distance from the camera to a 3D game object.
+    /// </summary>
+    /// <param name="gameObject"></param>
+    /// <returns></returns>
+    float Distance(IGameObject3d gameObject);
+
+    /// <summary>
     /// Converts a screen point to a ray in world space for picking.
     /// </summary>
     /// <param name="screenPosition">Screen position in pixels.</param>
@@ -146,11 +158,12 @@ public interface ICamera3D
     /// </remarks>
     Ray GetPickRay(Vector2 screenPosition, Viewport viewport);
 
-
     /// <summary>
-    ///  Gets or sets the culling distance for objects.
+    /// Determines if a 3D game object is within the camera's frustum
     /// </summary>
-    float CullingDistance { get; set; }
+    /// <param name="gameObject"></param>
+    /// <returns></returns>
+    bool IsInFrustum(IGameObject3d gameObject);
 
     /// <summary>
     /// Makes the camera look at a specific target point.
@@ -184,20 +197,6 @@ public interface ICamera3D
     void MoveUp(float distance);
 
     /// <summary>
-    ///  Determines if a 3D game object is within the camera's frustum
-    /// </summary>
-    /// <param name="gameObject"></param>
-    /// <returns></returns>
-    bool IsInFrustum(IGameObject3d gameObject);
-
-    /// <summary>
-    ///  Calculates the distance from the camera to a 3D game object.
-    /// </summary>
-    /// <param name="gameObject"></param>
-    /// <returns></returns>
-    float Distance(IGameObject3d gameObject);
-
-    /// <summary>
     /// Rotates the camera by pitch, yaw, and roll angles.
     /// </summary>
     /// <param name="pitch">Rotation around X axis in radians (look up/down).</param>
@@ -206,7 +205,7 @@ public interface ICamera3D
     void Rotate(float pitch, float yaw, float roll);
 
     /// <summary>
-    ///  Updates the camera state based on elapsed game time.
+    /// Updates the camera state based on elapsed game time.
     /// </summary>
     /// <param name="gameTime"></param>
     void Update(GameTime gameTime);

@@ -65,7 +65,7 @@ public class HeightMapGenerationStep : IGeneratorStep
         var baseNoise = CreateBaseNoise(context.Seed);
         var continentNoise = CreateContinentNoise(context.Seed);
         var mountainNoise = CreateMountainNoise(context.Seed);
-        
+
         // Biome noise generators (very low frequency for large areas)
         var tempNoise = new FastNoiseLite(context.Seed + _seedOffset + 100);
         tempNoise.SetNoiseType(NoiseType.OpenSimplex2);
@@ -89,7 +89,7 @@ public class HeightMapGenerationStep : IGeneratorStep
                 // Normalize noise from [-1, 1] to [0, 1]
                 var temperature = (tempNoise.GetNoise(worldX, worldZ) + 1f) * 0.5f;
                 var humidity = (humNoise.GetNoise(worldX, worldZ) + 1f) * 0.5f;
-                
+
                 tempMap[z * chunkSize + x] = temperature;
                 humMap[z * chunkSize + x] = humidity;
 
@@ -98,8 +98,9 @@ public class HeightMapGenerationStep : IGeneratorStep
                 var continentValue = continentNoise.GetNoise(worldX, worldZ);
                 var continentMask = Math.Clamp((continentValue + 1f) * 0.5f, 0f, 1f);
                 var mountainMask = GetMountainMask(continentMask);
-                
-                float mountainOffset = 0f;
+
+                var mountainOffset = 0f;
+
                 if (mountainMask > 0.001f)
                 {
                     var ridgedValue = 1f - MathF.Abs(mountainNoise.GetNoise(worldX, worldZ));
@@ -109,15 +110,17 @@ public class HeightMapGenerationStep : IGeneratorStep
 
                 // Apply biome influence to height (optional but good for variety)
                 // e.g., Deserts (High Temp, Low Hum) are flatter
-                float biomeHeightMod = 1.0f;
-                if (temperature > 0.7f && humidity < 0.3f) 
+                var biomeHeightMod = 1.0f;
+
+                if (temperature > 0.7f && humidity < 0.3f)
                 {
                     biomeHeightMod = 0.6f; // Flatten deserts
                 }
 
                 var height = _baseHeight +
-                             (baseValue * _heightVariance * biomeHeightMod) +
+                             baseValue * _heightVariance * biomeHeightMod +
                              mountainOffset;
+
                 // Allow heights to span multiple vertical chunks; only clamp below to avoid negatives.
                 height = MathF.Max(1f, height);
 
@@ -147,7 +150,7 @@ public class HeightMapGenerationStep : IGeneratorStep
 
     private FastNoiseLite CreateContinentNoise(int seed)
     {
-        var noise = new FastNoiseLite(seed + (_seedOffset * 2));
+        var noise = new FastNoiseLite(seed + _seedOffset * 2);
         noise.SetNoiseType(NoiseType.OpenSimplex2);
         noise.SetFrequency(_continentFrequency);
         noise.SetFractalType(FractalType.FBm);
@@ -160,7 +163,7 @@ public class HeightMapGenerationStep : IGeneratorStep
 
     private FastNoiseLite CreateMountainNoise(int seed)
     {
-        var noise = new FastNoiseLite(seed + (_seedOffset * 3));
+        var noise = new FastNoiseLite(seed + _seedOffset * 3);
         noise.SetNoiseType(NoiseType.OpenSimplex2);
         noise.SetFrequency(_mountainFrequency);
         noise.SetFractalType(FractalType.Ridged);

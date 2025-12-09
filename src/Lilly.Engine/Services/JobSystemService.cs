@@ -67,7 +67,9 @@ public class JobSystemService : IJobSystemService, IDisposable
             var executed = Interlocked.Read(ref _totalJobsExecuted);
 
             if (executed == 0)
+            {
                 return 0;
+            }
 
             lock (_metricsLock)
             {
@@ -106,6 +108,39 @@ public class JobSystemService : IJobSystemService, IDisposable
             {
                 return _recentJobs.ToArray();
             }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _cts.Cancel();
+        _cts.Dispose();
+        _queueSignal.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    public void Initialize(int workerCount)
+    {
+        ThrowIfDisposed();
+        _logger.Information("Initializing {count} workers", workerCount);
+
+        Interlocked.Exchange(ref _totalWorkerCount, workerCount);
+
+        for (var i = 0; i < workerCount; i++)
+        {
+            var thread = new Thread(() => Worker(_cts.Token))
+            {
+                IsBackground = true,
+                Name = $"LillyEngine-JobWorker-{i}"
+            };
+
+            thread.Start();
         }
     }
 
@@ -287,104 +322,34 @@ public class JobSystemService : IJobSystemService, IDisposable
         return handle;
     }
 
-    public void Initialize(int workerCount)
-    {
-        ThrowIfDisposed();
-        _logger.Information("Initializing {count} workers", workerCount);
-
-        Interlocked.Exchange(ref _totalWorkerCount, workerCount);
-
-        for (var i = 0; i < workerCount; i++)
-        {
-            var thread = new Thread(() => Worker(_cts.Token))
-            {
-                IsBackground = true,
-                Name = $"LillyEngine-JobWorker-{i}"
-            };
-
-            thread.Start();
-        }
-    }
-
     public void Shutdown()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _logger.Information("Shutting down job system");
         _cts.Cancel();
     }
 
-    public async Task StartAsync()
-        => Initialize(_config.WorkerCount);
-
     public async Task ShutdownAsync()
         => Shutdown();
 
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        _cts.Cancel();
-        _cts.Dispose();
-        _queueSignal.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    private void ThrowIfDisposed()
-    {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(JobSystemService));
-    }
+    public async Task StartAsync()
+        => Initialize(_config.WorkerCount);
 
     private void EnqueueJob(ScheduledJob job)
     {
         lock (_queueLock)
         {
             if (_disposed)
+            {
                 throw new ObjectDisposedException(nameof(JobSystemService));
+            }
 
             _jobQueue.Enqueue(job, job.Priority);
             _queueSignal.Release();
-        }
-    }
-
-    private void Worker(CancellationToken token)
-    {
-        Interlocked.Increment(ref _activeWorkerCount);
-
-        try
-        {
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    _queueSignal.Wait(token);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-
-                while (!token.IsCancellationRequested && TryDequeueJob(out var job))
-                {
-                    ExecuteJob(job, token);
-                }
-            }
-        }
-        finally
-        {
-            Interlocked.Decrement(ref _activeWorkerCount);
-        }
-    }
-
-    private bool TryDequeueJob(out ScheduledJob job)
-    {
-        lock (_queueLock)
-        {
-            return _jobQueue.TryDequeue(out job, out _);
         }
     }
 
@@ -449,24 +414,6 @@ public class JobSystemService : IJobSystemService, IDisposable
         }
     }
 
-    private void UpdateMetrics(TimeSpan elapsed)
-    {
-        Interlocked.Increment(ref _totalJobsExecuted);
-
-        var elapsedMs = elapsed.TotalMilliseconds;
-
-        lock (_metricsLock)
-        {
-            _totalExecutionTimeMs += elapsedMs;
-
-            if (elapsedMs < _minExecutionTimeMs)
-                _minExecutionTimeMs = elapsedMs;
-
-            if (elapsedMs > _maxExecutionTimeMs)
-                _maxExecutionTimeMs = elapsedMs;
-        }
-    }
-
     private void RecordRecentJob(ScheduledJob job, TimeSpan elapsed, JobExecutionStatus status)
     {
         var record = new JobExecutionRecord(
@@ -481,9 +428,78 @@ public class JobSystemService : IJobSystemService, IDisposable
         lock (_recentLock)
         {
             if (_recentJobs.Count >= MaxRecentJobs)
+            {
                 _recentJobs.Dequeue();
+            }
 
             _recentJobs.Enqueue(record);
+        }
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(JobSystemService));
+        }
+    }
+
+    private bool TryDequeueJob(out ScheduledJob job)
+    {
+        lock (_queueLock)
+        {
+            return _jobQueue.TryDequeue(out job, out _);
+        }
+    }
+
+    private void UpdateMetrics(TimeSpan elapsed)
+    {
+        Interlocked.Increment(ref _totalJobsExecuted);
+
+        var elapsedMs = elapsed.TotalMilliseconds;
+
+        lock (_metricsLock)
+        {
+            _totalExecutionTimeMs += elapsedMs;
+
+            if (elapsedMs < _minExecutionTimeMs)
+            {
+                _minExecutionTimeMs = elapsedMs;
+            }
+
+            if (elapsedMs > _maxExecutionTimeMs)
+            {
+                _maxExecutionTimeMs = elapsedMs;
+            }
+        }
+    }
+
+    private void Worker(CancellationToken token)
+    {
+        Interlocked.Increment(ref _activeWorkerCount);
+
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    _queueSignal.Wait(token);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                while (!token.IsCancellationRequested && TryDequeueJob(out var job))
+                {
+                    ExecuteJob(job, token);
+                }
+            }
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _activeWorkerCount);
         }
     }
 }

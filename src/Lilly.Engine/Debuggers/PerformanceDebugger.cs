@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using Lilly.Engine.GameObjects.Base;
@@ -11,9 +10,7 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
     private readonly IPerformanceProfilerService _profiler;
 
     public PerformanceDebugger(IPerformanceProfilerService profiler) : base("Performance debugger")
-    {
-        _profiler = profiler;
-    }
+        => _profiler = profiler;
 
     protected override void DrawDebug()
     {
@@ -31,6 +28,15 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
         {
             _profiler.ResetMetrics();
         }
+    }
+
+    private static void DrawMetricRow(string name, string value)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        ImGui.TextUnformatted(name);
+        ImGui.TableSetColumnIndex(1);
+        ImGui.TextUnformatted(value);
     }
 
     private void DrawSummary()
@@ -73,13 +79,32 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
         }
     }
 
-    private static void DrawMetricRow(string name, string value)
+    private static (float min, float max) GetMinMax(Span<float> span)
     {
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(0);
-        ImGui.TextUnformatted(name);
-        ImGui.TableSetColumnIndex(1);
-        ImGui.TextUnformatted(value);
+        if (span.IsEmpty)
+        {
+            return (0f, 0f);
+        }
+
+        var min = span[0];
+        var max = span[0];
+
+        for (var i = 1; i < span.Length; i++)
+        {
+            var value = span[i];
+
+            if (value < min)
+            {
+                min = value;
+            }
+
+            if (value > max)
+            {
+                max = value;
+            }
+        }
+
+        return (min, max);
     }
 
     private static void PlotHistory(string label, IReadOnlyList<double> data)
@@ -92,9 +117,9 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
         }
 
         var length = data.Count;
-        Span<float> buffer = length <= 256
-                                 ? stackalloc float[256]
-                                 : new float[length];
+        var buffer = length <= 256
+                         ? stackalloc float[256]
+                         : new float[length];
 
         for (var i = 0; i < length; i++)
         {
@@ -112,35 +137,8 @@ public class PerformanceDebugger : BaseImGuiDebuggerGameObject
             null,
             min,
             max,
-            new Vector2(-1, 60),
+            new(-1, 60),
             sizeof(float)
         );
-    }
-
-    private static (float min, float max) GetMinMax(Span<float> span)
-    {
-        if (span.IsEmpty)
-        {
-            return (0f, 0f);
-        }
-
-        float min = span[0];
-        float max = span[0];
-
-        for (var i = 1; i < span.Length; i++)
-        {
-            var value = span[i];
-            if (value < min)
-            {
-                min = value;
-            }
-
-            if (value > max)
-            {
-                max = value;
-            }
-        }
-
-        return (min, max);
     }
 }

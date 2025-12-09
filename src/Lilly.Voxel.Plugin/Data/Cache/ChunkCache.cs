@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
@@ -22,7 +21,7 @@ public class ChunkCache
     private string? _cleanupTimerId;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ChunkCache"/> class.
+    /// Initializes a new instance of the <see cref="ChunkCache" /> class.
     /// </summary>
     /// <param name="timerService">Timer service for scheduling cache cleanup.</param>
     /// <param name="expirationTime">Time after which inactive chunks are removed from cache.</param>
@@ -36,41 +35,121 @@ public class ChunkCache
         // Register cleanup timer to run every minute
         _cleanupTimerId = _timerService.RegisterTimer(
             "ChunkCacheCleanup",
-            intervalInMs: 60000, // 60 seconds
-            callback: CleanupExpiredEntries,
-            delayInMs: 60000,
-            repeat: true
+            60000, // 60 seconds
+            CleanupExpiredEntries,
+            60000,
+            true
         );
 
         _logger.Information("ChunkCache initialized with cleanup timer running every minute");
     }
 
     /// <summary>
-    /// Tries to get a chunk from the cache.
+    /// Gets the number of chunks currently in the cache.
     /// </summary>
-    /// <param name="position">The world position of the chunk.</param>
-    /// <param name="chunk">The cached chunk, if found.</param>
-    /// <returns>True if the chunk was found in cache; otherwise, false.</returns>
-    public bool TryGet(Vector3 position, out ChunkEntity? chunk)
+    public int Count
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _cache.Count;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the current maximum capacity of the cache.
+    /// </summary>
+    public int Capacity
+    {
+        get
+        {
+            lock (_syncRoot)
+            {
+                return _maxCapacity;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Represents a cached chunk with its access metadata.
+    /// </summary>
+    private sealed class CacheEntry
+    {
+        public CacheEntry(ChunkEntity chunk)
+            => Chunk = chunk;
+
+        public ChunkEntity Chunk { get; set; }
+
+        public DateTime LastAccessTime { get; set; }
+
+        public LinkedListNode<Vector3>? Node { get; set; }
+    }
+
+    /// <summary>
+    /// Clears all entries from the cache.
+    /// </summary>
+    public void Clear()
     {
         lock (_syncRoot)
         {
-            if (_cache.TryGetValue(position, out var entry))
+            var count = _cache.Count;
+            _cache.Clear();
+            _lruList.Clear();
+            _logger.Information("Cleared {Count} chunks from cache", count);
+        }
+    }
+
+    /// <summary>
+    /// Disposes resources used by the cache.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_cleanupTimerId != null)
+        {
+            _timerService.UnregisterTimer(_cleanupTimerId);
+            _cleanupTimerId = null;
+        }
+
+        Clear();
+    }
+
+    /// <summary>
+    /// Returns a snapshot enumeration of all cached chunks.
+    /// </summary>
+    public IEnumerable<ChunkEntity> GetAll()
+    {
+        lock (_syncRoot)
+        {
+            // Return a copy to avoid threading issues while iterating.
+            return _cache.Values
+                         .Select(entry => entry.Chunk)
+                         .Where(chunk => chunk != null)!
+                         .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Removes a chunk from the cache.
+    /// </summary>
+    /// <param name="position">The world position of the chunk to remove.</param>
+    /// <returns>True if the chunk was removed; otherwise, false.</returns>
+    public bool Remove(Vector3 position)
+    {
+        var removed = false;
+
+        lock (_syncRoot)
+        {
+            removed = RemoveInternal(position);
+
+            if (removed)
             {
-                entry.LastAccessTime = DateTime.UtcNow;
-                MoveToFront(entry);
-                chunk = entry.Chunk;
-
-                _logger.Verbose("Cache hit for chunk at {Position}", position);
-
-                return true;
+                _logger.Debug("Removed chunk at {Position} from cache", position);
             }
         }
 
-        chunk = null;
-        _logger.Debug("Cache miss for chunk at {Position}", position.ToHumanReadableString());
-
-        return false;
+        return removed;
     }
 
     /// <summary>
@@ -105,70 +184,6 @@ public class ChunkCache
     }
 
     /// <summary>
-    /// Removes a chunk from the cache.
-    /// </summary>
-    /// <param name="position">The world position of the chunk to remove.</param>
-    /// <returns>True if the chunk was removed; otherwise, false.</returns>
-    public bool Remove(Vector3 position)
-    {
-        bool removed = false;
-
-        lock (_syncRoot)
-        {
-            removed = RemoveInternal(position);
-            if (removed)
-            {
-                _logger.Debug("Removed chunk at {Position} from cache", position);
-            }
-        }
-
-        return removed;
-    }
-
-    /// <summary>
-    /// Gets the number of chunks currently in the cache.
-    /// </summary>
-    public int Count
-    {
-        get
-        {
-            lock (_syncRoot)
-            {
-                return _cache.Count;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets the current maximum capacity of the cache.
-    /// </summary>
-    public int Capacity
-    {
-        get
-        {
-            lock (_syncRoot)
-            {
-                return _maxCapacity;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Returns a snapshot enumeration of all cached chunks.
-    /// </summary>
-    public IEnumerable<ChunkEntity> GetAll()
-    {
-        lock (_syncRoot)
-        {
-            // Return a copy to avoid threading issues while iterating.
-            return _cache.Values
-                .Select(entry => entry.Chunk)
-                .Where(chunk => chunk != null)!
-                .ToList();
-        }
-    }
-
-    /// <summary>
     /// Sets the maximum capacity of the cache and evicts entries if necessary.
     /// </summary>
     /// <param name="capacity">New maximum capacity.</param>
@@ -189,17 +204,31 @@ public class ChunkCache
     }
 
     /// <summary>
-    /// Clears all entries from the cache.
+    /// Tries to get a chunk from the cache.
     /// </summary>
-    public void Clear()
+    /// <param name="position">The world position of the chunk.</param>
+    /// <param name="chunk">The cached chunk, if found.</param>
+    /// <returns>True if the chunk was found in cache; otherwise, false.</returns>
+    public bool TryGet(Vector3 position, out ChunkEntity? chunk)
     {
         lock (_syncRoot)
         {
-            var count = _cache.Count;
-            _cache.Clear();
-            _lruList.Clear();
-            _logger.Information("Cleared {Count} chunks from cache", count);
+            if (_cache.TryGetValue(position, out var entry))
+            {
+                entry.LastAccessTime = DateTime.UtcNow;
+                MoveToFront(entry);
+                chunk = entry.Chunk;
+
+                _logger.Verbose("Cache hit for chunk at {Position}", position);
+
+                return true;
+            }
         }
+
+        chunk = null;
+        _logger.Debug("Cache miss for chunk at {Position}", position.ToHumanReadableString());
+
+        return false;
     }
 
     /// <summary>
@@ -245,23 +274,6 @@ public class ChunkCache
         }
     }
 
-    /// <summary>
-    /// Represents a cached chunk with its access metadata.
-    /// </summary>
-    private sealed class CacheEntry
-    {
-        public CacheEntry(ChunkEntity chunk)
-        {
-            Chunk = chunk;
-        }
-
-        public ChunkEntity Chunk { get; set; }
-
-        public DateTime LastAccessTime { get; set; }
-
-        public LinkedListNode<Vector3>? Node { get; set; }
-    }
-
     private void MoveToFront(CacheEntry entry)
     {
         if (entry.Node == null)
@@ -271,23 +283,6 @@ public class ChunkCache
 
         _lruList.Remove(entry.Node);
         _lruList.AddFirst(entry.Node);
-    }
-
-    private void TrimToCapacity()
-    {
-        while (_cache.Count > _maxCapacity && _lruList.Last != null)
-        {
-            var node = _lruList.Last;
-            if (node == null)
-            {
-                break;
-            }
-
-            if (RemoveInternal(node.Value))
-            {
-                _logger.Debug("Evicted chunk at {Position} due to capacity limit", node.Value);
-            }
-        }
     }
 
     private bool RemoveInternal(Vector3 position)
@@ -304,20 +299,25 @@ public class ChunkCache
         }
 
         _cache.Remove(position);
+
         return true;
     }
 
-    /// <summary>
-    /// Disposes resources used by the cache.
-    /// </summary>
-    public void Dispose()
+    private void TrimToCapacity()
     {
-        if (_cleanupTimerId != null)
+        while (_cache.Count > _maxCapacity && _lruList.Last != null)
         {
-            _timerService.UnregisterTimer(_cleanupTimerId);
-            _cleanupTimerId = null;
-        }
+            var node = _lruList.Last;
 
-        Clear();
+            if (node == null)
+            {
+                break;
+            }
+
+            if (RemoveInternal(node.Value))
+            {
+                _logger.Debug("Evicted chunk at {Position} due to capacity limit", node.Value);
+            }
+        }
     }
 }

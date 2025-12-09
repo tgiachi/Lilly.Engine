@@ -15,7 +15,6 @@ using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
 using Serilog;
-using BepuRigidPose = BepuPhysics.RigidPose;
 using EngineRigidPose = Lilly.Engine.Data.Physics.RigidPose;
 
 namespace Lilly.Physics.Plugin.Services;
@@ -51,8 +50,8 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         _config = config;
         _renderContext = renderContext;
         _renderPipeline = renderPipeline;
-        Pool = new BufferPool();
-        ThreadDispatcher = new ThreadDispatcher(config.ThreadCount);
+        Pool = new();
+        ThreadDispatcher = new(config.ThreadCount);
         renderContext.Renderer.OnUpdate += Update;
 
         _logger.Information("Starting Physic World3d with {ThreadCount} threads", config.ThreadCount);
@@ -61,96 +60,41 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         _renderPipeline.GameObjectRemoved += RenderPipelineOnGameObjectRemoved;
     }
 
-    private void RenderPipelineOnGameObjectRemoved(IGameObject gameObject)
+    public Vector3 Gravity => _config.Gravity;
+
+    private readonly record struct BodyRecord(bool IsStatic, BodyHandle BodyHandle, StaticHandle StaticHandle)
     {
-        if (gameObject is not IPhysicsGameObject3d physicsGameObject)
+        public static BodyRecord Dynamic(BodyHandle bodyHandle)
+            => new(false, bodyHandle, default);
+
+        public static BodyRecord Static(StaticHandle staticHandle)
+            => new(true, default, staticHandle);
+    }
+
+    private readonly record struct SyncEntry(
+        int BodyId,
+        BodyHandle BodyHandle,
+        Transform3D Transform,
+        PhysicsSyncMode SyncMode
+    );
+
+    private sealed record SubscriptionInfo(int BodyId, Action Handler);
+
+    public void ApplyImpulse(IPhysicsBodyHandle handle, Vector3 impulse, Vector3 offset)
+    {
+        if (!_bodies.TryGetValue(handle.Id, out var record) || record.IsStatic)
         {
             return;
         }
 
-        if (_subscriptions.TryGetValue(physicsGameObject, out var sub))
+        var body = Simulation.Bodies.GetBodyReference(record.BodyHandle);
+        body.Awake = true;
+        body.ApplyLinearImpulse(impulse);
+
+        if (offset != Vector3.Zero)
         {
-            physicsGameObject.PhysicsShapeDirty -= sub.Handler;
-            _subscriptions.Remove(physicsGameObject);
-            RemoveInternal(new PhysicsBodyHandle(sub.BodyId));
+            body.ApplyImpulse(offset, impulse);
         }
-
-        _logger.Debug(
-            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was removed from physics world.",
-            gameObject.Name,
-            gameObject.Id
-        );
-    }
-
-    private void RenderPipelineOnGameObjectAdded(IGameObject gameObject)
-    {
-        if (gameObject is not IPhysicsGameObject3d physicsGameObject)
-        {
-            return;
-        }
-
-        var start = Stopwatch.GetTimestamp();
-        AttachOrReplaceBody(physicsGameObject, subscribe: true);
-
-        _logger.Debug(
-            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world. took {ElapsedMilliseconds} ms",
-            gameObject.Name,
-            gameObject.Id,
-            Stopwatch.GetElapsedTime(start)
-        );
-    }
-
-    private void Update(GameTime gameTime)
-    {
-
-        Simulation.Timestep(1 / 60f, ThreadDispatcher);
-
-        // Sync dynamic bodies back to their game object transforms
-        for (var i = 0; i < _syncEntries.Count; i++)
-        {
-            var entry = _syncEntries[i];
-            var body = Simulation.Bodies.GetBodyReference(entry.BodyHandle);
-
-            if (!body.Exists)
-            {
-                continue;
-            }
-
-            var pose = body.Pose;
-            entry.Transform.Position = pose.Position;
-
-            if (entry.SyncMode == PhysicsSyncMode.FullPose)
-            {
-                entry.Transform.Rotation = pose.Orientation;
-            }
-        }
-
-
-    }
-
-    public void Dispose()
-    {
-        Simulation.Dispose();
-        Pool.Clear();
-
-        GC.SuppressFinalize(this);
-    }
-
-    public async Task StartAsync()
-    {
-        _logger.Information("Initializing Physic World3d simulation with gravity {Gravity}", _config.Gravity);
-        _poseIntegratorCallbacks = new DefaultPoseIntegratorCallbacks(_config);
-        Simulation = Simulation.Create(
-            Pool,
-            new DefaultNarrowPhaseCallbacks(),
-            _poseIntegratorCallbacks,
-            new SolveDescription(8, 1)
-        );
-    }
-
-    public Task ShutdownAsync()
-    {
-        return Task.CompletedTask;
     }
 
     public IPhysicsBodyHandle CreateDynamic(PhysicsBodyConfig config)
@@ -159,10 +103,10 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         var inertia = ComputeInertia(config.Shape, config.Mass);
 
         var bodyDesc = BodyDescription.CreateDynamic(
-            new BepuRigidPose(config.Pose.Position, config.Pose.Rotation),
+            new(config.Pose.Position, config.Pose.Rotation),
             inertia,
-            new CollidableDescription(shapeIndex, config.SpeculativeMargin),
-            new BodyActivityDescription(0.01f)
+            new(shapeIndex, config.SpeculativeMargin),
+            new(0.01f)
         );
 
         var handle = Simulation.Bodies.Add(bodyDesc);
@@ -176,7 +120,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
     public IPhysicsBodyHandle CreateStatic(PhysicsShape shape, EngineRigidPose pose)
     {
         var shapeIndex = GetOrCreateShape(shape);
-        var handle = Simulation.Statics.Add(new StaticDescription(pose.Position, pose.Rotation, shapeIndex));
+        var handle = Simulation.Statics.Add(new(pose.Position, pose.Rotation, shapeIndex));
         var id = _nextId++;
 
         _bodies[id] = BodyRecord.Static(handle);
@@ -184,9 +128,57 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         return new PhysicsBodyHandle(id);
     }
 
+    public void Dispose()
+    {
+        Simulation.Dispose();
+        Pool.Clear();
+
+        GC.SuppressFinalize(this);
+    }
+
+    public EngineRigidPose GetPose(IPhysicsBodyHandle handle)
+    {
+        if (!_bodies.TryGetValue(handle.Id, out var record))
+        {
+            return new(Vector3.Zero, Quaternion.Identity);
+        }
+
+        if (record.IsStatic)
+        {
+            var staticRef = Simulation.Statics.GetStaticReference(record.StaticHandle);
+
+            return new(staticRef.Pose.Position, staticRef.Pose.Orientation);
+        }
+
+        var body = Simulation.Bodies.GetBodyReference(record.BodyHandle);
+
+        return new(body.Pose.Position, body.Pose.Orientation);
+    }
+
+    public PhysicsWorldStats GetStats()
+    {
+        var dynamicBodies = _bodies.Count(b => !b.Value.IsStatic);
+        var staticBodies = _bodies.Count - dynamicBodies;
+        var activeDynamics = Simulation?.Bodies.ActiveSet.Count ?? 0;
+
+        return new(
+            dynamicBodies,
+            activeDynamics,
+            staticBodies,
+            _shapeCache.Count,
+            _config.ThreadCount,
+            Gravity
+        );
+    }
+
     public void Remove(IPhysicsBodyHandle handle)
     {
         RemoveInternal(handle);
+    }
+
+    public void SetGravity(Vector3 gravity)
+    {
+        _config.Gravity = gravity;
     }
 
     public void SetPose(IPhysicsBodyHandle handle, EngineRigidPose pose)
@@ -210,25 +202,6 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         }
     }
 
-    public EngineRigidPose GetPose(IPhysicsBodyHandle handle)
-    {
-        if (!_bodies.TryGetValue(handle.Id, out var record))
-        {
-            return new(Vector3.Zero, Quaternion.Identity);
-        }
-
-        if (record.IsStatic)
-        {
-            var staticRef = Simulation.Statics.GetStaticReference(record.StaticHandle);
-
-            return new(staticRef.Pose.Position, staticRef.Pose.Orientation);
-        }
-
-        var body = Simulation.Bodies.GetBodyReference(record.BodyHandle);
-
-        return new EngineRigidPose(body.Pose.Position, body.Pose.Orientation);
-    }
-
     public void SetVelocity(IPhysicsBodyHandle handle, Vector3 linear, Vector3 angular)
     {
         if (!_bodies.TryGetValue(handle.Id, out var record) || record.IsStatic)
@@ -242,44 +215,19 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         body.Awake = true;
     }
 
-    public void ApplyImpulse(IPhysicsBodyHandle handle, Vector3 impulse, Vector3 offset)
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
+    public async Task StartAsync()
     {
-        if (!_bodies.TryGetValue(handle.Id, out var record) || record.IsStatic)
-        {
-            return;
-        }
-
-        var body = Simulation.Bodies.GetBodyReference(record.BodyHandle);
-        body.Awake = true;
-        body.ApplyLinearImpulse(impulse);
-
-        if (offset != Vector3.Zero)
-        {
-            body.ApplyImpulse(offset, impulse);
-        }
-    }
-
-    public PhysicsWorldStats GetStats()
-    {
-        var dynamicBodies = _bodies.Count(b => !b.Value.IsStatic);
-        var staticBodies = _bodies.Count - dynamicBodies;
-        var activeDynamics = Simulation?.Bodies.ActiveSet.Count ?? 0;
-
-        return new PhysicsWorldStats(
-            dynamicBodies,
-            activeDynamics,
-            staticBodies,
-            _shapeCache.Count,
-            _config.ThreadCount,
-            Gravity
+        _logger.Information("Initializing Physic World3d simulation with gravity {Gravity}", _config.Gravity);
+        _poseIntegratorCallbacks = new(_config);
+        Simulation = Simulation.Create(
+            Pool,
+            new DefaultNarrowPhaseCallbacks(),
+            _poseIntegratorCallbacks,
+            new(8, 1)
         );
-    }
-
-    public Vector3 Gravity => _config.Gravity;
-
-    public void SetGravity(Vector3 gravity)
-    {
-        _config.Gravity = gravity;
     }
 
     public void WakeAllBodies()
@@ -327,9 +275,9 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
         if (subscribe && !_subscriptions.ContainsKey(physicsGameObject))
         {
-            Action handler = () => HandleShapeDirty(physicsGameObject);
+            var handler = () => HandleShapeDirty(physicsGameObject);
             physicsGameObject.PhysicsShapeDirty += handler;
-            _subscriptions[physicsGameObject] = new SubscriptionInfo(handle.Id, handler);
+            _subscriptions[physicsGameObject] = new(handle.Id, handler);
         }
         else if (_subscriptions.TryGetValue(physicsGameObject, out var sub))
         {
@@ -342,88 +290,6 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             isReplace ? "REPLACE" : "NEW",
             sw.Elapsed.TotalMilliseconds
         );
-    }
-
-    private void HandleShapeDirty(IPhysicsGameObject3d physicsGameObject)
-    {
-        AttachOrReplaceBody(physicsGameObject, subscribe: false);
-    }
-
-    private void RemoveInternal(IPhysicsBodyHandle handle)
-    {
-        if (!_bodies.TryGetValue(handle.Id, out var record))
-        {
-            return;
-        }
-
-        if (_bodyOwners.TryGetValue(handle.Id, out var owner))
-        {
-            UnregisterSync(handle.Id);
-
-            if (_subscriptions.TryGetValue(owner, out var sub) && sub.BodyId == handle.Id)
-            {
-                owner.OnPhysicsDetached();
-            }
-        }
-
-        if (record.IsStatic)
-        {
-            Simulation.Statics.Remove(record.StaticHandle);
-        }
-        else
-        {
-            Simulation.Bodies.Remove(record.BodyHandle);
-        }
-
-        _bodies.Remove(handle.Id);
-        _bodyOwners.Remove(handle.Id);
-    }
-
-    private void RegisterSync(IPhysicsBodyHandle handle, Transform3D transform, PhysicsSyncMode syncMode)
-    {
-        if (syncMode == PhysicsSyncMode.None)
-        {
-            return;
-        }
-
-        if (!_bodies.TryGetValue(handle.Id, out var record) || record.IsStatic)
-        {
-            return;
-        }
-
-        _syncEntries.Add(new SyncEntry(handle.Id, record.BodyHandle, transform, syncMode));
-    }
-
-    private void UnregisterSync(int bodyId)
-    {
-        for (var i = _syncEntries.Count - 1; i >= 0; i--)
-        {
-            if (_syncEntries[i].BodyId == bodyId)
-            {
-                _syncEntries.RemoveAt(i);
-            }
-        }
-    }
-
-    private TypedIndex GetOrCreateShape(PhysicsShape shape)
-    {
-        if (_shapeCache.TryGetValue(shape, out var cached))
-        {
-            return cached;
-        }
-
-        TypedIndex index = shape switch
-        {
-            BoxShape b     => Simulation.Shapes.Add(new Box(b.Width, b.Height, b.Depth)),
-            SphereShape s  => Simulation.Shapes.Add(new Sphere(s.Radius)),
-            CapsuleShape c => Simulation.Shapes.Add(new Capsule(c.Radius, c.Length)),
-            MeshShape m    => Simulation.Shapes.Add(CreateMesh(m)),
-            _              => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
-        };
-
-        _shapeCache[shape] = index;
-
-        return index;
     }
 
     private BodyInertia ComputeInertia(PhysicsShape shape, float mass)
@@ -459,7 +325,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             var i2 = indices[i * 3 + 2];
 
             ref var tri = ref triangles[i];
-            tri = new Triangle(vertices[i0], vertices[i1], vertices[i2]);
+            tri = new(vertices[i0], vertices[i1], vertices[i2]);
         }
 
         _logger.Debug(
@@ -468,24 +334,152 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             Stopwatch.GetElapsedTime(start)
         );
 
-        return new Mesh(triangles, new Vector3(1f), Pool);
+        return new(triangles, new(1f), Pool);
     }
 
-    private readonly record struct BodyRecord(bool IsStatic, BodyHandle BodyHandle, StaticHandle StaticHandle)
+    private TypedIndex GetOrCreateShape(PhysicsShape shape)
     {
-        public static BodyRecord Dynamic(BodyHandle bodyHandle)
-            => new(false, bodyHandle, default);
+        if (_shapeCache.TryGetValue(shape, out var cached))
+        {
+            return cached;
+        }
 
-        public static BodyRecord Static(StaticHandle staticHandle)
-            => new(true, default, staticHandle);
+        var index = shape switch
+        {
+            BoxShape b     => Simulation.Shapes.Add(new Box(b.Width, b.Height, b.Depth)),
+            SphereShape s  => Simulation.Shapes.Add(new Sphere(s.Radius)),
+            CapsuleShape c => Simulation.Shapes.Add(new Capsule(c.Radius, c.Length)),
+            MeshShape m    => Simulation.Shapes.Add(CreateMesh(m)),
+            _              => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
+        };
+
+        _shapeCache[shape] = index;
+
+        return index;
     }
 
-    private readonly record struct SyncEntry(
-        int BodyId,
-        BodyHandle BodyHandle,
-        Transform3D Transform,
-        PhysicsSyncMode SyncMode
-    );
+    private void HandleShapeDirty(IPhysicsGameObject3d physicsGameObject)
+    {
+        AttachOrReplaceBody(physicsGameObject, false);
+    }
 
-    private sealed record SubscriptionInfo(int BodyId, Action Handler);
+    private void RegisterSync(IPhysicsBodyHandle handle, Transform3D transform, PhysicsSyncMode syncMode)
+    {
+        if (syncMode == PhysicsSyncMode.None)
+        {
+            return;
+        }
+
+        if (!_bodies.TryGetValue(handle.Id, out var record) || record.IsStatic)
+        {
+            return;
+        }
+
+        _syncEntries.Add(new(handle.Id, record.BodyHandle, transform, syncMode));
+    }
+
+    private void RemoveInternal(IPhysicsBodyHandle handle)
+    {
+        if (!_bodies.TryGetValue(handle.Id, out var record))
+        {
+            return;
+        }
+
+        if (_bodyOwners.TryGetValue(handle.Id, out var owner))
+        {
+            UnregisterSync(handle.Id);
+
+            if (_subscriptions.TryGetValue(owner, out var sub) && sub.BodyId == handle.Id)
+            {
+                owner.OnPhysicsDetached();
+            }
+        }
+
+        if (record.IsStatic)
+        {
+            Simulation.Statics.Remove(record.StaticHandle);
+        }
+        else
+        {
+            Simulation.Bodies.Remove(record.BodyHandle);
+        }
+
+        _bodies.Remove(handle.Id);
+        _bodyOwners.Remove(handle.Id);
+    }
+
+    private void RenderPipelineOnGameObjectAdded(IGameObject gameObject)
+    {
+        if (gameObject is not IPhysicsGameObject3d physicsGameObject)
+        {
+            return;
+        }
+
+        var start = Stopwatch.GetTimestamp();
+        AttachOrReplaceBody(physicsGameObject, true);
+
+        _logger.Debug(
+            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was attached to physics world. took {ElapsedMilliseconds} ms",
+            gameObject.Name,
+            gameObject.Id,
+            Stopwatch.GetElapsedTime(start)
+        );
+    }
+
+    private void RenderPipelineOnGameObjectRemoved(IGameObject gameObject)
+    {
+        if (gameObject is not IPhysicsGameObject3d physicsGameObject)
+        {
+            return;
+        }
+
+        if (_subscriptions.TryGetValue(physicsGameObject, out var sub))
+        {
+            physicsGameObject.PhysicsShapeDirty -= sub.Handler;
+            _subscriptions.Remove(physicsGameObject);
+            RemoveInternal(new PhysicsBodyHandle(sub.BodyId));
+        }
+
+        _logger.Debug(
+            "PhysicsGameObject3d of type {GameObjectType} with ID {GameObjectId} was removed from physics world.",
+            gameObject.Name,
+            gameObject.Id
+        );
+    }
+
+    private void UnregisterSync(int bodyId)
+    {
+        for (var i = _syncEntries.Count - 1; i >= 0; i--)
+        {
+            if (_syncEntries[i].BodyId == bodyId)
+            {
+                _syncEntries.RemoveAt(i);
+            }
+        }
+    }
+
+    private void Update(GameTime gameTime)
+    {
+        Simulation.Timestep(1 / 60f, ThreadDispatcher);
+
+        // Sync dynamic bodies back to their game object transforms
+        for (var i = 0; i < _syncEntries.Count; i++)
+        {
+            var entry = _syncEntries[i];
+            var body = Simulation.Bodies.GetBodyReference(entry.BodyHandle);
+
+            if (!body.Exists)
+            {
+                continue;
+            }
+
+            var pose = body.Pose;
+            entry.Transform.Position = pose.Position;
+
+            if (entry.SyncMode == PhysicsSyncMode.FullPose)
+            {
+                entry.Transform.Rotation = pose.Orientation;
+            }
+        }
+    }
 }

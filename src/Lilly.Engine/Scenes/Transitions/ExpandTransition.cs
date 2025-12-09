@@ -1,4 +1,3 @@
-using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
@@ -62,12 +61,12 @@ public class ExpandTransition : TransitionGameObject
 
             // Draw expanding rectangle
             spriteBatcher.DrawRectangle(
-                position: new Vector2(x, y),
-                size: new Vector2(width, height),
-                color: Color,
-                rotation: 0f,
-                origin: null,
-                depth: 0.9f
+                new(x, y),
+                new(width, height),
+                Color,
+                0f,
+                null,
+                0.9f
             );
         }
     }

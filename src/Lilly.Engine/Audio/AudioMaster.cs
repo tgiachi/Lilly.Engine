@@ -22,7 +22,6 @@ public class AudioMaster : IDisposable
             throw new InvalidOperationException("Could not create device");
         }
 
-
         context = alc.CreateContext(device, null);
         MakeContextCurrent();
         GetError();
@@ -48,7 +47,7 @@ public class AudioMaster : IDisposable
 
         if (err != AudioError.NoError)
         {
-            throw new InvalidOperationException($"Audio error {Enum.GetName<AudioError>(err)}");
+            throw new InvalidOperationException($"Audio error {Enum.GetName(err)}");
         }
     }
 

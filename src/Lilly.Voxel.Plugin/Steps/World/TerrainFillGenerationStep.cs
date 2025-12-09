@@ -17,7 +17,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
     private readonly ushort _iceId;
 
     private readonly float _waterLevel;
-    
+
     // 3D Noise Settings
     private readonly int _seedOffset;
     private readonly float _noiseFrequency;
@@ -60,6 +60,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
         var noise = new FastNoiseLite(context.Seed + _seedOffset);
         noise.SetNoiseType(NoiseType.OpenSimplex2);
         noise.SetFrequency(_noiseFrequency);
+
         // Simple ridged fractal for more interesting cliffs
         noise.SetFractalType(FractalType.FBm);
         noise.SetFractalOctaves(2);
@@ -72,17 +73,20 @@ public class TerrainFillGenerationStep : IGeneratorStep
 
         // Try get temperature for ice
         float[]? tempMap = null;
+
         if (context.CustomData.TryGetValue(GenerationKeys.TemperatureMap, out var tempObj))
+        {
             tempMap = tempObj as float[];
+        }
 
         for (var z = 0; z < chunkSize; z++)
         {
             for (var x = 0; x < chunkSize; x++)
             {
-                int index = z * chunkSize + x;
+                var index = z * chunkSize + x;
                 float baseHeight = heightMap[index];
-                float temp = tempMap != null ? tempMap[index] : 0.5f;
-                bool isCold = temp < 0.25f;
+                var temp = tempMap != null ? tempMap[index] : 0.5f;
+                var isCold = temp < 0.25f;
 
                 for (var y = 0; y < ChunkEntity.Height; y++)
                 {
@@ -92,9 +96,14 @@ public class TerrainFillGenerationStep : IGeneratorStep
                     if (worldY == -500)
                     {
                         chunk.SetBlockFast(x, y, z, _bedrockId);
+
                         continue;
                     }
-                    if (worldY < -500) continue; // Void
+
+                    if (worldY < -500)
+                    {
+                        continue; // Void
+                    }
 
                     // Optimization: Skip noise if we are way above base height (guaranteed air)
                     // or way below (guaranteed stone).
@@ -102,7 +111,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
                     // So if (baseHeight - worldY) < -_noiseStrength, density is definitely < 0.
                     // If (baseHeight - worldY) > _noiseStrength, density is definitely > 0.
 
-                    float heightDiff = baseHeight - worldY;
+                    var heightDiff = baseHeight - worldY;
 
                     if (heightDiff < -_noiseStrength * 1.5f) // Safety margin
                     {
@@ -110,30 +119,36 @@ public class TerrainFillGenerationStep : IGeneratorStep
                         if (worldY <= _waterLevel)
                         {
                             if (isCold && worldY == (int)_waterLevel)
+                            {
                                 chunk.SetBlockFast(x, y, z, _iceId);
+                            }
                             else
+                            {
                                 chunk.SetBlockFast(x, y, z, _waterId);
+                            }
                         }
+
                         continue;
                     }
-                    
+
                     if (heightDiff > _noiseStrength * 1.5f)
                     {
-                         // Guaranteed Stone
-                         chunk.SetBlockFast(x, y, z, _stoneId);
-                         continue;
+                        // Guaranteed Stone
+                        chunk.SetBlockFast(x, y, z, _stoneId);
+
+                        continue;
                     }
 
                     // Density Calculation
                     // Start with basic gradient based on 2D heightmap
                     // If worldY == baseHeight, result is 0. If worldY < baseHeight, result is positive (solid).
-                    float density = heightDiff;
+                    var density = heightDiff;
 
                     // Add 3D noise to distort the terrain
                     // We reduce noise influence as we go deeper so underground is solid
                     // And reduce it high up so mountains taper off
-                    float noiseVal = noise.GetNoise(chunkBaseX + x, worldY, chunkBaseZ + z) * _noiseStrength;
-                    
+                    var noiseVal = noise.GetNoise(chunkBaseX + x, worldY, chunkBaseZ + z) * _noiseStrength;
+
                     // Apply noise. 
                     density += noiseVal;
 
@@ -148,10 +163,15 @@ public class TerrainFillGenerationStep : IGeneratorStep
                         if (worldY <= _waterLevel)
                         {
                             if (isCold && worldY == (int)_waterLevel)
+                            {
                                 chunk.SetBlockFast(x, y, z, _iceId);
+                            }
                             else
+                            {
                                 chunk.SetBlockFast(x, y, z, _waterId);
+                            }
                         }
+
                         // Else leave as 0 (Air)
                     }
                 }
@@ -164,7 +184,7 @@ public class TerrainFillGenerationStep : IGeneratorStep
     private static ushort ResolveBlock(IBlockRegistry registry, string name, ushort fallback)
     {
         var block = registry.GetByName(name);
+
         return block == registry.Air ? fallback : block.Id;
     }
 }
-

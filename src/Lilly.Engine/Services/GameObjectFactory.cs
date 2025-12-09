@@ -3,11 +3,9 @@ using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Data.Internal;
 using Lilly.Engine.GameObjects.Base;
-using Lilly.Engine.Interfaces.Physics;
-using Lilly.Engine.Interfaces.Services;
+using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
-using Lilly.Rendering.Core.Context;
 using MoonSharp.Interpreter;
 using Serilog;
 using Serilog.Events;
@@ -84,9 +82,25 @@ public class GameObjectFactory : IGameObjectFactory
             objectId
         );
 
-
-
         return instance;
+    }
+
+    public void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject
+    {
+        ArgumentNullException.ThrowIfNull(gameObject);
+
+        _logger.Debug(
+            "Destroying game object of type {GameObjectType} with ID {GameObjectId}",
+            gameObject.Name,
+            gameObject.Id
+        );
+
+        if (gameObject is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
+
+        DecrementObjectId();
     }
 
     /// <summary>
@@ -105,22 +119,18 @@ public class GameObjectFactory : IGameObjectFactory
     public bool IsRegistered(Type type)
         => type == null ? throw new ArgumentNullException(nameof(type)) : _container.IsRegistered(type);
 
-    public void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject
+    private void AttachRenderContextIfNeeded(IGameObject instance)
     {
-        ArgumentNullException.ThrowIfNull(gameObject);
-
-        _logger.Debug(
-            "Destroying game object of type {GameObjectType} with ID {GameObjectId}",
-            gameObject.Name,
-            gameObject.Id
-        );
-
-        if (gameObject is IDisposable disposable)
+        if (instance is not Base2dGameObject base2d)
         {
-            disposable.Dispose();
+            return;
         }
 
-        DecrementObjectId();
+        if (_container.IsRegistered<RenderContext>())
+        {
+            var renderContext = _container.Resolve<RenderContext>();
+            base2d.UseRenderContext(renderContext);
+        }
     }
 
     private void BuildDynamicScriptModule()
@@ -159,6 +169,12 @@ public class GameObjectFactory : IGameObjectFactory
     }
 
     /// <summary>
+    /// Decrements the object ID counter.
+    /// </summary>
+    private void DecrementObjectId()
+        => Interlocked.Decrement(ref _nextObjectId);
+
+    /// <summary>
     /// Generates a unique name for a game object based on its type and ID.
     /// </summary>
     private static string GenerateGameObjectName(Type type, uint id)
@@ -169,24 +185,4 @@ public class GameObjectFactory : IGameObjectFactory
     /// </summary>
     private uint GenerateObjectId()
         => (uint)Interlocked.Increment(ref _nextObjectId);
-
-    /// <summary>
-    ///  Decrements the object ID counter.
-    /// </summary>
-    private void DecrementObjectId()
-        => Interlocked.Decrement(ref _nextObjectId);
-
-    private void AttachRenderContextIfNeeded(IGameObject instance)
-    {
-        if (instance is not Base2dGameObject base2d)
-        {
-            return;
-        }
-
-        if (_container.IsRegistered<RenderContext>())
-        {
-            var renderContext = _container.Resolve<RenderContext>();
-            base2d.UseRenderContext(renderContext);
-        }
-    }
 }

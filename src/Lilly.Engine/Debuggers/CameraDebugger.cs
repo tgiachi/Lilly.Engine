@@ -1,3 +1,4 @@
+using ImGuiNET;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Services;
 
@@ -8,59 +9,62 @@ public class CameraDebugger : BaseImGuiDebuggerGameObject
     private readonly ICamera3dService _cameraService;
 
     public CameraDebugger(ICamera3dService cameraService) : base("Camera Debugger")
-    {
-        _cameraService = cameraService;
-    }
+        => _cameraService = cameraService;
 
     protected override void DrawDebug()
     {
         var cameras = _cameraService.Cameras;
         var activeCamera = _cameraService.ActiveCamera;
 
-        ImGuiNET.ImGui.Text($"Available Cameras: {cameras.Count}");
-        ImGuiNET.ImGui.Separator();
+        ImGui.Text($"Available Cameras: {cameras.Count}");
+        ImGui.Separator();
 
         if (cameras.Count == 0)
         {
-            ImGuiNET.ImGui.Text("No cameras registered.");
+            ImGui.Text("No cameras registered.");
+
             return;
         }
 
-        if (ImGuiNET.ImGui.BeginCombo("Active Camera", activeCamera?.Name ?? "None"))
+        if (ImGui.BeginCombo("Active Camera", activeCamera?.Name ?? "None"))
         {
             foreach (var camera in cameras)
             {
-                bool isSelected = camera == activeCamera;
-                if (ImGuiNET.ImGui.Selectable(camera.Name, isSelected))
+                var isSelected = camera == activeCamera;
+
+                if (ImGui.Selectable(camera.Name, isSelected))
                 {
                     _cameraService.CurrentCamera = camera;
                 }
 
                 if (isSelected)
                 {
-                    ImGuiNET.ImGui.SetItemDefaultFocus();
+                    ImGui.SetItemDefaultFocus();
                 }
             }
 
-            ImGuiNET.ImGui.EndCombo();
+            ImGui.EndCombo();
         }
 
-        ImGuiNET.ImGui.Separator();
+        ImGui.Separator();
 
         if (activeCamera == null)
         {
-            ImGuiNET.ImGui.Text("No active camera selected.");
+            ImGui.Text("No active camera selected.");
+
             return;
         }
 
-        ImGuiNET.ImGui.Text($"Camera: {activeCamera.Name}");
-        ImGuiNET.ImGui.Text($"Enabled: {activeCamera.Enabled}");
-        ImGuiNET.ImGui.Text($"Position: X: {activeCamera.Position.X:F2}, Y: {activeCamera.Position.Y:F2}, Z: {activeCamera.Position.Z:F2}");
-        ImGuiNET.ImGui.Text(
+        ImGui.Text($"Camera: {activeCamera.Name}");
+        ImGui.Text($"Enabled: {activeCamera.Enabled}");
+        ImGui.Text(
+            $"Position: X: {activeCamera.Position.X:F2}, Y: {activeCamera.Position.Y:F2}, Z: {activeCamera.Position.Z:F2}"
+        );
+        ImGui.Text(
             $"Rotation: Pitch: {activeCamera.Rotation.X:F2}, Yaw: {activeCamera.Rotation.Y:F2}, Roll: {activeCamera.Rotation.Z:F2}"
         );
-        ImGuiNET.ImGui.Text($"FOV: {activeCamera.FieldOfView:F2}");
-        ImGuiNET.ImGui.Text($"Near Clip: {activeCamera.NearPlane:F2}");
-        ImGuiNET.ImGui.Text($"Far Clip: {activeCamera.FarPlane:F2}");
+        ImGui.Text($"FOV: {activeCamera.FieldOfView:F2}");
+        ImGui.Text($"Near Clip: {activeCamera.NearPlane:F2}");
+        ImGui.Text($"Far Clip: {activeCamera.FarPlane:F2}");
     }
 }

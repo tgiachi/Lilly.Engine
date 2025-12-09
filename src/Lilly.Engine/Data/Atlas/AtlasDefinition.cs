@@ -31,8 +31,5 @@ public class AtlasDefinition
     }
 
     public override string ToString()
-    {
-        return
-            $"AtlasDefinition(TextureName={TextureName} Name={Name}, Width={Width}, Height={Height}, Margin={Margin}, Spacing={Spacing}, Regions=[{string.Join(", ", Regions)}])";
-    }
+        => $"AtlasDefinition(TextureName={TextureName} Name={Name}, Width={Width}, Height={Height}, Margin={Margin}, Spacing={Spacing}, Regions=[{string.Join(", ", Regions)}])";
 }

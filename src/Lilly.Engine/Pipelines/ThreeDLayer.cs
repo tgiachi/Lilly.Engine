@@ -1,21 +1,20 @@
 using System.Numerics;
-using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
+using Lilly.Engine.Interfaces.Physics;
+using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Layers;
-using Lilly.Rendering.Core.Types;
 using Lilly.Rendering.Core.Primitives;
-using Lilly.Engine.Vertexts;
-using Lilly.Engine.Interfaces.Physics;
-using Lilly.Engine.Interfaces.Services;
-using Serilog;
+using Lilly.Rendering.Core.Types;
 using Silk.NET.OpenGL;
 using TrippyGL;
-using System.Runtime.InteropServices;
+using PrimitiveType = TrippyGL.PrimitiveType;
 
 namespace Lilly.Engine.Pipelines;
 
@@ -119,7 +118,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         }
 
         // 4. Draw Transparent Pass (Back-to-Front)
-        for (int i = EntitiesInCullingFrustum.Count - 1; i >= 0; i--)
+        for (var i = EntitiesInCullingFrustum.Count - 1; i >= 0; i--)
         {
             var entity = EntitiesInCullingFrustum[i];
 
@@ -140,6 +139,17 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         _renderContext.GraphicsDevice.ResetStates();
     }
 
+    private static void AddEdge(HashSet<(int, int)> edges, int a, int b)
+    {
+        if (a == b)
+        {
+            return;
+        }
+
+        var key = a < b ? (a, b) : (b, a);
+        edges.Add(key);
+    }
+
     private void CheckWireframe()
     {
         if (IsWireframe)
@@ -155,11 +165,19 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         }
     }
 
-    private void RestoreState()
+    private void DrawBoundingBox(BoundingBox bounds, Vector4 color, Matrix4x4 view, Matrix4x4 projection)
     {
-        _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
-        _renderContext.GraphicsDevice.DepthState = DepthState.None;
-        _renderContext.GraphicsDevice.BlendState = BlendState.Opaque;
+        var cornersArray = new Vector3[8];
+        bounds.GetCorners(cornersArray);
+        var corners = cornersArray.AsSpan();
+        var edges = new[]
+        {
+            (0, 1), (1, 2), (2, 3), (3, 0), // top
+            (4, 5), (5, 6), (6, 7), (7, 4), // bottom
+            (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
+        };
+
+        DrawLineList(corners, edges, color, view, projection);
     }
 
     private void DrawDebugOverlays()
@@ -190,24 +208,43 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         _renderContext.OpenGl.LineWidth(1f);
     }
 
-    private void EnsureLineShader()
+    private void DrawLineList(
+        ReadOnlySpan<Vector3> vertices,
+        ReadOnlySpan<(int, int)> edges,
+        Vector4 color,
+        Matrix4x4 view,
+        Matrix4x4 projection
+    )
     {
-        _debugLineShader ??= _assetManager.GetShaderProgram("debug_line");
-    }
-
-    private void DrawBoundingBox(BoundingBox bounds, Vector4 color, Matrix4x4 view, Matrix4x4 projection)
-    {
-        var cornersArray = new Vector3[8];
-        bounds.GetCorners(cornersArray);
-        var corners = cornersArray.AsSpan();
-        var edges = new (int, int)[]
+        if (_debugLineShader == null)
         {
-            (0, 1), (1, 2), (2, 3), (3, 0), // top
-            (4, 5), (5, 6), (6, 7), (7, 4), // bottom
-            (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
-        };
+            return;
+        }
 
-        DrawLineList(corners, edges, color, view, projection);
+        var lineVertices = new PositionVertex[edges.Length * 2];
+
+        for (var i = 0; i < edges.Length; i++)
+        {
+            var edge = edges[i];
+            lineVertices[i * 2] = new(vertices[edge.Item1]);
+            lineVertices[i * 2 + 1] = new(vertices[edge.Item2]);
+        }
+
+        _lineVbo?.Dispose();
+        _lineVbo = new VertexBuffer<PositionVertex>(_renderContext.GraphicsDevice, lineVertices, BufferUsage.DynamicDraw);
+
+        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
+        _renderContext.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+        _renderContext.GraphicsDevice.FaceCullingEnabled = false;
+
+        _renderContext.GraphicsDevice.ShaderProgram = _debugLineShader;
+        _debugLineShader!.Uniforms["World"].SetValueMat4(Matrix4x4.Identity);
+        _debugLineShader.Uniforms["View"].SetValueMat4(view);
+        _debugLineShader.Uniforms["Projection"].SetValueMat4(projection);
+        _debugLineShader.Uniforms["Color"].SetValueVec4(color);
+
+        _renderContext.GraphicsDevice.VertexArray = _lineVbo;
+        _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.Lines, 0, (uint)lineVertices.Length);
     }
 
     private void DrawPhysicsShape(
@@ -288,51 +325,15 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         DrawLineList(CollectionsMarshal.AsSpan(vertices), CollectionsMarshal.AsSpan(edges), color, view, projection);
     }
 
-    private static void AddEdge(HashSet<(int, int)> edges, int a, int b)
+    private void EnsureLineShader()
     {
-        if (a == b)
-            return;
-
-        var key = a < b ? (a, b) : (b, a);
-        edges.Add(key);
+        _debugLineShader ??= _assetManager.GetShaderProgram("debug_line");
     }
 
-    private void DrawLineList(
-        ReadOnlySpan<Vector3> vertices,
-        ReadOnlySpan<(int, int)> edges,
-        Vector4 color,
-        Matrix4x4 view,
-        Matrix4x4 projection
-    )
+    private void RestoreState()
     {
-        if (_debugLineShader == null)
-        {
-            return;
-        }
-
-        var lineVertices = new PositionVertex[edges.Length * 2];
-
-        for (int i = 0; i < edges.Length; i++)
-        {
-            var edge = edges[i];
-            lineVertices[i * 2] = new PositionVertex(vertices[edge.Item1]);
-            lineVertices[i * 2 + 1] = new PositionVertex(vertices[edge.Item2]);
-        }
-
-        _lineVbo?.Dispose();
-        _lineVbo = new VertexBuffer<PositionVertex>(_renderContext.GraphicsDevice, lineVertices, BufferUsage.DynamicDraw);
-
-        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
-        _renderContext.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
-        _renderContext.GraphicsDevice.FaceCullingEnabled = false;
-
-        _renderContext.GraphicsDevice.ShaderProgram = _debugLineShader;
-        _debugLineShader!.Uniforms["World"].SetValueMat4(Matrix4x4.Identity);
-        _debugLineShader.Uniforms["View"].SetValueMat4(view);
-        _debugLineShader.Uniforms["Projection"].SetValueMat4(projection);
-        _debugLineShader.Uniforms["Color"].SetValueVec4(color);
-
-        _renderContext.GraphicsDevice.VertexArray = _lineVbo;
-        _renderContext.GraphicsDevice.DrawArrays(TrippyGL.PrimitiveType.Lines, 0, (uint)lineVertices.Length);
+        _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
+        _renderContext.GraphicsDevice.DepthState = DepthState.None;
+        _renderContext.GraphicsDevice.BlendState = BlendState.Opaque;
     }
 }

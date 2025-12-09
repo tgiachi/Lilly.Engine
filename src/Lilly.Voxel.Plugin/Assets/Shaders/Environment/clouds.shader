@@ -14,21 +14,21 @@ uniform vec3 uCloudColor;
 
 void main()
 {
-    vec3 cloudColor = uCloudColor;
-    vec3 norm = normalize(vNormal);
+vec3 cloudColor = uCloudColor;
+vec3 norm = normalize(vNormal);
 
-    // Calculate directional lighting
-    vec3 lightDir = normalize(-lightDirection);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+// Calculate directional lighting
+vec3 lightDir = normalize(-lightDirection);
+float diff = max(dot(norm, lightDir), 0.0);
+vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
 
-    // Combine ambient and diffuse lighting
-    vec3 lighting = ambient + diffuse;
+// Combine ambient and diffuse lighting
+vec3 lighting = ambient + diffuse;
 
-    // Apply lighting to cloud color
-    cloudColor *= lighting;
+// Apply lighting to cloud color
+cloudColor *= lighting;
 
-    FragColor = vec4(cloudColor, 0.75);
+FragColor = vec4(cloudColor, 0.75);
 }
 
 #shader vertex
@@ -50,15 +50,15 @@ out vec3 vNormal;
 
 void main()
 {
-    // Apply a simple planar drift on XZ based on time to move the cloud
-    vec3 displacedPosition = aPosition + vec3(uWindVelocity.x, 0.0, uWindVelocity.y) * uTime;
+// Apply a simple planar drift on XZ based on time to move the cloud
+vec3 displacedPosition = aPosition + vec3(uWindVelocity.x, 0.0, uWindVelocity.y) * uTime;
 
-    // Transform normal to world space
-    mat3 normalMatrix = transpose(inverse(mat3(uWorld)));
-    vNormal = normalize(normalMatrix * aNormal);
+// Transform normal to world space
+mat3 normalMatrix = transpose(inverse(mat3(uWorld)));
+vNormal = normalize(normalMatrix * aNormal);
 
-    // Transform position
-    vec4 worldPos = uWorld * vec4(displacedPosition, 1.0);
-    vec4 viewPos = uView * worldPos;
-    gl_Position = uProjection * viewPos;
+// Transform position
+vec4 worldPos = uWorld * vec4(displacedPosition, 1.0);
+vec4 viewPos = uView * worldPos;
+gl_Position = uProjection * viewPos;
 }

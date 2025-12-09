@@ -31,12 +31,14 @@ public class WaterFillGenerationStep : IGeneratorStep
 
         // No work needed if the chunk is entirely above the water line.
         var chunkBaseY = (int)context.WorldPosition.Y;
+
         if (chunkBaseY > _waterLevel)
         {
             return Task.CompletedTask;
         }
 
         float[]? tempMap = null;
+
         if (context.CustomData.TryGetValue(GenerationKeys.TemperatureMap, out var tempObj))
         {
             tempMap = tempObj as float[];
@@ -91,6 +93,7 @@ public class WaterFillGenerationStep : IGeneratorStep
     private static ushort ResolveBlock(IBlockRegistry registry, string name, ushort fallback)
     {
         var block = registry.GetByName(name);
+
         return block == registry.Air ? fallback : block.Id;
     }
 }

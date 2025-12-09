@@ -29,7 +29,7 @@ public class BlockRegistry : IBlockRegistry
     /// </summary>
     public BlockRegistry()
     {
-        Air = new BlockType(0, "air");
+        Air = new(0, "air");
         _blocksById.Add(Air); // ID 0 is Air
         _blocksByName["air"] = Air;
         Air.IsSolid = false;
@@ -38,14 +38,19 @@ public class BlockRegistry : IBlockRegistry
     }
 
     /// <summary>
+    /// Gets all registered block types.
+    /// </summary>
+    /// <returns>An enumerable of all block types.</returns>
+    public IEnumerable<BlockType> GetAllBlocks()
+        => _blocksById;
+
+    /// <summary>
     /// Gets a block type by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the block type.</param>
     /// <returns>The block type, or Air if not found.</returns>
     public BlockType GetById(ushort id)
-    {
-        return id < _blocksById.Count ? _blocksById[id] : Air;
-    }
+        => id < _blocksById.Count ? _blocksById[id] : Air;
 
     /// <summary>
     /// Gets a block type by its name.
@@ -53,16 +58,7 @@ public class BlockRegistry : IBlockRegistry
     /// <param name="name">The name of the block type.</param>
     /// <returns>The block type, or Air if not found.</returns>
     public BlockType GetByName(string name)
-    {
-        return _blocksByName.GetValueOrDefault(name, Air);
-    }
-
-    /// <summary>
-    /// Gets all registered block types.
-    /// </summary>
-    /// <returns>An enumerable of all block types.</returns>
-    public IEnumerable<BlockType> GetAllBlocks()
-        => _blocksById;
+        => _blocksByName.GetValueOrDefault(name, Air);
 
     /// <summary>
     /// Creates and registers a new block type with the specified name.
@@ -78,7 +74,6 @@ public class BlockRegistry : IBlockRegistry
         if (_blocksById.Count == nextId)
         {
             _blocksById.Add(block);
-
         }
         else
         {
@@ -116,7 +111,6 @@ public class BlockRegistry : IBlockRegistry
         // Update the block in the registries
         _blocksById[block.Id] = builtBlock;
         _blocksByName[block.Name] = builtBlock;
-
     }
 
     public void RegisterBlockFromJson(BlockDefinitionJson blockJson)

@@ -1,7 +1,6 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
-using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
@@ -47,7 +46,7 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             var min = Transform.Position - new Vector3(halfWidth, halfHeight, halfDepth);
             var max = Transform.Position + new Vector3(halfWidth, halfHeight, halfDepth);
 
-            return new BoundingBox(min, max);
+            return new(min, max);
         }
     }
 
@@ -61,15 +60,25 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         _assetManager = assetManager;
     }
 
-    public void Initialize()
+    public bool IsStatic => false;
+
+    public event Action? PhysicsShapeDirty;
+
+    public Transform3D PhysicsTransform => Transform;
+
+    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
+    public PhysicsBodyConfig BuildBodyConfig()
+
+        // Cube size is 1x1x1 (from -0.5 to 0.5 in all dimensions)
+        => new(new BoxShape(1, 1, 1f), Mass, new(Transform.Position, Transform.Rotation));
+
+    public void Dispose()
     {
-        _cubeVertices = CreateCubeVertices();
-        var randomBoxTexture = Random.Shared.Next(1, 5);
-        _texture = _assetManager.GetTexture<Texture2D>($"box{randomBoxTexture}");
+        _vertexBuffer.Dispose();
 
-        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
-
-        _shaderProgram = _assetManager.GetShaderProgram("model");
+        // Do not dispose _shaderProgram here as it is managed by AssetManager
+        GC.SuppressFinalize(this);
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
@@ -85,9 +94,9 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
-        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new Vector3(-0.4f, -1.0f, -0.2f));
+        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new(-0.4f, -1.0f, -0.2f));
         _shaderProgram.Uniforms["LightColor"].SetValueVec3(Vector3.One);
-        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new Vector3(0.15f, 0.15f, 0.15f));
+        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new(0.15f, 0.15f, 0.15f));
         _shaderProgram.Uniforms["Tint"].SetValueVec4(Vector4.One);
 
         graphicsDevice.VertexArray = _vertexBuffer;
@@ -96,7 +105,29 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
-    public void Update(GameTime gameTime) => base.Update(gameTime);
+    public void Initialize()
+    {
+        _cubeVertices = CreateCubeVertices();
+        var randomBoxTexture = Random.Shared.Next(1, 5);
+        _texture = _assetManager.GetTexture<Texture2D>($"box{randomBoxTexture}");
+
+        _vertexBuffer = new(_graphicsDevice, _cubeVertices, BufferUsage.DynamicCopy);
+
+        _shaderProgram = _assetManager.GetShaderProgram("model");
+    }
+
+    public void OnPhysicsAttached(IPhysicsBodyHandle h)
+    {
+        _body = h;
+    }
+
+    public void OnPhysicsDetached()
+    {
+        _body = default!;
+    }
+
+    public void Update(GameTime gameTime)
+        => base.Update(gameTime);
 
     private static VertexPositionNormalTex[] CreateCubeVertices()
     {
@@ -171,37 +202,5 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             new(frontTopLeft, -Vector3.UnitX, uvTopRight),
             new(backTopLeft, -Vector3.UnitX, uvTopLeft)
         ];
-    }
-
-    public void Dispose()
-    {
-        _vertexBuffer.Dispose();
-
-        // Do not dispose _shaderProgram here as it is managed by AssetManager
-        GC.SuppressFinalize(this);
-    }
-
-    public bool IsStatic => false;
-
-    public PhysicsBodyConfig BuildBodyConfig()
-    {
-        // Cube size is 1x1x1 (from -0.5 to 0.5 in all dimensions)
-        return new PhysicsBodyConfig(new BoxShape(1, 1, 1f), Mass, new RigidPose(Transform.Position, Transform.Rotation));
-    }
-
-    public event Action? PhysicsShapeDirty;
-
-    public Transform3D PhysicsTransform => Transform;
-
-    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
-
-    public void OnPhysicsAttached(IPhysicsBodyHandle h)
-    {
-        _body = h;
-    }
-
-    public void OnPhysicsDetached()
-    {
-        _body = default!;
     }
 }

@@ -22,6 +22,7 @@ public sealed class ChunkMeshData
     /// A value of 0 indicates no texture.
     /// </summary>
     public uint TextureHandle { get; set; }
+
     public string SolidAtlasName { get; set; } = string.Empty;
 
     /// <summary>
@@ -39,6 +40,7 @@ public sealed class ChunkMeshData
     /// A value of 0 indicates no texture.
     /// </summary>
     public uint BillboardTextureHandle { get; set; }
+
     public string BillboardAtlasName { get; set; } = string.Empty;
 
     /// <summary>
@@ -56,6 +58,7 @@ public sealed class ChunkMeshData
     /// A value of 0 indicates no texture.
     /// </summary>
     public uint ItemTextureHandle { get; set; }
+
     public string ItemAtlasName { get; set; } = string.Empty;
 
     /// <summary>
@@ -73,6 +76,7 @@ public sealed class ChunkMeshData
     /// A value of 0 indicates no texture.
     /// </summary>
     public uint FluidTextureHandle { get; set; }
+
     public string FluidAtlasName { get; set; } = string.Empty;
 
     /// <summary>

@@ -38,7 +38,7 @@ public class TimerService : ITimerService
         _context.Renderer.OnUpdate += Update;
 
         // Initialize timer wheel with 512 slots and 16ms tick duration (~60fps)
-        _timerWheel = new(numSlots: 512, tickDurationMs: 16.0);
+        _timerWheel = new(512, 16.0);
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public class TimerService : ITimerService
             timer.IsAsync = false;
 
             // Use delay if specified, otherwise use interval
-            double initialDelay = delayInMs > 0 ? delayInMs : intervalInMs;
+            var initialDelay = delayInMs > 0 ? delayInMs : intervalInMs;
 
             // Add to timer wheel
             _timerWheel.AddTimer(timer, initialDelay);
@@ -176,7 +176,7 @@ public class TimerService : ITimerService
             timer.IsAsync = true;
 
             // Use delay if specified, otherwise use interval
-            double initialDelay = delayInMs > 0 ? delayInMs : intervalInMs;
+            var initialDelay = delayInMs > 0 ? delayInMs : intervalInMs;
 
             // Add to timer wheel
             _timerWheel.AddTimer(timer, initialDelay);
@@ -263,33 +263,6 @@ public class TimerService : ITimerService
     }
 
     /// <summary>
-    /// Internal method to unregister a timer without acquiring the semaphore.
-    /// Must be called while holding the semaphore lock.
-    /// </summary>
-    /// <param name="timerId">The ID of the timer to unregister.</param>
-    private void UnregisterTimerInternal(string timerId)
-    {
-        if (!_timerById.TryGetValue(timerId, out var timer))
-        {
-            _logger.Warning("Timer with ID {TimerId} not found", timerId);
-
-            return;
-        }
-
-        // Remove from timer wheel
-        _timerWheel.RemoveTimer(timer);
-
-        // Remove from dictionaries
-        _timerById.Remove(timerId);
-        _timerIdByName.Remove(timer.Name);
-
-        _logger.Information("Unregistered timer: {TimerId} ({Name})", timer.Id, timer.Name);
-
-        // Return to pool
-        _timerDataPool.Return(timer);
-    }
-
-    /// <summary>
     /// Updates the timer service with the current game time.
     /// </summary>
     /// <param name="gameTime">The current game time.</param>
@@ -306,7 +279,7 @@ public class TimerService : ITimerService
 
             foreach (var timer in expiredTimers)
             {
-                bool executionSucceeded = true;
+                var executionSucceeded = true;
 
                 try
                 {
@@ -378,5 +351,32 @@ public class TimerService : ITimerService
 
             return false;
         }
+    }
+
+    /// <summary>
+    /// Internal method to unregister a timer without acquiring the semaphore.
+    /// Must be called while holding the semaphore lock.
+    /// </summary>
+    /// <param name="timerId">The ID of the timer to unregister.</param>
+    private void UnregisterTimerInternal(string timerId)
+    {
+        if (!_timerById.TryGetValue(timerId, out var timer))
+        {
+            _logger.Warning("Timer with ID {TimerId} not found", timerId);
+
+            return;
+        }
+
+        // Remove from timer wheel
+        _timerWheel.RemoveTimer(timer);
+
+        // Remove from dictionaries
+        _timerById.Remove(timerId);
+        _timerIdByName.Remove(timer.Name);
+
+        _logger.Information("Unregistered timer: {TimerId} ({Name})", timer.Id, timer.Name);
+
+        // Return to pool
+        _timerDataPool.Return(timer);
     }
 }

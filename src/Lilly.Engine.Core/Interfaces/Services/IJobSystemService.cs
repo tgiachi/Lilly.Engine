@@ -9,6 +9,12 @@ namespace Lilly.Engine.Core.Interfaces.Services;
 public interface IJobSystemService : IJobSystemMetrics, ILillyService
 {
     /// <summary>
+    /// Initializes the worker pool.
+    /// </summary>
+    /// <param name="workerCount">Number of worker threads to create.</param>
+    void Initialize(int workerCount);
+
+    /// <summary>
     /// Schedules a synchronous job for execution.
     /// </summary>
     /// <param name="job">The job to execute.</param>
@@ -25,7 +31,12 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     /// <param name="onComplete">Optional callback invoked when the job completes.</param>
     /// <param name="cancellationToken">Token used to cancel the job execution.</param>
     /// <returns>A job handle for tracking and cancellation.</returns>
-    IJobHandle Schedule(IAsyncJob job, JobPriority priority = JobPriority.Normal, Action? onComplete = null, CancellationToken cancellationToken = default);
+    IJobHandle Schedule(
+        IAsyncJob job,
+        JobPriority priority = JobPriority.Normal,
+        Action? onComplete = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Schedules a synchronous job that produces a result.
@@ -35,7 +46,11 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     /// <param name="priority">The execution priority of the job.</param>
     /// <param name="onComplete">Optional callback invoked when the job completes with the result.</param>
     /// <returns>A job handle with result for tracking and cancellation.</returns>
-    IJobHandle<TResult> Schedule<TResult>(IJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null);
+    IJobHandle<TResult> Schedule<TResult>(
+        IJob<TResult> job,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null
+    );
 
     /// <summary>
     /// Schedules an asynchronous job that produces a result.
@@ -46,7 +61,12 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     /// <param name="onComplete">Optional callback invoked when the job completes with the result.</param>
     /// <param name="cancellationToken">Token used to cancel the job execution.</param>
     /// <returns>A job handle with result for tracking and cancellation.</returns>
-    IJobHandle<TResult> Schedule<TResult>(IAsyncJob<TResult> job, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default);
+    IJobHandle<TResult> Schedule<TResult>(
+        IAsyncJob<TResult> job,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Schedules an asynchronous action without a result.
@@ -57,7 +77,13 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     /// <param name="onComplete">Optional callback invoked when the job completes.</param>
     /// <param name="cancellationToken">Token used to cancel the job execution.</param>
     /// <returns>A job handle for tracking and cancellation.</returns>
-    IJobHandle Schedule(string name, Func<CancellationToken, Task> action, JobPriority priority = JobPriority.Normal, Action? onComplete = null, CancellationToken cancellationToken = default);
+    IJobHandle Schedule(
+        string name,
+        Func<CancellationToken, Task> action,
+        JobPriority priority = JobPriority.Normal,
+        Action? onComplete = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Schedules an asynchronous action that produces a result.
@@ -69,13 +95,13 @@ public interface IJobSystemService : IJobSystemMetrics, ILillyService
     /// <param name="onComplete">Optional callback invoked when the job completes with the result.</param>
     /// <param name="cancellationToken">Token used to cancel the job execution.</param>
     /// <returns>A job handle with result for tracking and cancellation.</returns>
-    IJobHandle<TResult> Schedule<TResult>(string name, Func<CancellationToken, Task<TResult>> action, JobPriority priority = JobPriority.Normal, Action<TResult>? onComplete = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Initializes the worker pool.
-    /// </summary>
-    /// <param name="workerCount">Number of worker threads to create.</param>
-    void Initialize(int workerCount);
+    IJobHandle<TResult> Schedule<TResult>(
+        string name,
+        Func<CancellationToken, Task<TResult>> action,
+        JobPriority priority = JobPriority.Normal,
+        Action<TResult>? onComplete = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     /// Requests shutdown of the worker pool.

@@ -7,4 +7,3 @@ namespace Lilly.Engine.Core.Data.Commands;
 /// <param name="Description">A description of the parameter.</param>
 /// <param name="ParameterType">The type of the parameter.</param>
 public record CommandParameter(string Name, string Description, Type ParameterType);
-

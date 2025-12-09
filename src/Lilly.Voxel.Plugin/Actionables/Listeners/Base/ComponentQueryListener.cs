@@ -23,12 +23,10 @@ public abstract class ComponentQueryListener : IActionableListener
     /// Determines if the instance satisfies this listener's component requirements.
     /// </summary>
     public virtual bool CanHandle(BlockInstance instance)
-    {
-        return Query.Matches(instance.Components);
-    }
+        => Query.Matches(instance.Components);
 
     /// <summary>
-    ///  Dispatches an action event to the listener.
+    /// Dispatches an action event to the listener.
     /// </summary>
     /// <param name="actionEventContext"></param>
     public abstract void DispatchAction(ActionEventContext actionEventContext);

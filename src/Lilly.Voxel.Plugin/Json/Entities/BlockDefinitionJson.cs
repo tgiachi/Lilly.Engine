@@ -1,8 +1,6 @@
 using System.Text.Json.Serialization;
 using Lilly.Voxel.Plugin.Blocks;
-using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Json.Converters;
-using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
 using TrippyGL;
 
@@ -34,17 +32,14 @@ public class BlockDefinitionJson
     public BlockComponentsJson Components { get; set; } = new();
 
     /// <summary>
-    ///  Gets or sets the texture objects for each face of the block.
-    ///  The values are serialized as strings in the format "atlasName@index".
-    ///  Supports "all" key to set default texture for all faces, then override specific faces.
-    ///  Ex. { "all": "default@2", "top": "grass@0", "bottom": "dirt@1" }
+    /// Gets or sets the texture objects for each face of the block.
+    /// The values are serialized as strings in the format "atlasName@index".
+    /// Supports "all" key to set default texture for all faces, then override specific faces.
+    /// Ex. { "all": "default@2", "top": "grass@0", "bottom": "dirt@1" }
     /// </summary>
     [JsonConverter(typeof(BlockFaceDictionaryConverter))]
     public Dictionary<BlockFace, BlockTextureObject> Faces { get; set; }
 
     public override string ToString()
-    {
-        return
-            $"BlockDefinitionJson(Name={Name}, IsSolid={IsSolid}, IsLiquid={IsLiquid}, IsOpaque={IsOpaque}, IsTransparent={IsTransparent}, Hardness={Hardness}, IsBreakable={IsBreakable}, IsBillboard={IsBillboard}, IsItem={IsItem}, Faces=[{string.Join(", ", Faces)}])";
-    }
+        => $"BlockDefinitionJson(Name={Name}, IsSolid={IsSolid}, IsLiquid={IsLiquid}, IsOpaque={IsOpaque}, IsTransparent={IsTransparent}, Hardness={Hardness}, IsBreakable={IsBreakable}, IsBillboard={IsBillboard}, IsItem={IsItem}, Faces=[{string.Join(", ", Faces)}])";
 }

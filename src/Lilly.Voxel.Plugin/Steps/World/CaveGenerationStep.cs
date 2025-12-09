@@ -12,11 +12,11 @@ public class CaveGenerationStep : IGeneratorStep
     private readonly float _frequency;
     private readonly float _threshold;
     private readonly float _verticalScale;
-    
+
     // Mega Cave settings
     private readonly float _megaFrequency;
     private readonly float _megaThreshold;
-    
+
     private readonly int _seedOffset;
     private readonly int _surfaceBuffer;
 
@@ -53,7 +53,7 @@ public class CaveGenerationStep : IGeneratorStep
 
         var noise = CreateNoise(context.Seed);
         var megaNoise = CreateMegaNoise(context.Seed);
-        
+
         var chunk = context.Chunk;
         var chunkSize = ChunkEntity.Size;
         var chunkBaseX = context.WorldPosition.X;
@@ -67,12 +67,16 @@ public class CaveGenerationStep : IGeneratorStep
                 var surfaceHeight = heightMap[z * chunkSize + x] - _surfaceBuffer;
 
                 var maxLocalY = Math.Min(ChunkEntity.Height - 1, surfaceHeight - chunkBaseY - 1);
+
                 for (var y = 0; y <= maxLocalY; y++)
                 {
                     var worldY = chunkBaseY + y;
 
                     // Don't carve bedrock
-                    if (worldY <= -500) continue;
+                    if (worldY <= -500)
+                    {
+                        continue;
+                    }
 
                     // Optimization: Don't calculate noise above surface buffer
                     if (worldY >= surfaceHeight)
@@ -86,10 +90,11 @@ public class CaveGenerationStep : IGeneratorStep
                     // 1. Check Mega Caves (Big open chambers) - Cheaper check first if possible, or just check
                     // We use simple OpenSimplex2 for big roundish rooms.
                     var megaValue = megaNoise.GetNoise(worldX, worldY * 0.5f, worldZ); // Squashed Y for wider caves
-                    
+
                     if (megaValue > _megaThreshold)
                     {
                         chunk.SetBlockFast(x, y, z, 0);
+
                         continue; // Skip standard cave check if we already carved
                     }
 
@@ -108,23 +113,24 @@ public class CaveGenerationStep : IGeneratorStep
         return Task.CompletedTask;
     }
 
+    private FastNoiseLite CreateMegaNoise(int seed)
+    {
+        var noise = new FastNoiseLite(seed + _seedOffset + 1337);
+        noise.SetNoiseType(NoiseType.OpenSimplex2); // Smooth round shapes
+        noise.SetFrequency(_megaFrequency);
+
+        // No fractal for mega caves, we want smooth large chambers
+        return noise;
+    }
+
     private FastNoiseLite CreateNoise(int seed)
     {
         var noise = new FastNoiseLite(seed + _seedOffset);
         noise.SetNoiseType(NoiseType.OpenSimplex2);
         noise.SetFrequency(_frequency);
         noise.SetFractalType(FractalType.FBm); // Fractal adds detail/roughness to tunnels
-        noise.SetFractalOctaves(1); 
+        noise.SetFractalOctaves(1);
 
-        return noise;
-    }
-
-    private FastNoiseLite CreateMegaNoise(int seed)
-    {
-        var noise = new FastNoiseLite(seed + _seedOffset + 1337);
-        noise.SetNoiseType(NoiseType.OpenSimplex2); // Smooth round shapes
-        noise.SetFrequency(_megaFrequency);
-        // No fractal for mega caves, we want smooth large chambers
         return noise;
     }
 }

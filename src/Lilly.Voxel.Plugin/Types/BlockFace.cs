@@ -5,10 +5,10 @@ namespace Lilly.Voxel.Plugin.Types;
 /// </summary>
 public enum BlockFace : byte
 {
-    Top, // +Y
+    Top,    // +Y
     Bottom, // -Y
-    Front, // +Z
-    Back, // -Z
-    Left, // -X
-    Right // +X
+    Front,  // +Z
+    Back,   // -Z
+    Left,   // -X
+    Right   // +X
 }

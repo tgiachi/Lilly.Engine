@@ -1,7 +1,7 @@
 namespace Lilly.Voxel.Plugin.Noise;
 
 /// <summary>
-/// Fundamental noise algorithms exposed by <see cref="FastNoiseLite"/>.
+/// Fundamental noise algorithms exposed by <see cref="FastNoiseLite" />.
 /// </summary>
 public enum NoiseType
 {

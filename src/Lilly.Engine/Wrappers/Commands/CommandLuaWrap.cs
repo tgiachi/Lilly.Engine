@@ -6,21 +6,23 @@ namespace Lilly.Engine.Wrappers.Commands;
 
 public class CommandLuaWrap : ICommand
 {
-
     private readonly Closure _executeFunction;
 
-    public CommandLuaWrap(string commandName, string description, string aliases,  Closure executeFunction)
+    public CommandLuaWrap(string commandName, string description, string aliases, Closure executeFunction)
     {
         var aliasesList = aliases.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        CommandDefinition = new CommandDefinition(commandName, description, aliasesList);
+        CommandDefinition = new(commandName, description, aliasesList);
         _executeFunction = executeFunction;
     }
+
+    public CommandDefinition CommandDefinition { get; }
 
     public Task<CommandExecuteResult> ExecuteAsync(params string[] parameters)
     {
         try
         {
             var result = _executeFunction.Call((object)parameters);
+
             if (result.Type == DataType.Table)
             {
                 var table = result.Table;
@@ -29,15 +31,12 @@ public class CommandLuaWrap : ICommand
 
                 return Task.FromResult(new CommandExecuteResult(success, message ?? string.Empty, null));
             }
-            else
-            {
-                return Task.FromResult(new CommandExecuteResult(false, "Invalid return type from Lua function.", null));
-            }
+
+            return Task.FromResult(new CommandExecuteResult(false, "Invalid return type from Lua function.", null));
         }
         catch (ScriptRuntimeException ex)
         {
             return Task.FromResult(new CommandExecuteResult(false, $"Lua error: {ex.Message}", ex));
         }
     }
-    public CommandDefinition CommandDefinition { get; }
 }

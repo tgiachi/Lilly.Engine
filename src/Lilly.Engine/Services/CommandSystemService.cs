@@ -15,8 +15,15 @@ public class CommandSystemService : ICommandSystemService
     private readonly Dictionary<string, ICommand> _commands = new();
 
     public CommandSystemService(List<CommandDefinitionRegistration> registeredCommands = null)
+        => _registeredCommands = registeredCommands;
+
+    public IEnumerable<string> AutocompleteCommand(string input)
     {
-        _registeredCommands = registeredCommands;
+        var inputLower = input.ToLowerInvariant();
+
+        return _commands.Keys
+                        .Where(cmd => cmd.StartsWith(inputLower, StringComparison.InvariantCultureIgnoreCase))
+                        .OrderBy(cmd => cmd);
     }
 
     public async Task<CommandExecuteResult> ExecuteAsync(params string[] parameters)
@@ -25,12 +32,12 @@ public class CommandSystemService : ICommandSystemService
 
         if (string.IsNullOrWhiteSpace(commandName))
         {
-            return new CommandExecuteResult(false, "No command provided.", null);
+            return new(false, "No command provided.", null);
         }
 
         if (!_commands.TryGetValue(commandName, out var command))
         {
-            return new CommandExecuteResult(false, $"Command '{commandName}' not found.", null);
+            return new(false, $"Command '{commandName}' not found.", null);
         }
 
         var commandParameters = parameters.Skip(1).ToArray();
@@ -43,7 +50,7 @@ public class CommandSystemService : ICommandSystemService
         {
             _logger.Error(ex, "Error executing command {CommandName}", commandName);
 
-            return new CommandExecuteResult(false, $"Error executing command '{commandName}': {ex.Message}", ex);
+            return new(false, $"Error executing command '{commandName}': {ex.Message}", ex);
         }
     }
 
@@ -75,14 +82,5 @@ public class CommandSystemService : ICommandSystemService
             }
             _commands[aliasName] = command;
         }
-    }
-
-    public IEnumerable<string> AutocompleteCommand(string input)
-    {
-        var inputLower = input.ToLowerInvariant();
-
-        return _commands.Keys
-                        .Where(cmd => cmd.StartsWith(inputLower, StringComparison.InvariantCultureIgnoreCase))
-                        .OrderBy(cmd => cmd);
     }
 }

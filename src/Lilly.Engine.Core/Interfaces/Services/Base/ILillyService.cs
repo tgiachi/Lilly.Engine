@@ -5,7 +5,6 @@ namespace Lilly.Engine.Core.Interfaces.Services.Base;
 /// </summary>
 public interface ILillyService
 {
-    Task StartAsync();
-
     Task ShutdownAsync();
+    Task StartAsync();
 }

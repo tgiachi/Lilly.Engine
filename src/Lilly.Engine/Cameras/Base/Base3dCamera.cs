@@ -1,6 +1,5 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Primitives;
@@ -62,11 +61,6 @@ public abstract class Base3dCamera : ICamera3D
         }
     }
 
-    protected void SetProjectionDirty()
-    {
-        _projectionDirty = true;
-    }
-
     /// <summary>
     /// Gets or sets the rotation of the camera as a quaternion.
     /// </summary>
@@ -111,7 +105,7 @@ public abstract class Base3dCamera : ICamera3D
     {
         get
         {
-            var forward = Vector3.Transform(new Vector3(0, 0, -1), _rotation);
+            var forward = Vector3.Transform(new(0, 0, -1), _rotation);
 
             return Vector3.Normalize(forward);
         }
@@ -124,7 +118,7 @@ public abstract class Base3dCamera : ICamera3D
     {
         get
         {
-            var right = Vector3.Transform(new Vector3(1, 0, 0), _rotation);
+            var right = Vector3.Transform(new(1, 0, 0), _rotation);
 
             return Vector3.Normalize(right);
         }
@@ -251,6 +245,23 @@ public abstract class Base3dCamera : ICamera3D
     }
 
     /// <summary>
+    /// Gets or sets the maximum distance for frustum culling.
+    /// </summary>
+    public float CullingDistance { get; set; } = 200f;
+
+    /// <summary>
+    /// Calculates the distance from the camera to a 3D game object.
+    /// </summary>
+    /// <param name="gameObject">The game object to measure distance to.</param>
+    /// <returns>The distance to the game object.</returns>
+    public float Distance(IGameObject3d gameObject)
+    {
+        var toObject = gameObject.Transform.Position - Position;
+
+        return toObject.Length();
+    }
+
+    /// <summary>
     /// Gets a ray from the camera through a screen position for picking.
     /// </summary>
     /// <param name="screenPosition">The screen position in pixels.</param>
@@ -281,9 +292,28 @@ public abstract class Base3dCamera : ICamera3D
     }
 
     /// <summary>
-    /// Gets or sets the maximum distance for frustum culling.
+    /// Determines whether a 3D game object is within the camera's frustum.
     /// </summary>
-    public float CullingDistance { get; set; } = 200f;
+    /// <param name="gameObject">The game object to check.</param>
+    /// <returns>True if the object is in the frustum; otherwise, false.</returns>
+    public bool IsInFrustum(IGameObject3d gameObject)
+    {
+        if (gameObject.IgnoreFrustumCulling)
+        {
+            return true;
+        }
+
+        var toObject = gameObject.Transform.Position - Position;
+
+        if (toObject.LengthSquared() > CullingDistance * CullingDistance)
+        {
+            return false;
+        }
+
+        var boundingBox = gameObject.BoundingBox;
+
+        return Frustum.Intersects(boundingBox.Min, boundingBox.Max);
+    }
 
     /// <summary>
     /// Sets the camera to look at a target point with a specified up vector.
@@ -334,42 +364,6 @@ public abstract class Base3dCamera : ICamera3D
     }
 
     /// <summary>
-    /// Determines whether a 3D game object is within the camera's frustum.
-    /// </summary>
-    /// <param name="gameObject">The game object to check.</param>
-    /// <returns>True if the object is in the frustum; otherwise, false.</returns>
-    public bool IsInFrustum(IGameObject3d gameObject)
-    {
-        if (gameObject.IgnoreFrustumCulling)
-        {
-            return true;
-        }
-
-        var toObject = gameObject.Transform.Position - Position;
-
-        if (toObject.LengthSquared() > CullingDistance * CullingDistance)
-        {
-            return false;
-        }
-
-        var boundingBox = gameObject.BoundingBox;
-
-        return Frustum.Intersects(boundingBox.Min, boundingBox.Max);
-    }
-
-    /// <summary>
-    /// Calculates the distance from the camera to a 3D game object.
-    /// </summary>
-    /// <param name="gameObject">The game object to measure distance to.</param>
-    /// <returns>The distance to the game object.</returns>
-    public float Distance(IGameObject3d gameObject)
-    {
-        var toObject = gameObject.Transform.Position - Position;
-
-        return toObject.Length();
-    }
-
-    /// <summary>
     /// Rotates the camera by the specified pitch, yaw, and roll angles.
     /// </summary>
     /// <param name="pitch">The pitch angle in radians.</param>
@@ -378,7 +372,7 @@ public abstract class Base3dCamera : ICamera3D
     public virtual void Rotate(float pitch, float yaw, float roll)
     {
         var pitchRotation = Quaternion.CreateFromAxisAngle(Right, pitch);
-        var yawRotation = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), yaw);
+        var yawRotation = Quaternion.CreateFromAxisAngle(new(0, 1, 0), yaw);
         var rollRotation = Quaternion.CreateFromAxisAngle(Forward, roll);
 
         Rotation = rollRotation * yawRotation * pitchRotation * Rotation;
@@ -389,6 +383,11 @@ public abstract class Base3dCamera : ICamera3D
     /// </summary>
     /// <param name="gameTime">The elapsed game time.</param>
     public abstract void Update(GameTime gameTime);
+
+    protected void SetProjectionDirty()
+    {
+        _projectionDirty = true;
+    }
 
     protected virtual void UpdateProjectionMatrix()
     {

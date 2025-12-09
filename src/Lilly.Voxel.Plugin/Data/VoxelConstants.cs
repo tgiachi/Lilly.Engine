@@ -13,7 +13,7 @@ public static class VoxelConstants
     public const float MaxLightLevelF = 10f;
 
     /// <summary>
-    ///  The minimum light level a block can have.
+    /// The minimum light level a block can have.
     /// </summary>
     public const int MinLightLevel = 0;
 }

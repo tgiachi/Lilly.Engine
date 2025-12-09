@@ -11,7 +11,7 @@ namespace Lilly.Voxel.Plugin.Vertexs;
 public struct ChunkVertex : IVertex
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ChunkVertex"/> struct.
+    /// Initializes a new instance of the <see cref="ChunkVertex" /> struct.
     /// </summary>
     /// <param name="position">Vertex position.</param>
     /// <param name="color">Packed lighting color, alpha encodes face direction.</param>
@@ -25,7 +25,8 @@ public struct ChunkVertex : IVertex
         Vector2 tileCoord,
         Vector2 tileBase,
         Vector2 tileSize,
-        Vector3 blockCoord)
+        Vector3 blockCoord
+    )
     {
         Position = position;
         Color = color;
@@ -72,21 +73,21 @@ public struct ChunkVertex : IVertex
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
     {
         // Position: vec3 (3 floats)
-        descriptions[0] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[0] = new(AttributeType.FloatVec3);
 
         // Color: vec4 (4 unsigned bytes, normalized)
-        descriptions[1] = new VertexAttribDescription(AttributeType.FloatVec4, normalized: true, dataBaseType: AttributeBaseType.UnsignedByte);
+        descriptions[1] = new(AttributeType.FloatVec4, true, AttributeBaseType.UnsignedByte);
 
         // TileCoord: vec2 (2 floats)
-        descriptions[2] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[2] = new(AttributeType.FloatVec2);
 
         // TileBase: vec2 (2 floats)
-        descriptions[3] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[3] = new(AttributeType.FloatVec2);
 
         // TileSize: vec2 (2 floats)
-        descriptions[4] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[4] = new(AttributeType.FloatVec2);
 
         // BlockCoord: vec3 (3 floats)
-        descriptions[5] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[5] = new(AttributeType.FloatVec3);
     }
 }

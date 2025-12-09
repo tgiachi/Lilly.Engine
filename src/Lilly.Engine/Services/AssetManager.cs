@@ -1,14 +1,8 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Matrix4x4 = System.Numerics.Matrix4x4;
-using Vector2 = System.Numerics.Vector2;
-using Vector3 = System.Numerics.Vector3;
-using AssimpMatrix4x4 = Assimp.Matrix4x4;
-using AssimpVector3D = Assimp.Vector3D;
-using AssimpTextureType = Assimp.TextureType;
-using BoundingBox = Lilly.Rendering.Core.Primitives.BoundingBox;
 using Assimp;
 using Assimp.Configs;
+using AssimpNet;
 using FontStashSharp;
 using Lilly.Engine.Attributes;
 using Lilly.Engine.Core.Data.Directories;
@@ -19,14 +13,19 @@ using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Utils;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
-using Lilly.Rendering.Core.Primitives;
 using Serilog;
-using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using TrippyGL;
 using TrippyGL.ImageSharp;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using Vector2 = System.Numerics.Vector2;
+using Vector3 = System.Numerics.Vector3;
+using AssimpMatrix4x4 = Assimp.Matrix4x4;
+using AssimpVector3D = Assimp.Vector3D;
+using AssimpTextureType = Assimp.TextureType;
+using BoundingBox = Lilly.Rendering.Core.Primitives.BoundingBox;
 
 namespace Lilly.Engine.Services;
 
@@ -58,50 +57,6 @@ public class AssetManager : IAssetManager, IDisposable
 
     private readonly Dictionary<string, ModelAsset> _loadedModels = new();
 
-    private static Dictionary<ShaderType, string> ParseShaderSource(string source)
-    {
-        var shaders = new Dictionary<ShaderType, string>();
-
-        // Split by shader type markers
-        var lines = source.Split('\n');
-        ShaderType? currentType = null;
-        var currentShader = new List<string>();
-
-        foreach (var line in lines)
-        {
-            if (line.StartsWith("#shader vertex", StringComparison.OrdinalIgnoreCase))
-            {
-                if (currentType.HasValue && currentShader.Count > 0)
-                {
-                    shaders[currentType.Value] = string.Join('\n', currentShader);
-                }
-                currentType = ShaderType.VertexShader;
-                currentShader.Clear();
-            }
-            else if (line.StartsWith("#shader fragment", StringComparison.OrdinalIgnoreCase))
-            {
-                if (currentType.HasValue && currentShader.Count > 0)
-                {
-                    shaders[currentType.Value] = string.Join('\n', currentShader);
-                }
-                currentType = ShaderType.FragmentShader;
-                currentShader.Clear();
-            }
-            else if (currentType.HasValue)
-            {
-                currentShader.Add(line);
-            }
-        }
-
-        // Add the last shader
-        if (currentType.HasValue && currentShader.Count > 0)
-        {
-            shaders[currentType.Value] = string.Join('\n', currentShader);
-        }
-
-        return shaders;
-    }
-
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
 
@@ -125,133 +80,31 @@ public class AssetManager : IAssetManager, IDisposable
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
         _assimpContext.SetConfig(new NormalSmoothingAngleConfig(66.0f));
 
-        AssimpNet.Platform.Init();
+        Platform.Init();
     }
 
     /// <summary>
-    /// Retrieves a font with the specified name and size.
+    /// Creates a vertex buffer from vertex data.
     /// </summary>
-    /// <param name="fontName">The name of the font.</param>
-    /// <param name="size">The size of the font.</param>
-    /// <typeparam name="TFont">The type of the font.</typeparam>
-    /// <returns>The font instance.</returns>
-    public DynamicSpriteFont GetFont(string fontName, int size)
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="vertices">The vertex data array.</param>
+    /// <param name="usage">The buffer usage hint.</param>
+    /// <returns>The created vertex buffer.</returns>
+    public VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
+        where TVertex : unmanaged, IVertex
     {
-        var key = $"{fontName}_{size}";
+        var vertexBuffer = new VertexBuffer<TVertex>(_context.GraphicsDevice, vertices, usage);
+        _logger.Debug("Created vertex buffer with {VertexCount} vertices", vertices.Length);
 
-        if (_dynamicSpriteFonts.TryGetValue(key, out var font))
-        {
-            return font;
-        }
-
-        if (_fontSystems.TryGetValue(fontName, out var fontSystem))
-        {
-            var dynamicFont = fontSystem.GetFont(size);
-            _dynamicSpriteFonts[key] = dynamicFont;
-
-            return dynamicFont;
-        }
-
-        throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
+        return vertexBuffer;
     }
 
     /// <summary>
-    /// Retrieves a previously loaded shader program by name.
+    /// Disposes of the asset manager and releases all loaded assets.
     /// </summary>
-    /// <param name="shaderName">The name of the shader program.</param>
-    /// <returns>The shader program.</returns>
-    public ShaderProgram GetShaderProgram(string shaderName)
-        => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
-               ? shaderProgram
-               : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
-
-    /// <summary>
-    /// Loads a texture atlas from a file.
-    /// </summary>
-    /// <param name="atlasName">The name of the atlas.</param>
-    /// <param name="atlasPath">The path to the atlas file.</param>
-    /// <param name="tileWidth">The width of each tile.</param>
-    /// <param name="tileHeight">The height of each tile.</param>
-    /// <param name="spacing">The spacing between tiles.</param>
-    /// <param name="margin">The margin around the atlas.</param>
-    public void LoadTextureAtlasFromFile(
-        string atlasName,
-        string atlasPath,
-        int tileWidth,
-        int tileHeight,
-        int spacing = 0,
-        int margin = 0
-    )
+    public void Dispose()
     {
-        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], atlasPath);
-
-        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
-
-        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin);
-    }
-
-    /// <summary>
-    /// Loads a texture atlas from a stream.
-    /// </summary>
-    /// <param name="atlasName">The name of the atlas.</param>
-    /// <param name="stream">The stream containing the atlas data.</param>
-    /// <param name="tileWidth">The width of each tile.</param>
-    /// <param name="tileHeight">The height of each tile.</param>
-    /// <param name="spacing">The spacing between tiles.</param>
-    /// <param name="margin">The margin around the atlas.</param>
-    public void LoadTextureAtlasFromMemory(
-        string atlasName,
-        Stream stream,
-        int tileWidth,
-        int tileHeight,
-        int spacing = 0,
-        int margin = 0
-    )
-    {
-        var textureName = atlasName + "_atlas";
-        LoadTextureFromMemory(textureName, stream);
-        var texture = _texture2Ds[textureName];
-        _texture2Ds[textureName] = texture;
-
-        var atlasDefinition = new AtlasDefinition(textureName, atlasName, tileWidth, tileHeight, margin, spacing);
-
-        var columns = (int)((texture.Width - 2 * margin + spacing) / (float)(tileWidth + spacing));
-        var rows = (int)((texture.Height - 2 * margin + spacing) / (float)(tileHeight + spacing));
-
-        for (var y = 0; y < rows; y++)
-        {
-            for (var x = 0; x < columns; x++)
-            {
-                // Calculate pixel position of this tile in the atlas
-                var pixelX = margin + x * (tileWidth + spacing);
-                var pixelY = margin + y * (tileHeight + spacing);
-
-                // Convert to UV coordinates (0.0 - 1.0)
-                var uvX = pixelX / (float)texture.Width;
-                var uvY = pixelY / (float)texture.Height;
-                var uvWidth = tileWidth / (float)texture.Width;
-                var uvHeight = tileHeight / (float)texture.Height;
-
-                var region = new AtlasRegion(
-                    new Vector2D<float>(uvX, uvY),
-                    new Vector2D<float>(uvWidth, uvHeight)
-                );
-
-                atlasDefinition.AddRegion(region);
-            }
-        }
-
-        _textureAtlases[atlasName] = atlasDefinition;
-
-        _logger.Information(
-            "Loaded texture atlas {AtlasName} - Texture: {TextureName}, Tiles: {Columns}x{Rows}, TileSize: {TileWidth}x{TileHeight}",
-            atlasName,
-            textureName,
-            columns,
-            rows,
-            tileWidth,
-            tileHeight
-        );
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -311,6 +164,48 @@ public class AssetManager : IAssetManager, IDisposable
     }
 
     /// <summary>
+    /// Retrieves a font with the specified name and size.
+    /// </summary>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The size of the font.</param>
+    /// <typeparam name="TFont">The type of the font.</typeparam>
+    /// <returns>The font instance.</returns>
+    public DynamicSpriteFont GetFont(string fontName, int size)
+    {
+        var key = $"{fontName}_{size}";
+
+        if (_dynamicSpriteFonts.TryGetValue(key, out var font))
+        {
+            return font;
+        }
+
+        if (_fontSystems.TryGetValue(fontName, out var fontSystem))
+        {
+            var dynamicFont = fontSystem.GetFont(size);
+            _dynamicSpriteFonts[key] = dynamicFont;
+
+            return dynamicFont;
+        }
+
+        throw new InvalidOperationException($"Font '{fontName}' with size {size} is not loaded.");
+    }
+
+    public ModelAsset GetModel(string modelName)
+        => _loadedModels.TryGetValue(modelName, out var model)
+               ? model
+               : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
+
+    /// <summary>
+    /// Retrieves a previously loaded shader program by name.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader program.</param>
+    /// <returns>The shader program.</returns>
+    public ShaderProgram GetShaderProgram(string shaderName)
+        => _shaderPrograms.TryGetValue(shaderName, out var shaderProgram)
+               ? shaderProgram
+               : throw new InvalidOperationException($"Shader '{shaderName}' is not loaded.");
+
+    /// <summary>
     /// Retrieves a previously loaded texture by name.
     /// </summary>
     /// <param name="textureName">The name of the texture.</param>
@@ -332,11 +227,9 @@ public class AssetManager : IAssetManager, IDisposable
     /// <param name="textureName">The name of the texture.</param>
     /// <returns>The texture handle.</returns>
     public uint GetTextureHandle(string textureName)
-    {
-        return _texture2Ds.TryGetValue(textureName, out var texture)
-                   ? texture.Handle
-                   : throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
-    }
+        => _texture2Ds.TryGetValue(textureName, out var texture)
+               ? texture.Handle
+               : throw new InvalidOperationException($"Texture '{textureName}' is not loaded.");
 
     /// <summary>
     /// Gets a 1x1 white texture that can be used for drawing colored shapes or as a fallback.
@@ -400,6 +293,34 @@ public class AssetManager : IAssetManager, IDisposable
             _logger.Verbose("  - Added size {FontSize}", size);
             _dynamicSpriteFonts[$"{fontName}_{size}"] = font;
         }
+    }
+
+    public void LoadModelFromFile(string modelName, string modelPath)
+    {
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath);
+        var scene = _assimpContext.ImportFile(fullPath, _defaultPostProcessSteps);
+
+        if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
+        {
+            _logger.Warning("Failed to load model {ModelName} from {Path}", modelName, fullPath);
+
+            return;
+        }
+
+        var modelAsset = BuildModelAsset(modelName, scene);
+
+        if (_loadedModels.TryGetValue(modelName, out var existingModel))
+        {
+            existingModel.Dispose();
+        }
+        _loadedModels[modelName] = modelAsset;
+
+        _logger.Information(
+            "Loaded model {ModelName} with {MeshCount} meshes and {InstanceCount} instances",
+            modelName,
+            modelAsset.Meshes.Count,
+            modelAsset.Instances.Count
+        );
     }
 
     /// <summary>
@@ -481,8 +402,8 @@ public class AssetManager : IAssetManager, IDisposable
     {
         var shaders = ParseShaderSource(shaderSource);
 
-        if (!shaders.TryGetValue(ShaderType.VertexShader, out string? vertexSource) ||
-            !shaders.TryGetValue(ShaderType.FragmentShader, out string? fragmentSource))
+        if (!shaders.TryGetValue(ShaderType.VertexShader, out var vertexSource) ||
+            !shaders.TryGetValue(ShaderType.FragmentShader, out var fragmentSource))
         {
             throw new InvalidOperationException(
                 $"Shader source must contain both vertex and fragment shaders. " +
@@ -532,32 +453,91 @@ public class AssetManager : IAssetManager, IDisposable
     }
 
     /// <summary>
-    /// Replaces all magenta pixels (RGB: 255, 0, 255) with transparent pixels in the image.
-    /// This is useful for handling transparency in sprite sheets or textures.
+    /// Loads a texture atlas from a file.
     /// </summary>
-    /// <param name="image">The image to process.</param>
-    private static void ReplaceMagentaWithTransparency(Image<Rgba32> image)
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="atlasPath">The path to the atlas file.</param>
+    /// <param name="tileWidth">The width of each tile.</param>
+    /// <param name="tileHeight">The height of each tile.</param>
+    /// <param name="spacing">The spacing between tiles.</param>
+    /// <param name="margin">The margin around the atlas.</param>
+    public void LoadTextureAtlasFromFile(
+        string atlasName,
+        string atlasPath,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    )
     {
-        image.ProcessPixelRows(
-            accessor =>
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], atlasPath);
+
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read);
+
+        LoadTextureAtlasFromMemory(atlasName, stream, tileWidth, tileHeight, spacing, margin);
+    }
+
+    /// <summary>
+    /// Loads a texture atlas from a stream.
+    /// </summary>
+    /// <param name="atlasName">The name of the atlas.</param>
+    /// <param name="stream">The stream containing the atlas data.</param>
+    /// <param name="tileWidth">The width of each tile.</param>
+    /// <param name="tileHeight">The height of each tile.</param>
+    /// <param name="spacing">The spacing between tiles.</param>
+    /// <param name="margin">The margin around the atlas.</param>
+    public void LoadTextureAtlasFromMemory(
+        string atlasName,
+        Stream stream,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    )
+    {
+        var textureName = atlasName + "_atlas";
+        LoadTextureFromMemory(textureName, stream);
+        var texture = _texture2Ds[textureName];
+        _texture2Ds[textureName] = texture;
+
+        var atlasDefinition = new AtlasDefinition(textureName, atlasName, tileWidth, tileHeight, margin, spacing);
+
+        var columns = (int)((texture.Width - 2 * margin + spacing) / (float)(tileWidth + spacing));
+        var rows = (int)((texture.Height - 2 * margin + spacing) / (float)(tileHeight + spacing));
+
+        for (var y = 0; y < rows; y++)
+        {
+            for (var x = 0; x < columns; x++)
             {
-                for (var y = 0; y < accessor.Height; y++)
-                {
-                    var row = accessor.GetRowSpan(y);
+                // Calculate pixel position of this tile in the atlas
+                var pixelX = margin + x * (tileWidth + spacing);
+                var pixelY = margin + y * (tileHeight + spacing);
 
-                    for (var x = 0; x < row.Length; x++)
-                    {
-                        var pixel = row[x];
+                // Convert to UV coordinates (0.0 - 1.0)
+                var uvX = pixelX / (float)texture.Width;
+                var uvY = pixelY / (float)texture.Height;
+                var uvWidth = tileWidth / (float)texture.Width;
+                var uvHeight = tileHeight / (float)texture.Height;
 
-                        // Check if pixel is magenta (RGB: 255, 0, 255)
-                        if (pixel.R == 255 && pixel.G == 0 && pixel.B == 255)
-                        {
-                            // Set alpha to 0 to make it transparent
-                            row[x] = new Rgba32(255, 0, 255, 0);
-                        }
-                    }
-                }
+                var region = new AtlasRegion(
+                    new(uvX, uvY),
+                    new(uvWidth, uvHeight)
+                );
+
+                atlasDefinition.AddRegion(region);
             }
+        }
+
+        _textureAtlases[atlasName] = atlasDefinition;
+
+        _logger.Information(
+            "Loaded texture atlas {AtlasName} - Texture: {TextureName}, Tiles: {Columns}x{Rows}, TileSize: {TileWidth}x{TileHeight}",
+            atlasName,
+            textureName,
+            columns,
+            rows,
+            tileWidth,
+            tileHeight
         );
     }
 
@@ -599,46 +579,13 @@ public class AssetManager : IAssetManager, IDisposable
         _logger.Information("Loaded texture {TextureName} (magenta pixels converted to transparent)", textureName);
     }
 
-    public void LoadModelFromFile(string modelName, string modelPath)
-    {
-        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], modelPath);
-        var scene = _assimpContext.ImportFile(fullPath, _defaultPostProcessSteps);
-
-        if (scene == null || scene.RootNode == null || scene.MeshCount == 0)
-        {
-            _logger.Warning("Failed to load model {ModelName} from {Path}", modelName, fullPath);
-
-            return;
-        }
-
-        var modelAsset = BuildModelAsset(modelName, scene);
-
-        if (_loadedModels.TryGetValue(modelName, out var existingModel))
-        {
-            existingModel.Dispose();
-        }
-        _loadedModels[modelName] = modelAsset;
-
-        _logger.Information(
-            "Loaded model {ModelName} with {MeshCount} meshes and {InstanceCount} instances",
-            modelName,
-            modelAsset.Meshes.Count,
-            modelAsset.Instances.Count
-        );
-    }
-
-    public ModelAsset GetModel(string modelName)
-        => _loadedModels.TryGetValue(modelName, out var model)
-               ? model
-               : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
-
     private ModelAsset BuildModelAsset(string modelName, Scene scene)
     {
         var materialTextures = LoadMaterialTextures(modelName, scene);
 
         var meshes = new List<ModelMeshData>(scene.MeshCount);
 
-        for (int i = 0; i < scene.MeshCount; i++)
+        for (var i = 0; i < scene.MeshCount; i++)
         {
             meshes.Add(CreateMeshData(scene.Meshes[i], materialTextures));
         }
@@ -648,23 +595,80 @@ public class AssetManager : IAssetManager, IDisposable
 
         var bounds = ComputeModelBounds(meshes, instances);
 
-        return new ModelAsset(meshes, instances, bounds);
+        return new(meshes, instances, bounds);
     }
 
-    private ModelMeshData CreateMeshData(Assimp.Mesh mesh, IReadOnlyDictionary<int, string> materialTextures)
+    private void CollectModelInstances(Node node, Matrix4x4 parentTransform, List<ModelInstance> instances)
+    {
+        var nodeTransform = ToMatrix(node.Transform);
+        var combined = nodeTransform * parentTransform;
+
+        foreach (var meshIndex in node.MeshIndices)
+        {
+            instances.Add(new(meshIndex, combined));
+        }
+
+        foreach (var child in node.Children)
+        {
+            CollectModelInstances(child, combined, instances);
+        }
+    }
+
+    private static BoundingBox ComputeBounds(ReadOnlySpan<VertexPositionNormalTex> vertices)
+    {
+        if (vertices.IsEmpty)
+        {
+            return new(Vector3.Zero, Vector3.Zero);
+        }
+
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+
+        foreach (var v in vertices)
+        {
+            min = Vector3.Min(min, v.Position);
+            max = Vector3.Max(max, v.Position);
+        }
+
+        return new(min, max);
+    }
+
+    private static BoundingBox ComputeModelBounds(
+        IReadOnlyList<ModelMeshData> meshes,
+        IReadOnlyList<ModelInstance> instances
+    )
+    {
+        var min = new Vector3(float.PositiveInfinity);
+        var max = new Vector3(float.NegativeInfinity);
+
+        var any = false;
+
+        foreach (var instance in instances)
+        {
+            var meshBounds = meshes[instance.MeshIndex].Bounds;
+            var transformed = TransformBounds(meshBounds, instance.Transform);
+            min = Vector3.Min(min, transformed.Min);
+            max = Vector3.Max(max, transformed.Max);
+            any = true;
+        }
+
+        return any ? new(min, max) : new BoundingBox(Vector3.Zero, Vector3.Zero);
+    }
+
+    private ModelMeshData CreateMeshData(Mesh mesh, IReadOnlyDictionary<int, string> materialTextures)
     {
         var vertices = new VertexPositionNormalTex[mesh.VertexCount];
 
         var hasNormals = mesh.HasNormals;
         var hasTexCoords = mesh.HasTextureCoords(0);
 
-        for (int i = 0; i < mesh.VertexCount; i++)
+        for (var i = 0; i < mesh.VertexCount; i++)
         {
             var pos = ToVector3(mesh.Vertices[i]);
             var norm = hasNormals ? ToVector3(mesh.Normals[i]) : Vector3.Zero;
             var uv = hasTexCoords ? mesh.TextureCoordinateChannels[0][i] : default;
 
-            vertices[i] = new VertexPositionNormalTex(pos, norm, ToVector2(uv));
+            vertices[i] = new(pos, norm, ToVector2(uv));
         }
 
         var indices = new List<uint>(mesh.FaceCount * 3);
@@ -687,40 +691,143 @@ public class AssetManager : IAssetManager, IDisposable
             (uint)indices.Count,
             ElementType.UnsignedInt,
             BufferUsage.StaticCopy,
-            vertices,
-            0
+            vertices
         );
 
         if (indices.Count > 0 && vertexBuffer.IndexSubset != null)
         {
-            vertexBuffer.IndexSubset.SetData(CollectionsMarshal.AsSpan(indices), 0);
+            vertexBuffer.IndexSubset.SetData(CollectionsMarshal.AsSpan(indices));
         }
 
         var bounds = ComputeBounds(vertices);
         materialTextures.TryGetValue(mesh.MaterialIndex, out var textureKey);
 
-        return new ModelMeshData(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds, textureKey);
+        return new(vertexBuffer, (uint)indices.Count, mesh.MaterialIndex, bounds, textureKey);
     }
 
-    private void CollectModelInstances(Node node, Matrix4x4 parentTransform, List<ModelInstance> instances)
+    private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene)
     {
-        var nodeTransform = ToMatrix(node.Transform);
-        var combined = nodeTransform * parentTransform;
+        var result = new Dictionary<int, string>();
 
-        foreach (var meshIndex in node.MeshIndices)
+        for (var i = 0; i < scene.MaterialCount; i++)
         {
-            instances.Add(new ModelInstance(meshIndex, combined));
+            var material = scene.Materials[i];
+            var key = $"{modelName}_mat{i}";
+
+            if (material.GetMaterialTextureCount(AssimpTextureType.Diffuse) == 0)
+            {
+                continue;
+            }
+
+            if (material.GetMaterialTexture(AssimpTextureType.Diffuse, 0, out var texSlot))
+            {
+                var texturePath = texSlot.FilePath;
+
+                // Embedded texture (starts with '*')
+                if (!string.IsNullOrEmpty(texturePath) && texturePath.StartsWith("*"))
+                {
+                    var index = int.Parse(texturePath[1..]);
+
+                    if (index >= 0 && index < scene.TextureCount)
+                    {
+                        var embedded = scene.Textures[index];
+                        LoadTextureFromMemory(key, new MemoryStream(embedded.CompressedData));
+                        result[i] = key;
+
+                        continue;
+                    }
+                }
+
+                // External texture relative to model directory
+                var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
+
+                if (File.Exists(fullPath))
+                {
+                    LoadTextureFromFile(key, texturePath);
+                    result[i] = key;
+                }
+            }
         }
 
-        foreach (var child in node.Children)
+        return result;
+    }
+
+    private static Dictionary<ShaderType, string> ParseShaderSource(string source)
+    {
+        var shaders = new Dictionary<ShaderType, string>();
+
+        // Split by shader type markers
+        var lines = source.Split('\n');
+        ShaderType? currentType = null;
+        var currentShader = new List<string>();
+
+        foreach (var line in lines)
         {
-            CollectModelInstances(child, combined, instances);
+            if (line.StartsWith("#shader vertex", StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentType.HasValue && currentShader.Count > 0)
+                {
+                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                }
+                currentType = ShaderType.VertexShader;
+                currentShader.Clear();
+            }
+            else if (line.StartsWith("#shader fragment", StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentType.HasValue && currentShader.Count > 0)
+                {
+                    shaders[currentType.Value] = string.Join('\n', currentShader);
+                }
+                currentType = ShaderType.FragmentShader;
+                currentShader.Clear();
+            }
+            else if (currentType.HasValue)
+            {
+                currentShader.Add(line);
+            }
         }
+
+        // Add the last shader
+        if (currentType.HasValue && currentShader.Count > 0)
+        {
+            shaders[currentType.Value] = string.Join('\n', currentShader);
+        }
+
+        return shaders;
+    }
+
+    /// <summary>
+    /// Replaces all magenta pixels (RGB: 255, 0, 255) with transparent pixels in the image.
+    /// This is useful for handling transparency in sprite sheets or textures.
+    /// </summary>
+    /// <param name="image">The image to process.</param>
+    private static void ReplaceMagentaWithTransparency(Image<Rgba32> image)
+    {
+        image.ProcessPixelRows(
+            accessor =>
+            {
+                for (var y = 0; y < accessor.Height; y++)
+                {
+                    var row = accessor.GetRowSpan(y);
+
+                    for (var x = 0; x < row.Length; x++)
+                    {
+                        var pixel = row[x];
+
+                        // Check if pixel is magenta (RGB: 255, 0, 255)
+                        if (pixel.R == 255 && pixel.G == 0 && pixel.B == 255)
+                        {
+                            // Set alpha to 0 to make it transparent
+                            row[x] = new(255, 0, 255, 0);
+                        }
+                    }
+                }
+            }
+        );
     }
 
     private static Matrix4x4 ToMatrix(AssimpMatrix4x4 matrix)
-    {
-        return new Matrix4x4(
+        => new(
             matrix.A1,
             matrix.A2,
             matrix.A3,
@@ -738,94 +845,12 @@ public class AssetManager : IAssetManager, IDisposable
             matrix.D3,
             matrix.D4
         );
-    }
-
-    private static Vector3 ToVector3(AssimpVector3D vector)
-        => new(vector.X, vector.Y, vector.Z);
 
     private static Vector2 ToVector2(AssimpVector3D vector)
         => new(vector.X, vector.Y);
 
-    private static BoundingBox ComputeBounds(ReadOnlySpan<VertexPositionNormalTex> vertices)
-    {
-        if (vertices.IsEmpty)
-        {
-            return new BoundingBox(Vector3.Zero, Vector3.Zero);
-        }
-
-        var min = new Vector3(float.PositiveInfinity);
-        var max = new Vector3(float.NegativeInfinity);
-
-        foreach (var v in vertices)
-        {
-            min = Vector3.Min(min, v.Position);
-            max = Vector3.Max(max, v.Position);
-        }
-
-        return new BoundingBox(min, max);
-    }
-
-    private static BoundingBox ComputeModelBounds(IReadOnlyList<ModelMeshData> meshes, IReadOnlyList<ModelInstance> instances)
-    {
-        var min = new Vector3(float.PositiveInfinity);
-        var max = new Vector3(float.NegativeInfinity);
-
-        var any = false;
-        foreach (var instance in instances)
-        {
-            var meshBounds = meshes[instance.MeshIndex].Bounds;
-            var transformed = TransformBounds(meshBounds, instance.Transform);
-            min = Vector3.Min(min, transformed.Min);
-            max = Vector3.Max(max, transformed.Max);
-            any = true;
-        }
-
-        return any ? new BoundingBox(min, max) : new BoundingBox(Vector3.Zero, Vector3.Zero);
-    }
-
-    private IReadOnlyDictionary<int, string> LoadMaterialTextures(string modelName, Scene scene)
-    {
-        var result = new Dictionary<int, string>();
-
-        for (int i = 0; i < scene.MaterialCount; i++)
-        {
-            var material = scene.Materials[i];
-            var key = $"{modelName}_mat{i}";
-
-            if (material.GetMaterialTextureCount(AssimpTextureType.Diffuse) == 0)
-            {
-                continue;
-            }
-
-            if (material.GetMaterialTexture(AssimpTextureType.Diffuse, 0, out var texSlot))
-            {
-                var texturePath = texSlot.FilePath;
-
-                // Embedded texture (starts with '*')
-                if (!string.IsNullOrEmpty(texturePath) && texturePath.StartsWith("*"))
-                {
-                    int index = int.Parse(texturePath[1..]);
-                    if (index >= 0 && index < scene.TextureCount)
-                    {
-                        var embedded = scene.Textures[index];
-                        LoadTextureFromMemory(key, new MemoryStream(embedded.CompressedData));
-                        result[i] = key;
-                        continue;
-                    }
-                }
-
-                // External texture relative to model directory
-                var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], texturePath);
-                if (File.Exists(fullPath))
-                {
-                    LoadTextureFromFile(key, texturePath);
-                    result[i] = key;
-                }
-            }
-        }
-
-        return result;
-    }
+    private static Vector3 ToVector3(AssimpVector3D vector)
+        => new(vector.X, vector.Y, vector.Z);
 
     private static BoundingBox TransformBounds(BoundingBox bounds, Matrix4x4 transform)
     {
@@ -851,30 +876,6 @@ public class AssetManager : IAssetManager, IDisposable
             max = Vector3.Max(max, v);
         }
 
-        return new BoundingBox(min, max);
-    }
-
-    /// <summary>
-    /// Creates a vertex buffer from vertex data.
-    /// </summary>
-    /// <typeparam name="TVertex">The vertex type.</typeparam>
-    /// <param name="vertices">The vertex data array.</param>
-    /// <param name="usage">The buffer usage hint.</param>
-    /// <returns>The created vertex buffer.</returns>
-    public VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
-        where TVertex : unmanaged, IVertex
-    {
-        var vertexBuffer = new VertexBuffer<TVertex>(_context.GraphicsDevice, vertices, usage);
-        _logger.Debug("Created vertex buffer with {VertexCount} vertices", vertices.Length);
-
-        return vertexBuffer;
-    }
-
-    /// <summary>
-    /// Disposes of the asset manager and releases all loaded assets.
-    /// </summary>
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
+        return new(min, max);
     }
 }

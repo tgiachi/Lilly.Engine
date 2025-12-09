@@ -13,9 +13,9 @@ out vec2 vTexCoords;
 
 void main()
 {
-    gl_Position = Projection * View * World * vec4(Position, 1.0);
-    vColor = Color;
-    vTexCoords = TexCoords;
+gl_Position = Projection * View * World * vec4(Position, 1.0);
+vColor = Color;
+vTexCoords = TexCoords;
 }
 
 #shader fragment
@@ -28,5 +28,5 @@ uniform sampler2D Texture;
 
 void main()
 {
-    FragColor = vColor * texture(Texture, vTexCoords);
+FragColor = vColor * texture(Texture, vTexCoords);
 }

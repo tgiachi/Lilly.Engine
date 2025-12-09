@@ -3,7 +3,6 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Assets;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.Camera;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -29,7 +28,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
     private BoundingBox _localBounds;
     private bool _initialized;
 
-    public Vector3 LightDirection { get; set; } = Vector3.Normalize(new Vector3(-0.4f, -1.0f, -0.2f));
+    public Vector3 LightDirection { get; set; } = Vector3.Normalize(new(-0.4f, -1.0f, -0.2f));
     public Vector3 LightColor { get; set; } = Vector3.One;
     public Vector3 Ambient { get; set; } = new(0.15f, 0.15f, 0.15f);
     public Vector4 Tint { get; set; } = Vector4.One;
@@ -71,14 +70,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable
                 RefreshModel();
             }
         }
-    }
-
-    public void Initialize()
-    {
-        RefreshModel();
-        _shaderProgram = _assetManager.GetShaderProgram(_shaderName);
-        _texture = ResolveTexture(_model?.Meshes.FirstOrDefault()?.TextureKey);
-        _initialized = true;
     }
 
     public override BoundingBox BoundingBox
@@ -123,12 +114,14 @@ public class ModelGameObject : Base3dGameObject, IInitializable
             }
 
             var mesh = _model.Meshes[instance.MeshIndex];
+
             if (mesh.IndexCount == 0)
             {
                 continue;
             }
 
             var texture = ResolveTexture(mesh.TextureKey);
+
             if (texture == null)
             {
                 continue;
@@ -143,6 +136,14 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         }
     }
 
+    public void Initialize()
+    {
+        RefreshModel();
+        _shaderProgram = _assetManager.GetShaderProgram(_shaderName);
+        _texture = ResolveTexture(_model?.Meshes.FirstOrDefault()?.TextureKey);
+        _initialized = true;
+    }
+
     private void RefreshModel()
     {
         try
@@ -153,7 +154,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         catch
         {
             _model = null;
-            _localBounds = new BoundingBox(Vector3.Zero, Vector3.Zero);
+            _localBounds = new(Vector3.Zero, Vector3.Zero);
         }
     }
 
@@ -186,6 +187,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable
         var translation = Matrix4x4.CreateTranslation(transform.Position);
 
         var world = scale * rotation * translation;
+
         return TransformBounds(bounds, world);
     }
 
@@ -213,6 +215,6 @@ public class ModelGameObject : Base3dGameObject, IInitializable
             max = Vector3.Max(max, v);
         }
 
-        return new BoundingBox(min, max);
+        return new(min, max);
     }
 }

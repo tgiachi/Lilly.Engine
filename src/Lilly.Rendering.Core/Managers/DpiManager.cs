@@ -91,8 +91,8 @@ public class DpiManager : IDpiManager
     /// </summary>
     private void UpdateDPIInfo()
     {
-        WindowSize = new Vector2(_window.Size.X, _window.Size.Y);
-        FramebufferSize = new Vector2(_window.FramebufferSize.X, _window.FramebufferSize.Y);
+        WindowSize = new(_window.Size.X, _window.Size.Y);
+        FramebufferSize = new(_window.FramebufferSize.X, _window.FramebufferSize.Y);
     }
 
     private void WindowOnFramebufferResize(Vector2D<int> obj)

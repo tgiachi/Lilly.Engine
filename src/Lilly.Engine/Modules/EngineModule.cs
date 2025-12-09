@@ -10,14 +10,12 @@ public class EngineModule
     private readonly RenderContext _renderContext;
 
     public EngineModule(RenderContext renderContext)
-    {
-        _renderContext = renderContext;
-    }
+        => _renderContext = renderContext;
 
     [ScriptFunction("on_update", "Registers a closure to be called on each engine update cycle.")]
     public void OnUpdate(Closure update)
     {
-        _renderContext.Renderer.OnUpdate += (gameTime) =>
+        _renderContext.Renderer.OnUpdate += gameTime =>
                                             {
                                                 update.Call(gameTime);
                                             };

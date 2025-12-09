@@ -1,7 +1,7 @@
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
 using Lilly.Voxel.Plugin.Interfaces.Services;
-using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Noise;
+using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Steps.World;
 
@@ -49,6 +49,7 @@ public class CloudGenerationStep : IGeneratorStep
         // Skip chunks that don't intersect the cloud layer.
         var chunkBaseY = (int)context.WorldPosition.Y;
         var chunkTopY = chunkBaseY + ChunkEntity.Height - 1;
+
         if (chunkTopY < _cloudMinY || chunkBaseY > _cloudMaxY)
         {
             return Task.CompletedTask;

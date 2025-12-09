@@ -1,4 +1,3 @@
-
 using Lilly.Rendering.Core.Interfaces.Entities;
 
 namespace Lilly.Engine.Interfaces.Debuggers;

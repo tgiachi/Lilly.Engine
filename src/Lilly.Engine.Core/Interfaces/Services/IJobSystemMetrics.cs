@@ -1,6 +1,6 @@
-namespace Lilly.Engine.Core.Interfaces.Services;
-
 using Lilly.Engine.Core.Data.Services;
+
+namespace Lilly.Engine.Core.Interfaces.Services;
 
 /// <summary>
 /// Provides diagnostic metrics about the job system.

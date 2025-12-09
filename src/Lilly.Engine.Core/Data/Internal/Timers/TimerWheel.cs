@@ -6,25 +6,22 @@ namespace Lilly.Engine.Core.Data.Internal.Timers;
 public class TimerWheel
 {
     private readonly TimerWheelSlot[] _slots;
-    private readonly int _numSlots;
-    private readonly double _tickDurationMs;
-    private int _currentSlot;
     private double _accumulatedTime;
 
     /// <summary>
     /// Gets the current slot index
     /// </summary>
-    public int CurrentSlot => _currentSlot;
+    public int CurrentSlot { get; private set; }
 
     /// <summary>
     /// Gets the total number of slots in the wheel
     /// </summary>
-    public int SlotCount => _numSlots;
+    public int SlotCount { get; }
 
     /// <summary>
     /// Gets the duration of each tick in milliseconds
     /// </summary>
-    public double TickDurationMs => _tickDurationMs;
+    public double TickDurationMs { get; }
 
     /// <summary>
     /// Initializes a new instance of the TimerWheel class
@@ -43,15 +40,16 @@ public class TimerWheel
             throw new ArgumentException("Tick duration must be positive", nameof(tickDurationMs));
         }
 
-        _numSlots = numSlots;
-        _tickDurationMs = tickDurationMs;
-        _currentSlot = 0;
+        SlotCount = numSlots;
+        TickDurationMs = tickDurationMs;
+        CurrentSlot = 0;
         _accumulatedTime = 0;
 
-        _slots = new TimerWheelSlot[_numSlots];
-        for (int i = 0; i < _numSlots; i++)
+        _slots = new TimerWheelSlot[SlotCount];
+
+        for (var i = 0; i < SlotCount; i++)
         {
-            _slots[i] = new TimerWheelSlot();
+            _slots[i] = new();
         }
     }
 
@@ -63,7 +61,7 @@ public class TimerWheel
     public void AddTimer(TimerDataObject timer, double delayMs)
     {
         // Calculate total ticks until expiration
-        int totalTicks = (int)Math.Ceiling(delayMs / _tickDurationMs);
+        var totalTicks = (int)Math.Ceiling(delayMs / TickDurationMs);
 
         if (totalTicks <= 0)
         {
@@ -71,14 +69,43 @@ public class TimerWheel
         }
 
         // Calculate slot index and number of rounds
-        int rounds = totalTicks / _numSlots;
-        int ticksIntoWheel = totalTicks % _numSlots;
+        var rounds = totalTicks / SlotCount;
+        var ticksIntoWheel = totalTicks % SlotCount;
 
-        int slotIndex = (_currentSlot + ticksIntoWheel) & (_numSlots - 1); // Fast modulo for power of 2
+        var slotIndex = (CurrentSlot + ticksIntoWheel) & (SlotCount - 1); // Fast modulo for power of 2
 
         timer.RemainingRounds = rounds;
         timer.SlotIndex = slotIndex;
         timer.SlotNode = _slots[slotIndex].Add(timer);
+    }
+
+    /// <summary>
+    /// Clears all timers from the wheel
+    /// </summary>
+    public void Clear()
+    {
+        foreach (var slot in _slots)
+        {
+            slot.Clear();
+        }
+        CurrentSlot = 0;
+        _accumulatedTime = 0;
+    }
+
+    /// <summary>
+    /// Gets the total number of timers currently in the wheel
+    /// </summary>
+    /// <returns>Total timer count</returns>
+    public int GetTotalTimerCount()
+    {
+        var count = 0;
+
+        foreach (var slot in _slots)
+        {
+            count += slot.Count;
+        }
+
+        return count;
     }
 
     /// <summary>
@@ -88,7 +115,7 @@ public class TimerWheel
     /// <returns>True if timer was removed, false if not found</returns>
     public bool RemoveTimer(TimerDataObject timer)
     {
-        if (timer.SlotNode == null || timer.SlotIndex < 0 || timer.SlotIndex >= _numSlots)
+        if (timer.SlotNode == null || timer.SlotIndex < 0 || timer.SlotIndex >= SlotCount)
         {
             return false;
         }
@@ -112,13 +139,13 @@ public class TimerWheel
         var expiredTimers = new List<TimerDataObject>();
 
         // Process complete ticks
-        while (_accumulatedTime >= _tickDurationMs)
+        while (_accumulatedTime >= TickDurationMs)
         {
-            _accumulatedTime -= _tickDurationMs;
-            _currentSlot = (_currentSlot + 1) & (_numSlots - 1); // Fast modulo for power of 2
+            _accumulatedTime -= TickDurationMs;
+            CurrentSlot = (CurrentSlot + 1) & (SlotCount - 1); // Fast modulo for power of 2
 
             // Process timers in current slot
-            var slot = _slots[_currentSlot];
+            var slot = _slots[CurrentSlot];
             var timersInSlot = slot.DrainTimers();
 
             foreach (var timer in timersInSlot)
@@ -131,7 +158,7 @@ public class TimerWheel
                 {
                     // Timer needs more rounds, re-add it to the same slot
                     timer.RemainingRounds--;
-                    timer.SlotIndex = _currentSlot;
+                    timer.SlotIndex = CurrentSlot;
                     timer.SlotNode = slot.Add(timer);
                 }
                 else
@@ -143,32 +170,5 @@ public class TimerWheel
         }
 
         return expiredTimers;
-    }
-
-    /// <summary>
-    /// Gets the total number of timers currently in the wheel
-    /// </summary>
-    /// <returns>Total timer count</returns>
-    public int GetTotalTimerCount()
-    {
-        int count = 0;
-        foreach (var slot in _slots)
-        {
-            count += slot.Count;
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// Clears all timers from the wheel
-    /// </summary>
-    public void Clear()
-    {
-        foreach (var slot in _slots)
-        {
-            slot.Clear();
-        }
-        _currentSlot = 0;
-        _accumulatedTime = 0;
     }
 }

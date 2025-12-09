@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Data.Physics;
@@ -31,7 +30,6 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
     private float _width = 1f;
     private float _height = 1f;
     private float _depth = 1f;
-
 
     public float Width
     {
@@ -80,14 +78,14 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         get
         {
             // Calculate half extents considering transform scale
-            var halfWidth = (Width * Transform.Scale.X) / 2f;
-            var halfHeight = (Height * Transform.Scale.Y) / 2f;
-            var halfDepth = (Depth * Transform.Scale.Z) / 2f;
+            var halfWidth = Width * Transform.Scale.X / 2f;
+            var halfHeight = Height * Transform.Scale.Y / 2f;
+            var halfDepth = Depth * Transform.Scale.Z / 2f;
 
             var min = Transform.Position - new Vector3(halfWidth, halfHeight, halfDepth);
             var max = Transform.Position + new Vector3(halfWidth, halfHeight, halfDepth);
 
-            return new BoundingBox(min, max);
+            return new(min, max);
         }
     }
 
@@ -107,14 +105,27 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         Depth = depth;
     }
 
-    public void Initialize()
+    public bool IsStatic => true;
+
+    public event Action? PhysicsShapeDirty;
+
+    public Transform3D PhysicsTransform => Transform;
+
+    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
+    public PhysicsBodyConfig BuildBodyConfig()
+        => new(
+            new BoxShape(Width * Transform.Scale.X, Height * Transform.Scale.Y, Depth * Transform.Scale.Z),
+            0f,
+            new(Transform.Position, Transform.Rotation)
+        );
+
+    public void Dispose()
     {
-        _boxVertices = CreateBoxVertices();
-        _texture = _assetManager.GetTexture<Texture2D>(TextureName);
+        _vertexBuffer.Dispose();
 
-        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
-
-        _shaderProgram = _assetManager.GetShaderProgram("model");
+        // Do not dispose _shaderProgram here as it is managed by AssetManager
+        GC.SuppressFinalize(this);
     }
 
     public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
@@ -135,9 +146,9 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         _shaderProgram.Uniforms["View"].SetValueMat4(camera.View);
         _shaderProgram.Uniforms["Projection"].SetValueMat4(camera.Projection);
         _shaderProgram.Uniforms["Texture"].SetValueTexture(_texture);
-        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new Vector3(-0.4f, -1.0f, -0.2f));
+        _shaderProgram.Uniforms["LightDir"].SetValueVec3(new(-0.4f, -1.0f, -0.2f));
         _shaderProgram.Uniforms["LightColor"].SetValueVec3(Vector3.One);
-        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new Vector3(0.15f, 0.15f, 0.15f));
+        _shaderProgram.Uniforms["Ambient"].SetValueVec3(new(0.15f, 0.15f, 0.15f));
         _shaderProgram.Uniforms["Tint"].SetValueVec4(ToVector4(BoxColor));
 
         graphicsDevice.VertexArray = _vertexBuffer;
@@ -146,15 +157,22 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 
-    public void Update(GameTime gameTime) => base.Update(gameTime);
-
-    private void RebuildGeometry()
+    public void Initialize()
     {
         _boxVertices = CreateBoxVertices();
-        _vertexBuffer.Dispose();
-        _vertexBuffer = new VertexBuffer<VertexPositionNormalTex>(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
-        _needsRebuild = false;
+        _texture = _assetManager.GetTexture<Texture2D>(TextureName);
+
+        _vertexBuffer = new(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
+
+        _shaderProgram = _assetManager.GetShaderProgram("model");
     }
+
+    public void OnPhysicsAttached(IPhysicsBodyHandle h) { }
+
+    public void OnPhysicsDetached() { }
+
+    public void Update(GameTime gameTime)
+        => base.Update(gameTime);
 
     private VertexPositionNormalTex[] CreateBoxVertices()
     {
@@ -236,39 +254,18 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         ];
     }
 
-    public void Dispose()
+    private void RebuildGeometry()
     {
+        _boxVertices = CreateBoxVertices();
         _vertexBuffer.Dispose();
-
-        // Do not dispose _shaderProgram here as it is managed by AssetManager
-        GC.SuppressFinalize(this);
-    }
-
-    public bool IsStatic => true;
-
-    public PhysicsBodyConfig BuildBodyConfig()
-    {
-        return new PhysicsBodyConfig(new BoxShape(Width * Transform.Scale.X, Height * Transform.Scale.Y, Depth * Transform.Scale.Z), 0f, new RigidPose(Transform.Position, Transform.Rotation));
-    }
-
-    public event Action? PhysicsShapeDirty;
-
-    public Transform3D PhysicsTransform => Transform;
-
-    public PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
-
-    public void OnPhysicsAttached(IPhysicsBodyHandle h)
-    {
-
-    }
-
-    public void OnPhysicsDetached()
-    {
+        _vertexBuffer = new(_graphicsDevice, _boxVertices, BufferUsage.DynamicCopy);
+        _needsRebuild = false;
     }
 
     private static Vector4 ToVector4(Color4b color)
     {
         const float inv = 1f / 255f;
-        return new Vector4(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
+
+        return new(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
     }
 }

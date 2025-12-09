@@ -9,10 +9,9 @@ namespace Lilly.Engine.Modules;
 public class CommandsModule
 {
     private readonly ICommandSystemService _commandSystemService;
+
     public CommandsModule(ICommandSystemService commandSystemService)
-    {
-        _commandSystemService = commandSystemService;
-    }
+        => _commandSystemService = commandSystemService;
 
     [ScriptFunction("register", "Registers a new command in the command system.")]
     public void RegisterCommand(string commandName, string description, string aliases, Closure executeFunction)

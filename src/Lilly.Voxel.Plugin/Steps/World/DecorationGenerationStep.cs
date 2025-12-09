@@ -28,21 +28,21 @@ public class DecorationGenerationStep : IGeneratorStep
         var names = decorationBlockNames?.ToArray() ??
         [
             "flowers1",
-                        "flowers2",
-                        "flowers3",
-                        "flowers4",
-                        "flowers5",
-                        "flowers6",
-                        "flowers7",
-                        "flowers8",
-                        "item_1"
+            "flowers2",
+            "flowers3",
+            "flowers4",
+            "flowers5",
+            "flowers6",
+            "flowers7",
+            "flowers8",
+            "item_1"
         ];
 
         _decorationIds = names
                          .Select(name => Resolve(blockRegistry, name, blockRegistry.Air.Id))
                          .Where(id => id != blockRegistry.Air.Id)
-            .Distinct()
-            .ToArray();
+                         .Distinct()
+                         .ToArray();
 
         _decorationChance = decorationChance;
         _maxSlope = Math.Max(0, maxSlope);
@@ -113,14 +113,7 @@ public class DecorationGenerationStep : IGeneratorStep
         var coords = context.Chunk.ChunkCoordinates;
         var hash = HashCode.Combine(context.Seed, coords.X, coords.Y, coords.Z, 0xDEC0);
 
-        return new Random(hash);
-    }
-
-    private static ushort Resolve(IBlockRegistry registry, string name, ushort fallback)
-    {
-        var block = registry.GetByName(name);
-
-        return block == registry.Air ? fallback : block.Id;
+        return new(hash);
     }
 
     private bool IsSlopeAcceptable(int[] heightMap, int size, int x, int z, int referenceHeight)
@@ -157,5 +150,12 @@ public class DecorationGenerationStep : IGeneratorStep
         }
 
         return true;
+    }
+
+    private static ushort Resolve(IBlockRegistry registry, string name, ushort fallback)
+    {
+        var block = registry.GetByName(name);
+
+        return block == registry.Air ? fallback : block.Id;
     }
 }

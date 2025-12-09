@@ -68,7 +68,6 @@ public class FastNoiseLite
     private const int PrimeY = 1136930381;
     private const int PrimeZ = 1720413743;
 
-
     private static readonly FNLfloat[] Gradients2D =
     {
         0.130526192220052f, 0.99144486137381f, 0.38268343236509f, 0.923879532511287f, 0.608761429008721f, 0.793353340291235f,
@@ -413,197 +412,82 @@ public class FastNoiseLite
     private FNLfloat mWeightedStrength;
 
     /// <summary>
-    ///     Create new FastNoise object with optional seed
+    /// Create new FastNoise object with optional seed
     /// </summary>
     public FastNoiseLite(int seed = 1337)
     {
         SetSeed(seed);
     }
 
-    /// <summary>
-    ///     Sets seed used for all noise types
-    /// </summary>
-    /// <remarks>
-    ///     Default: 1337
-    /// </remarks>
-    public void SetSeed(int seed)
+    private enum TransformType3D
     {
-        mSeed = seed;
+        None,
+        ImproveXYPlanes,
+        ImproveXZPlanes,
+        DefaultOpenSimplex2
     }
 
     /// <summary>
-    ///     Sets frequency for all noise types
+    /// 2D warps the input position using current domain warp settings
     /// </summary>
-    /// <remarks>
-    ///     Default: 0.01
-    /// </remarks>
-    public void SetFrequency(float frequency)
+    /// <example>
+    /// Example usage with GetNoise
+    /// <code>DomainWarp(ref x, ref y)
+    /// noise = GetNoise(x, y)</code>
+    /// </example>
+    [MethodImpl(OPTIMISE)]
+    public void DomainWarp(ref FNLfloat x, ref FNLfloat y)
     {
-        mFrequency = frequency;
+        switch (mFractalType)
+        {
+            default:
+                DomainWarpSingle(ref x, ref y);
+
+                break;
+            case FractalType.DomainWarpProgressive:
+                DomainWarpFractalProgressive(ref x, ref y);
+
+                break;
+            case FractalType.DomainWarpIndependent:
+                DomainWarpFractalIndependent(ref x, ref y);
+
+                break;
+        }
     }
 
     /// <summary>
-    ///     Sets noise algorithm used for GetNoise(...)
+    /// 3D warps the input position using current domain warp settings
     /// </summary>
-    /// <remarks>
-    ///     Default: OpenSimplex2
-    /// </remarks>
-    public void SetNoiseType(NoiseType noiseType)
+    /// <example>
+    /// Example usage with GetNoise
+    /// <code>DomainWarp(ref x, ref y, ref z)
+    /// noise = GetNoise(x, y, z)</code>
+    /// </example>
+    [MethodImpl(OPTIMISE)]
+    public void DomainWarp(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
     {
-        mNoiseType = noiseType;
-        UpdateTransformType3D();
+        switch (mFractalType)
+        {
+            default:
+                DomainWarpSingle(ref x, ref y, ref z);
+
+                break;
+            case FractalType.DomainWarpProgressive:
+                DomainWarpFractalProgressive(ref x, ref y, ref z);
+
+                break;
+            case FractalType.DomainWarpIndependent:
+                DomainWarpFractalIndependent(ref x, ref y, ref z);
+
+                break;
+        }
     }
 
     /// <summary>
-    ///     Sets domain rotation type for 3D Noise and 3D DomainWarp.
-    ///     Can aid in reducing directional artifacts when sampling a 2D plane in 3D
-    /// </summary>
-    /// <remarks>
-    ///     Default: None
-    /// </remarks>
-    public void SetRotationType3D(RotationType3D rotationType3D)
-    {
-        mRotationType3D = rotationType3D;
-        UpdateTransformType3D();
-        UpdateWarpTransformType3D();
-    }
-
-    /// <summary>
-    ///     Sets method for combining octaves in all fractal noise types
-    /// </summary>
-    /// <remarks>
-    ///     Default: None
-    ///     Note: FractalType.DomainWarp... only affects DomainWarp(...)
-    /// </remarks>
-    public void SetFractalType(FractalType fractalType)
-    {
-        mFractalType = fractalType;
-    }
-
-    /// <summary>
-    ///     Sets octave count for all fractal noise types
-    /// </summary>
-    /// <remarks>
-    ///     Default: 3
-    /// </remarks>
-    public void SetFractalOctaves(int octaves)
-    {
-        mOctaves = octaves;
-        CalculateFractalBounding();
-    }
-
-    /// <summary>
-    ///     Sets octave lacunarity for all fractal noise types
-    /// </summary>
-    /// <remarks>
-    ///     Default: 2.0
-    /// </remarks>
-    public void SetFractalLacunarity(float lacunarity)
-    {
-        mLacunarity = lacunarity;
-    }
-
-    /// <summary>
-    ///     Sets octave gain for all fractal noise types
-    /// </summary>
-    /// <remarks>
-    ///     Default: 0.5
-    /// </remarks>
-    public void SetFractalGain(float gain)
-    {
-        mGain = gain;
-        CalculateFractalBounding();
-    }
-
-    /// <summary>
-    ///     Sets octave weighting for all none DomainWarp fratal types
-    /// </summary>
-    /// <remarks>
-    ///     Default: 0.0
-    ///     Note: Keep between 0...1 to maintain -1...1 output bounding
-    /// </remarks>
-    public void SetFractalWeightedStrength(float weightedStrength)
-    {
-        mWeightedStrength = weightedStrength;
-    }
-
-    /// <summary>
-    ///     Sets strength of the fractal ping pong effect
-    /// </summary>
-    /// <remarks>
-    ///     Default: 2.0
-    /// </remarks>
-    public void SetFractalPingPongStrength(float pingPongStrength)
-    {
-        mPingPongStrength = pingPongStrength;
-    }
-
-
-    /// <summary>
-    ///     Sets distance function used in cellular noise calculations
-    /// </summary>
-    /// <remarks>
-    ///     Default: Distance
-    /// </remarks>
-    public void SetCellularDistanceFunction(CellularDistanceFunction cellularDistanceFunction)
-    {
-        mCellularDistanceFunction = cellularDistanceFunction;
-    }
-
-    /// <summary>
-    ///     Sets return type from cellular noise calculations
-    /// </summary>
-    /// <remarks>
-    ///     Default: EuclideanSq
-    /// </remarks>
-    public void SetCellularReturnType(CellularReturnType cellularReturnType)
-    {
-        mCellularReturnType = cellularReturnType;
-    }
-
-    /// <summary>
-    ///     Sets the maximum distance a cellular point can move from it's grid position
-    /// </summary>
-    /// <remarks>
-    ///     Default: 1.0
-    ///     Note: Setting this higher than 1 will cause artifacts
-    /// </remarks>
-    public void SetCellularJitter(float cellularJitter)
-    {
-        mCellularJitterModifier = cellularJitter;
-    }
-
-
-    /// <summary>
-    ///     Sets the warp algorithm when using DomainWarp(...)
-    /// </summary>
-    /// <remarks>
-    ///     Default: OpenSimplex2
-    /// </remarks>
-    public void SetDomainWarpType(DomainWarpType domainWarpType)
-    {
-        mDomainWarpType = domainWarpType;
-        UpdateWarpTransformType3D();
-    }
-
-
-    /// <summary>
-    ///     Sets the maximum warp distance from original position when using DomainWarp(...)
-    /// </summary>
-    /// <remarks>
-    ///     Default: 1.0
-    /// </remarks>
-    public void SetDomainWarpAmp(float domainWarpAmp)
-    {
-        mDomainWarpAmp = domainWarpAmp;
-    }
-
-
-    /// <summary>
-    ///     2D noise at given position using current settings
+    /// 2D noise at given position using current settings
     /// </summary>
     /// <returns>
-    ///     Noise output bounded between -1...1
+    /// Noise output bounded between -1...1
     /// </returns>
     [MethodImpl(OPTIMISE)]
     public float GetNoise(FNLfloat x, FNLfloat y)
@@ -624,10 +508,10 @@ public class FastNoiseLite
     }
 
     /// <summary>
-    ///     3D noise at given position using current settings
+    /// 3D noise at given position using current settings
     /// </summary>
     /// <returns>
-    ///     Noise output bounded between -1...1
+    /// Noise output bounded between -1...1
     /// </returns>
     [MethodImpl(OPTIMISE)]
     public float GetNoise(FNLfloat x, FNLfloat y, FNLfloat z)
@@ -647,124 +531,179 @@ public class FastNoiseLite
         }
     }
 
-
     /// <summary>
-    ///     2D warps the input position using current domain warp settings
+    /// Sets distance function used in cellular noise calculations
     /// </summary>
-    /// <example>
-    ///     Example usage with GetNoise
-    ///     <code>DomainWarp(ref x, ref y)
-    /// noise = GetNoise(x, y)</code>
-    /// </example>
-    [MethodImpl(OPTIMISE)]
-    public void DomainWarp(ref FNLfloat x, ref FNLfloat y)
+    /// <remarks>
+    /// Default: Distance
+    /// </remarks>
+    public void SetCellularDistanceFunction(CellularDistanceFunction cellularDistanceFunction)
     {
-        switch (mFractalType)
-        {
-            default:
-                DomainWarpSingle(ref x, ref y);
-                break;
-            case FractalType.DomainWarpProgressive:
-                DomainWarpFractalProgressive(ref x, ref y);
-                break;
-            case FractalType.DomainWarpIndependent:
-                DomainWarpFractalIndependent(ref x, ref y);
-                break;
-        }
+        mCellularDistanceFunction = cellularDistanceFunction;
     }
 
     /// <summary>
-    ///     3D warps the input position using current domain warp settings
+    /// Sets the maximum distance a cellular point can move from it's grid position
     /// </summary>
-    /// <example>
-    ///     Example usage with GetNoise
-    ///     <code>DomainWarp(ref x, ref y, ref z)
-    /// noise = GetNoise(x, y, z)</code>
-    /// </example>
-    [MethodImpl(OPTIMISE)]
-    public void DomainWarp(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
+    /// <remarks>
+    /// Default: 1.0
+    /// Note: Setting this higher than 1 will cause artifacts
+    /// </remarks>
+    public void SetCellularJitter(float cellularJitter)
     {
-        switch (mFractalType)
-        {
-            default:
-                DomainWarpSingle(ref x, ref y, ref z);
-                break;
-            case FractalType.DomainWarpProgressive:
-                DomainWarpFractalProgressive(ref x, ref y, ref z);
-                break;
-            case FractalType.DomainWarpIndependent:
-                DomainWarpFractalIndependent(ref x, ref y, ref z);
-                break;
-        }
+        mCellularJitterModifier = cellularJitter;
     }
 
-
-    [MethodImpl(INLINE)]
-    private static float FastMin(float a, float b)
+    /// <summary>
+    /// Sets return type from cellular noise calculations
+    /// </summary>
+    /// <remarks>
+    /// Default: EuclideanSq
+    /// </remarks>
+    public void SetCellularReturnType(CellularReturnType cellularReturnType)
     {
-        return a < b ? a : b;
+        mCellularReturnType = cellularReturnType;
     }
 
-    [MethodImpl(INLINE)]
-    private static float FastMax(float a, float b)
+    /// <summary>
+    /// Sets the maximum warp distance from original position when using DomainWarp(...)
+    /// </summary>
+    /// <remarks>
+    /// Default: 1.0
+    /// </remarks>
+    public void SetDomainWarpAmp(float domainWarpAmp)
     {
-        return a > b ? a : b;
+        mDomainWarpAmp = domainWarpAmp;
     }
 
-    [MethodImpl(INLINE)]
-    private static float FastAbs(float f)
+    /// <summary>
+    /// Sets the warp algorithm when using DomainWarp(...)
+    /// </summary>
+    /// <remarks>
+    /// Default: OpenSimplex2
+    /// </remarks>
+    public void SetDomainWarpType(DomainWarpType domainWarpType)
     {
-        return f < 0 ? -f : f;
+        mDomainWarpType = domainWarpType;
+        UpdateWarpTransformType3D();
     }
 
-    [MethodImpl(INLINE)]
-    private static float FastSqrt(float f)
+    /// <summary>
+    /// Sets octave gain for all fractal noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: 0.5
+    /// </remarks>
+    public void SetFractalGain(float gain)
     {
-        return (float)Math.Sqrt(f);
+        mGain = gain;
+        CalculateFractalBounding();
     }
 
-    [MethodImpl(INLINE)]
-    private static int FastFloor(FNLfloat f)
+    /// <summary>
+    /// Sets octave lacunarity for all fractal noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: 2.0
+    /// </remarks>
+    public void SetFractalLacunarity(float lacunarity)
     {
-        return f >= 0 ? (int)f : (int)f - 1;
+        mLacunarity = lacunarity;
     }
 
-    [MethodImpl(INLINE)]
-    private static int FastRound(FNLfloat f)
+    /// <summary>
+    /// Sets octave count for all fractal noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: 3
+    /// </remarks>
+    public void SetFractalOctaves(int octaves)
     {
-        return f >= 0 ? (int)(f + 0.5f) : (int)(f - 0.5f);
+        mOctaves = octaves;
+        CalculateFractalBounding();
     }
 
-    [MethodImpl(INLINE)]
-    private static float Lerp(float a, float b, float t)
+    /// <summary>
+    /// Sets strength of the fractal ping pong effect
+    /// </summary>
+    /// <remarks>
+    /// Default: 2.0
+    /// </remarks>
+    public void SetFractalPingPongStrength(float pingPongStrength)
     {
-        return a + t * (b - a);
+        mPingPongStrength = pingPongStrength;
     }
 
-    [MethodImpl(INLINE)]
-    private static float InterpHermite(float t)
+    /// <summary>
+    /// Sets method for combining octaves in all fractal noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: None
+    /// Note: FractalType.DomainWarp... only affects DomainWarp(...)
+    /// </remarks>
+    public void SetFractalType(FractalType fractalType)
     {
-        return t * t * (3 - 2 * t);
+        mFractalType = fractalType;
     }
 
-    [MethodImpl(INLINE)]
-    private static float InterpQuintic(float t)
+    /// <summary>
+    /// Sets octave weighting for all none DomainWarp fratal types
+    /// </summary>
+    /// <remarks>
+    /// Default: 0.0
+    /// Note: Keep between 0...1 to maintain -1...1 output bounding
+    /// </remarks>
+    public void SetFractalWeightedStrength(float weightedStrength)
     {
-        return t * t * t * (t * (t * 6 - 15) + 10);
+        mWeightedStrength = weightedStrength;
     }
 
-    [MethodImpl(INLINE)]
-    private static float CubicLerp(float a, float b, float c, float d, float t)
+    /// <summary>
+    /// Sets frequency for all noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: 0.01
+    /// </remarks>
+    public void SetFrequency(float frequency)
     {
-        var p = d - c - (a - b);
-        return t * t * t * p + t * t * (a - b - p) + t * (c - a) + b;
+        mFrequency = frequency;
     }
 
-    [MethodImpl(INLINE)]
-    private static float PingPong(float t)
+    /// <summary>
+    /// Sets noise algorithm used for GetNoise(...)
+    /// </summary>
+    /// <remarks>
+    /// Default: OpenSimplex2
+    /// </remarks>
+    public void SetNoiseType(NoiseType noiseType)
     {
-        t -= (int)(t * 0.5f) * 2;
-        return t < 1 ? t : 2 - t;
+        mNoiseType = noiseType;
+        UpdateTransformType3D();
+    }
+
+    /// <summary>
+    /// Sets domain rotation type for 3D Noise and 3D DomainWarp.
+    /// Can aid in reducing directional artifacts when sampling a 2D plane in 3D
+    /// </summary>
+    /// <remarks>
+    /// Default: None
+    /// </remarks>
+    public void SetRotationType3D(RotationType3D rotationType3D)
+    {
+        mRotationType3D = rotationType3D;
+        UpdateTransformType3D();
+        UpdateWarpTransformType3D();
+    }
+
+    /// <summary>
+    /// Sets seed used for all noise types
+    /// </summary>
+    /// <remarks>
+    /// Default: 1337
+    /// </remarks>
+    public void SetSeed(int seed)
+    {
+        mSeed = seed;
     }
 
     private void CalculateFractalBounding()
@@ -772,6 +711,7 @@ public class FastNoiseLite
         var gain = FastAbs(mGain);
         var amp = gain;
         var ampFractal = 1.0f;
+
         for (var i = 1; i < mOctaves; i++)
         {
             ampFractal += amp;
@@ -782,133 +722,359 @@ public class FastNoiseLite
     }
 
     [MethodImpl(INLINE)]
-    private static int Hash(int seed, int xPrimed, int yPrimed)
+    private static float CubicLerp(float a, float b, float c, float d, float t)
     {
-        var hash = seed ^ xPrimed ^ yPrimed;
+        var p = d - c - (a - b);
 
-        hash *= 0x27d4eb2d;
-        return hash;
+        return t * t * t * p + t * t * (a - b - p) + t * (c - a) + b;
     }
 
-    [MethodImpl(INLINE)]
-    private static int Hash(int seed, int xPrimed, int yPrimed, int zPrimed)
+    // Domain Warp Fractal Independant
+    private void DomainWarpFractalIndependent(ref FNLfloat x, ref FNLfloat y)
     {
-        var hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
+        var xs = x;
+        var ys = y;
+        TransformDomainWarpCoordinate(ref xs, ref ys);
 
-        hash *= 0x27d4eb2d;
-        return hash;
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
+
+            seed++;
+            amp *= mGain;
+            freq *= mLacunarity;
+        }
     }
 
-    [MethodImpl(INLINE)]
-    private static float ValCoord(int seed, int xPrimed, int yPrimed)
+    private void DomainWarpFractalIndependent(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
     {
-        var hash = Hash(seed, xPrimed, yPrimed);
+        var xs = x;
+        var ys = y;
+        var zs = z;
+        TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
 
-        hash *= hash;
-        hash ^= hash << 19;
-        return hash * (1 / 2147483648.0f);
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
+
+            seed++;
+            amp *= mGain;
+            freq *= mLacunarity;
+        }
     }
 
-    [MethodImpl(INLINE)]
-    private static float ValCoord(int seed, int xPrimed, int yPrimed, int zPrimed)
-    {
-        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
+    // Domain Warp Fractal Progressive
 
-        hash *= hash;
-        hash ^= hash << 19;
-        return hash * (1 / 2147483648.0f);
+    private void DomainWarpFractalProgressive(ref FNLfloat x, ref FNLfloat y)
+    {
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var xs = x;
+            var ys = y;
+            TransformDomainWarpCoordinate(ref xs, ref ys);
+
+            DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
+
+            seed++;
+            amp *= mGain;
+            freq *= mLacunarity;
+        }
     }
 
-    [MethodImpl(INLINE)]
-    private static float GradCoord(int seed, int xPrimed, int yPrimed, float xd, float yd)
+    private void DomainWarpFractalProgressive(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
     {
-        var hash = Hash(seed, xPrimed, yPrimed);
-        hash ^= hash >> 15;
-        hash &= 127 << 1;
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
 
-        var xg = Gradients2D[hash];
-        var yg = Gradients2D[hash | 1];
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var xs = x;
+            var ys = y;
+            var zs = z;
+            TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
 
-        return xd * xg + yd * yg;
+            DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
+
+            seed++;
+            amp *= mGain;
+            freq *= mLacunarity;
+        }
     }
 
-    [MethodImpl(INLINE)]
-    private static float GradCoord(int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd)
+    // Domain Warp Single Wrapper
+
+    private void DomainWarpSingle(ref FNLfloat x, ref FNLfloat y)
     {
-        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
-        hash ^= hash >> 15;
-        hash &= 63 << 2;
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
 
-        var xg = Gradients3D[hash];
-        var yg = Gradients3D[hash | 1];
-        var zg = Gradients3D[hash | 2];
+        var xs = x;
+        var ys = y;
+        TransformDomainWarpCoordinate(ref xs, ref ys);
 
-        return xd * xg + yd * yg + zd * zg;
+        DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
     }
 
-    [MethodImpl(INLINE)]
-    private static void GradCoordOut(int seed, int xPrimed, int yPrimed, out float xo, out float yo)
+    private void DomainWarpSingle(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
     {
-        var hash = Hash(seed, xPrimed, yPrimed) & (255 << 1);
+        var seed = mSeed;
+        var amp = mDomainWarpAmp * mFractalBounding;
+        var freq = mFrequency;
 
-        xo = RandVecs2D[hash];
-        yo = RandVecs2D[hash | 1];
+        var xs = x;
+        var ys = y;
+        var zs = z;
+        TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
+
+        DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
     }
 
-    [MethodImpl(INLINE)]
-    private static void GradCoordOut(
-        int seed, int xPrimed, int yPrimed, int zPrimed, out float xo, out float yo, out float zo
+    // Domain Warp
+
+    private void DoSingleDomainWarp(
+        int seed,
+        float amp,
+        float freq,
+        FNLfloat x,
+        FNLfloat y,
+        ref FNLfloat xr,
+        ref FNLfloat yr
     )
     {
-        var hash = Hash(seed, xPrimed, yPrimed, zPrimed) & (255 << 2);
+        switch (mDomainWarpType)
+        {
+            case DomainWarpType.OpenSimplex2:
+                SingleDomainWarpSimplexGradient(seed, amp * 38.283687591552734375f, freq, x, y, ref xr, ref yr, false);
 
-        xo = RandVecs3D[hash];
-        yo = RandVecs3D[hash | 1];
-        zo = RandVecs3D[hash | 2];
+                break;
+            case DomainWarpType.OpenSimplex2Reduced:
+                SingleDomainWarpSimplexGradient(seed, amp * 16.0f, freq, x, y, ref xr, ref yr, true);
+
+                break;
+            case DomainWarpType.BasicGrid:
+                SingleDomainWarpBasicGrid(seed, amp, freq, x, y, ref xr, ref yr);
+
+                break;
+        }
     }
 
-    [MethodImpl(INLINE)]
-    private static void GradCoordDual(int seed, int xPrimed, int yPrimed, float xd, float yd, out float xo, out float yo)
-    {
-        var hash = Hash(seed, xPrimed, yPrimed);
-        var index1 = hash & (127 << 1);
-        var index2 = (hash >> 7) & (255 << 1);
-
-        var xg = Gradients2D[index1];
-        var yg = Gradients2D[index1 | 1];
-        var value = xd * xg + yd * yg;
-
-        var xgo = RandVecs2D[index2];
-        var ygo = RandVecs2D[index2 | 1];
-
-        xo = value * xgo;
-        yo = value * ygo;
-    }
-
-    [MethodImpl(INLINE)]
-    private static void GradCoordDual(
-        int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd, out float xo, out float yo,
-        out float zo
+    private void DoSingleDomainWarp(
+        int seed,
+        float amp,
+        float freq,
+        FNLfloat x,
+        FNLfloat y,
+        FNLfloat z,
+        ref FNLfloat xr,
+        ref FNLfloat yr,
+        ref FNLfloat zr
     )
     {
-        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
-        var index1 = hash & (63 << 2);
-        var index2 = (hash >> 6) & (255 << 2);
+        switch (mDomainWarpType)
+        {
+            case DomainWarpType.OpenSimplex2:
+                SingleDomainWarpOpenSimplex2Gradient(
+                    seed,
+                    amp * 32.69428253173828125f,
+                    freq,
+                    x,
+                    y,
+                    z,
+                    ref xr,
+                    ref yr,
+                    ref zr,
+                    false
+                );
 
-        var xg = Gradients3D[index1];
-        var yg = Gradients3D[index1 | 1];
-        var zg = Gradients3D[index1 | 2];
-        var value = xd * xg + yd * yg + zd * zg;
+                break;
+            case DomainWarpType.OpenSimplex2Reduced:
+                SingleDomainWarpOpenSimplex2Gradient(
+                    seed,
+                    amp * 7.71604938271605f,
+                    freq,
+                    x,
+                    y,
+                    z,
+                    ref xr,
+                    ref yr,
+                    ref zr,
+                    true
+                );
 
-        var xgo = RandVecs3D[index2];
-        var ygo = RandVecs3D[index2 | 1];
-        var zgo = RandVecs3D[index2 | 2];
+                break;
+            case DomainWarpType.BasicGrid:
+                SingleDomainWarpBasicGrid(seed, amp, freq, x, y, z, ref xr, ref yr, ref zr);
 
-        xo = value * xgo;
-        yo = value * ygo;
-        zo = value * zgo;
+                break;
+        }
     }
 
+    [MethodImpl(INLINE)]
+    private static float FastAbs(float f)
+        => f < 0 ? -f : f;
+
+    [MethodImpl(INLINE)]
+    private static int FastFloor(FNLfloat f)
+        => f >= 0 ? (int)f : (int)f - 1;
+
+    [MethodImpl(INLINE)]
+    private static float FastMax(float a, float b)
+        => a > b ? a : b;
+
+    [MethodImpl(INLINE)]
+    private static float FastMin(float a, float b)
+        => a < b ? a : b;
+
+    [MethodImpl(INLINE)]
+    private static int FastRound(FNLfloat f)
+        => f >= 0 ? (int)(f + 0.5f) : (int)(f - 0.5f);
+
+    [MethodImpl(INLINE)]
+    private static float FastSqrt(float f)
+        => (float)Math.Sqrt(f);
+
+    // Fractal FBm
+
+    private float GenFractalFBm(FNLfloat x, FNLfloat y)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = GenNoiseSingle(seed++, x, y);
+            sum += noise * amp;
+            amp *= Lerp(1.0f, FastMin(noise + 1, 2) * 0.5f, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
+
+    private float GenFractalFBm(FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = GenNoiseSingle(seed++, x, y, z);
+            sum += noise * amp;
+            amp *= Lerp(1.0f, (noise + 1) * 0.5f, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            z *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
+
+    // Fractal PingPong
+
+    private float GenFractalPingPong(FNLfloat x, FNLfloat y)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = PingPong((GenNoiseSingle(seed++, x, y) + 1) * mPingPongStrength);
+            sum += (noise - 0.5f) * 2 * amp;
+            amp *= Lerp(1.0f, noise, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
+
+    private float GenFractalPingPong(FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = PingPong((GenNoiseSingle(seed++, x, y, z) + 1) * mPingPongStrength);
+            sum += (noise - 0.5f) * 2 * amp;
+            amp *= Lerp(1.0f, noise, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            z *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
+
+    // Fractal Ridged
+
+    private float GenFractalRidged(FNLfloat x, FNLfloat y)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = FastAbs(GenNoiseSingle(seed++, x, y));
+            sum += (noise * -2 + 1) * amp;
+            amp *= Lerp(1.0f, 1 - noise, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
+
+    private float GenFractalRidged(FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        var seed = mSeed;
+        float sum = 0;
+        var amp = mFractalBounding;
+
+        for (var i = 0; i < mOctaves; i++)
+        {
+            var noise = FastAbs(GenNoiseSingle(seed++, x, y, z));
+            sum += (noise * -2 + 1) * amp;
+            amp *= Lerp(1.0f, 1 - noise, mWeightedStrength);
+
+            x *= mLacunarity;
+            y *= mLacunarity;
+            z *= mLacunarity;
+            amp *= mGain;
+        }
+
+        return sum;
+    }
 
     // Generic noise gen
 
@@ -954,918 +1120,149 @@ public class FastNoiseLite
         }
     }
 
-
-    // Noise Coordinate Transforms (frequency, and possible skew or rotation)
-
     [MethodImpl(INLINE)]
-    private void TransformNoiseCoordinate(ref FNLfloat x, ref FNLfloat y)
+    private static float GradCoord(int seed, int xPrimed, int yPrimed, float xd, float yd)
     {
-        x *= mFrequency;
-        y *= mFrequency;
+        var hash = Hash(seed, xPrimed, yPrimed);
+        hash ^= hash >> 15;
+        hash &= 127 << 1;
 
-        switch (mNoiseType)
-        {
-            case NoiseType.OpenSimplex2:
-            case NoiseType.OpenSimplex2S:
-                {
-                    const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
-                    const FNLfloat F2 = 0.5f * (SQRT3 - 1);
-                    var t = (x + y) * F2;
-                    x += t;
-                    y += t;
-                }
-                break;
-        }
+        var xg = Gradients2D[hash];
+        var yg = Gradients2D[hash | 1];
+
+        return xd * xg + yd * yg;
     }
 
     [MethodImpl(INLINE)]
-    private void TransformNoiseCoordinate(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
+    private static float GradCoord(int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd)
     {
-        x *= mFrequency;
-        y *= mFrequency;
-        z *= mFrequency;
+        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
+        hash ^= hash >> 15;
+        hash &= 63 << 2;
 
-        switch (mTransformType3D)
-        {
-            case TransformType3D.ImproveXYPlanes:
-                {
-                    var xy = x + y;
-                    var s2 = xy * -(FNLfloat)0.211324865405187;
-                    z *= (FNLfloat)0.577350269189626;
-                    x += s2 - z;
-                    y = y + s2 - z;
-                    z += xy * (FNLfloat)0.577350269189626;
-                }
-                break;
-            case TransformType3D.ImproveXZPlanes:
-                {
-                    var xz = x + z;
-                    var s2 = xz * -(FNLfloat)0.211324865405187;
-                    y *= (FNLfloat)0.577350269189626;
-                    x += s2 - y;
-                    z += s2 - y;
-                    y += xz * (FNLfloat)0.577350269189626;
-                }
-                break;
-            case TransformType3D.DefaultOpenSimplex2:
-                {
-                    const FNLfloat R3 = (FNLfloat)(2.0 / 3.0);
-                    var r = (x + y + z) * R3; // Rotation, not skew
-                    x = r - x;
-                    y = r - y;
-                    z = r - z;
-                }
-                break;
-        }
-    }
+        var xg = Gradients3D[hash];
+        var yg = Gradients3D[hash | 1];
+        var zg = Gradients3D[hash | 2];
 
-    private void UpdateTransformType3D()
-    {
-        switch (mRotationType3D)
-        {
-            case RotationType3D.ImproveXYPlanes:
-                mTransformType3D = TransformType3D.ImproveXYPlanes;
-                break;
-            case RotationType3D.ImproveXZPlanes:
-                mTransformType3D = TransformType3D.ImproveXZPlanes;
-                break;
-            default:
-                switch (mNoiseType)
-                {
-                    case NoiseType.OpenSimplex2:
-                    case NoiseType.OpenSimplex2S:
-                        mTransformType3D = TransformType3D.DefaultOpenSimplex2;
-                        break;
-                    default:
-                        mTransformType3D = TransformType3D.None;
-                        break;
-                }
-
-                break;
-        }
-    }
-
-
-    // Domain Warp Coordinate Transforms
-
-    [MethodImpl(INLINE)]
-    private void TransformDomainWarpCoordinate(ref FNLfloat x, ref FNLfloat y)
-    {
-        switch (mDomainWarpType)
-        {
-            case DomainWarpType.OpenSimplex2:
-            case DomainWarpType.OpenSimplex2Reduced:
-                {
-                    const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
-                    const FNLfloat F2 = 0.5f * (SQRT3 - 1);
-                    var t = (x + y) * F2;
-                    x += t;
-                    y += t;
-                }
-                break;
-        }
+        return xd * xg + yd * yg + zd * zg;
     }
 
     [MethodImpl(INLINE)]
-    private void TransformDomainWarpCoordinate(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
+    private static void GradCoordDual(int seed, int xPrimed, int yPrimed, float xd, float yd, out float xo, out float yo)
     {
-        switch (mWarpTransformType3D)
-        {
-            case TransformType3D.ImproveXYPlanes:
-                {
-                    var xy = x + y;
-                    var s2 = xy * -(FNLfloat)0.211324865405187;
-                    z *= (FNLfloat)0.577350269189626;
-                    x += s2 - z;
-                    y = y + s2 - z;
-                    z += xy * (FNLfloat)0.577350269189626;
-                }
-                break;
-            case TransformType3D.ImproveXZPlanes:
-                {
-                    var xz = x + z;
-                    var s2 = xz * -(FNLfloat)0.211324865405187;
-                    y *= (FNLfloat)0.577350269189626;
-                    x += s2 - y;
-                    z += s2 - y;
-                    y += xz * (FNLfloat)0.577350269189626;
-                }
-                break;
-            case TransformType3D.DefaultOpenSimplex2:
-                {
-                    const FNLfloat R3 = (FNLfloat)(2.0 / 3.0);
-                    var r = (x + y + z) * R3; // Rotation, not skew
-                    x = r - x;
-                    y = r - y;
-                    z = r - z;
-                }
-                break;
-        }
+        var hash = Hash(seed, xPrimed, yPrimed);
+        var index1 = hash & (127 << 1);
+        var index2 = (hash >> 7) & (255 << 1);
+
+        var xg = Gradients2D[index1];
+        var yg = Gradients2D[index1 | 1];
+        var value = xd * xg + yd * yg;
+
+        var xgo = RandVecs2D[index2];
+        var ygo = RandVecs2D[index2 | 1];
+
+        xo = value * xgo;
+        yo = value * ygo;
     }
 
-    private void UpdateWarpTransformType3D()
+    [MethodImpl(INLINE)]
+    private static void GradCoordDual(
+        int seed,
+        int xPrimed,
+        int yPrimed,
+        int zPrimed,
+        float xd,
+        float yd,
+        float zd,
+        out float xo,
+        out float yo,
+        out float zo
+    )
     {
-        switch (mRotationType3D)
-        {
-            case RotationType3D.ImproveXYPlanes:
-                mWarpTransformType3D = TransformType3D.ImproveXYPlanes;
-                break;
-            case RotationType3D.ImproveXZPlanes:
-                mWarpTransformType3D = TransformType3D.ImproveXZPlanes;
-                break;
-            default:
-                switch (mDomainWarpType)
-                {
-                    case DomainWarpType.OpenSimplex2:
-                    case DomainWarpType.OpenSimplex2Reduced:
-                        mWarpTransformType3D = TransformType3D.DefaultOpenSimplex2;
-                        break;
-                    default:
-                        mWarpTransformType3D = TransformType3D.None;
-                        break;
-                }
+        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
+        var index1 = hash & (63 << 2);
+        var index2 = (hash >> 6) & (255 << 2);
 
-                break;
-        }
+        var xg = Gradients3D[index1];
+        var yg = Gradients3D[index1 | 1];
+        var zg = Gradients3D[index1 | 2];
+        var value = xd * xg + yd * yg + zd * zg;
+
+        var xgo = RandVecs3D[index2];
+        var ygo = RandVecs3D[index2 | 1];
+        var zgo = RandVecs3D[index2 | 2];
+
+        xo = value * xgo;
+        yo = value * ygo;
+        zo = value * zgo;
     }
 
-
-    // Fractal FBm
-
-    private float GenFractalFBm(FNLfloat x, FNLfloat y)
+    [MethodImpl(INLINE)]
+    private static void GradCoordOut(int seed, int xPrimed, int yPrimed, out float xo, out float yo)
     {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
+        var hash = Hash(seed, xPrimed, yPrimed) & (255 << 1);
 
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = GenNoiseSingle(seed++, x, y);
-            sum += noise * amp;
-            amp *= Lerp(1.0f, FastMin(noise + 1, 2) * 0.5f, mWeightedStrength);
-
-            x *= mLacunarity;
-            y *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
+        xo = RandVecs2D[hash];
+        yo = RandVecs2D[hash | 1];
     }
 
-    private float GenFractalFBm(FNLfloat x, FNLfloat y, FNLfloat z)
+    [MethodImpl(INLINE)]
+    private static void GradCoordOut(
+        int seed,
+        int xPrimed,
+        int yPrimed,
+        int zPrimed,
+        out float xo,
+        out float yo,
+        out float zo
+    )
     {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
+        var hash = Hash(seed, xPrimed, yPrimed, zPrimed) & (255 << 2);
 
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = GenNoiseSingle(seed++, x, y, z);
-            sum += noise * amp;
-            amp *= Lerp(1.0f, (noise + 1) * 0.5f, mWeightedStrength);
-
-            x *= mLacunarity;
-            y *= mLacunarity;
-            z *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
+        xo = RandVecs3D[hash];
+        yo = RandVecs3D[hash | 1];
+        zo = RandVecs3D[hash | 2];
     }
 
-
-    // Fractal Ridged
-
-    private float GenFractalRidged(FNLfloat x, FNLfloat y)
+    [MethodImpl(INLINE)]
+    private static int Hash(int seed, int xPrimed, int yPrimed)
     {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
+        var hash = seed ^ xPrimed ^ yPrimed;
 
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = FastAbs(GenNoiseSingle(seed++, x, y));
-            sum += (noise * -2 + 1) * amp;
-            amp *= Lerp(1.0f, 1 - noise, mWeightedStrength);
+        hash *= 0x27d4eb2d;
 
-            x *= mLacunarity;
-            y *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
+        return hash;
     }
 
-    private float GenFractalRidged(FNLfloat x, FNLfloat y, FNLfloat z)
+    [MethodImpl(INLINE)]
+    private static int Hash(int seed, int xPrimed, int yPrimed, int zPrimed)
     {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
+        var hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
 
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = FastAbs(GenNoiseSingle(seed++, x, y, z));
-            sum += (noise * -2 + 1) * amp;
-            amp *= Lerp(1.0f, 1 - noise, mWeightedStrength);
+        hash *= 0x27d4eb2d;
 
-            x *= mLacunarity;
-            y *= mLacunarity;
-            z *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
+        return hash;
     }
 
+    [MethodImpl(INLINE)]
+    private static float InterpHermite(float t)
+        => t * t * (3 - 2 * t);
 
-    // Fractal PingPong
+    [MethodImpl(INLINE)]
+    private static float InterpQuintic(float t)
+        => t * t * t * (t * (t * 6 - 15) + 10);
 
-    private float GenFractalPingPong(FNLfloat x, FNLfloat y)
+    [MethodImpl(INLINE)]
+    private static float Lerp(float a, float b, float t)
+        => a + t * (b - a);
+
+    [MethodImpl(INLINE)]
+    private static float PingPong(float t)
     {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
+        t -= (int)(t * 0.5f) * 2;
 
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = PingPong((GenNoiseSingle(seed++, x, y) + 1) * mPingPongStrength);
-            sum += (noise - 0.5f) * 2 * amp;
-            amp *= Lerp(1.0f, noise, mWeightedStrength);
-
-            x *= mLacunarity;
-            y *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
+        return t < 1 ? t : 2 - t;
     }
-
-    private float GenFractalPingPong(FNLfloat x, FNLfloat y, FNLfloat z)
-    {
-        var seed = mSeed;
-        float sum = 0;
-        var amp = mFractalBounding;
-
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var noise = PingPong((GenNoiseSingle(seed++, x, y, z) + 1) * mPingPongStrength);
-            sum += (noise - 0.5f) * 2 * amp;
-            amp *= Lerp(1.0f, noise, mWeightedStrength);
-
-            x *= mLacunarity;
-            y *= mLacunarity;
-            z *= mLacunarity;
-            amp *= mGain;
-        }
-
-        return sum;
-    }
-
-
-    // Simplex/OpenSimplex2 Noise
-
-    private static float SingleSimplex(int seed, FNLfloat x, FNLfloat y)
-    {
-        // 2D OpenSimplex2 case uses the same algorithm as ordinary Simplex.
-
-        const float SQRT3 = 1.7320508075688772935274463415059f;
-        const float G2 = (3 - SQRT3) / 6;
-
-        /*
-         * --- Skew moved to TransformNoiseCoordinate method ---
-         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
-         * FNfloat s = (x + y) * F2;
-         * x += s; y += s;
-         */
-
-        var i = FastFloor(x);
-        var j = FastFloor(y);
-        var xi = x - i;
-        var yi = y - j;
-
-        var t = (xi + yi) * G2;
-        var x0 = xi - t;
-        var y0 = yi - t;
-
-        i *= PrimeX;
-        j *= PrimeY;
-
-        float n0, n1, n2;
-
-        var a = 0.5f - x0 * x0 - y0 * y0;
-        if (a <= 0)
-        {
-            n0 = 0;
-        }
-        else
-        {
-            n0 = a * a * (a * a) * GradCoord(seed, i, j, x0, y0);
-        }
-
-        var c = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a);
-        if (c <= 0)
-        {
-            n2 = 0;
-        }
-        else
-        {
-            var x2 = x0 + (2 * G2 - 1);
-            var y2 = y0 + (2 * G2 - 1);
-            n2 = c * c * (c * c) * GradCoord(seed, i + PrimeX, j + PrimeY, x2, y2);
-        }
-
-        if (y0 > x0)
-        {
-            var x1 = x0 + G2;
-            var y1 = y0 + (G2 - 1);
-            var b = 0.5f - x1 * x1 - y1 * y1;
-            if (b <= 0)
-            {
-                n1 = 0;
-            }
-            else
-            {
-                n1 = b * b * (b * b) * GradCoord(seed, i, j + PrimeY, x1, y1);
-            }
-        }
-        else
-        {
-            var x1 = x0 + (G2 - 1);
-            var y1 = y0 + G2;
-            var b = 0.5f - x1 * x1 - y1 * y1;
-            if (b <= 0)
-            {
-                n1 = 0;
-            }
-            else
-            {
-                n1 = b * b * (b * b) * GradCoord(seed, i + PrimeX, j, x1, y1);
-            }
-        }
-
-        return (n0 + n1 + n2) * 99.83685446303647f;
-    }
-
-    private static float SingleOpenSimplex2(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
-    {
-        // 3D OpenSimplex2 case uses two offset rotated cube grids.
-
-        /*
-         * --- Rotation moved to TransformNoiseCoordinate method ---
-         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
-         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
-         * x = r - x; y = r - y; z = r - z;
-         */
-
-        var i = FastRound(x);
-        var j = FastRound(y);
-        var k = FastRound(z);
-        var x0 = x - i;
-        var y0 = y - j;
-        var z0 = z - k;
-
-        var xNSign = (int)(-1.0f - x0) | 1;
-        var yNSign = (int)(-1.0f - y0) | 1;
-        var zNSign = (int)(-1.0f - z0) | 1;
-
-        var ax0 = xNSign * -x0;
-        var ay0 = yNSign * -y0;
-        var az0 = zNSign * -z0;
-
-        i *= PrimeX;
-        j *= PrimeY;
-        k *= PrimeZ;
-
-        float value = 0;
-        var a = 0.6f - x0 * x0 - (y0 * y0 + z0 * z0);
-
-        for (var l = 0; ; l++)
-        {
-            if (a > 0)
-            {
-                value += a * a * (a * a) * GradCoord(seed, i, j, k, x0, y0, z0);
-            }
-
-            if (ax0 >= ay0 && ax0 >= az0)
-            {
-                var b = a + ax0 + ax0;
-                if (b > 1)
-                {
-                    b -= 1;
-                    value += b * b * (b * b) * GradCoord(seed, i - xNSign * PrimeX, j, k, x0 + xNSign, y0, z0);
-                }
-            }
-            else if (ay0 > ax0 && ay0 >= az0)
-            {
-                var b = a + ay0 + ay0;
-                if (b > 1)
-                {
-                    b -= 1;
-                    value += b * b * (b * b) * GradCoord(seed, i, j - yNSign * PrimeY, k, x0, y0 + yNSign, z0);
-                }
-            }
-            else
-            {
-                var b = a + az0 + az0;
-                if (b > 1)
-                {
-                    b -= 1;
-                    value += b * b * (b * b) * GradCoord(seed, i, j, k - zNSign * PrimeZ, x0, y0, z0 + zNSign);
-                }
-            }
-
-            if (l == 1)
-            {
-                break;
-            }
-
-            ax0 = 0.5f - ax0;
-            ay0 = 0.5f - ay0;
-            az0 = 0.5f - az0;
-
-            x0 = xNSign * ax0;
-            y0 = yNSign * ay0;
-            z0 = zNSign * az0;
-
-            a += 0.75f - ax0 - (ay0 + az0);
-
-            i += (xNSign >> 1) & PrimeX;
-            j += (yNSign >> 1) & PrimeY;
-            k += (zNSign >> 1) & PrimeZ;
-
-            xNSign = -xNSign;
-            yNSign = -yNSign;
-            zNSign = -zNSign;
-
-            seed = ~seed;
-        }
-
-        return value * 32.69428253173828125f;
-    }
-
-
-    // OpenSimplex2S Noise
-
-    private static float SingleOpenSimplex2S(int seed, FNLfloat x, FNLfloat y)
-    {
-        // 2D OpenSimplex2S case is a modified 2D simplex noise.
-
-        const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
-        const FNLfloat G2 = (3 - SQRT3) / 6;
-
-        /*
-         * --- Skew moved to TransformNoiseCoordinate method ---
-         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
-         * FNfloat s = (x + y) * F2;
-         * x += s; y += s;
-         */
-
-        var i = FastFloor(x);
-        var j = FastFloor(y);
-        var xi = x - i;
-        var yi = y - j;
-
-        i *= PrimeX;
-        j *= PrimeY;
-        var i1 = i + PrimeX;
-        var j1 = j + PrimeY;
-
-        var t = (xi + yi) * G2;
-        var x0 = xi - t;
-        var y0 = yi - t;
-
-        var a0 = 2.0f / 3.0f - x0 * x0 - y0 * y0;
-        var value = a0 * a0 * (a0 * a0) * GradCoord(seed, i, j, x0, y0);
-
-        var a1 = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a0);
-        var x1 = x0 - (1 - 2 * G2);
-        var y1 = y0 - (1 - 2 * G2);
-        value += a1 * a1 * (a1 * a1) * GradCoord(seed, i1, j1, x1, y1);
-
-        // Nested conditionals were faster than compact bit logic/arithmetic.
-        var xmyi = xi - yi;
-        if (t > G2)
-        {
-            if (xi + xmyi > 1)
-            {
-                var x2 = x0 + (3 * G2 - 2);
-                var y2 = y0 + (3 * G2 - 1);
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i + (PrimeX << 1), j + PrimeY, x2, y2);
-                }
-            }
-            else
-            {
-                var x2 = x0 + G2;
-                var y2 = y0 + (G2 - 1);
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
-                }
-            }
-
-            if (yi - xmyi > 1)
-            {
-                var x3 = x0 + (3 * G2 - 1);
-                var y3 = y0 + (3 * G2 - 2);
-                var a3 = 2.0f / 3.0f - x3 * x3 - y3 * y3;
-                if (a3 > 0)
-                {
-                    value += a3 * a3 * (a3 * a3) * GradCoord(seed, i + PrimeX, j + (PrimeY << 1), x3, y3);
-                }
-            }
-            else
-            {
-                var x3 = x0 + (G2 - 1);
-                var y3 = y0 + G2;
-                var a3 = 2.0f / 3.0f - x3 * x3 - y3 * y3;
-                if (a3 > 0)
-                {
-                    value += a3 * a3 * (a3 * a3) * GradCoord(seed, i + PrimeX, j, x3, y3);
-                }
-            }
-        }
-        else
-        {
-            if (xi + xmyi < 0)
-            {
-                var x2 = x0 + (1 - G2);
-                var y2 = y0 - G2;
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i - PrimeX, j, x2, y2);
-                }
-            }
-            else
-            {
-                var x2 = x0 + (G2 - 1);
-                var y2 = y0 + G2;
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i + PrimeX, j, x2, y2);
-                }
-            }
-
-            if (yi < xmyi)
-            {
-                var x2 = x0 - G2;
-                var y2 = y0 - (G2 - 1);
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j - PrimeY, x2, y2);
-                }
-            }
-            else
-            {
-                var x2 = x0 + G2;
-                var y2 = y0 + (G2 - 1);
-                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
-                if (a2 > 0)
-                {
-                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
-                }
-            }
-        }
-
-        return value * 18.24196194486065f;
-    }
-
-    private static float SingleOpenSimplex2S(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
-    {
-        // 3D OpenSimplex2S case uses two offset rotated cube grids.
-
-        /*
-         * --- Rotation moved to TransformNoiseCoordinate method ---
-         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
-         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
-         * x = r - x; y = r - y; z = r - z;
-         */
-
-        var i = FastFloor(x);
-        var j = FastFloor(y);
-        var k = FastFloor(z);
-        var xi = x - i;
-        var yi = y - j;
-        var zi = z - k;
-
-        i *= PrimeX;
-        j *= PrimeY;
-        k *= PrimeZ;
-        var seed2 = seed + 1293373;
-
-        var xNMask = (int)(-0.5f - xi);
-        var yNMask = (int)(-0.5f - yi);
-        var zNMask = (int)(-0.5f - zi);
-
-        var x0 = xi + xNMask;
-        var y0 = yi + yNMask;
-        var z0 = zi + zNMask;
-        var a0 = 0.75f - x0 * x0 - y0 * y0 - z0 * z0;
-        var value = a0 * a0 * (a0 * a0) * GradCoord(
-            seed,
-            i + (xNMask & PrimeX),
-            j + (yNMask & PrimeY),
-            k + (zNMask & PrimeZ),
-            x0,
-            y0,
-            z0
-        );
-
-        var x1 = xi - 0.5f;
-        var y1 = yi - 0.5f;
-        var z1 = zi - 0.5f;
-        var a1 = 0.75f - x1 * x1 - y1 * y1 - z1 * z1;
-        value += a1 * a1 * (a1 * a1) * GradCoord(
-            seed2,
-            i + PrimeX,
-            j + PrimeY,
-            k + PrimeZ,
-            x1,
-            y1,
-            z1
-        );
-
-        var xAFlipMask0 = ((xNMask | 1) << 1) * x1;
-        var yAFlipMask0 = ((yNMask | 1) << 1) * y1;
-        var zAFlipMask0 = ((zNMask | 1) << 1) * z1;
-        var xAFlipMask1 = (-2 - (xNMask << 2)) * x1 - 1.0f;
-        var yAFlipMask1 = (-2 - (yNMask << 2)) * y1 - 1.0f;
-        var zAFlipMask1 = (-2 - (zNMask << 2)) * z1 - 1.0f;
-
-        var skip5 = false;
-        var a2 = xAFlipMask0 + a0;
-        if (a2 > 0)
-        {
-            var x2 = x0 - (xNMask | 1);
-            var y2 = y0;
-            var z2 = z0;
-            value += a2 * a2 * (a2 * a2) * GradCoord(
-                seed,
-                i + (~xNMask & PrimeX),
-                j + (yNMask & PrimeY),
-                k + (zNMask & PrimeZ),
-                x2,
-                y2,
-                z2
-            );
-        }
-        else
-        {
-            var a3 = yAFlipMask0 + zAFlipMask0 + a0;
-            if (a3 > 0)
-            {
-                var x3 = x0;
-                var y3 = y0 - (yNMask | 1);
-                var z3 = z0 - (zNMask | 1);
-                value += a3 * a3 * (a3 * a3) * GradCoord(
-                    seed,
-                    i + (xNMask & PrimeX),
-                    j + (~yNMask & PrimeY),
-                    k + (~zNMask & PrimeZ),
-                    x3,
-                    y3,
-                    z3
-                );
-            }
-
-            var a4 = xAFlipMask1 + a1;
-            if (a4 > 0)
-            {
-                var x4 = (xNMask | 1) + x1;
-                var y4 = y1;
-                var z4 = z1;
-                value += a4 * a4 * (a4 * a4) * GradCoord(
-                    seed2,
-                    i + (xNMask & (PrimeX * 2)),
-                    j + PrimeY,
-                    k + PrimeZ,
-                    x4,
-                    y4,
-                    z4
-                );
-                skip5 = true;
-            }
-        }
-
-        var skip9 = false;
-        var a6 = yAFlipMask0 + a0;
-        if (a6 > 0)
-        {
-            var x6 = x0;
-            var y6 = y0 - (yNMask | 1);
-            var z6 = z0;
-            value += a6 * a6 * (a6 * a6) * GradCoord(
-                seed,
-                i + (xNMask & PrimeX),
-                j + (~yNMask & PrimeY),
-                k + (zNMask & PrimeZ),
-                x6,
-                y6,
-                z6
-            );
-        }
-        else
-        {
-            var a7 = xAFlipMask0 + zAFlipMask0 + a0;
-            if (a7 > 0)
-            {
-                var x7 = x0 - (xNMask | 1);
-                var y7 = y0;
-                var z7 = z0 - (zNMask | 1);
-                value += a7 * a7 * (a7 * a7) * GradCoord(
-                    seed,
-                    i + (~xNMask & PrimeX),
-                    j + (yNMask & PrimeY),
-                    k + (~zNMask & PrimeZ),
-                    x7,
-                    y7,
-                    z7
-                );
-            }
-
-            var a8 = yAFlipMask1 + a1;
-            if (a8 > 0)
-            {
-                var x8 = x1;
-                var y8 = (yNMask | 1) + y1;
-                var z8 = z1;
-                value += a8 * a8 * (a8 * a8) * GradCoord(
-                    seed2,
-                    i + PrimeX,
-                    j + (yNMask & (PrimeY << 1)),
-                    k + PrimeZ,
-                    x8,
-                    y8,
-                    z8
-                );
-                skip9 = true;
-            }
-        }
-
-        var skipD = false;
-        var aA = zAFlipMask0 + a0;
-        if (aA > 0)
-        {
-            var xA = x0;
-            var yA = y0;
-            var zA = z0 - (zNMask | 1);
-            value += aA * aA * (aA * aA) * GradCoord(
-                seed,
-                i + (xNMask & PrimeX),
-                j + (yNMask & PrimeY),
-                k + (~zNMask & PrimeZ),
-                xA,
-                yA,
-                zA
-            );
-        }
-        else
-        {
-            var aB = xAFlipMask0 + yAFlipMask0 + a0;
-            if (aB > 0)
-            {
-                var xB = x0 - (xNMask | 1);
-                var yB = y0 - (yNMask | 1);
-                var zB = z0;
-                value += aB * aB * (aB * aB) * GradCoord(
-                    seed,
-                    i + (~xNMask & PrimeX),
-                    j + (~yNMask & PrimeY),
-                    k + (zNMask & PrimeZ),
-                    xB,
-                    yB,
-                    zB
-                );
-            }
-
-            var aC = zAFlipMask1 + a1;
-            if (aC > 0)
-            {
-                var xC = x1;
-                var yC = y1;
-                var zC = (zNMask | 1) + z1;
-                value += aC * aC * (aC * aC) * GradCoord(
-                    seed2,
-                    i + PrimeX,
-                    j + PrimeY,
-                    k + (zNMask & (PrimeZ << 1)),
-                    xC,
-                    yC,
-                    zC
-                );
-                skipD = true;
-            }
-        }
-
-        if (!skip5)
-        {
-            var a5 = yAFlipMask1 + zAFlipMask1 + a1;
-            if (a5 > 0)
-            {
-                var x5 = x1;
-                var y5 = (yNMask | 1) + y1;
-                var z5 = (zNMask | 1) + z1;
-                value += a5 * a5 * (a5 * a5) * GradCoord(
-                    seed2,
-                    i + PrimeX,
-                    j + (yNMask & (PrimeY << 1)),
-                    k + (zNMask & (PrimeZ << 1)),
-                    x5,
-                    y5,
-                    z5
-                );
-            }
-        }
-
-        if (!skip9)
-        {
-            var a9 = xAFlipMask1 + zAFlipMask1 + a1;
-            if (a9 > 0)
-            {
-                var x9 = (xNMask | 1) + x1;
-                var y9 = y1;
-                var z9 = (zNMask | 1) + z1;
-                value += a9 * a9 * (a9 * a9) * GradCoord(
-                    seed2,
-                    i + (xNMask & (PrimeX * 2)),
-                    j + PrimeY,
-                    k + (zNMask & (PrimeZ << 1)),
-                    x9,
-                    y9,
-                    z9
-                );
-            }
-        }
-
-        if (!skipD)
-        {
-            var aD = xAFlipMask1 + yAFlipMask1 + a1;
-            if (aD > 0)
-            {
-                var xD = (xNMask | 1) + x1;
-                var yD = (yNMask | 1) + y1;
-                var zD = z1;
-                value += aD * aD * (aD * aD) * GradCoord(
-                    seed2,
-                    i + (xNMask & (PrimeX << 1)),
-                    j + (yNMask & (PrimeY << 1)),
-                    k + PrimeZ,
-                    xD,
-                    yD,
-                    zD
-                );
-            }
-        }
-
-        return value * 9.046026385208288f;
-    }
-
 
     // Cellular Noise
 
@@ -1903,6 +1300,7 @@ public class FastNoiseLite
                         var newDistance = vecX * vecX + vecY * vecY;
 
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                         if (newDistance < distance0)
                         {
                             distance0 = newDistance;
@@ -1932,6 +1330,7 @@ public class FastNoiseLite
                         var newDistance = FastAbs(vecX) + FastAbs(vecY);
 
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                         if (newDistance < distance0)
                         {
                             distance0 = newDistance;
@@ -1961,6 +1360,7 @@ public class FastNoiseLite
                         var newDistance = FastAbs(vecX) + FastAbs(vecY) + (vecX * vecX + vecY * vecY);
 
                         distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                         if (newDistance < distance0)
                         {
                             distance0 = newDistance;
@@ -2048,6 +1448,7 @@ public class FastNoiseLite
                             var newDistance = vecX * vecX + vecY * vecY + vecZ * vecZ;
 
                             distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                             if (newDistance < distance0)
                             {
                                 distance0 = newDistance;
@@ -2085,6 +1486,7 @@ public class FastNoiseLite
                             var newDistance = FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ);
 
                             distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                             if (newDistance < distance0)
                             {
                                 distance0 = newDistance;
@@ -2119,10 +1521,13 @@ public class FastNoiseLite
                             var vecY = yi - y + RandVecs3D[idx | 1] * cellularJitter;
                             var vecZ = zi - z + RandVecs3D[idx | 2] * cellularJitter;
 
-                            var newDistance = FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ) +
+                            var newDistance = FastAbs(vecX) +
+                                              FastAbs(vecY) +
+                                              FastAbs(vecZ) +
                                               (vecX * vecX + vecY * vecY + vecZ * vecZ);
 
                             distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+
                             if (newDistance < distance0)
                             {
                                 distance0 = newDistance;
@@ -2173,6 +1578,993 @@ public class FastNoiseLite
         }
     }
 
+    // Domain Warp Basic Grid
+
+    private static void SingleDomainWarpBasicGrid(
+        int seed,
+        float warpAmp,
+        float frequency,
+        FNLfloat x,
+        FNLfloat y,
+        ref FNLfloat xr,
+        ref FNLfloat yr
+    )
+    {
+        var xf = x * frequency;
+        var yf = y * frequency;
+
+        var x0 = FastFloor(xf);
+        var y0 = FastFloor(yf);
+
+        var xs = InterpHermite(xf - x0);
+        var ys = InterpHermite(yf - y0);
+
+        x0 *= PrimeX;
+        y0 *= PrimeY;
+        var x1 = x0 + PrimeX;
+        var y1 = y0 + PrimeY;
+
+        var hash0 = Hash(seed, x0, y0) & (255 << 1);
+        var hash1 = Hash(seed, x1, y0) & (255 << 1);
+
+        var lx0x = Lerp(RandVecs2D[hash0], RandVecs2D[hash1], xs);
+        var ly0x = Lerp(RandVecs2D[hash0 | 1], RandVecs2D[hash1 | 1], xs);
+
+        hash0 = Hash(seed, x0, y1) & (255 << 1);
+        hash1 = Hash(seed, x1, y1) & (255 << 1);
+
+        var lx1x = Lerp(RandVecs2D[hash0], RandVecs2D[hash1], xs);
+        var ly1x = Lerp(RandVecs2D[hash0 | 1], RandVecs2D[hash1 | 1], xs);
+
+        xr += Lerp(lx0x, lx1x, ys) * warpAmp;
+        yr += Lerp(ly0x, ly1x, ys) * warpAmp;
+    }
+
+    private static void SingleDomainWarpBasicGrid(
+        int seed,
+        float warpAmp,
+        float frequency,
+        FNLfloat x,
+        FNLfloat y,
+        FNLfloat z,
+        ref FNLfloat xr,
+        ref FNLfloat yr,
+        ref FNLfloat zr
+    )
+    {
+        var xf = x * frequency;
+        var yf = y * frequency;
+        var zf = z * frequency;
+
+        var x0 = FastFloor(xf);
+        var y0 = FastFloor(yf);
+        var z0 = FastFloor(zf);
+
+        var xs = InterpHermite(xf - x0);
+        var ys = InterpHermite(yf - y0);
+        var zs = InterpHermite(zf - z0);
+
+        x0 *= PrimeX;
+        y0 *= PrimeY;
+        z0 *= PrimeZ;
+        var x1 = x0 + PrimeX;
+        var y1 = y0 + PrimeY;
+        var z1 = z0 + PrimeZ;
+
+        var hash0 = Hash(seed, x0, y0, z0) & (255 << 2);
+        var hash1 = Hash(seed, x1, y0, z0) & (255 << 2);
+
+        var lx0x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
+        var ly0x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
+        var lz0x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
+
+        hash0 = Hash(seed, x0, y1, z0) & (255 << 2);
+        hash1 = Hash(seed, x1, y1, z0) & (255 << 2);
+
+        var lx1x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
+        var ly1x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
+        var lz1x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
+
+        var lx0y = Lerp(lx0x, lx1x, ys);
+        var ly0y = Lerp(ly0x, ly1x, ys);
+        var lz0y = Lerp(lz0x, lz1x, ys);
+
+        hash0 = Hash(seed, x0, y0, z1) & (255 << 2);
+        hash1 = Hash(seed, x1, y0, z1) & (255 << 2);
+
+        lx0x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
+        ly0x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
+        lz0x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
+
+        hash0 = Hash(seed, x0, y1, z1) & (255 << 2);
+        hash1 = Hash(seed, x1, y1, z1) & (255 << 2);
+
+        lx1x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
+        ly1x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
+        lz1x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
+
+        xr += Lerp(lx0y, Lerp(lx0x, lx1x, ys), zs) * warpAmp;
+        yr += Lerp(ly0y, Lerp(ly0x, ly1x, ys), zs) * warpAmp;
+        zr += Lerp(lz0y, Lerp(lz0x, lz1x, ys), zs) * warpAmp;
+    }
+
+    private static void SingleDomainWarpOpenSimplex2Gradient(
+        int seed,
+        float warpAmp,
+        float frequency,
+        FNLfloat x,
+        FNLfloat y,
+        FNLfloat z,
+        ref FNLfloat xr,
+        ref FNLfloat yr,
+        ref FNLfloat zr,
+        bool outGradOnly
+    )
+    {
+        x *= frequency;
+        y *= frequency;
+        z *= frequency;
+
+        /*
+         * --- Rotation moved to TransformDomainWarpCoordinate method ---
+         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
+         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
+         * x = r - x; y = r - y; z = r - z;
+         */
+
+        var i = FastRound(x);
+        var j = FastRound(y);
+        var k = FastRound(z);
+        var x0 = x - i;
+        var y0 = y - j;
+        var z0 = z - k;
+
+        var xNSign = (int)(-x0 - 1.0f) | 1;
+        var yNSign = (int)(-y0 - 1.0f) | 1;
+        var zNSign = (int)(-z0 - 1.0f) | 1;
+
+        var ax0 = xNSign * -x0;
+        var ay0 = yNSign * -y0;
+        var az0 = zNSign * -z0;
+
+        i *= PrimeX;
+        j *= PrimeY;
+        k *= PrimeZ;
+
+        float vx,
+              vy,
+              vz;
+        vx = vy = vz = 0;
+
+        var a = 0.6f - x0 * x0 - (y0 * y0 + z0 * z0);
+
+        for (var l = 0;; l++)
+        {
+            if (a > 0)
+            {
+                var aaaa = a * a * (a * a);
+                float xo,
+                      yo,
+                      zo;
+
+                if (outGradOnly)
+                {
+                    GradCoordOut(seed, i, j, k, out xo, out yo, out zo);
+                }
+                else
+                {
+                    GradCoordDual(seed, i, j, k, x0, y0, z0, out xo, out yo, out zo);
+                }
+
+                vx += aaaa * xo;
+                vy += aaaa * yo;
+                vz += aaaa * zo;
+            }
+
+            var b = a;
+            var i1 = i;
+            var j1 = j;
+            var k1 = k;
+            var x1 = x0;
+            var y1 = y0;
+            var z1 = z0;
+
+            if (ax0 >= ay0 && ax0 >= az0)
+            {
+                x1 += xNSign;
+                b = b + ax0 + ax0;
+                i1 -= xNSign * PrimeX;
+            }
+            else if (ay0 > ax0 && ay0 >= az0)
+            {
+                y1 += yNSign;
+                b = b + ay0 + ay0;
+                j1 -= yNSign * PrimeY;
+            }
+            else
+            {
+                z1 += zNSign;
+                b = b + az0 + az0;
+                k1 -= zNSign * PrimeZ;
+            }
+
+            if (b > 1)
+            {
+                b -= 1;
+                var bbbb = b * b * (b * b);
+                float xo,
+                      yo,
+                      zo;
+
+                if (outGradOnly)
+                {
+                    GradCoordOut(seed, i1, j1, k1, out xo, out yo, out zo);
+                }
+                else
+                {
+                    GradCoordDual(seed, i1, j1, k1, x1, y1, z1, out xo, out yo, out zo);
+                }
+
+                vx += bbbb * xo;
+                vy += bbbb * yo;
+                vz += bbbb * zo;
+            }
+
+            if (l == 1)
+            {
+                break;
+            }
+
+            ax0 = 0.5f - ax0;
+            ay0 = 0.5f - ay0;
+            az0 = 0.5f - az0;
+
+            x0 = xNSign * ax0;
+            y0 = yNSign * ay0;
+            z0 = zNSign * az0;
+
+            a += 0.75f - ax0 - (ay0 + az0);
+
+            i += (xNSign >> 1) & PrimeX;
+            j += (yNSign >> 1) & PrimeY;
+            k += (zNSign >> 1) & PrimeZ;
+
+            xNSign = -xNSign;
+            yNSign = -yNSign;
+            zNSign = -zNSign;
+
+            seed += 1293373;
+        }
+
+        xr += vx * warpAmp;
+        yr += vy * warpAmp;
+        zr += vz * warpAmp;
+    }
+
+    // Domain Warp Simplex/OpenSimplex2
+    private static void SingleDomainWarpSimplexGradient(
+        int seed,
+        float warpAmp,
+        float frequency,
+        FNLfloat x,
+        FNLfloat y,
+        ref FNLfloat xr,
+        ref FNLfloat yr,
+        bool outGradOnly
+    )
+    {
+        const float SQRT3 = 1.7320508075688772935274463415059f;
+        const float G2 = (3 - SQRT3) / 6;
+
+        x *= frequency;
+        y *= frequency;
+
+        /*
+         * --- Skew moved to TransformNoiseCoordinate method ---
+         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
+         * FNfloat s = (x + y) * F2;
+         * x += s; y += s;
+         */
+
+        var i = FastFloor(x);
+        var j = FastFloor(y);
+        var xi = x - i;
+        var yi = y - j;
+
+        var t = (xi + yi) * G2;
+        var x0 = xi - t;
+        var y0 = yi - t;
+
+        i *= PrimeX;
+        j *= PrimeY;
+
+        float vx,
+              vy;
+        vx = vy = 0;
+
+        var a = 0.5f - x0 * x0 - y0 * y0;
+
+        if (a > 0)
+        {
+            var aaaa = a * a * (a * a);
+            float xo,
+                  yo;
+
+            if (outGradOnly)
+            {
+                GradCoordOut(seed, i, j, out xo, out yo);
+            }
+            else
+            {
+                GradCoordDual(seed, i, j, x0, y0, out xo, out yo);
+            }
+
+            vx += aaaa * xo;
+            vy += aaaa * yo;
+        }
+
+        var c = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a);
+
+        if (c > 0)
+        {
+            var x2 = x0 + (2 * G2 - 1);
+            var y2 = y0 + (2 * G2 - 1);
+            var cccc = c * c * (c * c);
+            float xo,
+                  yo;
+
+            if (outGradOnly)
+            {
+                GradCoordOut(seed, i + PrimeX, j + PrimeY, out xo, out yo);
+            }
+            else
+            {
+                GradCoordDual(seed, i + PrimeX, j + PrimeY, x2, y2, out xo, out yo);
+            }
+
+            vx += cccc * xo;
+            vy += cccc * yo;
+        }
+
+        if (y0 > x0)
+        {
+            var x1 = x0 + G2;
+            var y1 = y0 + (G2 - 1);
+            var b = 0.5f - x1 * x1 - y1 * y1;
+
+            if (b > 0)
+            {
+                var bbbb = b * b * (b * b);
+                float xo,
+                      yo;
+
+                if (outGradOnly)
+                {
+                    GradCoordOut(seed, i, j + PrimeY, out xo, out yo);
+                }
+                else
+                {
+                    GradCoordDual(seed, i, j + PrimeY, x1, y1, out xo, out yo);
+                }
+
+                vx += bbbb * xo;
+                vy += bbbb * yo;
+            }
+        }
+        else
+        {
+            var x1 = x0 + (G2 - 1);
+            var y1 = y0 + G2;
+            var b = 0.5f - x1 * x1 - y1 * y1;
+
+            if (b > 0)
+            {
+                var bbbb = b * b * (b * b);
+                float xo,
+                      yo;
+
+                if (outGradOnly)
+                {
+                    GradCoordOut(seed, i + PrimeX, j, out xo, out yo);
+                }
+                else
+                {
+                    GradCoordDual(seed, i + PrimeX, j, x1, y1, out xo, out yo);
+                }
+
+                vx += bbbb * xo;
+                vy += bbbb * yo;
+            }
+        }
+
+        xr += vx * warpAmp;
+        yr += vy * warpAmp;
+    }
+
+    private static float SingleOpenSimplex2(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        // 3D OpenSimplex2 case uses two offset rotated cube grids.
+
+        /*
+         * --- Rotation moved to TransformNoiseCoordinate method ---
+         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
+         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
+         * x = r - x; y = r - y; z = r - z;
+         */
+
+        var i = FastRound(x);
+        var j = FastRound(y);
+        var k = FastRound(z);
+        var x0 = x - i;
+        var y0 = y - j;
+        var z0 = z - k;
+
+        var xNSign = (int)(-1.0f - x0) | 1;
+        var yNSign = (int)(-1.0f - y0) | 1;
+        var zNSign = (int)(-1.0f - z0) | 1;
+
+        var ax0 = xNSign * -x0;
+        var ay0 = yNSign * -y0;
+        var az0 = zNSign * -z0;
+
+        i *= PrimeX;
+        j *= PrimeY;
+        k *= PrimeZ;
+
+        float value = 0;
+        var a = 0.6f - x0 * x0 - (y0 * y0 + z0 * z0);
+
+        for (var l = 0;; l++)
+        {
+            if (a > 0)
+            {
+                value += a * a * (a * a) * GradCoord(seed, i, j, k, x0, y0, z0);
+            }
+
+            if (ax0 >= ay0 && ax0 >= az0)
+            {
+                var b = a + ax0 + ax0;
+
+                if (b > 1)
+                {
+                    b -= 1;
+                    value += b * b * (b * b) * GradCoord(seed, i - xNSign * PrimeX, j, k, x0 + xNSign, y0, z0);
+                }
+            }
+            else if (ay0 > ax0 && ay0 >= az0)
+            {
+                var b = a + ay0 + ay0;
+
+                if (b > 1)
+                {
+                    b -= 1;
+                    value += b * b * (b * b) * GradCoord(seed, i, j - yNSign * PrimeY, k, x0, y0 + yNSign, z0);
+                }
+            }
+            else
+            {
+                var b = a + az0 + az0;
+
+                if (b > 1)
+                {
+                    b -= 1;
+                    value += b * b * (b * b) * GradCoord(seed, i, j, k - zNSign * PrimeZ, x0, y0, z0 + zNSign);
+                }
+            }
+
+            if (l == 1)
+            {
+                break;
+            }
+
+            ax0 = 0.5f - ax0;
+            ay0 = 0.5f - ay0;
+            az0 = 0.5f - az0;
+
+            x0 = xNSign * ax0;
+            y0 = yNSign * ay0;
+            z0 = zNSign * az0;
+
+            a += 0.75f - ax0 - (ay0 + az0);
+
+            i += (xNSign >> 1) & PrimeX;
+            j += (yNSign >> 1) & PrimeY;
+            k += (zNSign >> 1) & PrimeZ;
+
+            xNSign = -xNSign;
+            yNSign = -yNSign;
+            zNSign = -zNSign;
+
+            seed = ~seed;
+        }
+
+        return value * 32.69428253173828125f;
+    }
+
+    // OpenSimplex2S Noise
+
+    private static float SingleOpenSimplex2S(int seed, FNLfloat x, FNLfloat y)
+    {
+        // 2D OpenSimplex2S case is a modified 2D simplex noise.
+
+        const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
+        const FNLfloat G2 = (3 - SQRT3) / 6;
+
+        /*
+         * --- Skew moved to TransformNoiseCoordinate method ---
+         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
+         * FNfloat s = (x + y) * F2;
+         * x += s; y += s;
+         */
+
+        var i = FastFloor(x);
+        var j = FastFloor(y);
+        var xi = x - i;
+        var yi = y - j;
+
+        i *= PrimeX;
+        j *= PrimeY;
+        var i1 = i + PrimeX;
+        var j1 = j + PrimeY;
+
+        var t = (xi + yi) * G2;
+        var x0 = xi - t;
+        var y0 = yi - t;
+
+        var a0 = 2.0f / 3.0f - x0 * x0 - y0 * y0;
+        var value = a0 * a0 * (a0 * a0) * GradCoord(seed, i, j, x0, y0);
+
+        var a1 = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a0);
+        var x1 = x0 - (1 - 2 * G2);
+        var y1 = y0 - (1 - 2 * G2);
+        value += a1 * a1 * (a1 * a1) * GradCoord(seed, i1, j1, x1, y1);
+
+        // Nested conditionals were faster than compact bit logic/arithmetic.
+        var xmyi = xi - yi;
+
+        if (t > G2)
+        {
+            if (xi + xmyi > 1)
+            {
+                var x2 = x0 + (3 * G2 - 2);
+                var y2 = y0 + (3 * G2 - 1);
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i + (PrimeX << 1), j + PrimeY, x2, y2);
+                }
+            }
+            else
+            {
+                var x2 = x0 + G2;
+                var y2 = y0 + (G2 - 1);
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
+                }
+            }
+
+            if (yi - xmyi > 1)
+            {
+                var x3 = x0 + (3 * G2 - 1);
+                var y3 = y0 + (3 * G2 - 2);
+                var a3 = 2.0f / 3.0f - x3 * x3 - y3 * y3;
+
+                if (a3 > 0)
+                {
+                    value += a3 * a3 * (a3 * a3) * GradCoord(seed, i + PrimeX, j + (PrimeY << 1), x3, y3);
+                }
+            }
+            else
+            {
+                var x3 = x0 + (G2 - 1);
+                var y3 = y0 + G2;
+                var a3 = 2.0f / 3.0f - x3 * x3 - y3 * y3;
+
+                if (a3 > 0)
+                {
+                    value += a3 * a3 * (a3 * a3) * GradCoord(seed, i + PrimeX, j, x3, y3);
+                }
+            }
+        }
+        else
+        {
+            if (xi + xmyi < 0)
+            {
+                var x2 = x0 + (1 - G2);
+                var y2 = y0 - G2;
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i - PrimeX, j, x2, y2);
+                }
+            }
+            else
+            {
+                var x2 = x0 + (G2 - 1);
+                var y2 = y0 + G2;
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i + PrimeX, j, x2, y2);
+                }
+            }
+
+            if (yi < xmyi)
+            {
+                var x2 = x0 - G2;
+                var y2 = y0 - (G2 - 1);
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j - PrimeY, x2, y2);
+                }
+            }
+            else
+            {
+                var x2 = x0 + G2;
+                var y2 = y0 + (G2 - 1);
+                var a2 = 2.0f / 3.0f - x2 * x2 - y2 * y2;
+
+                if (a2 > 0)
+                {
+                    value += a2 * a2 * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
+                }
+            }
+        }
+
+        return value * 18.24196194486065f;
+    }
+
+    private static float SingleOpenSimplex2S(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        // 3D OpenSimplex2S case uses two offset rotated cube grids.
+
+        /*
+         * --- Rotation moved to TransformNoiseCoordinate method ---
+         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
+         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
+         * x = r - x; y = r - y; z = r - z;
+         */
+
+        var i = FastFloor(x);
+        var j = FastFloor(y);
+        var k = FastFloor(z);
+        var xi = x - i;
+        var yi = y - j;
+        var zi = z - k;
+
+        i *= PrimeX;
+        j *= PrimeY;
+        k *= PrimeZ;
+        var seed2 = seed + 1293373;
+
+        var xNMask = (int)(-0.5f - xi);
+        var yNMask = (int)(-0.5f - yi);
+        var zNMask = (int)(-0.5f - zi);
+
+        var x0 = xi + xNMask;
+        var y0 = yi + yNMask;
+        var z0 = zi + zNMask;
+        var a0 = 0.75f - x0 * x0 - y0 * y0 - z0 * z0;
+        var value = a0 *
+                    a0 *
+                    (a0 * a0) *
+                    GradCoord(
+                        seed,
+                        i + (xNMask & PrimeX),
+                        j + (yNMask & PrimeY),
+                        k + (zNMask & PrimeZ),
+                        x0,
+                        y0,
+                        z0
+                    );
+
+        var x1 = xi - 0.5f;
+        var y1 = yi - 0.5f;
+        var z1 = zi - 0.5f;
+        var a1 = 0.75f - x1 * x1 - y1 * y1 - z1 * z1;
+        value += a1 *
+                 a1 *
+                 (a1 * a1) *
+                 GradCoord(
+                     seed2,
+                     i + PrimeX,
+                     j + PrimeY,
+                     k + PrimeZ,
+                     x1,
+                     y1,
+                     z1
+                 );
+
+        var xAFlipMask0 = ((xNMask | 1) << 1) * x1;
+        var yAFlipMask0 = ((yNMask | 1) << 1) * y1;
+        var zAFlipMask0 = ((zNMask | 1) << 1) * z1;
+        var xAFlipMask1 = (-2 - (xNMask << 2)) * x1 - 1.0f;
+        var yAFlipMask1 = (-2 - (yNMask << 2)) * y1 - 1.0f;
+        var zAFlipMask1 = (-2 - (zNMask << 2)) * z1 - 1.0f;
+
+        var skip5 = false;
+        var a2 = xAFlipMask0 + a0;
+
+        if (a2 > 0)
+        {
+            var x2 = x0 - (xNMask | 1);
+            var y2 = y0;
+            var z2 = z0;
+            value += a2 *
+                     a2 *
+                     (a2 * a2) *
+                     GradCoord(
+                         seed,
+                         i + (~xNMask & PrimeX),
+                         j + (yNMask & PrimeY),
+                         k + (zNMask & PrimeZ),
+                         x2,
+                         y2,
+                         z2
+                     );
+        }
+        else
+        {
+            var a3 = yAFlipMask0 + zAFlipMask0 + a0;
+
+            if (a3 > 0)
+            {
+                var x3 = x0;
+                var y3 = y0 - (yNMask | 1);
+                var z3 = z0 - (zNMask | 1);
+                value += a3 *
+                         a3 *
+                         (a3 * a3) *
+                         GradCoord(
+                             seed,
+                             i + (xNMask & PrimeX),
+                             j + (~yNMask & PrimeY),
+                             k + (~zNMask & PrimeZ),
+                             x3,
+                             y3,
+                             z3
+                         );
+            }
+
+            var a4 = xAFlipMask1 + a1;
+
+            if (a4 > 0)
+            {
+                var x4 = (xNMask | 1) + x1;
+                var y4 = y1;
+                var z4 = z1;
+                value += a4 *
+                         a4 *
+                         (a4 * a4) *
+                         GradCoord(
+                             seed2,
+                             i + (xNMask & (PrimeX * 2)),
+                             j + PrimeY,
+                             k + PrimeZ,
+                             x4,
+                             y4,
+                             z4
+                         );
+                skip5 = true;
+            }
+        }
+
+        var skip9 = false;
+        var a6 = yAFlipMask0 + a0;
+
+        if (a6 > 0)
+        {
+            var x6 = x0;
+            var y6 = y0 - (yNMask | 1);
+            var z6 = z0;
+            value += a6 *
+                     a6 *
+                     (a6 * a6) *
+                     GradCoord(
+                         seed,
+                         i + (xNMask & PrimeX),
+                         j + (~yNMask & PrimeY),
+                         k + (zNMask & PrimeZ),
+                         x6,
+                         y6,
+                         z6
+                     );
+        }
+        else
+        {
+            var a7 = xAFlipMask0 + zAFlipMask0 + a0;
+
+            if (a7 > 0)
+            {
+                var x7 = x0 - (xNMask | 1);
+                var y7 = y0;
+                var z7 = z0 - (zNMask | 1);
+                value += a7 *
+                         a7 *
+                         (a7 * a7) *
+                         GradCoord(
+                             seed,
+                             i + (~xNMask & PrimeX),
+                             j + (yNMask & PrimeY),
+                             k + (~zNMask & PrimeZ),
+                             x7,
+                             y7,
+                             z7
+                         );
+            }
+
+            var a8 = yAFlipMask1 + a1;
+
+            if (a8 > 0)
+            {
+                var x8 = x1;
+                var y8 = (yNMask | 1) + y1;
+                var z8 = z1;
+                value += a8 *
+                         a8 *
+                         (a8 * a8) *
+                         GradCoord(
+                             seed2,
+                             i + PrimeX,
+                             j + (yNMask & (PrimeY << 1)),
+                             k + PrimeZ,
+                             x8,
+                             y8,
+                             z8
+                         );
+                skip9 = true;
+            }
+        }
+
+        var skipD = false;
+        var aA = zAFlipMask0 + a0;
+
+        if (aA > 0)
+        {
+            var xA = x0;
+            var yA = y0;
+            var zA = z0 - (zNMask | 1);
+            value += aA *
+                     aA *
+                     (aA * aA) *
+                     GradCoord(
+                         seed,
+                         i + (xNMask & PrimeX),
+                         j + (yNMask & PrimeY),
+                         k + (~zNMask & PrimeZ),
+                         xA,
+                         yA,
+                         zA
+                     );
+        }
+        else
+        {
+            var aB = xAFlipMask0 + yAFlipMask0 + a0;
+
+            if (aB > 0)
+            {
+                var xB = x0 - (xNMask | 1);
+                var yB = y0 - (yNMask | 1);
+                var zB = z0;
+                value += aB *
+                         aB *
+                         (aB * aB) *
+                         GradCoord(
+                             seed,
+                             i + (~xNMask & PrimeX),
+                             j + (~yNMask & PrimeY),
+                             k + (zNMask & PrimeZ),
+                             xB,
+                             yB,
+                             zB
+                         );
+            }
+
+            var aC = zAFlipMask1 + a1;
+
+            if (aC > 0)
+            {
+                var xC = x1;
+                var yC = y1;
+                var zC = (zNMask | 1) + z1;
+                value += aC *
+                         aC *
+                         (aC * aC) *
+                         GradCoord(
+                             seed2,
+                             i + PrimeX,
+                             j + PrimeY,
+                             k + (zNMask & (PrimeZ << 1)),
+                             xC,
+                             yC,
+                             zC
+                         );
+                skipD = true;
+            }
+        }
+
+        if (!skip5)
+        {
+            var a5 = yAFlipMask1 + zAFlipMask1 + a1;
+
+            if (a5 > 0)
+            {
+                var x5 = x1;
+                var y5 = (yNMask | 1) + y1;
+                var z5 = (zNMask | 1) + z1;
+                value += a5 *
+                         a5 *
+                         (a5 * a5) *
+                         GradCoord(
+                             seed2,
+                             i + PrimeX,
+                             j + (yNMask & (PrimeY << 1)),
+                             k + (zNMask & (PrimeZ << 1)),
+                             x5,
+                             y5,
+                             z5
+                         );
+            }
+        }
+
+        if (!skip9)
+        {
+            var a9 = xAFlipMask1 + zAFlipMask1 + a1;
+
+            if (a9 > 0)
+            {
+                var x9 = (xNMask | 1) + x1;
+                var y9 = y1;
+                var z9 = (zNMask | 1) + z1;
+                value += a9 *
+                         a9 *
+                         (a9 * a9) *
+                         GradCoord(
+                             seed2,
+                             i + (xNMask & (PrimeX * 2)),
+                             j + PrimeY,
+                             k + (zNMask & (PrimeZ << 1)),
+                             x9,
+                             y9,
+                             z9
+                         );
+            }
+        }
+
+        if (!skipD)
+        {
+            var aD = xAFlipMask1 + yAFlipMask1 + a1;
+
+            if (aD > 0)
+            {
+                var xD = (xNMask | 1) + x1;
+                var yD = (yNMask | 1) + y1;
+                var zD = z1;
+                value += aD *
+                         aD *
+                         (aD * aD) *
+                         GradCoord(
+                             seed2,
+                             i + (xNMask & (PrimeX << 1)),
+                             j + (yNMask & (PrimeY << 1)),
+                             k + PrimeZ,
+                             xD,
+                             yD,
+                             zD
+                         );
+            }
+        }
+
+        return value * 9.046026385208288f;
+    }
 
     // Perlin Noise
 
@@ -2235,213 +2627,95 @@ public class FastNoiseLite
         return Lerp(yf0, yf1, zs) * 0.964921414852142333984375f;
     }
 
+    // Simplex/OpenSimplex2 Noise
 
-    // Value Cubic Noise
-
-    private static float SingleValueCubic(int seed, FNLfloat x, FNLfloat y)
+    private static float SingleSimplex(int seed, FNLfloat x, FNLfloat y)
     {
-        var x1 = FastFloor(x);
-        var y1 = FastFloor(y);
+        // 2D OpenSimplex2 case uses the same algorithm as ordinary Simplex.
 
-        var xs = x - x1;
-        var ys = y - y1;
+        const float SQRT3 = 1.7320508075688772935274463415059f;
+        const float G2 = (3 - SQRT3) / 6;
 
-        x1 *= PrimeX;
-        y1 *= PrimeY;
-        var x0 = x1 - PrimeX;
-        var y0 = y1 - PrimeY;
-        var x2 = x1 + PrimeX;
-        var y2 = y1 + PrimeY;
-        var x3 = x1 + unchecked(PrimeX * 2);
-        var y3 = y1 + unchecked(PrimeY * 2);
+        /*
+         * --- Skew moved to TransformNoiseCoordinate method ---
+         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
+         * FNfloat s = (x + y) * F2;
+         * x += s; y += s;
+         */
 
-        return CubicLerp(
-            CubicLerp(
-                ValCoord(seed, x0, y0),
-                ValCoord(seed, x1, y0),
-                ValCoord(seed, x2, y0),
-                ValCoord(seed, x3, y0),
-                xs
-            ),
-            CubicLerp(
-                ValCoord(seed, x0, y1),
-                ValCoord(seed, x1, y1),
-                ValCoord(seed, x2, y1),
-                ValCoord(seed, x3, y1),
-                xs
-            ),
-            CubicLerp(
-                ValCoord(seed, x0, y2),
-                ValCoord(seed, x1, y2),
-                ValCoord(seed, x2, y2),
-                ValCoord(seed, x3, y2),
-                xs
-            ),
-            CubicLerp(
-                ValCoord(seed, x0, y3),
-                ValCoord(seed, x1, y3),
-                ValCoord(seed, x2, y3),
-                ValCoord(seed, x3, y3),
-                xs
-            ),
-            ys
-        ) * (1 / (1.5f * 1.5f));
+        var i = FastFloor(x);
+        var j = FastFloor(y);
+        var xi = x - i;
+        var yi = y - j;
+
+        var t = (xi + yi) * G2;
+        var x0 = xi - t;
+        var y0 = yi - t;
+
+        i *= PrimeX;
+        j *= PrimeY;
+
+        float n0,
+              n1,
+              n2;
+
+        var a = 0.5f - x0 * x0 - y0 * y0;
+
+        if (a <= 0)
+        {
+            n0 = 0;
+        }
+        else
+        {
+            n0 = a * a * (a * a) * GradCoord(seed, i, j, x0, y0);
+        }
+
+        var c = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a);
+
+        if (c <= 0)
+        {
+            n2 = 0;
+        }
+        else
+        {
+            var x2 = x0 + (2 * G2 - 1);
+            var y2 = y0 + (2 * G2 - 1);
+            n2 = c * c * (c * c) * GradCoord(seed, i + PrimeX, j + PrimeY, x2, y2);
+        }
+
+        if (y0 > x0)
+        {
+            var x1 = x0 + G2;
+            var y1 = y0 + (G2 - 1);
+            var b = 0.5f - x1 * x1 - y1 * y1;
+
+            if (b <= 0)
+            {
+                n1 = 0;
+            }
+            else
+            {
+                n1 = b * b * (b * b) * GradCoord(seed, i, j + PrimeY, x1, y1);
+            }
+        }
+        else
+        {
+            var x1 = x0 + (G2 - 1);
+            var y1 = y0 + G2;
+            var b = 0.5f - x1 * x1 - y1 * y1;
+
+            if (b <= 0)
+            {
+                n1 = 0;
+            }
+            else
+            {
+                n1 = b * b * (b * b) * GradCoord(seed, i + PrimeX, j, x1, y1);
+            }
+        }
+
+        return (n0 + n1 + n2) * 99.83685446303647f;
     }
-
-    private static float SingleValueCubic(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
-    {
-        var x1 = FastFloor(x);
-        var y1 = FastFloor(y);
-        var z1 = FastFloor(z);
-
-        var xs = x - x1;
-        var ys = y - y1;
-        var zs = z - z1;
-
-        x1 *= PrimeX;
-        y1 *= PrimeY;
-        z1 *= PrimeZ;
-
-        var x0 = x1 - PrimeX;
-        var y0 = y1 - PrimeY;
-        var z0 = z1 - PrimeZ;
-        var x2 = x1 + PrimeX;
-        var y2 = y1 + PrimeY;
-        var z2 = z1 + PrimeZ;
-        var x3 = x1 + unchecked(PrimeX * 2);
-        var y3 = y1 + unchecked(PrimeY * 2);
-        var z3 = z1 + unchecked(PrimeZ * 2);
-
-
-        return CubicLerp(
-            CubicLerp(
-                CubicLerp(
-                    ValCoord(seed, x0, y0, z0),
-                    ValCoord(seed, x1, y0, z0),
-                    ValCoord(seed, x2, y0, z0),
-                    ValCoord(seed, x3, y0, z0),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y1, z0),
-                    ValCoord(seed, x1, y1, z0),
-                    ValCoord(seed, x2, y1, z0),
-                    ValCoord(seed, x3, y1, z0),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y2, z0),
-                    ValCoord(seed, x1, y2, z0),
-                    ValCoord(seed, x2, y2, z0),
-                    ValCoord(seed, x3, y2, z0),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y3, z0),
-                    ValCoord(seed, x1, y3, z0),
-                    ValCoord(seed, x2, y3, z0),
-                    ValCoord(seed, x3, y3, z0),
-                    xs
-                ),
-                ys
-            ),
-            CubicLerp(
-                CubicLerp(
-                    ValCoord(seed, x0, y0, z1),
-                    ValCoord(seed, x1, y0, z1),
-                    ValCoord(seed, x2, y0, z1),
-                    ValCoord(seed, x3, y0, z1),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y1, z1),
-                    ValCoord(seed, x1, y1, z1),
-                    ValCoord(seed, x2, y1, z1),
-                    ValCoord(seed, x3, y1, z1),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y2, z1),
-                    ValCoord(seed, x1, y2, z1),
-                    ValCoord(seed, x2, y2, z1),
-                    ValCoord(seed, x3, y2, z1),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y3, z1),
-                    ValCoord(seed, x1, y3, z1),
-                    ValCoord(seed, x2, y3, z1),
-                    ValCoord(seed, x3, y3, z1),
-                    xs
-                ),
-                ys
-            ),
-            CubicLerp(
-                CubicLerp(
-                    ValCoord(seed, x0, y0, z2),
-                    ValCoord(seed, x1, y0, z2),
-                    ValCoord(seed, x2, y0, z2),
-                    ValCoord(seed, x3, y0, z2),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y1, z2),
-                    ValCoord(seed, x1, y1, z2),
-                    ValCoord(seed, x2, y1, z2),
-                    ValCoord(seed, x3, y1, z2),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y2, z2),
-                    ValCoord(seed, x1, y2, z2),
-                    ValCoord(seed, x2, y2, z2),
-                    ValCoord(seed, x3, y2, z2),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y3, z2),
-                    ValCoord(seed, x1, y3, z2),
-                    ValCoord(seed, x2, y3, z2),
-                    ValCoord(seed, x3, y3, z2),
-                    xs
-                ),
-                ys
-            ),
-            CubicLerp(
-                CubicLerp(
-                    ValCoord(seed, x0, y0, z3),
-                    ValCoord(seed, x1, y0, z3),
-                    ValCoord(seed, x2, y0, z3),
-                    ValCoord(seed, x3, y0, z3),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y1, z3),
-                    ValCoord(seed, x1, y1, z3),
-                    ValCoord(seed, x2, y1, z3),
-                    ValCoord(seed, x3, y1, z3),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y2, z3),
-                    ValCoord(seed, x1, y2, z3),
-                    ValCoord(seed, x2, y2, z3),
-                    ValCoord(seed, x3, y2, z3),
-                    xs
-                ),
-                CubicLerp(
-                    ValCoord(seed, x0, y3, z3),
-                    ValCoord(seed, x1, y3, z3),
-                    ValCoord(seed, x2, y3, z3),
-                    ValCoord(seed, x3, y3, z3),
-                    xs
-                ),
-                ys
-            ),
-            zs
-        ) * (1 / (1.5f * 1.5f * 1.5f));
-    }
-
 
     // Value Noise
 
@@ -2492,545 +2766,421 @@ public class FastNoiseLite
         return Lerp(yf0, yf1, zs);
     }
 
+    // Value Cubic Noise
 
-    // Domain Warp
+    private static float SingleValueCubic(int seed, FNLfloat x, FNLfloat y)
+    {
+        var x1 = FastFloor(x);
+        var y1 = FastFloor(y);
 
-    private void DoSingleDomainWarp(
-        int seed, float amp, float freq, FNLfloat x, FNLfloat y, ref FNLfloat xr, ref FNLfloat yr
-    )
+        var xs = x - x1;
+        var ys = y - y1;
+
+        x1 *= PrimeX;
+        y1 *= PrimeY;
+        var x0 = x1 - PrimeX;
+        var y0 = y1 - PrimeY;
+        var x2 = x1 + PrimeX;
+        var y2 = y1 + PrimeY;
+        var x3 = x1 + unchecked(PrimeX * 2);
+        var y3 = y1 + unchecked(PrimeY * 2);
+
+        return CubicLerp(
+                   CubicLerp(
+                       ValCoord(seed, x0, y0),
+                       ValCoord(seed, x1, y0),
+                       ValCoord(seed, x2, y0),
+                       ValCoord(seed, x3, y0),
+                       xs
+                   ),
+                   CubicLerp(
+                       ValCoord(seed, x0, y1),
+                       ValCoord(seed, x1, y1),
+                       ValCoord(seed, x2, y1),
+                       ValCoord(seed, x3, y1),
+                       xs
+                   ),
+                   CubicLerp(
+                       ValCoord(seed, x0, y2),
+                       ValCoord(seed, x1, y2),
+                       ValCoord(seed, x2, y2),
+                       ValCoord(seed, x3, y2),
+                       xs
+                   ),
+                   CubicLerp(
+                       ValCoord(seed, x0, y3),
+                       ValCoord(seed, x1, y3),
+                       ValCoord(seed, x2, y3),
+                       ValCoord(seed, x3, y3),
+                       xs
+                   ),
+                   ys
+               ) *
+               (1 / (1.5f * 1.5f));
+    }
+
+    private static float SingleValueCubic(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+    {
+        var x1 = FastFloor(x);
+        var y1 = FastFloor(y);
+        var z1 = FastFloor(z);
+
+        var xs = x - x1;
+        var ys = y - y1;
+        var zs = z - z1;
+
+        x1 *= PrimeX;
+        y1 *= PrimeY;
+        z1 *= PrimeZ;
+
+        var x0 = x1 - PrimeX;
+        var y0 = y1 - PrimeY;
+        var z0 = z1 - PrimeZ;
+        var x2 = x1 + PrimeX;
+        var y2 = y1 + PrimeY;
+        var z2 = z1 + PrimeZ;
+        var x3 = x1 + unchecked(PrimeX * 2);
+        var y3 = y1 + unchecked(PrimeY * 2);
+        var z3 = z1 + unchecked(PrimeZ * 2);
+
+        return CubicLerp(
+                   CubicLerp(
+                       CubicLerp(
+                           ValCoord(seed, x0, y0, z0),
+                           ValCoord(seed, x1, y0, z0),
+                           ValCoord(seed, x2, y0, z0),
+                           ValCoord(seed, x3, y0, z0),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y1, z0),
+                           ValCoord(seed, x1, y1, z0),
+                           ValCoord(seed, x2, y1, z0),
+                           ValCoord(seed, x3, y1, z0),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y2, z0),
+                           ValCoord(seed, x1, y2, z0),
+                           ValCoord(seed, x2, y2, z0),
+                           ValCoord(seed, x3, y2, z0),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y3, z0),
+                           ValCoord(seed, x1, y3, z0),
+                           ValCoord(seed, x2, y3, z0),
+                           ValCoord(seed, x3, y3, z0),
+                           xs
+                       ),
+                       ys
+                   ),
+                   CubicLerp(
+                       CubicLerp(
+                           ValCoord(seed, x0, y0, z1),
+                           ValCoord(seed, x1, y0, z1),
+                           ValCoord(seed, x2, y0, z1),
+                           ValCoord(seed, x3, y0, z1),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y1, z1),
+                           ValCoord(seed, x1, y1, z1),
+                           ValCoord(seed, x2, y1, z1),
+                           ValCoord(seed, x3, y1, z1),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y2, z1),
+                           ValCoord(seed, x1, y2, z1),
+                           ValCoord(seed, x2, y2, z1),
+                           ValCoord(seed, x3, y2, z1),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y3, z1),
+                           ValCoord(seed, x1, y3, z1),
+                           ValCoord(seed, x2, y3, z1),
+                           ValCoord(seed, x3, y3, z1),
+                           xs
+                       ),
+                       ys
+                   ),
+                   CubicLerp(
+                       CubicLerp(
+                           ValCoord(seed, x0, y0, z2),
+                           ValCoord(seed, x1, y0, z2),
+                           ValCoord(seed, x2, y0, z2),
+                           ValCoord(seed, x3, y0, z2),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y1, z2),
+                           ValCoord(seed, x1, y1, z2),
+                           ValCoord(seed, x2, y1, z2),
+                           ValCoord(seed, x3, y1, z2),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y2, z2),
+                           ValCoord(seed, x1, y2, z2),
+                           ValCoord(seed, x2, y2, z2),
+                           ValCoord(seed, x3, y2, z2),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y3, z2),
+                           ValCoord(seed, x1, y3, z2),
+                           ValCoord(seed, x2, y3, z2),
+                           ValCoord(seed, x3, y3, z2),
+                           xs
+                       ),
+                       ys
+                   ),
+                   CubicLerp(
+                       CubicLerp(
+                           ValCoord(seed, x0, y0, z3),
+                           ValCoord(seed, x1, y0, z3),
+                           ValCoord(seed, x2, y0, z3),
+                           ValCoord(seed, x3, y0, z3),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y1, z3),
+                           ValCoord(seed, x1, y1, z3),
+                           ValCoord(seed, x2, y1, z3),
+                           ValCoord(seed, x3, y1, z3),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y2, z3),
+                           ValCoord(seed, x1, y2, z3),
+                           ValCoord(seed, x2, y2, z3),
+                           ValCoord(seed, x3, y2, z3),
+                           xs
+                       ),
+                       CubicLerp(
+                           ValCoord(seed, x0, y3, z3),
+                           ValCoord(seed, x1, y3, z3),
+                           ValCoord(seed, x2, y3, z3),
+                           ValCoord(seed, x3, y3, z3),
+                           xs
+                       ),
+                       ys
+                   ),
+                   zs
+               ) *
+               (1 / (1.5f * 1.5f * 1.5f));
+    }
+
+    // Domain Warp Coordinate Transforms
+
+    [MethodImpl(INLINE)]
+    private void TransformDomainWarpCoordinate(ref FNLfloat x, ref FNLfloat y)
     {
         switch (mDomainWarpType)
         {
             case DomainWarpType.OpenSimplex2:
-                SingleDomainWarpSimplexGradient(seed, amp * 38.283687591552734375f, freq, x, y, ref xr, ref yr, false);
-                break;
             case DomainWarpType.OpenSimplex2Reduced:
-                SingleDomainWarpSimplexGradient(seed, amp * 16.0f, freq, x, y, ref xr, ref yr, true);
-                break;
-            case DomainWarpType.BasicGrid:
-                SingleDomainWarpBasicGrid(seed, amp, freq, x, y, ref xr, ref yr);
-                break;
-        }
-    }
+                {
+                    const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
+                    const FNLfloat F2 = 0.5f * (SQRT3 - 1);
+                    var t = (x + y) * F2;
+                    x += t;
+                    y += t;
+                }
 
-    private void DoSingleDomainWarp(
-        int seed, float amp, float freq, FNLfloat x, FNLfloat y, FNLfloat z, ref FNLfloat xr, ref FNLfloat yr,
-        ref FNLfloat zr
-    )
-    {
-        switch (mDomainWarpType)
-        {
-            case DomainWarpType.OpenSimplex2:
-                SingleDomainWarpOpenSimplex2Gradient(
-                    seed,
-                    amp * 32.69428253173828125f,
-                    freq,
-                    x,
-                    y,
-                    z,
-                    ref xr,
-                    ref yr,
-                    ref zr,
-                    false
-                );
-                break;
-            case DomainWarpType.OpenSimplex2Reduced:
-                SingleDomainWarpOpenSimplex2Gradient(
-                    seed,
-                    amp * 7.71604938271605f,
-                    freq,
-                    x,
-                    y,
-                    z,
-                    ref xr,
-                    ref yr,
-                    ref zr,
-                    true
-                );
-                break;
-            case DomainWarpType.BasicGrid:
-                SingleDomainWarpBasicGrid(seed, amp, freq, x, y, z, ref xr, ref yr, ref zr);
                 break;
         }
     }
 
-
-    // Domain Warp Single Wrapper
-
-    private void DomainWarpSingle(ref FNLfloat x, ref FNLfloat y)
+    [MethodImpl(INLINE)]
+    private void TransformDomainWarpCoordinate(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
     {
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        var xs = x;
-        var ys = y;
-        TransformDomainWarpCoordinate(ref xs, ref ys);
-
-        DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
-    }
-
-    private void DomainWarpSingle(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
-    {
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        var xs = x;
-        var ys = y;
-        var zs = z;
-        TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
-
-        DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
-    }
-
-
-    // Domain Warp Fractal Progressive
-
-    private void DomainWarpFractalProgressive(ref FNLfloat x, ref FNLfloat y)
-    {
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        for (var i = 0; i < mOctaves; i++)
+        switch (mWarpTransformType3D)
         {
-            var xs = x;
-            var ys = y;
-            TransformDomainWarpCoordinate(ref xs, ref ys);
-
-            DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
-
-            seed++;
-            amp *= mGain;
-            freq *= mLacunarity;
-        }
-    }
-
-    private void DomainWarpFractalProgressive(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
-    {
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        for (var i = 0; i < mOctaves; i++)
-        {
-            var xs = x;
-            var ys = y;
-            var zs = z;
-            TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
-
-            DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
-
-            seed++;
-            amp *= mGain;
-            freq *= mLacunarity;
-        }
-    }
-
-
-    // Domain Warp Fractal Independant
-    private void DomainWarpFractalIndependent(ref FNLfloat x, ref FNLfloat y)
-    {
-        var xs = x;
-        var ys = y;
-        TransformDomainWarpCoordinate(ref xs, ref ys);
-
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        for (var i = 0; i < mOctaves; i++)
-        {
-            DoSingleDomainWarp(seed, amp, freq, xs, ys, ref x, ref y);
-
-            seed++;
-            amp *= mGain;
-            freq *= mLacunarity;
-        }
-    }
-
-    private void DomainWarpFractalIndependent(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
-    {
-        var xs = x;
-        var ys = y;
-        var zs = z;
-        TransformDomainWarpCoordinate(ref xs, ref ys, ref zs);
-
-        var seed = mSeed;
-        var amp = mDomainWarpAmp * mFractalBounding;
-        var freq = mFrequency;
-
-        for (var i = 0; i < mOctaves; i++)
-        {
-            DoSingleDomainWarp(seed, amp, freq, xs, ys, zs, ref x, ref y, ref z);
-
-            seed++;
-            amp *= mGain;
-            freq *= mLacunarity;
-        }
-    }
-
-
-    // Domain Warp Basic Grid
-
-    private static void SingleDomainWarpBasicGrid(
-        int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, ref FNLfloat xr, ref FNLfloat yr
-    )
-    {
-        var xf = x * frequency;
-        var yf = y * frequency;
-
-        var x0 = FastFloor(xf);
-        var y0 = FastFloor(yf);
-
-        var xs = InterpHermite(xf - x0);
-        var ys = InterpHermite(yf - y0);
-
-        x0 *= PrimeX;
-        y0 *= PrimeY;
-        var x1 = x0 + PrimeX;
-        var y1 = y0 + PrimeY;
-
-        var hash0 = Hash(seed, x0, y0) & (255 << 1);
-        var hash1 = Hash(seed, x1, y0) & (255 << 1);
-
-        var lx0x = Lerp(RandVecs2D[hash0], RandVecs2D[hash1], xs);
-        var ly0x = Lerp(RandVecs2D[hash0 | 1], RandVecs2D[hash1 | 1], xs);
-
-        hash0 = Hash(seed, x0, y1) & (255 << 1);
-        hash1 = Hash(seed, x1, y1) & (255 << 1);
-
-        var lx1x = Lerp(RandVecs2D[hash0], RandVecs2D[hash1], xs);
-        var ly1x = Lerp(RandVecs2D[hash0 | 1], RandVecs2D[hash1 | 1], xs);
-
-        xr += Lerp(lx0x, lx1x, ys) * warpAmp;
-        yr += Lerp(ly0x, ly1x, ys) * warpAmp;
-    }
-
-    private static void SingleDomainWarpBasicGrid(
-        int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, ref FNLfloat xr, ref FNLfloat yr,
-        ref FNLfloat zr
-    )
-    {
-        var xf = x * frequency;
-        var yf = y * frequency;
-        var zf = z * frequency;
-
-        var x0 = FastFloor(xf);
-        var y0 = FastFloor(yf);
-        var z0 = FastFloor(zf);
-
-        var xs = InterpHermite(xf - x0);
-        var ys = InterpHermite(yf - y0);
-        var zs = InterpHermite(zf - z0);
-
-        x0 *= PrimeX;
-        y0 *= PrimeY;
-        z0 *= PrimeZ;
-        var x1 = x0 + PrimeX;
-        var y1 = y0 + PrimeY;
-        var z1 = z0 + PrimeZ;
-
-        var hash0 = Hash(seed, x0, y0, z0) & (255 << 2);
-        var hash1 = Hash(seed, x1, y0, z0) & (255 << 2);
-
-        var lx0x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
-        var ly0x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
-        var lz0x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
-
-        hash0 = Hash(seed, x0, y1, z0) & (255 << 2);
-        hash1 = Hash(seed, x1, y1, z0) & (255 << 2);
-
-        var lx1x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
-        var ly1x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
-        var lz1x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
-
-        var lx0y = Lerp(lx0x, lx1x, ys);
-        var ly0y = Lerp(ly0x, ly1x, ys);
-        var lz0y = Lerp(lz0x, lz1x, ys);
-
-        hash0 = Hash(seed, x0, y0, z1) & (255 << 2);
-        hash1 = Hash(seed, x1, y0, z1) & (255 << 2);
-
-        lx0x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
-        ly0x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
-        lz0x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
-
-        hash0 = Hash(seed, x0, y1, z1) & (255 << 2);
-        hash1 = Hash(seed, x1, y1, z1) & (255 << 2);
-
-        lx1x = Lerp(RandVecs3D[hash0], RandVecs3D[hash1], xs);
-        ly1x = Lerp(RandVecs3D[hash0 | 1], RandVecs3D[hash1 | 1], xs);
-        lz1x = Lerp(RandVecs3D[hash0 | 2], RandVecs3D[hash1 | 2], xs);
-
-        xr += Lerp(lx0y, Lerp(lx0x, lx1x, ys), zs) * warpAmp;
-        yr += Lerp(ly0y, Lerp(ly0x, ly1x, ys), zs) * warpAmp;
-        zr += Lerp(lz0y, Lerp(lz0x, lz1x, ys), zs) * warpAmp;
-    }
-
-
-    // Domain Warp Simplex/OpenSimplex2
-    private static void SingleDomainWarpSimplexGradient(
-        int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, ref FNLfloat xr, ref FNLfloat yr, bool outGradOnly
-    )
-    {
-        const float SQRT3 = 1.7320508075688772935274463415059f;
-        const float G2 = (3 - SQRT3) / 6;
-
-        x *= frequency;
-        y *= frequency;
-
-        /*
-         * --- Skew moved to TransformNoiseCoordinate method ---
-         * const FNfloat F2 = 0.5f * (SQRT3 - 1);
-         * FNfloat s = (x + y) * F2;
-         * x += s; y += s;
-         */
-
-        var i = FastFloor(x);
-        var j = FastFloor(y);
-        var xi = x - i;
-        var yi = y - j;
-
-        var t = (xi + yi) * G2;
-        var x0 = xi - t;
-        var y0 = yi - t;
-
-        i *= PrimeX;
-        j *= PrimeY;
-
-        float vx, vy;
-        vx = vy = 0;
-
-        var a = 0.5f - x0 * x0 - y0 * y0;
-        if (a > 0)
-        {
-            var aaaa = a * a * (a * a);
-            float xo, yo;
-            if (outGradOnly)
-            {
-                GradCoordOut(seed, i, j, out xo, out yo);
-            }
-            else
-            {
-                GradCoordDual(seed, i, j, x0, y0, out xo, out yo);
-            }
-
-            vx += aaaa * xo;
-            vy += aaaa * yo;
-        }
-
-        var c = 2 * (1 - 2 * G2) * (1 / G2 - 2) * t + (-2 * (1 - 2 * G2) * (1 - 2 * G2) + a);
-        if (c > 0)
-        {
-            var x2 = x0 + (2 * G2 - 1);
-            var y2 = y0 + (2 * G2 - 1);
-            var cccc = c * c * (c * c);
-            float xo, yo;
-            if (outGradOnly)
-            {
-                GradCoordOut(seed, i + PrimeX, j + PrimeY, out xo, out yo);
-            }
-            else
-            {
-                GradCoordDual(seed, i + PrimeX, j + PrimeY, x2, y2, out xo, out yo);
-            }
-
-            vx += cccc * xo;
-            vy += cccc * yo;
-        }
-
-        if (y0 > x0)
-        {
-            var x1 = x0 + G2;
-            var y1 = y0 + (G2 - 1);
-            var b = 0.5f - x1 * x1 - y1 * y1;
-            if (b > 0)
-            {
-                var bbbb = b * b * (b * b);
-                float xo, yo;
-                if (outGradOnly)
+            case TransformType3D.ImproveXYPlanes:
                 {
-                    GradCoordOut(seed, i, j + PrimeY, out xo, out yo);
-                }
-                else
-                {
-                    GradCoordDual(seed, i, j + PrimeY, x1, y1, out xo, out yo);
+                    var xy = x + y;
+                    var s2 = xy * -(FNLfloat)0.211324865405187;
+                    z *= (FNLfloat)0.577350269189626;
+                    x += s2 - z;
+                    y = y + s2 - z;
+                    z += xy * (FNLfloat)0.577350269189626;
                 }
 
-                vx += bbbb * xo;
-                vy += bbbb * yo;
-            }
-        }
-        else
-        {
-            var x1 = x0 + (G2 - 1);
-            var y1 = y0 + G2;
-            var b = 0.5f - x1 * x1 - y1 * y1;
-            if (b > 0)
-            {
-                var bbbb = b * b * (b * b);
-                float xo, yo;
-                if (outGradOnly)
-                {
-                    GradCoordOut(seed, i + PrimeX, j, out xo, out yo);
-                }
-                else
-                {
-                    GradCoordDual(seed, i + PrimeX, j, x1, y1, out xo, out yo);
-                }
-
-                vx += bbbb * xo;
-                vy += bbbb * yo;
-            }
-        }
-
-        xr += vx * warpAmp;
-        yr += vy * warpAmp;
-    }
-
-    private static void SingleDomainWarpOpenSimplex2Gradient(
-        int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, ref FNLfloat xr, ref FNLfloat yr,
-        ref FNLfloat zr, bool outGradOnly
-    )
-    {
-        x *= frequency;
-        y *= frequency;
-        z *= frequency;
-
-        /*
-         * --- Rotation moved to TransformDomainWarpCoordinate method ---
-         * const FNfloat R3 = (FNfloat)(2.0 / 3.0);
-         * FNfloat r = (x + y + z) * R3; // Rotation, not skew
-         * x = r - x; y = r - y; z = r - z;
-         */
-
-        var i = FastRound(x);
-        var j = FastRound(y);
-        var k = FastRound(z);
-        var x0 = x - i;
-        var y0 = y - j;
-        var z0 = z - k;
-
-        var xNSign = (int)(-x0 - 1.0f) | 1;
-        var yNSign = (int)(-y0 - 1.0f) | 1;
-        var zNSign = (int)(-z0 - 1.0f) | 1;
-
-        var ax0 = xNSign * -x0;
-        var ay0 = yNSign * -y0;
-        var az0 = zNSign * -z0;
-
-        i *= PrimeX;
-        j *= PrimeY;
-        k *= PrimeZ;
-
-        float vx, vy, vz;
-        vx = vy = vz = 0;
-
-        var a = 0.6f - x0 * x0 - (y0 * y0 + z0 * z0);
-        for (var l = 0; ; l++)
-        {
-            if (a > 0)
-            {
-                var aaaa = a * a * (a * a);
-                float xo, yo, zo;
-                if (outGradOnly)
-                {
-                    GradCoordOut(seed, i, j, k, out xo, out yo, out zo);
-                }
-                else
-                {
-                    GradCoordDual(seed, i, j, k, x0, y0, z0, out xo, out yo, out zo);
-                }
-
-                vx += aaaa * xo;
-                vy += aaaa * yo;
-                vz += aaaa * zo;
-            }
-
-            var b = a;
-            var i1 = i;
-            var j1 = j;
-            var k1 = k;
-            var x1 = x0;
-            var y1 = y0;
-            var z1 = z0;
-
-            if (ax0 >= ay0 && ax0 >= az0)
-            {
-                x1 += xNSign;
-                b = b + ax0 + ax0;
-                i1 -= xNSign * PrimeX;
-            }
-            else if (ay0 > ax0 && ay0 >= az0)
-            {
-                y1 += yNSign;
-                b = b + ay0 + ay0;
-                j1 -= yNSign * PrimeY;
-            }
-            else
-            {
-                z1 += zNSign;
-                b = b + az0 + az0;
-                k1 -= zNSign * PrimeZ;
-            }
-
-            if (b > 1)
-            {
-                b -= 1;
-                var bbbb = b * b * (b * b);
-                float xo, yo, zo;
-                if (outGradOnly)
-                {
-                    GradCoordOut(seed, i1, j1, k1, out xo, out yo, out zo);
-                }
-                else
-                {
-                    GradCoordDual(seed, i1, j1, k1, x1, y1, z1, out xo, out yo, out zo);
-                }
-
-                vx += bbbb * xo;
-                vy += bbbb * yo;
-                vz += bbbb * zo;
-            }
-
-            if (l == 1)
-            {
                 break;
-            }
+            case TransformType3D.ImproveXZPlanes:
+                {
+                    var xz = x + z;
+                    var s2 = xz * -(FNLfloat)0.211324865405187;
+                    y *= (FNLfloat)0.577350269189626;
+                    x += s2 - y;
+                    z += s2 - y;
+                    y += xz * (FNLfloat)0.577350269189626;
+                }
 
-            ax0 = 0.5f - ax0;
-            ay0 = 0.5f - ay0;
-            az0 = 0.5f - az0;
+                break;
+            case TransformType3D.DefaultOpenSimplex2:
+                {
+                    const FNLfloat R3 = (FNLfloat)(2.0 / 3.0);
+                    var r = (x + y + z) * R3; // Rotation, not skew
+                    x = r - x;
+                    y = r - y;
+                    z = r - z;
+                }
 
-            x0 = xNSign * ax0;
-            y0 = yNSign * ay0;
-            z0 = zNSign * az0;
-
-            a += 0.75f - ax0 - (ay0 + az0);
-
-            i += (xNSign >> 1) & PrimeX;
-            j += (yNSign >> 1) & PrimeY;
-            k += (zNSign >> 1) & PrimeZ;
-
-            xNSign = -xNSign;
-            yNSign = -yNSign;
-            zNSign = -zNSign;
-
-            seed += 1293373;
+                break;
         }
-
-        xr += vx * warpAmp;
-        yr += vy * warpAmp;
-        zr += vz * warpAmp;
     }
 
-    private enum TransformType3D
+    // Noise Coordinate Transforms (frequency, and possible skew or rotation)
+
+    [MethodImpl(INLINE)]
+    private void TransformNoiseCoordinate(ref FNLfloat x, ref FNLfloat y)
     {
-        None,
-        ImproveXYPlanes,
-        ImproveXZPlanes,
-        DefaultOpenSimplex2
+        x *= mFrequency;
+        y *= mFrequency;
+
+        switch (mNoiseType)
+        {
+            case NoiseType.OpenSimplex2:
+            case NoiseType.OpenSimplex2S:
+                {
+                    const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
+                    const FNLfloat F2 = 0.5f * (SQRT3 - 1);
+                    var t = (x + y) * F2;
+                    x += t;
+                    y += t;
+                }
+
+                break;
+        }
+    }
+
+    [MethodImpl(INLINE)]
+    private void TransformNoiseCoordinate(ref FNLfloat x, ref FNLfloat y, ref FNLfloat z)
+    {
+        x *= mFrequency;
+        y *= mFrequency;
+        z *= mFrequency;
+
+        switch (mTransformType3D)
+        {
+            case TransformType3D.ImproveXYPlanes:
+                {
+                    var xy = x + y;
+                    var s2 = xy * -(FNLfloat)0.211324865405187;
+                    z *= (FNLfloat)0.577350269189626;
+                    x += s2 - z;
+                    y = y + s2 - z;
+                    z += xy * (FNLfloat)0.577350269189626;
+                }
+
+                break;
+            case TransformType3D.ImproveXZPlanes:
+                {
+                    var xz = x + z;
+                    var s2 = xz * -(FNLfloat)0.211324865405187;
+                    y *= (FNLfloat)0.577350269189626;
+                    x += s2 - y;
+                    z += s2 - y;
+                    y += xz * (FNLfloat)0.577350269189626;
+                }
+
+                break;
+            case TransformType3D.DefaultOpenSimplex2:
+                {
+                    const FNLfloat R3 = (FNLfloat)(2.0 / 3.0);
+                    var r = (x + y + z) * R3; // Rotation, not skew
+                    x = r - x;
+                    y = r - y;
+                    z = r - z;
+                }
+
+                break;
+        }
+    }
+
+    private void UpdateTransformType3D()
+    {
+        switch (mRotationType3D)
+        {
+            case RotationType3D.ImproveXYPlanes:
+                mTransformType3D = TransformType3D.ImproveXYPlanes;
+
+                break;
+            case RotationType3D.ImproveXZPlanes:
+                mTransformType3D = TransformType3D.ImproveXZPlanes;
+
+                break;
+            default:
+                switch (mNoiseType)
+                {
+                    case NoiseType.OpenSimplex2:
+                    case NoiseType.OpenSimplex2S:
+                        mTransformType3D = TransformType3D.DefaultOpenSimplex2;
+
+                        break;
+                    default:
+                        mTransformType3D = TransformType3D.None;
+
+                        break;
+                }
+
+                break;
+        }
+    }
+
+    private void UpdateWarpTransformType3D()
+    {
+        switch (mRotationType3D)
+        {
+            case RotationType3D.ImproveXYPlanes:
+                mWarpTransformType3D = TransformType3D.ImproveXYPlanes;
+
+                break;
+            case RotationType3D.ImproveXZPlanes:
+                mWarpTransformType3D = TransformType3D.ImproveXZPlanes;
+
+                break;
+            default:
+                switch (mDomainWarpType)
+                {
+                    case DomainWarpType.OpenSimplex2:
+                    case DomainWarpType.OpenSimplex2Reduced:
+                        mWarpTransformType3D = TransformType3D.DefaultOpenSimplex2;
+
+                        break;
+                    default:
+                        mWarpTransformType3D = TransformType3D.None;
+
+                        break;
+                }
+
+                break;
+        }
+    }
+
+    [MethodImpl(INLINE)]
+    private static float ValCoord(int seed, int xPrimed, int yPrimed)
+    {
+        var hash = Hash(seed, xPrimed, yPrimed);
+
+        hash *= hash;
+        hash ^= hash << 19;
+
+        return hash * (1 / 2147483648.0f);
+    }
+
+    [MethodImpl(INLINE)]
+    private static float ValCoord(int seed, int xPrimed, int yPrimed, int zPrimed)
+    {
+        var hash = Hash(seed, xPrimed, yPrimed, zPrimed);
+
+        hash *= hash;
+        hash ^= hash << 19;
+
+        return hash * (1 / 2147483648.0f);
     }
 }

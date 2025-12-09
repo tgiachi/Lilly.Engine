@@ -6,7 +6,6 @@ namespace Lilly.Rendering.Core.Interfaces.Services;
 
 public interface IRenderPipeline : IGameObjectManager
 {
-
     delegate void GameObjectAddedHandler(IGameObject gameObject);
 
     delegate void GameObjectRemovedHandler(IGameObject gameObject);
@@ -18,7 +17,7 @@ public interface IRenderPipeline : IGameObjectManager
     IEnumerable<IRenderLayer> RenderLayers { get; }
     void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer;
 
-    void Update(GameTime gameTime);
-
     void Render(GameTime gameTime);
+
+    void Update(GameTime gameTime);
 }

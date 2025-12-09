@@ -4,7 +4,6 @@ using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Jobs;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Data.Physics;
-using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
@@ -97,6 +96,29 @@ public sealed class WorldGameObject : Base3dGameObject
         IgnoreFrustumCulling = true;
     }
 
+    public bool GetBlockAtPosition(Vector3 position, out BlockType blockType)
+    {
+        var chunkCoords = ChunkUtils.GetChunkCoordinates(position);
+        blockType = _blockRegistry.Air;
+
+        if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGo))
+        {
+            return false;
+        }
+
+        var (lx, ly, lz) = ChunkUtils.GetLocalIndices(position);
+
+        if (!ChunkUtils.IsValidLocalPosition(lx, ly, lz))
+        {
+            return false;
+        }
+
+        var blockId = chunkGo.Chunk.GetBlock(lx, ly, lz);
+        blockType = _blockRegistry.GetById(blockId);
+
+        return blockId != 0;
+    }
+
     public override void Initialize()
     {
         CreateGameObject<CrosshairGameObject>();
@@ -107,381 +129,6 @@ public sealed class WorldGameObject : Base3dGameObject
         IsChunkDebuggerVisible = true;
 
         base.Initialize();
-    }
-
-    public override void Update(GameTime gameTime)
-    {
-        base.Update(gameTime);
-
-        var playerChunk = ChunkUtils.GetChunkCoordinates(GetStreamingOrigin());
-        var targets = BuildTargetSet(playerChunk);
-        var physicsTargets = BuildPhysicsTargetSet(playerChunk);
-
-        ScheduleMissingChunks(targets);
-        ProcessCompletedJobs();
-        UnloadFarChunks(targets);
-        UpdatePhysicsAttachments(physicsTargets);
-
-        _actionableService.Update(gameTime);
-    }
-
-    private Vector3 GetStreamingOrigin()
-    {
-        return _cameraService.ActiveCamera?.Position ?? Transform.Position;
-    }
-
-    private void RebuildTargetOffsetsIfNeeded()
-    {
-        if (_cachedHorizontalRadius == StreamingConfig.HorizontalRadiusChunks &&
-            _cachedVerticalBelow == StreamingConfig.VerticalBelowChunks &&
-            _cachedVerticalAbove == StreamingConfig.VerticalAboveChunks)
-        {
-            return;
-        }
-
-        _cachedHorizontalRadius = StreamingConfig.HorizontalRadiusChunks;
-        _cachedVerticalBelow = StreamingConfig.VerticalBelowChunks;
-        _cachedVerticalAbove = StreamingConfig.VerticalAboveChunks;
-        _targetOffsets.Clear();
-
-        for (int dx = -StreamingConfig.HorizontalRadiusChunks; dx <= StreamingConfig.HorizontalRadiusChunks; dx++)
-        {
-            for (int dz = -StreamingConfig.HorizontalRadiusChunks; dz <= StreamingConfig.HorizontalRadiusChunks; dz++)
-            {
-                for (int dy = -StreamingConfig.VerticalBelowChunks; dy <= StreamingConfig.VerticalAboveChunks; dy++)
-                {
-                    _targetOffsets.Add(new Vector3(dx, dy, dz));
-                }
-            }
-        }
-    }
-
-    private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
-    {
-        RebuildTargetOffsetsIfNeeded();
-        _targetScratch.Clear();
-
-        foreach (var offset in _targetOffsets)
-        {
-            _targetScratch.Add(playerChunk + offset);
-        }
-
-        return _targetScratch;
-    }
-
-    private HashSet<Vector3> BuildPhysicsTargetSet(Vector3 playerChunk)
-    {
-        var targets = new HashSet<Vector3>();
-
-        for (int dx = -StreamingConfig.PhysicsRadiusChunks; dx <= StreamingConfig.PhysicsRadiusChunks; dx++)
-        {
-            for (int dz = -StreamingConfig.PhysicsRadiusChunks; dz <= StreamingConfig.PhysicsRadiusChunks; dz++)
-            {
-                for (int dy = -StreamingConfig.PhysicsVerticalBelowChunks;
-                     dy <= StreamingConfig.PhysicsVerticalAboveChunks;
-                     dy++)
-                {
-                    targets.Add(playerChunk + new Vector3(dx, dy, dz));
-                }
-            }
-        }
-
-        return targets;
-    }
-
-    private void ScheduleMissingChunks(HashSet<Vector3> targets)
-    {
-        foreach (var coord in targets)
-        {
-            if (_activeChunks.ContainsKey(coord) || _pending.ContainsKey(coord))
-            {
-                continue;
-            }
-
-            if (_pending.Count >= StreamingConfig.MaxConcurrentJobs)
-            {
-                break;
-            }
-
-            var job = _jobSystem.Schedule(
-                $"chunk_build_{coord.ToHumanReadableString()}",
-                async ct =>
-                {
-                    var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition((int)coord.X, (int)coord.Y, (int)coord.Z);
-                    var chunk = await _chunkGenerator.GetChunkByWorldPosition(worldPos);
-
-                    // Pass neighbor lookup to MeshBuilder so it can cull faces between chunks
-                    var mesh = _meshBuilder.BuildMeshData(
-                        chunk,
-                        (chunkCoords) =>
-                        {
-                            if (_activeChunks.TryGetValue(chunkCoords, out var neighborGo))
-                            {
-                                return neighborGo.Chunk;
-                            }
-
-                            var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                                (int)chunkCoords.X,
-                                (int)chunkCoords.Y,
-                                (int)chunkCoords.Z
-                            );
-
-                            if (_chunkGenerator.TryGetCachedChunk(neighborPos, out var neighbor))
-                            {
-                                return neighbor;
-                            }
-
-                            return null;
-                        }
-                    );
-
-                    var collider = _colliderBuilder.Build(chunk);
-
-                    return new ChunkBuildResult(chunk, mesh, collider);
-                }
-            );
-
-            _pending[coord] = job;
-        }
-    }
-
-    private void ProcessCompletedJobs()
-    {
-        foreach (var kvp in _pending.ToArray())
-        {
-            var coord = kvp.Key;
-            var handle = kvp.Value;
-
-            if (!handle.IsCompleted)
-            {
-                continue;
-            }
-
-            var result = handle.CompletionTask.GetAwaiter().GetResult();
-            _pending.TryRemove(coord, out _);
-
-            bool isNewChunk = false;
-
-            if (_activeChunks.TryGetValue(coord, out var existing))
-            {
-                existing.SetPendingMesh(result.MeshData);
-                existing.ColliderData = result.ColliderData;
-            }
-            else
-            {
-                var chunkGo = new ChunkGameObject(result.Chunk, _graphicsDevice, _assetManager, _gameObjectManager);
-                chunkGo.SetPendingMesh(result.MeshData);
-                chunkGo.ColliderData = result.ColliderData;
-                _activeChunks[coord] = chunkGo;
-                isNewChunk = true;
-
-                // Add to scene graph so it gets rendered and updated automatically
-                AddGameObject(chunkGo);
-            }
-
-            _colliderCache[coord] = result.ColliderData;
-            _physicsDirty.Add(coord);
-
-            // If a new chunk was added, notify neighbors to rebuild their mesh
-            // (so they can hide faces that are now touching this new chunk)
-            if (isNewChunk)
-            {
-                UpdateNeighbors(coord);
-            }
-        }
-    }
-
-    private void UpdateNeighbors(Vector3 coord)
-    {
-        var directions = new[]
-        {
-            new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
-            new Vector3(0, 1, 0), new Vector3(0, -1, 0),
-            new Vector3(0, 0, 1), new Vector3(0, 0, -1)
-        };
-
-        foreach (var dir in directions)
-        {
-            var neighborCoord = coord + dir;
-
-            if (_activeChunks.TryGetValue(neighborCoord, out var neighborGo))
-            {
-                if (!_pending.ContainsKey(neighborCoord))
-                {
-                    var job = _jobSystem.Schedule(
-                        $"chunk_rebuild_{neighborCoord.ToHumanReadableString()}",
-                        async ct =>
-                        {
-                            var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
-
-                            ChunkEntity? topNeighbor = null;
-                            var topPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                                (int)neighborCoord.X,
-                                (int)neighborCoord.Y + 1,
-                                (int)neighborCoord.Z
-                            );
-
-                            if (_chunkGenerator.TryGetCachedChunk(topPos, out var t))
-                            {
-                                topNeighbor = t;
-                            }
-
-                            _lightPropagationService.PropagateLight(chunk, topNeighbor);
-
-                            var mesh = _meshBuilder.BuildMeshData(
-                                chunk,
-                                (chunkCoords) =>
-                                {
-                                    if (_activeChunks.TryGetValue(chunkCoords, out var nGo))
-                                    {
-                                        return nGo.Chunk;
-                                    }
-
-                                    var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
-                                        (int)chunkCoords.X,
-                                        (int)chunkCoords.Y,
-                                        (int)chunkCoords.Z
-                                    );
-
-                                    if (_chunkGenerator.TryGetCachedChunk(nPos, out var n))
-                                    {
-                                        return n;
-                                    }
-
-                                    return null;
-                                }
-                            );
-
-                            var collider = _colliderBuilder.Build(chunk);
-
-                            return new ChunkBuildResult(chunk, mesh, collider);
-                        }
-                    );
-
-                    _pending[neighborCoord] = job;
-                }
-            }
-        }
-    }
-
-    private void UnloadFarChunks(HashSet<Vector3> targets)
-    {
-        var toRemove = new List<Vector3>();
-
-        foreach (var coord in _activeChunks.Keys)
-        {
-            if (!targets.Contains(coord))
-            {
-                toRemove.Add(coord);
-            }
-        }
-
-        foreach (var coord in toRemove)
-        {
-            if (_activeChunks.Remove(coord, out var chunk))
-            {
-                chunk.DisposeBuffers();
-                RemovePhysics(coord);
-                _colliderCache.TryRemove(coord, out _);
-
-                // Remove from scene graph
-                RemoveGameObject(chunk);
-            }
-        }
-    }
-
-    private void UpdatePhysicsAttachments(HashSet<Vector3> physicsTargets)
-    {
-        var attachBudget = Math.Max(1, StreamingConfig.PhysicsAttachPerFrame);
-        var attachedThisFrame = 0;
-
-        foreach (var target in physicsTargets)
-        {
-            if (!_activeChunks.TryGetValue(target, out var chunkGo))
-            {
-                continue;
-            }
-
-            if (_pending.ContainsKey(target) && _physicsDirty.Contains(target))
-            {
-                RemovePhysics(target);
-                continue;
-            }
-
-            if (!_colliderCache.TryGetValue(target, out var colliders) || colliders.IsEmpty)
-            {
-                continue;
-            }
-
-            var needsAttach = !_physicsBodies.ContainsKey(target) || _physicsDirty.Contains(target);
-
-            if (!needsAttach || attachedThisFrame >= attachBudget)
-            {
-                continue;
-            }
-
-            RemovePhysics(target);
-            AttachPhysics(target, chunkGo, colliders);
-            _physicsDirty.Remove(target);
-            attachedThisFrame++;
-        }
-
-        var toDetach = new List<Vector3>();
-
-        foreach (var kvp in _physicsBodies)
-        {
-            if (!physicsTargets.Contains(kvp.Key))
-            {
-                toDetach.Add(kvp.Key);
-            }
-        }
-
-        foreach (var coord in toDetach)
-        {
-            RemovePhysics(coord);
-        }
-    }
-
-    private void AttachPhysics(Vector3 coord, ChunkGameObject chunkGo, ChunkColliderData colliderData)
-    {
-        if (colliderData.IsEmpty)
-        {
-            return;
-        }
-
-        var handles = new List<IPhysicsBodyHandle>(colliderData.Boxes.Count);
-
-        foreach (var box in colliderData.Boxes)
-        {
-            var size = box.Max - box.Min;
-            var center = box.Min + size * 0.5f + chunkGo.Chunk.Position;
-
-            var cfg = new PhysicsBodyConfig(
-                new BoxShape(size.X, size.Y, size.Z),
-                0f,
-                new RigidPose(center, Quaternion.Identity)
-            );
-
-            var handle = _physicsWorld.CreateStatic(cfg.Shape, cfg.Pose);
-            handles.Add(handle);
-        }
-
-        if (handles.Count > 0)
-        {
-            _physicsBodies[coord] = handles;
-        }
-    }
-
-    private void RemovePhysics(Vector3 coord)
-    {
-        if (_physicsBodies.TryRemove(coord, out var handles))
-        {
-            foreach (var handle in handles)
-            {
-                _physicsWorld.Remove(handle);
-            }
-        }
-        _physicsDirty.Remove(coord);
     }
 
     public bool Raycast(Ray ray, float maxDistance, out Vector3 blockPosition)
@@ -508,7 +155,7 @@ public sealed class WorldGameObject : Base3dGameObject
 
                     if (blockId != 0)
                     {
-                        blockPosition = new Vector3(
+                        blockPosition = new(
                             (int)MathF.Floor(samplePos.X),
                             (int)MathF.Floor(samplePos.Y),
                             (int)MathF.Floor(samplePos.Z)
@@ -527,27 +174,23 @@ public sealed class WorldGameObject : Base3dGameObject
         return false;
     }
 
-    public bool GetBlockAtPosition(Vector3 position, out BlockType blockType)
+    public bool RemoveBlockAtCurrentPosition()
     {
-        var chunkCoords = ChunkUtils.GetChunkCoordinates(position);
-        blockType = _blockRegistry.Air;
+        var blockOutline = GetGameObject<BlockOutlineGameObject>();
 
-        if (!_activeChunks.TryGetValue(chunkCoords, out var chunkGo))
+        if (blockOutline.TargetBlockPosition.HasValue)
         {
-            return false;
+            RemoveBlockAtPosition(blockOutline.TargetBlockPosition.Value);
+
+            return true;
         }
 
-        var (lx, ly, lz) = ChunkUtils.GetLocalIndices(position);
+        return false;
+    }
 
-        if (!ChunkUtils.IsValidLocalPosition(lx, ly, lz))
-        {
-            return false;
-        }
-
-        var blockId = chunkGo.Chunk.GetBlock(lx, ly, lz);
-        blockType = _blockRegistry.GetById(blockId);
-
-        return blockId != 0;
+    public void RemoveBlockAtPosition(Vector3 position)
+    {
+        SetBlockAtPosition(position, _blockRegistry.Air);
     }
 
     public void SetBlockAtPosition(Vector3 position, BlockType blockType)
@@ -580,7 +223,7 @@ public sealed class WorldGameObject : Base3dGameObject
         {
             _actionableService.OnRemove(position);
             _actionableService.Handle(
-                new ActionEventContext
+                new()
                 {
                     Event = ActionEventType.OnBreak,
                     WorldPosition = position,
@@ -593,7 +236,7 @@ public sealed class WorldGameObject : Base3dGameObject
             _actionableService.OnPlace(position, blockType.Id, blockType);
 
             _actionableService.Handle(
-                new ActionEventContext
+                new()
                 {
                     Event = ActionEventType.OnPlace,
                     WorldPosition = position,
@@ -601,6 +244,22 @@ public sealed class WorldGameObject : Base3dGameObject
                 }
             );
         }
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        base.Update(gameTime);
+
+        var playerChunk = ChunkUtils.GetChunkCoordinates(GetStreamingOrigin());
+        var targets = BuildTargetSet(playerChunk);
+        var physicsTargets = BuildPhysicsTargetSet(playerChunk);
+
+        ScheduleMissingChunks(targets);
+        ProcessCompletedJobs();
+        UnloadFarChunks(targets);
+        UpdatePhysicsAttachments(physicsTargets);
+
+        _actionableService.Update(gameTime);
     }
 
     public void UseBlockAtCurrentPosition()
@@ -625,23 +284,67 @@ public sealed class WorldGameObject : Base3dGameObject
         }
     }
 
-    public bool RemoveBlockAtCurrentPosition()
+    private void AttachPhysics(Vector3 coord, ChunkGameObject chunkGo, ChunkColliderData colliderData)
     {
-        var blockOutline = GetGameObject<BlockOutlineGameObject>();
-
-        if (blockOutline.TargetBlockPosition.HasValue)
+        if (colliderData.IsEmpty)
         {
-            RemoveBlockAtPosition(blockOutline.TargetBlockPosition.Value);
-
-            return true;
+            return;
         }
 
-        return false;
+        var handles = new List<IPhysicsBodyHandle>(colliderData.Boxes.Count);
+
+        foreach (var box in colliderData.Boxes)
+        {
+            var size = box.Max - box.Min;
+            var center = box.Min + size * 0.5f + chunkGo.Chunk.Position;
+
+            var cfg = new PhysicsBodyConfig(
+                new BoxShape(size.X, size.Y, size.Z),
+                0f,
+                new(center, Quaternion.Identity)
+            );
+
+            var handle = _physicsWorld.CreateStatic(cfg.Shape, cfg.Pose);
+            handles.Add(handle);
+        }
+
+        if (handles.Count > 0)
+        {
+            _physicsBodies[coord] = handles;
+        }
     }
 
-    public void RemoveBlockAtPosition(Vector3 position)
+    private HashSet<Vector3> BuildPhysicsTargetSet(Vector3 playerChunk)
     {
-        SetBlockAtPosition(position, _blockRegistry.Air);
+        var targets = new HashSet<Vector3>();
+
+        for (var dx = -StreamingConfig.PhysicsRadiusChunks; dx <= StreamingConfig.PhysicsRadiusChunks; dx++)
+        {
+            for (var dz = -StreamingConfig.PhysicsRadiusChunks; dz <= StreamingConfig.PhysicsRadiusChunks; dz++)
+            {
+                for (var dy = -StreamingConfig.PhysicsVerticalBelowChunks;
+                     dy <= StreamingConfig.PhysicsVerticalAboveChunks;
+                     dy++)
+                {
+                    targets.Add(playerChunk + new Vector3(dx, dy, dz));
+                }
+            }
+        }
+
+        return targets;
+    }
+
+    private HashSet<Vector3> BuildTargetSet(Vector3 playerChunk)
+    {
+        RebuildTargetOffsetsIfNeeded();
+        _targetScratch.Clear();
+
+        foreach (var offset in _targetOffsets)
+        {
+            _targetScratch.Add(playerChunk + offset);
+        }
+
+        return _targetScratch;
     }
 
     private void EnqueueChunkRebuild(Vector3 coord, ChunkGameObject chunkGo)
@@ -697,5 +400,300 @@ public sealed class WorldGameObject : Base3dGameObject
         );
 
         _pending[coord] = job;
+    }
+
+    private Vector3 GetStreamingOrigin()
+        => _cameraService.ActiveCamera?.Position ?? Transform.Position;
+
+    private void ProcessCompletedJobs()
+    {
+        foreach (var kvp in _pending.ToArray())
+        {
+            var coord = kvp.Key;
+            var handle = kvp.Value;
+
+            if (!handle.IsCompleted)
+            {
+                continue;
+            }
+
+            var result = handle.CompletionTask.GetAwaiter().GetResult();
+            _pending.TryRemove(coord, out _);
+
+            var isNewChunk = false;
+
+            if (_activeChunks.TryGetValue(coord, out var existing))
+            {
+                existing.SetPendingMesh(result.MeshData);
+                existing.ColliderData = result.ColliderData;
+            }
+            else
+            {
+                var chunkGo = new ChunkGameObject(result.Chunk, _graphicsDevice, _assetManager, _gameObjectManager);
+                chunkGo.SetPendingMesh(result.MeshData);
+                chunkGo.ColliderData = result.ColliderData;
+                _activeChunks[coord] = chunkGo;
+                isNewChunk = true;
+
+                // Add to scene graph so it gets rendered and updated automatically
+                AddGameObject(chunkGo);
+            }
+
+            _colliderCache[coord] = result.ColliderData;
+            _physicsDirty.Add(coord);
+
+            // If a new chunk was added, notify neighbors to rebuild their mesh
+            // (so they can hide faces that are now touching this new chunk)
+            if (isNewChunk)
+            {
+                UpdateNeighbors(coord);
+            }
+        }
+    }
+
+    private void RebuildTargetOffsetsIfNeeded()
+    {
+        if (_cachedHorizontalRadius == StreamingConfig.HorizontalRadiusChunks &&
+            _cachedVerticalBelow == StreamingConfig.VerticalBelowChunks &&
+            _cachedVerticalAbove == StreamingConfig.VerticalAboveChunks)
+        {
+            return;
+        }
+
+        _cachedHorizontalRadius = StreamingConfig.HorizontalRadiusChunks;
+        _cachedVerticalBelow = StreamingConfig.VerticalBelowChunks;
+        _cachedVerticalAbove = StreamingConfig.VerticalAboveChunks;
+        _targetOffsets.Clear();
+
+        for (var dx = -StreamingConfig.HorizontalRadiusChunks; dx <= StreamingConfig.HorizontalRadiusChunks; dx++)
+        {
+            for (var dz = -StreamingConfig.HorizontalRadiusChunks; dz <= StreamingConfig.HorizontalRadiusChunks; dz++)
+            {
+                for (var dy = -StreamingConfig.VerticalBelowChunks; dy <= StreamingConfig.VerticalAboveChunks; dy++)
+                {
+                    _targetOffsets.Add(new(dx, dy, dz));
+                }
+            }
+        }
+    }
+
+    private void RemovePhysics(Vector3 coord)
+    {
+        if (_physicsBodies.TryRemove(coord, out var handles))
+        {
+            foreach (var handle in handles)
+            {
+                _physicsWorld.Remove(handle);
+            }
+        }
+        _physicsDirty.Remove(coord);
+    }
+
+    private void ScheduleMissingChunks(HashSet<Vector3> targets)
+    {
+        foreach (var coord in targets)
+        {
+            if (_activeChunks.ContainsKey(coord) || _pending.ContainsKey(coord))
+            {
+                continue;
+            }
+
+            if (_pending.Count >= StreamingConfig.MaxConcurrentJobs)
+            {
+                break;
+            }
+
+            var job = _jobSystem.Schedule(
+                $"chunk_build_{coord.ToHumanReadableString()}",
+                async ct =>
+                {
+                    var worldPos = ChunkUtils.ChunkCoordinatesToWorldPosition((int)coord.X, (int)coord.Y, (int)coord.Z);
+                    var chunk = await _chunkGenerator.GetChunkByWorldPosition(worldPos);
+
+                    // Pass neighbor lookup to MeshBuilder so it can cull faces between chunks
+                    var mesh = _meshBuilder.BuildMeshData(
+                        chunk,
+                        chunkCoords =>
+                        {
+                            if (_activeChunks.TryGetValue(chunkCoords, out var neighborGo))
+                            {
+                                return neighborGo.Chunk;
+                            }
+
+                            var neighborPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                (int)chunkCoords.X,
+                                (int)chunkCoords.Y,
+                                (int)chunkCoords.Z
+                            );
+
+                            if (_chunkGenerator.TryGetCachedChunk(neighborPos, out var neighbor))
+                            {
+                                return neighbor;
+                            }
+
+                            return null;
+                        }
+                    );
+
+                    var collider = _colliderBuilder.Build(chunk);
+
+                    return new ChunkBuildResult(chunk, mesh, collider);
+                }
+            );
+
+            _pending[coord] = job;
+        }
+    }
+
+    private void UnloadFarChunks(HashSet<Vector3> targets)
+    {
+        var toRemove = new List<Vector3>();
+
+        foreach (var coord in _activeChunks.Keys)
+        {
+            if (!targets.Contains(coord))
+            {
+                toRemove.Add(coord);
+            }
+        }
+
+        foreach (var coord in toRemove)
+        {
+            if (_activeChunks.Remove(coord, out var chunk))
+            {
+                chunk.DisposeBuffers();
+                RemovePhysics(coord);
+                _colliderCache.TryRemove(coord, out _);
+
+                // Remove from scene graph
+                RemoveGameObject(chunk);
+            }
+        }
+    }
+
+    private void UpdateNeighbors(Vector3 coord)
+    {
+        var directions = new[]
+        {
+            new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
+            new Vector3(0, 1, 0), new Vector3(0, -1, 0),
+            new Vector3(0, 0, 1), new Vector3(0, 0, -1)
+        };
+
+        foreach (var dir in directions)
+        {
+            var neighborCoord = coord + dir;
+
+            if (_activeChunks.TryGetValue(neighborCoord, out var neighborGo))
+            {
+                if (!_pending.ContainsKey(neighborCoord))
+                {
+                    var job = _jobSystem.Schedule(
+                        $"chunk_rebuild_{neighborCoord.ToHumanReadableString()}",
+                        async ct =>
+                        {
+                            var chunk = neighborGo.Chunk; // We already have the chunk, no need to await GetChunk
+
+                            ChunkEntity? topNeighbor = null;
+                            var topPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                (int)neighborCoord.X,
+                                (int)neighborCoord.Y + 1,
+                                (int)neighborCoord.Z
+                            );
+
+                            if (_chunkGenerator.TryGetCachedChunk(topPos, out var t))
+                            {
+                                topNeighbor = t;
+                            }
+
+                            _lightPropagationService.PropagateLight(chunk, topNeighbor);
+
+                            var mesh = _meshBuilder.BuildMeshData(
+                                chunk,
+                                chunkCoords =>
+                                {
+                                    if (_activeChunks.TryGetValue(chunkCoords, out var nGo))
+                                    {
+                                        return nGo.Chunk;
+                                    }
+
+                                    var nPos = ChunkUtils.ChunkCoordinatesToWorldPosition(
+                                        (int)chunkCoords.X,
+                                        (int)chunkCoords.Y,
+                                        (int)chunkCoords.Z
+                                    );
+
+                                    if (_chunkGenerator.TryGetCachedChunk(nPos, out var n))
+                                    {
+                                        return n;
+                                    }
+
+                                    return null;
+                                }
+                            );
+
+                            var collider = _colliderBuilder.Build(chunk);
+
+                            return new ChunkBuildResult(chunk, mesh, collider);
+                        }
+                    );
+
+                    _pending[neighborCoord] = job;
+                }
+            }
+        }
+    }
+
+    private void UpdatePhysicsAttachments(HashSet<Vector3> physicsTargets)
+    {
+        var attachBudget = Math.Max(1, StreamingConfig.PhysicsAttachPerFrame);
+        var attachedThisFrame = 0;
+
+        foreach (var target in physicsTargets)
+        {
+            if (!_activeChunks.TryGetValue(target, out var chunkGo))
+            {
+                continue;
+            }
+
+            if (_pending.ContainsKey(target) && _physicsDirty.Contains(target))
+            {
+                RemovePhysics(target);
+
+                continue;
+            }
+
+            if (!_colliderCache.TryGetValue(target, out var colliders) || colliders.IsEmpty)
+            {
+                continue;
+            }
+
+            var needsAttach = !_physicsBodies.ContainsKey(target) || _physicsDirty.Contains(target);
+
+            if (!needsAttach || attachedThisFrame >= attachBudget)
+            {
+                continue;
+            }
+
+            RemovePhysics(target);
+            AttachPhysics(target, chunkGo, colliders);
+            _physicsDirty.Remove(target);
+            attachedThisFrame++;
+        }
+
+        var toDetach = new List<Vector3>();
+
+        foreach (var kvp in _physicsBodies)
+        {
+            if (!physicsTargets.Contains(kvp.Key))
+            {
+                toDetach.Add(kvp.Key);
+            }
+        }
+
+        foreach (var coord in toDetach)
+        {
+            RemovePhysics(coord);
+        }
     }
 }

@@ -44,15 +44,20 @@ public class LillyBufferObject<TDataType> : IDisposable
         gl.BufferData(bufferType, (nuint)(nbVertex * sizeof(TDataType)), null, bufferUsageArb);
     }
 
-    public void SendData(ReadOnlySpan<TDataType> data, nint offset)
+    ~LillyBufferObject()
     {
-        Bind(bufferType);
-        gl.BufferSubData(bufferType, offset, data);
+        Dispose(false);
     }
 
     public void Bind(BufferTargetARB bufferTargetType)
     {
         gl.BindBuffer(bufferTargetType, Handle);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public unsafe TDataType GetData()
@@ -62,15 +67,10 @@ public class LillyBufferObject<TDataType> : IDisposable
         return countCompute;
     }
 
-    ~LillyBufferObject()
+    public void SendData(ReadOnlySpan<TDataType> data, nint offset)
     {
-        Dispose(false);
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        Bind(bufferType);
+        gl.BufferSubData(bufferType, offset, data);
     }
 
     protected void Dispose(bool disposing)

@@ -197,7 +197,7 @@ public class BoundingFrustum
     {
         var length = plane.Normal.Length();
 
-        return new Plane(
+        return new(
             plane.Normal / length,
             plane.D / length
         );

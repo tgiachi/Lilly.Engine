@@ -16,18 +16,16 @@ using Lilly.Voxel.Plugin.Json.Contexts;
 using Lilly.Voxel.Plugin.Modules;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Steps;
+using Lilly.Voxel.Plugin.Steps.Lighting;
 using Lilly.Voxel.Plugin.Steps.World;
 using Lilly.Voxel.Plugin.Vertexs;
-using Lilly.Voxel.Plugin.Steps.Lighting;
 
 namespace Lilly.Voxel.Plugin;
 
 public class LillyVoxelPlugin : ILillyPlugin
 {
-
-
     public LillyPluginData LillyData
-        => new LillyPluginData(
+        => new(
             "com.tgiachi.lilly.voxel",
             "Lilly Voxel Plugin",
             "0.1.0",

@@ -59,7 +59,7 @@ public class LillyTexture : IDisposable
             img.ProcessPixelRows(
                 accessor =>
                 {
-                    for (int y = 0; y < accessor.Height; y++)
+                    for (var y = 0; y < accessor.Height; y++)
                     {
                         fixed (void* data = accessor.GetRowSpan(y))
                         {
@@ -104,8 +104,13 @@ public class LillyTexture : IDisposable
         _srgb = srgb;
 
         var expectedBytes = checked(width * height * 4);
+
         if (data.Length < expectedBytes)
-            throw new ArgumentException($"Data length {data.Length} is less than expected {expectedBytes} for {width}x{height} RGBA texture.");
+        {
+            throw new ArgumentException(
+                $"Data length {data.Length} is less than expected {expectedBytes} for {width}x{height} RGBA texture."
+            );
+        }
 
         Handle = _gl.GenTexture();
         Bind();
@@ -125,19 +130,6 @@ public class LillyTexture : IDisposable
             );
             SetParameters();
         }
-    }
-
-    private void SetParameters()
-    {
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, _wrapS);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, _wrapT);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, _minFilter);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, _magFilter);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, _generateMipMaps ? 8 : 0);
-
-        if (_generateMipMaps)
-            _gl.GenerateMipmap(TextureTarget.Texture2D);
     }
 
     public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
@@ -167,6 +159,21 @@ public class LillyTexture : IDisposable
             }
 
             disposed = true;
+        }
+    }
+
+    private void SetParameters()
+    {
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, _wrapS);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, _wrapT);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, _minFilter);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, _magFilter);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, _generateMipMaps ? 8 : 0);
+
+        if (_generateMipMaps)
+        {
+            _gl.GenerateMipmap(TextureTarget.Texture2D);
         }
     }
 }

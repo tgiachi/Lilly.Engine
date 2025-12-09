@@ -1,4 +1,3 @@
-
 namespace Lilly.Engine.Interfaces.Services;
 
 /// <summary>
@@ -113,19 +112,9 @@ public interface IPerformanceProfilerService
     Dictionary<string, object> GetMetricsSummary();
 
     /// <summary>
-    /// Resets all performance metrics
-    /// </summary>
-    void ResetMetrics();
-
-    /// <summary>
     /// Records a draw call with vertex count
     /// </summary>
     void RecordDrawCall(int vertexCount);
-
-    /// <summary>
-    /// Records a texture binding
-    /// </summary>
-    void RecordTextureBinding();
 
     /// <summary>
     /// Records a shader switch
@@ -133,7 +122,17 @@ public interface IPerformanceProfilerService
     void RecordShaderSwitch();
 
     /// <summary>
+    /// Records a texture binding
+    /// </summary>
+    void RecordTextureBinding();
+
+    /// <summary>
     /// Resets per-frame counters (called at start of each frame)
     /// </summary>
     void ResetFrameCounters();
+
+    /// <summary>
+    /// Resets all performance metrics
+    /// </summary>
+    void ResetMetrics();
 }

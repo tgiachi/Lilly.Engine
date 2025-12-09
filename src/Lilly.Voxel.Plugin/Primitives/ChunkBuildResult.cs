@@ -1,5 +1,3 @@
-using Lilly.Voxel.Plugin.Primitives;
-
 namespace Lilly.Voxel.Plugin.Primitives;
 
 /// <summary>

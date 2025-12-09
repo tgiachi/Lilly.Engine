@@ -16,19 +16,19 @@ uniform sampler2D uSnowflakeTexture;
 
 void main()
 {
-    float density = clamp(uIntensity, 0.0, 1.0);
-    if (density <= 0.001)
-        discard;
+float density = clamp(uIntensity, 0.0, 1.0);
+if (density <= 0.001)
+discard;
 
-    vec4 texColor = texture(uSnowflakeTexture, vCorner);
-    
-    vec2 uv = vCorner - 0.5;
-    float sparkle = 0.65 + 0.35 * sin(uTime * 4.0 + uv.x * 8.0 + uv.y * 6.0);
-    float alpha = clamp(vAlpha * density * texColor.a, 0.0, 1.0);
+vec4 texColor = texture(uSnowflakeTexture, vCorner);
 
-    vec3 color = texColor.rgb * vec3(0.92, 0.95, 1.0) * sparkle;
+vec2 uv = vCorner - 0.5;
+float sparkle = 0.65 + 0.35 * sin(uTime * 4.0 + uv.x * 8.0 + uv.y * 6.0);
+float alpha = clamp(vAlpha * density * texColor.a, 0.0, 1.0);
 
-    FragColor = vec4(color, alpha);
+vec3 color = texColor.rgb * vec3(0.92, 0.95, 1.0) * sparkle;
+
+FragColor = vec4(color, alpha);
 }
 
 #shader vertex
@@ -55,20 +55,20 @@ out float vSize;
 
 void main()
 {
-    vec3 basePos = (uWorld * vec4(aPosition, 1.0)).xyz;
-    vec3 right = normalize(uCameraRight);
-    vec3 upVec = normalize(uCameraUp);
+vec3 basePos = (uWorld * vec4(aPosition, 1.0)).xyz;
+vec3 right = normalize(uCameraRight);
+vec3 upVec = normalize(uCameraUp);
 
-    float flutter = sin(uTime * 0.9 + basePos.x * 0.25 + basePos.z * 0.19) * 0.35;
-    vec3 jitter = right * flutter * 0.4 + upVec * flutter * 0.2;
+float flutter = sin(uTime * 0.9 + basePos.x * 0.25 + basePos.z * 0.19) * 0.35;
+vec3 jitter = right * flutter * 0.4 + upVec * flutter * 0.2;
 
-    vec2 centered = aCorner - 0.5;
-    vec3 worldPos = basePos + jitter + right * centered.x * aSize + upVec * centered.y * aSize;
+vec2 centered = aCorner - 0.5;
+vec3 worldPos = basePos + jitter + right * centered.x * aSize + upVec * centered.y * aSize;
 
-    vec4 viewPos = uView * vec4(worldPos, 1.0);
-    gl_Position = uProjection * viewPos;
-    
-    vCorner = aCorner;
-    vAlpha = aAlpha;
-    vSize = aSize;
+vec4 viewPos = uView * vec4(worldPos, 1.0);
+gl_Position = uProjection * viewPos;
+
+vCorner = aCorner;
+vAlpha = aAlpha;
+vSize = aSize;
 }

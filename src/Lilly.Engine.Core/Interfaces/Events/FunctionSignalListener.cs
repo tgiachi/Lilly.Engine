@@ -1,4 +1,3 @@
-using Lilly.Engine.Core.Interfaces.Services;
 using Serilog;
 
 namespace Lilly.Engine.Core.Interfaces.Events;
@@ -16,9 +15,7 @@ public class FunctionSignalListener<TEvent> : IEventBusListener<TEvent>
     /// </summary>
     /// <param name="handler">The function to handle the event.</param>
     public FunctionSignalListener(Func<TEvent, Task> handler)
-    {
-        _handler = handler ?? throw new ArgumentNullException(nameof(handler));
-    }
+        => _handler = handler ?? throw new ArgumentNullException(nameof(handler));
 
     /// <summary>
     /// Handles the event asynchronously.
@@ -35,6 +32,7 @@ public class FunctionSignalListener<TEvent> : IEventBusListener<TEvent>
         catch (Exception ex)
         {
             Log.Logger.ForContext(GetType()).Error(ex, ex.Message);
+
             throw new InvalidOperationException(
                 $"Error executing handler for event {typeof(TEvent).Name}",
                 ex
@@ -46,7 +44,5 @@ public class FunctionSignalListener<TEvent> : IEventBusListener<TEvent>
     /// Checks if this wrapper contains the same handler function
     /// </summary>
     public bool HasSameHandler(Func<TEvent, Task> handler)
-    {
-        return _handler.Equals(handler);
-    }
+        => _handler.Equals(handler);
 }

@@ -7,4 +7,3 @@ namespace Lilly.Engine.Core.Data.Commands;
 /// <param name="Message">A message describing the result or error.</param>
 /// <param name="Exception">An optional exception that occurred during execution.</param>
 public record CommandExecuteResult(bool Success, string Message, Exception? Exception);
-

@@ -35,22 +35,11 @@ public interface IGeneratorContext
     /// </summary>
     IDictionary<string, object> CustomData { get; }
 
-    int ChunkSize();
+    void AddCustomData(string key, object value);
 
     int ChunkHeight();
 
-    ushort? GetBlockIdByName(string name);
-
-    BlockType? GetBlockTypeByName(string name);
-
-    BlockType? GetBlockTypeById(ushort id);
-
-
-    ChunkEntity GetChunk();
-
-    Vector3 GetWorldPosition();
-
-    FastNoiseLite GetNoise();
+    int ChunkSize();
 
     /// <summary>
     /// Fills a 3D region with the specified block. Much faster than setting blocks individually from scripts.
@@ -65,13 +54,6 @@ public interface IGeneratorContext
     void FillBlocks(int startX, int startY, int startZ, int endX, int endY, int endZ, ushort block);
 
     /// <summary>
-    /// Fills an entire horizontal layer at the specified Y coordinate with the given block.
-    /// </summary>
-    /// <param name="y">The Y coordinate of the layer.</param>
-    /// <param name="block">The block to fill the layer with.</param>
-    void FillLayer(int y, ushort block);
-
-    /// <summary>
     /// Fills a vertical column from startY to endY at the specified X,Z coordinates.
     /// </summary>
     /// <param name="x">The X coordinate of the column.</param>
@@ -82,6 +64,25 @@ public interface IGeneratorContext
     void FillColumn(int x, int z, int startY, int endY, ushort block);
 
     /// <summary>
+    /// Fills an entire horizontal layer at the specified Y coordinate with the given block.
+    /// </summary>
+    /// <param name="y">The Y coordinate of the layer.</param>
+    /// <param name="block">The block to fill the layer with.</param>
+    void FillLayer(int y, ushort block);
+
+    ushort? GetBlockIdByName(string name);
+
+    BlockType? GetBlockTypeById(ushort id);
+
+    BlockType? GetBlockTypeByName(string name);
+
+    ChunkEntity GetChunk();
+
+    FastNoiseLite GetNoise();
+
+    Vector3 GetWorldPosition();
+
+    /// <summary>
     /// Sets a single block at the specified coordinates. Optimized for script access.
     /// Pass null to remove a block (create air/cave).
     /// </summary>
@@ -90,9 +91,6 @@ public interface IGeneratorContext
     /// <param name="z">Z coordinate.</param>
     /// <param name="block">The block to set, or null to remove the block.</param>
     void SetBlock(int x, int y, int z, ushort? block);
-
-
-    void AddCustomData(string key, object value);
 
     //void AddCloudArea(PositionAndSize area);
 

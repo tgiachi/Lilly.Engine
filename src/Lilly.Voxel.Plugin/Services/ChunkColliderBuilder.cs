@@ -1,5 +1,4 @@
 using System.Numerics;
-using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Services;
 using Lilly.Voxel.Plugin.Primitives;
 
@@ -16,9 +15,7 @@ public sealed class ChunkColliderBuilder
     private const int CellSize = 8;
 
     public ChunkColliderBuilder(IBlockRegistry blockRegistry)
-    {
-        _blockRegistry = blockRegistry;
-    }
+        => _blockRegistry = blockRegistry;
 
     public ChunkColliderData Build(ChunkEntity chunk)
     {
@@ -29,11 +26,11 @@ public sealed class ChunkColliderBuilder
             return colliderData;
         }
 
-        for (int sx = 0; sx < ChunkEntity.Size; sx += CellSize)
+        for (var sx = 0; sx < ChunkEntity.Size; sx += CellSize)
         {
-            for (int sy = 0; sy < ChunkEntity.Height; sy += CellSize)
+            for (var sy = 0; sy < ChunkEntity.Height; sy += CellSize)
             {
-                for (int sz = 0; sz < ChunkEntity.Size; sz += CellSize)
+                for (var sz = 0; sz < ChunkEntity.Size; sz += CellSize)
                 {
                     if (!HasSolidBlocks(chunk, sx, sy, sz))
                     {
@@ -47,7 +44,7 @@ public sealed class ChunkColliderBuilder
                         MathF.Min(sz + CellSize, ChunkEntity.Size)
                     );
 
-                    colliderData.Boxes.Add(new ChunkColliderBox(min, max));
+                    colliderData.Boxes.Add(new(min, max));
                 }
             }
         }
@@ -61,11 +58,11 @@ public sealed class ChunkColliderBuilder
         var endY = Math.Min(startY + CellSize, ChunkEntity.Height);
         var endZ = Math.Min(startZ + CellSize, ChunkEntity.Size);
 
-        for (int x = startX; x < endX; x++)
+        for (var x = startX; x < endX; x++)
         {
-            for (int y = startY; y < endY; y++)
+            for (var y = startY; y < endY; y++)
             {
-                for (int z = startZ; z < endZ; z++)
+                for (var z = startZ; z < endZ; z++)
                 {
                     var blockId = chunk.GetBlockFast(x, y, z);
 

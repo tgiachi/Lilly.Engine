@@ -12,7 +12,6 @@ using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects;
 using Lilly.Engine.Lua.Scripting.Context;
 using Lilly.Physics.Plugin;
-using Lilly.Rendering.Core.Data.Config;
 using Lilly.Voxel.Plugin;
 using Serilog;
 using Serilog.Events;

@@ -1,5 +1,6 @@
 using System.Numerics;
 using ImGuiNET;
+using Lilly.Engine.Core.Data.Dispatchers;
 using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
@@ -12,7 +13,9 @@ public class JobSystemDebugger : BaseImGuiDebuggerGameObject
     private readonly IJobSystemService _jobSystemService;
     private readonly IMainThreadDispatcher _mainThreadDispatcher;
 
-    public JobSystemDebugger(IJobSystemService jobSystemService, IMainThreadDispatcher mainThreadDispatcher) : base("Job Manager Debugger")
+    public JobSystemDebugger(IJobSystemService jobSystemService, IMainThreadDispatcher mainThreadDispatcher) : base(
+        "Job Manager Debugger"
+    )
     {
         _jobSystemService = jobSystemService;
         _mainThreadDispatcher = mainThreadDispatcher;
@@ -65,8 +68,8 @@ public class JobSystemDebugger : BaseImGuiDebuggerGameObject
         ImGui.Text($"Actions per Update: {concurrentActions}");
 
         var actionLoad = concurrentActions > 0
-                            ? Math.Clamp(queuedActions / (float)(concurrentActions * 10), 0f, 1f)
-                            : 0f;
+                             ? Math.Clamp(queuedActions / (float)(concurrentActions * 10), 0f, 1f)
+                             : 0f;
         ImGui.ProgressBar(actionLoad, new(-1, 0), $"Action queue ~ {actionLoad * 100f:F0}%");
 
         ImGui.Text($"Total Executed: {totalActions:N0}");
@@ -111,9 +114,9 @@ public class JobSystemDebugger : BaseImGuiDebuggerGameObject
 
                     var statusColor = action.Status switch
                     {
-                        Core.Data.Dispatchers.ActionExecutionStatus.Succeeded => new Vector4(0.5f, 0.9f, 0.5f, 1f),
-                        Core.Data.Dispatchers.ActionExecutionStatus.Failed    => new Vector4(0.9f, 0.3f, 0.3f, 1f),
-                        _                                                      => new Vector4(1f, 1f, 1f, 1f)
+                        ActionExecutionStatus.Succeeded => new(0.5f, 0.9f, 0.5f, 1f),
+                        ActionExecutionStatus.Failed    => new(0.9f, 0.3f, 0.3f, 1f),
+                        _                               => new Vector4(1f, 1f, 1f, 1f)
                     };
 
                     ImGui.TableNextRow();
@@ -175,9 +178,9 @@ public class JobSystemDebugger : BaseImGuiDebuggerGameObject
 
                 var statusColor = job.Status switch
                 {
-                    JobExecutionStatus.Succeeded => new Vector4(0.5f, 0.9f, 0.5f, 1f),
-                    JobExecutionStatus.Cancelled => new Vector4(0.9f, 0.7f, 0.2f, 1f),
-                    JobExecutionStatus.Failed    => new Vector4(0.9f, 0.3f, 0.3f, 1f),
+                    JobExecutionStatus.Succeeded => new(0.5f, 0.9f, 0.5f, 1f),
+                    JobExecutionStatus.Cancelled => new(0.9f, 0.7f, 0.2f, 1f),
+                    JobExecutionStatus.Failed    => new(0.9f, 0.3f, 0.3f, 1f),
                     _                            => new Vector4(1f, 1f, 1f, 1f)
                 };
 

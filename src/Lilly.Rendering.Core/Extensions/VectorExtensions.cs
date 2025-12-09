@@ -8,6 +8,9 @@ namespace Lilly.Rendering.Core.Extensions;
 /// </summary>
 public static class VectorExtensions
 {
+    public static string ToHumanReadableString(this Vector3 vector)
+        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2}";
+
     /// <summary>
     /// Converts a System.Numerics.Vector2 to Silk.NET.Maths.Vector2D&lt;int&gt;.
     /// </summary>
@@ -31,13 +34,9 @@ public static class VectorExtensions
     /// <returns>The converted matrix.</returns>
     public static Matrix4X4<float> ToSilk(this Matrix4x4 matrix)
         => new(
-            new Vector4D<float>(matrix.M11, matrix.M12, matrix.M13, matrix.M14),
-            new Vector4D<float>(matrix.M21, matrix.M22, matrix.M23, matrix.M24),
-            new Vector4D<float>(matrix.M31, matrix.M32, matrix.M33, matrix.M34),
-            new Vector4D<float>(matrix.M41, matrix.M42, matrix.M43, matrix.M44)
+            new(matrix.M11, matrix.M12, matrix.M13, matrix.M14),
+            new(matrix.M21, matrix.M22, matrix.M23, matrix.M24),
+            new(matrix.M31, matrix.M32, matrix.M33, matrix.M34),
+            new(matrix.M41, matrix.M42, matrix.M43, matrix.M44)
         );
-
-
-    public static string ToHumanReadableString(this Vector3 vector)
-        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2}";
 }

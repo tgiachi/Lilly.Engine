@@ -1,4 +1,3 @@
-using System;
 using Lilly.Engine.Data.Physics;
 using Lilly.Rendering.Core.Primitives;
 
@@ -7,10 +6,6 @@ namespace Lilly.Engine.Interfaces.Physics;
 public interface IPhysicsGameObject3d
 {
     bool IsStatic { get; }
-
-    PhysicsBodyConfig BuildBodyConfig();
-
-    void OnPhysicsAttached(IPhysicsBodyHandle h);
 
     /// <summary>
     /// Raised when the collision shape needs to be rebuilt (e.g., mesh or size changed).
@@ -26,6 +21,10 @@ public interface IPhysicsGameObject3d
     /// Controls how the transform is synchronized from the physics simulation.
     /// </summary>
     PhysicsSyncMode SyncMode => PhysicsSyncMode.FullPose;
+
+    PhysicsBodyConfig BuildBodyConfig();
+
+    void OnPhysicsAttached(IPhysicsBodyHandle h);
 
     /// <summary>
     /// Optional callback invoked when the physics body is detached.

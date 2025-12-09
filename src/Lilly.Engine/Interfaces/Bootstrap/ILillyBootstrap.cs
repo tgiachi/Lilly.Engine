@@ -7,7 +7,7 @@ namespace Lilly.Engine.Interfaces.Bootstrap;
 public interface ILillyBootstrap
 {
     /// <summary>
-    ///  Delegate for configuring the dependency injection container.
+    /// Delegate for configuring the dependency injection container.
     /// </summary>
     delegate void ConfiguringHandler(IContainer container);
 
@@ -27,7 +27,7 @@ public interface ILillyBootstrap
     event IGraphicRenderer.UpdateDelegate OnUpdate;
 
     /// <summary>
-    ///  Event raised when configuring the dependency injection container.
+    /// Event raised when configuring the dependency injection container.
     /// </summary>
     event ConfiguringHandler OnConfiguring;
 

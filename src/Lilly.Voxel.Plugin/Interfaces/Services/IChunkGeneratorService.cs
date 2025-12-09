@@ -9,20 +9,19 @@ public interface IChunkGeneratorService : IChunkProvider, ILillyService
 {
     int Seed { get; set; }
 
-    Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position);
+    void AddGeneratorStep(IGeneratorStep generationStep);
 
-    bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk);
+    void ClearCache();
+
+    Task GenerateInitialChunksAsync();
+
+    Task<ChunkEntity> GetChunkByWorldPosition(Vector3 position);
 
     Task<ChunkEntity> GetChunkByWorldPosition(int chunkX, int chunkY, int chunkZ);
 
     Task<IEnumerable<ChunkEntity>> GetChunksByPositions(IEnumerable<Vector3> positions);
 
-    Task GenerateInitialChunksAsync();
-
-    void AddGeneratorStep(IGeneratorStep generationStep);
-
-    void ClearCache();
-
     bool RemoveGeneratorStep(string stepName);
 
+    bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk);
 }

@@ -1,9 +1,7 @@
-using System.Drawing;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Scenes.Transitions.Base;
 using Lilly.Engine.Scenes.Transitions.Interfaces;
-using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using TrippyGL;
 
@@ -60,12 +58,12 @@ public class FadeTransition : TransitionGameObject
 
             // Draw full-screen rectangle with fade color
             spriteBatcher.DrawRectangle(
-                position: Vector2.Zero,
-                size: new Vector2(_viewportWidth, _viewportHeight),
-                color: colorWithAlpha,
-                rotation: 0f,
-                origin: null,
-                depth: 0.9f
+                Vector2.Zero,
+                new(_viewportWidth, _viewportHeight),
+                colorWithAlpha,
+                0f,
+                null,
+                0.9f
             );
         }
     }

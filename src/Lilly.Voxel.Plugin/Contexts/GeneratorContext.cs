@@ -26,7 +26,7 @@ public class GeneratorContext : IGeneratorContext
     /// <inheritdoc />
     public IDictionary<string, object> CustomData { get; }
 
-   // public List<PositionAndSize> CloudAreas { get; } = [];
+    // public List<PositionAndSize> CloudAreas { get; } = [];
 
     private readonly IBlockRegistry _blockRegistry;
 
@@ -75,26 +75,6 @@ public class GeneratorContext : IGeneratorContext
 
     public int ChunkHeight()
         => ChunkEntity.Height;
-
-    public ushort? GetBlockIdByName(string name)
-    {
-        return _blockRegistry.GetByName(name)?.Id;
-    }
-
-    public BlockType? GetBlockTypeByName(string name)
-    {
-        return _blockRegistry.GetByName(name);
-    }
-
-    public BlockType? GetBlockTypeById(ushort id)
-    {
-        return _blockRegistry.GetById(id);
-    }
-
-    public uint? GetBlockByName(string name)
-    {
-        return _blockRegistry.GetByName(name)?.Id;
-    }
 
     public int ChunkSize()
         => ChunkEntity.Size;
@@ -176,6 +156,18 @@ public class GeneratorContext : IGeneratorContext
 
         FillBlocks(0, y, 0, ChunkEntity.Size, y + 1, ChunkEntity.Size, block);
     }
+
+    public uint? GetBlockByName(string name)
+        => _blockRegistry.GetByName(name)?.Id;
+
+    public ushort? GetBlockIdByName(string name)
+        => _blockRegistry.GetByName(name)?.Id;
+
+    public BlockType? GetBlockTypeById(ushort id)
+        => _blockRegistry.GetById(id);
+
+    public BlockType? GetBlockTypeByName(string name)
+        => _blockRegistry.GetByName(name);
 
     public ChunkEntity GetChunk()
         => Chunk;

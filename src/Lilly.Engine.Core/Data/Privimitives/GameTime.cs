@@ -25,8 +25,6 @@ public class GameTime
     /// </summary>
     public TimeSpan TotalGameTimeAsTimeSpan => TimeSpan.FromMilliseconds(TotalGameTime);
 
-
-
     /// <summary>
     /// Gets the elapsed game time in seconds.
     /// </summary>
@@ -57,7 +55,7 @@ public class GameTime
     {
         var elapsedMs = elapsedSeconds * 1000.0; // Convert to milliseconds
 
-         ElapsedGameTime = elapsedMs;
-         TotalGameTime += elapsedMs;
+        ElapsedGameTime = elapsedMs;
+        TotalGameTime += elapsedMs;
     }
 }

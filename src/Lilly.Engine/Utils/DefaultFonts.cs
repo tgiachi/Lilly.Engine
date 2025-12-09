@@ -14,17 +14,19 @@ public static class DefaultFonts
     /// Gets the name of the Monocraft font.
     /// </summary>
     public static string DefaultMonocraftFontName => "monocraft";
+
     /// <summary>
     /// Gets the name of the alternate default font.
     /// </summary>
     public static string DefaultFontAlternateName => "default_alternate";
+
     /// <summary>
     /// Gets the name of the HUD font.
     /// </summary>
     public static string DefaultFontHudName => "hud";
+
     /// <summary>
     /// Gets the name of the bold HUD font.
     /// </summary>
     public static string DefaultFontHudBoldName => "hud_bold";
-
 }

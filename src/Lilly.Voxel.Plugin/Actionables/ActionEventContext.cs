@@ -6,7 +6,7 @@ using Lilly.Voxel.Plugin.Types;
 namespace Lilly.Voxel.Plugin.Actionables;
 
 /// <summary>
-///  Context information for an action event occurring in the voxel world.
+/// Context information for an action event occurring in the voxel world.
 /// </summary>
 /// <param name="Event"></param>
 /// <param name="WorldPosition"></param>

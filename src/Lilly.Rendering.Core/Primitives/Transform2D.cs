@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 
 namespace Lilly.Rendering.Core.Primitives;
@@ -26,7 +25,10 @@ public class Transform2D
         get => _position;
         set
         {
-            if (_position == value) return;
+            if (_position == value)
+            {
+                return;
+            }
             _position = value;
             OnChanged();
         }
@@ -40,7 +42,10 @@ public class Transform2D
         get => _rotation;
         set
         {
-            if (_rotation.Equals(value)) return;
+            if (_rotation.Equals(value))
+            {
+                return;
+            }
             _rotation = value;
             OnChanged();
         }
@@ -54,7 +59,10 @@ public class Transform2D
         get => _scale;
         set
         {
-            if (_scale == value) return;
+            if (_scale == value)
+            {
+                return;
+            }
             _scale = value;
             OnChanged();
         }
@@ -68,11 +76,15 @@ public class Transform2D
         get => _size;
         set
         {
-            if (_size == value) return;
+            if (_size == value)
+            {
+                return;
+            }
             _size = value;
             OnChanged();
         }
     }
 
-    private void OnChanged() => Changed?.Invoke(this);
+    private void OnChanged()
+        => Changed?.Invoke(this);
 }

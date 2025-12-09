@@ -22,16 +22,14 @@
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Windowing" Version="2.22.0"/>
         <PackageReference Include="Silk.NET.Windowing.Common" Version="2.22.0"/>
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12"/>
         <PackageReference Include="TrippyGL" Version="1.2.2"/>
-<!--        <PackageReference Include="System.Text.Json" Version="10.0.0"/>-->
+        <!--        <PackageReference Include="System.Text.Json" Version="10.0.0"/>-->
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
     </ItemGroup>
 
-   
-    
 
 </Project>

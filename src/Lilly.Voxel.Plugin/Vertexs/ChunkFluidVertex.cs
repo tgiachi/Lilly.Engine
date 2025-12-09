@@ -17,7 +17,8 @@ public struct ChunkFluidVertex : IVertex
         Vector2 tileBase,
         Vector2 tileSize,
         float direction,
-        float top)
+        float top
+    )
     {
         Position = position;
         Color = color;
@@ -43,24 +44,24 @@ public struct ChunkFluidVertex : IVertex
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
     {
         // Position: vec3 (3 floats)
-        descriptions[0] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[0] = new(AttributeType.FloatVec3);
 
         // Color: vec4 (4 unsigned bytes, normalized)
-        descriptions[1] = new VertexAttribDescription(AttributeType.FloatVec4, normalized: true, dataBaseType: AttributeBaseType.UnsignedByte);
+        descriptions[1] = new(AttributeType.FloatVec4, true, AttributeBaseType.UnsignedByte);
 
         // TexCoord: vec2 (2 floats)
-        descriptions[2] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[2] = new(AttributeType.FloatVec2);
 
         // TileBase: vec2 (2 floats)
-        descriptions[3] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[3] = new(AttributeType.FloatVec2);
 
         // TileSize: vec2 (2 floats)
-        descriptions[4] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[4] = new(AttributeType.FloatVec2);
 
         // Direction: float (1 float)
-        descriptions[5] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[5] = new(AttributeType.Float);
 
         // Top: float (1 float)
-        descriptions[6] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[6] = new(AttributeType.Float);
     }
 }

@@ -1,6 +1,5 @@
-using System.Numerics;
 using System.Buffers;
-using System.Runtime.CompilerServices;
+using System.Numerics;
 using Lilly.Rendering.Core.Exceptions;
 using Silk.NET.OpenGL;
 
@@ -23,17 +22,22 @@ public class LillyShader : IDisposable
             File.ReadAllText(fragmentPath),
             vertexPath,
             fragmentPath
-        )
-    { }
+        ) { }
 
-    public LillyShader(GL gl, string vertexSource, string fragmentSource, string? vertexLabel = null, string? fragmentLabel = null)
+    public LillyShader(
+        GL gl,
+        string vertexSource,
+        string fragmentSource,
+        string? vertexLabel = null,
+        string? fragmentLabel = null
+    )
     {
         this.gl = gl;
         _vertexLabel = vertexLabel ?? "vertex_shader";
         _fragmentLabel = fragmentLabel ?? "fragment_shader";
 
-        uint vertex = LoadShaderSource(ShaderType.VertexShader, vertexSource, _vertexLabel);
-        uint fragment = LoadShaderSource(ShaderType.FragmentShader, fragmentSource, _fragmentLabel);
+        var vertex = LoadShaderSource(ShaderType.VertexShader, vertexSource, _vertexLabel);
+        var fragment = LoadShaderSource(ShaderType.FragmentShader, fragmentSource, _fragmentLabel);
         Handle = this.gl.CreateProgram();
         this.gl.AttachShader(Handle, vertex);
         this.gl.AttachShader(Handle, fragment);
@@ -51,24 +55,41 @@ public class LillyShader : IDisposable
         this.gl.DeleteShader(fragment);
     }
 
-    public void Use()
-    {
-        gl.UseProgram(Handle);
-    }
-
-    public uint GetUniformBlockIndex(string name)
-    {
-        return gl.GetUniformBlockIndex(Handle, name);
-    }
-
     public void BindUniformBlock(string name, uint bindingIndex)
     {
         var blockIndex = gl.GetUniformBlockIndex(Handle, name);
 
         if (blockIndex == uint.MaxValue)
+        {
             throw new UniformNotFoundException(name);
+        }
 
         gl.UniformBlockBinding(Handle, blockIndex, bindingIndex);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    public uint GetUniformBlockIndex(string name)
+        => gl.GetUniformBlockIndex(Handle, name);
+
+    public int GetUniformLocation(string name)
+    {
+        if (!uniformLocations.TryGetValue(name, out var location))
+        {
+            location = gl.GetUniformLocation(Handle, name);
+
+            if (location == -1)
+            {
+                throw new UniformNotFoundException(name);
+            }
+            uniformLocations.Add(name, location);
+        }
+
+        return uniformLocations[name];
     }
 
     public void SetUniform(string name, int value)
@@ -88,8 +109,12 @@ public class LillyShader : IDisposable
 
     public void SetUniform(string name, ReadOnlySpan<int> values)
     {
-        if (values.IsEmpty) return;
+        if (values.IsEmpty)
+        {
+            return;
+        }
         var location = GetUniformLocation(name);
+
         unsafe
         {
             fixed (int* ptr = values)
@@ -101,8 +126,12 @@ public class LillyShader : IDisposable
 
     public void SetUniform(string name, ReadOnlySpan<float> values)
     {
-        if (values.IsEmpty) return;
+        if (values.IsEmpty)
+        {
+            return;
+        }
         var location = GetUniformLocation(name);
+
         unsafe
         {
             fixed (float* ptr = values)
@@ -121,28 +150,15 @@ public class LillyShader : IDisposable
     public void SetUniform(string name, ReadOnlySpan<Vector4> values)
         => SetUniformVectorArray(name, values, 4);
 
-    public int GetUniformLocation(string name)
-    {
-        if (!uniformLocations.TryGetValue(name, out var location))
-        {
-            location = gl.GetUniformLocation(Handle, name);
-
-            if (location == -1)
-            {
-                throw new UniformNotFoundException(name);
-            }
-            uniformLocations.Add(name, location);
-        }
-
-        return uniformLocations[name];
-    }
-
     public unsafe void SetUniform(string name, Matrix4x4 value)
         => gl.UniformMatrix4(GetUniformLocation(name), 1, false, (float*)&value);
 
     public unsafe void SetUniform(string name, ReadOnlySpan<Matrix4x4> values)
     {
-        if (values.IsEmpty) return;
+        if (values.IsEmpty)
+        {
+            return;
+        }
         var location = GetUniformLocation(name);
 
         fixed (Matrix4x4* ptr = values)
@@ -157,10 +173,9 @@ public class LillyShader : IDisposable
     public void SetUniform(string name, Vector3 value)
         => gl.Uniform3(GetUniformLocation(name), value.X, value.Y, value.Z);
 
-    public void Dispose()
+    public void Use()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        gl.UseProgram(Handle);
     }
 
     protected void Dispose(bool disposing)
@@ -170,19 +185,62 @@ public class LillyShader : IDisposable
             if (disposing)
             {
                 if (Handle != 0)
+                {
                     gl.DeleteProgram(Handle);
+                }
             }
             disposed = true;
         }
     }
 
+    private static void FillFlatten<T>(ReadOnlySpan<T> values, int componentsPerElement, Span<float> target)
+    {
+        switch (componentsPerElement)
+        {
+            case 2 when typeof(T) == typeof(Vector2):
+                for (var i = 0; i < values.Length; i++)
+                {
+                    var v = (Vector2)(object)values[i]!;
+                    target[i * 2 + 0] = v.X;
+                    target[i * 2 + 1] = v.Y;
+                }
+
+                break;
+            case 3 when typeof(T) == typeof(Vector3):
+                for (var i = 0; i < values.Length; i++)
+                {
+                    var v = (Vector3)(object)values[i]!;
+                    target[i * 3 + 0] = v.X;
+                    target[i * 3 + 1] = v.Y;
+                    target[i * 3 + 2] = v.Z;
+                }
+
+                break;
+            case 4 when typeof(T) == typeof(Vector4):
+                for (var i = 0; i < values.Length; i++)
+                {
+                    var v = (Vector4)(object)values[i]!;
+                    target[i * 4 + 0] = v.X;
+                    target[i * 4 + 1] = v.Y;
+                    target[i * 4 + 2] = v.Z;
+                    target[i * 4 + 3] = v.W;
+                }
+
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported vector flatten of {typeof(T)} with {componentsPerElement} components."
+                );
+        }
+    }
+
     private uint LoadShaderSource(ShaderType type, string source, string label)
     {
-        uint handle = gl.CreateShader(type);
+        var handle = gl.CreateShader(type);
         gl.ShaderSource(handle, source);
         gl.CompileShader(handle);
         gl.GetShader(handle, GLEnum.CompileStatus, out var status);
-        string infoLog = gl.GetShaderInfoLog(handle);
+        var infoLog = gl.GetShaderInfoLog(handle);
 
         // Only fail on actual compile errors; non-empty log may contain warnings.
         if (status == 0)
@@ -196,16 +254,19 @@ public class LillyShader : IDisposable
     private unsafe void SetUniformVectorArray<T>(string name, ReadOnlySpan<T> values, int componentsPerElement)
         where T : struct
     {
-        if (values.IsEmpty) return;
+        if (values.IsEmpty)
+        {
+            return;
+        }
 
         var location = GetUniformLocation(name);
         var floatCount = values.Length * componentsPerElement;
 
         const int stackThreshold = 256;
         float[]? rented = null;
-        Span<float> buffer = floatCount <= stackThreshold
-            ? stackalloc float[stackThreshold]
-            : (rented = ArrayPool<float>.Shared.Rent(floatCount)).AsSpan(0, floatCount);
+        var buffer = floatCount <= stackThreshold
+                         ? stackalloc float[stackThreshold]
+                         : (rented = ArrayPool<float>.Shared.Rent(floatCount)).AsSpan(0, floatCount);
 
         var target = buffer[..floatCount];
         FillFlatten(values, componentsPerElement, target);
@@ -216,12 +277,15 @@ public class LillyShader : IDisposable
             {
                 case 2:
                     gl.Uniform2(location, (uint)values.Length, ptr);
+
                     break;
                 case 3:
                     gl.Uniform3(location, (uint)values.Length, ptr);
+
                     break;
                 case 4:
                     gl.Uniform4(location, (uint)values.Length, ptr);
+
                     break;
                 default:
                     throw new NotSupportedException($"Unsupported component count {componentsPerElement}.");
@@ -231,42 +295,6 @@ public class LillyShader : IDisposable
         if (rented is not null)
         {
             ArrayPool<float>.Shared.Return(rented);
-        }
-    }
-
-    private static void FillFlatten<T>(ReadOnlySpan<T> values, int componentsPerElement, Span<float> target)
-    {
-        switch (componentsPerElement)
-        {
-            case 2 when typeof(T) == typeof(Vector2):
-                for (int i = 0; i < values.Length; i++)
-                {
-                    var v = (Vector2)(object)values[i]!;
-                    target[(i * 2) + 0] = v.X;
-                    target[(i * 2) + 1] = v.Y;
-                }
-                break;
-            case 3 when typeof(T) == typeof(Vector3):
-                for (int i = 0; i < values.Length; i++)
-                {
-                    var v = (Vector3)(object)values[i]!;
-                    target[(i * 3) + 0] = v.X;
-                    target[(i * 3) + 1] = v.Y;
-                    target[(i * 3) + 2] = v.Z;
-                }
-                break;
-            case 4 when typeof(T) == typeof(Vector4):
-                for (int i = 0; i < values.Length; i++)
-                {
-                    var v = (Vector4)(object)values[i]!;
-                    target[(i * 4) + 0] = v.X;
-                    target[(i * 4) + 1] = v.Y;
-                    target[(i * 4) + 2] = v.Z;
-                    target[(i * 4) + 3] = v.W;
-                }
-                break;
-            default:
-                throw new NotSupportedException($"Unsupported vector flatten of {typeof(T)} with {componentsPerElement} components.");
         }
     }
 }

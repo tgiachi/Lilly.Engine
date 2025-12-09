@@ -14,7 +14,8 @@ public struct RainVertex : IVertex
         Vector3 position,
         Vector2 corner,
         float length,
-        float alpha)
+        float alpha
+    )
     {
         Position = position;
         Corner = corner;
@@ -34,15 +35,15 @@ public struct RainVertex : IVertex
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
     {
         // Position: vec3 (3 floats)
-        descriptions[0] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[0] = new(AttributeType.FloatVec3);
 
         // Corner: vec2 (2 floats) - Billboard corner coordinates (0-1)
-        descriptions[1] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[1] = new(AttributeType.FloatVec2);
 
         // Length: float (1 float) - Length of rain drop
-        descriptions[2] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[2] = new(AttributeType.Float);
 
         // Alpha: float (1 float) - Drop transparency
-        descriptions[3] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[3] = new(AttributeType.Float);
     }
 }

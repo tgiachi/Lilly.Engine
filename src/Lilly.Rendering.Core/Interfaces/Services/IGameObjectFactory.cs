@@ -25,6 +25,13 @@ public interface IGameObjectFactory
     IGameObject Create(Type type);
 
     /// <summary>
+    /// Destroys the specified game object instance.
+    /// </summary>
+    /// <param name="gameObject"></param>
+    /// <typeparam name="TGameObject"></typeparam>
+    void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject;
+
+    /// <summary>
     /// Determines whether a game object type is registered in the factory.
     /// </summary>
     /// <typeparam name="TGameObject">The game object type to check.</typeparam>
@@ -37,11 +44,4 @@ public interface IGameObjectFactory
     /// <param name="type">The game object type to check.</param>
     /// <returns>True if the game object type is registered; otherwise, false.</returns>
     bool IsRegistered(Type type);
-
-    /// <summary>
-    ///  Destroys the specified game object instance.
-    /// </summary>
-    /// <param name="gameObject"></param>
-    /// <typeparam name="TGameObject"></typeparam>
-    void Destroy<TGameObject>(TGameObject gameObject) where TGameObject : class, IGameObject;
 }

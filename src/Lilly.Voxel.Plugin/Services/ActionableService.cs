@@ -33,11 +33,27 @@ public class ActionableService : IActionableService
         _mainThreadDispatcher = mainThreadDispatcher;
     }
 
-    public bool TryGetInstance(Vector3 worldPos, out BlockInstance inst)
+    public void AddActionListener(IActionableListener listener)
     {
-        inst = null!;
+        if (!_listeners.TryGetValue(listener.EventType, out var value))
+        {
+            value = new();
+            _listeners[listener.EventType] = value;
+        }
 
-        return TryResolve(worldPos, out var chunk, out var localIndex) && chunk.TryGetActionable(localIndex, out inst);
+        value.Add(listener);
+    }
+
+    public void Handle(ActionEventContext ctx)
+    {
+        var instance = ctx.Instance;
+
+        if (instance is null && !TryGetInstance(ctx.WorldPosition, out instance))
+        {
+            return;
+        }
+
+        Dispatch(ctx with { Instance = instance });
     }
 
     public void OnPlace(Vector3 worldPos, ushort blockTypeId, BlockType type)
@@ -68,16 +84,11 @@ public class ActionableService : IActionableService
         chunk.RemoveActionable(localIndex);
     }
 
-    public void Handle(ActionEventContext ctx)
+    public bool TryGetInstance(Vector3 worldPos, out BlockInstance inst)
     {
-        var instance = ctx.Instance;
+        inst = null!;
 
-        if (instance is null && !TryGetInstance(ctx.WorldPosition, out instance))
-        {
-            return;
-        }
-
-        Dispatch(ctx with { Instance = instance });
+        return TryResolve(worldPos, out var chunk, out var localIndex) && chunk.TryGetActionable(localIndex, out inst);
     }
 
     public void Update(GameTime gameTime)
@@ -102,17 +113,6 @@ public class ActionableService : IActionableService
                 Dispatch(ctx);
             }
         }
-    }
-
-    public void AddActionListener(IActionableListener listener)
-    {
-        if (!_listeners.TryGetValue(listener.EventType, out List<IActionableListener>? value))
-        {
-            value = new();
-            _listeners[listener.EventType] = value;
-        }
-
-        value.Add(listener);
     }
 
     private void Dispatch(ActionEventContext ctx)

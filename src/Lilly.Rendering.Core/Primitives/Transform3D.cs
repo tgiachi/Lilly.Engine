@@ -1,5 +1,4 @@
 using System.Numerics;
-using System;
 
 namespace Lilly.Rendering.Core.Primitives;
 
@@ -25,7 +24,10 @@ public class Transform3D
         get => _position;
         set
         {
-            if (_position == value) return;
+            if (_position == value)
+            {
+                return;
+            }
             _position = value;
             OnChanged();
         }
@@ -39,7 +41,10 @@ public class Transform3D
         get => _rotation;
         set
         {
-            if (_rotation == value) return;
+            if (_rotation == value)
+            {
+                return;
+            }
             _rotation = value;
             OnChanged();
         }
@@ -53,7 +58,10 @@ public class Transform3D
         get => _scale;
         set
         {
-            if (_scale == value) return;
+            if (_scale == value)
+            {
+                return;
+            }
             _scale = value;
             OnChanged();
         }
@@ -73,9 +81,8 @@ public class Transform3D
     }
 
     public override string ToString()
-    {
-        return $"Position: {Position}, Rotation: {Rotation}, Scale: {Scale}";
-    }
+        => $"Position: {Position}, Rotation: {Rotation}, Scale: {Scale}";
 
-    private void OnChanged() => Changed?.Invoke(this);
+    private void OnChanged()
+        => Changed?.Invoke(this);
 }

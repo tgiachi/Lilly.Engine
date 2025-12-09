@@ -10,7 +10,8 @@ internal sealed class JobHandle : IJobHandle
     private readonly ScheduledJob _job;
     private readonly TaskCompletionSource<bool> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public JobHandle(ScheduledJob job) => _job = job;
+    public JobHandle(ScheduledJob job)
+        => _job = job;
 
     public Task CompletionTask => _tcs.Task;
     public Guid Id => _job.Id;
@@ -18,11 +19,17 @@ internal sealed class JobHandle : IJobHandle
     public JobPriority Priority => _job.Priority;
     public bool IsCompleted => _tcs.Task.IsCompleted;
 
-    public bool Cancel() => _job.TryCancel();
+    public bool Cancel()
+        => _job.TryCancel();
 
-    internal void SetResult() => _tcs.TrySetResult(true);
-    internal void SetCanceled() => _tcs.TrySetCanceled();
-    internal void SetException(Exception ex) => _tcs.TrySetException(ex);
+    internal void SetCanceled()
+        => _tcs.TrySetCanceled();
+
+    internal void SetException(Exception ex)
+        => _tcs.TrySetException(ex);
+
+    internal void SetResult()
+        => _tcs.TrySetResult(true);
 }
 
 /// <summary>
@@ -34,7 +41,8 @@ internal sealed class JobHandle<TResult> : IJobHandle<TResult>
     private readonly ScheduledJob _job;
     private readonly TaskCompletionSource<TResult> _tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public JobHandle(ScheduledJob job) => _job = job;
+    public JobHandle(ScheduledJob job)
+        => _job = job;
 
     Task IJobHandle.CompletionTask => _tcs.Task.ContinueWith(object? (_) => null);
     public Task<TResult> CompletionTask => _tcs.Task;
@@ -43,9 +51,15 @@ internal sealed class JobHandle<TResult> : IJobHandle<TResult>
     public JobPriority Priority => _job.Priority;
     public bool IsCompleted => _tcs.Task.IsCompleted;
 
-    public bool Cancel() => _job.TryCancel();
+    public bool Cancel()
+        => _job.TryCancel();
 
-    internal void SetResult(TResult result) => _tcs.TrySetResult(result);
-    internal void SetCanceled() => _tcs.TrySetCanceled();
-    internal void SetException(Exception ex) => _tcs.TrySetException(ex);
+    internal void SetCanceled()
+        => _tcs.TrySetCanceled();
+
+    internal void SetException(Exception ex)
+        => _tcs.TrySetException(ex);
+
+    internal void SetResult(TResult result)
+        => _tcs.TrySetResult(result);
 }

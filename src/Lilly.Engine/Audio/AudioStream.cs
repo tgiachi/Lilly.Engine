@@ -1,8 +1,8 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
+using MP3Sharp;
 using NVorbis;
-using Silk.NET.Maths;
 using Silk.NET.OpenAL;
 
 namespace Lilly.Engine.Audio;
@@ -51,6 +51,160 @@ public class AudioStream : IDisposable
         alSource.QueueBuffers(buffers.ToArray());
     }
 
+    private interface IAudioDecoder : IDisposable
+    {
+        int Channels { get; }
+        int SampleRate { get; }
+        int ReadSamples(short[] buffer, int offset, int count);
+        void Reset();
+        void Seek(long samplePosition);
+    }
+
+    private sealed class OggDecoder : IAudioDecoder
+    {
+        private VorbisReader reader;
+        private readonly Func<Stream> streamFactory;
+
+        public OggDecoder(Stream stream, Func<Stream> streamFactory)
+        {
+            this.streamFactory = streamFactory;
+            reader = CreateReader(stream);
+        }
+
+        public int Channels => reader.Channels;
+        public int SampleRate => reader.SampleRate;
+
+        public void Dispose()
+        {
+            reader.Dispose();
+        }
+
+        public int ReadSamples(short[] buffer, int offset, int count)
+        {
+            var floatBuffer = ArrayPool<float>.Shared.Rent(count);
+            var read = reader.ReadSamples(floatBuffer, 0, count);
+
+            for (var i = 0; i < read; i++)
+            {
+                var sample = Math.Clamp(floatBuffer[i], -1.0f, 1.0f);
+                buffer[offset + i] = (short)(sample * short.MaxValue);
+            }
+
+            ArrayPool<float>.Shared.Return(floatBuffer);
+
+            return read;
+        }
+
+        public void Reset()
+        {
+            try
+            {
+                reader.SeekTo(0);
+            }
+            catch
+            {
+                reader.Dispose();
+                reader = CreateReader(streamFactory());
+            }
+        }
+
+        public void Seek(long samplePosition)
+        {
+            try
+            {
+                reader.SeekTo(samplePosition);
+            }
+            catch
+            {
+                Reset();
+            }
+        }
+
+        private static VorbisReader CreateReader(Stream stream)
+            => new(stream);
+    }
+
+    private sealed class Mp3Decoder : IAudioDecoder
+    {
+        private MP3Stream mp3Stream;
+        private Stream backingStream;
+        private readonly Func<Stream> streamFactory;
+        private byte[] byteBuffer = new byte[8192];
+
+        public Mp3Decoder(Stream stream, Func<Stream> streamFactory)
+        {
+            this.streamFactory = streamFactory;
+            backingStream = stream;
+            mp3Stream = new(backingStream);
+        }
+
+        public int Channels => mp3Stream.ChannelCount;
+        public int SampleRate => mp3Stream.Frequency;
+
+        public void Dispose()
+        {
+            mp3Stream.Dispose();
+            backingStream.Dispose();
+        }
+
+        public int ReadSamples(short[] buffer, int offset, int count)
+        {
+            var bytesNeeded = count * sizeof(short);
+
+            if (byteBuffer.Length < bytesNeeded)
+            {
+                byteBuffer = new byte[bytesNeeded];
+            }
+
+            var bytesRead = mp3Stream.Read(byteBuffer, 0, Math.Min(byteBuffer.Length, bytesNeeded));
+            var samplesRead = bytesRead / sizeof(short);
+
+            for (var i = 0; i < samplesRead; i++)
+            {
+                buffer[offset + i] =
+                    BinaryPrimitives.ReadInt16LittleEndian(byteBuffer.AsSpan(i * sizeof(short), sizeof(short)));
+            }
+
+            return samplesRead;
+        }
+
+        public void Reset()
+        {
+            mp3Stream.Dispose();
+            backingStream.Dispose();
+
+            backingStream = streamFactory();
+            mp3Stream = new(backingStream);
+        }
+
+        public void Seek(long samplePosition)
+        {
+            Reset();
+
+            if (samplePosition <= 0)
+            {
+                return;
+            }
+
+            var skipBuffer = ArrayPool<short>.Shared.Rent(4096);
+            var remaining = samplePosition;
+
+            while (remaining > 0)
+            {
+                var toRead = (int)Math.Min(remaining, skipBuffer.Length);
+                var read = ReadSamples(skipBuffer, 0, toRead);
+
+                if (read == 0)
+                {
+                    break;
+                }
+                remaining -= read;
+            }
+
+            ArrayPool<short>.Shared.Return(skipBuffer);
+        }
+    }
+
     public void Dispose()
     {
         if (disposed)
@@ -92,6 +246,63 @@ public class AudioStream : IDisposable
         decoder.Seek(i);
     }
 
+    /// <summary>
+    /// Sets whether the audio stream loops.
+    /// </summary>
+    public void SetLooping(bool looping)
+    {
+        loop = looping;
+    }
+
+    /// <summary>
+    /// Sets the maximum distance at which the stream can be heard.
+    /// </summary>
+    public void SetMaxDistance(float distance)
+    {
+        alSource.SetMaxDistance(distance);
+    }
+
+    /// <summary>
+    /// Sets the 3D position of the audio stream.
+    /// </summary>
+    public void SetPosition(Vector3 position)
+    {
+        alSource.SetPosition(new(position.X, position.Y, position.Z));
+    }
+
+    /// <summary>
+    /// Sets the reference distance for 3D audio (distance at which volume = 100%).
+    /// </summary>
+    public void SetReferenceDistance(float distance)
+    {
+        alSource.SetReferenceDistance(distance);
+    }
+
+    /// <summary>
+    /// Sets the rolloff factor (how quickly volume decreases with distance).
+    /// Default is 1.0. Higher values = faster volume decrease.
+    /// </summary>
+    public void SetRolloffFactor(float rolloff)
+    {
+        alSource.SetRolloffFactor(rolloff);
+    }
+
+    /// <summary>
+    /// Sets the velocity of the audio stream (for Doppler effect).
+    /// </summary>
+    public void SetVelocity(Vector3 velocity)
+    {
+        alSource.SetVelocity(new(velocity.X, velocity.Y, velocity.Z));
+    }
+
+    /// <summary>
+    /// Sets the volume of the audio stream. Range: 0.0 to 1.0+
+    /// </summary>
+    public void SetVolume(float volume)
+    {
+        alSource.SetProperty(SourceFloat.Gain, Math.Max(0.0f, volume));
+    }
+
     public void Stop()
         => Dispose();
 
@@ -119,19 +330,20 @@ public class AudioStream : IDisposable
         }
     }
 
-    private static (Stream initialStream, Func<Stream> streamFactory) CreateStreamFactory(string source)
-    {
-        Func<Stream> fileFactory = () => File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return (fileFactory(), fileFactory);
-    }
-
     private static IAudioDecoder CreateDecoder(AudioType audioType, Stream initialStream, Func<Stream> streamFactory)
         => audioType switch
         {
             AudioType.Ogg => new OggDecoder(initialStream, streamFactory),
             AudioType.Mp3 => new Mp3Decoder(initialStream, streamFactory),
-            _ => throw new ArgumentOutOfRangeException(nameof(audioType), audioType, "Unsupported audio format"),
+            _             => throw new ArgumentOutOfRangeException(nameof(audioType), audioType, "Unsupported audio format")
         };
+
+    private static (Stream initialStream, Func<Stream> streamFactory) CreateStreamFactory(string source)
+    {
+        Func<Stream> fileFactory = () => File.Open(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        return (fileFactory(), fileFactory);
+    }
 
     private bool FillBufferWithSound(AlBuffer buffer, int channels, int sampleRate, BufferFormat format)
     {
@@ -149,6 +361,7 @@ public class AudioStream : IDisposable
         if (samplesRead == 0)
         {
             ArrayPool<short>.Shared.Return(readBuffer);
+
             return false;
         }
 
@@ -174,216 +387,5 @@ public class AudioStream : IDisposable
             Thread.Sleep(500);
         }
         Dispose();
-    }
-
-    /// <summary>
-    /// Sets the volume of the audio stream. Range: 0.0 to 1.0+
-    /// </summary>
-    public void SetVolume(float volume)
-    {
-        alSource.SetProperty(SourceFloat.Gain, Math.Max(0.0f, volume));
-    }
-
-    /// <summary>
-    /// Sets whether the audio stream loops.
-    /// </summary>
-    public void SetLooping(bool looping)
-    {
-        loop = looping;
-    }
-
-    /// <summary>
-    /// Sets the 3D position of the audio stream.
-    /// </summary>
-    public void SetPosition(Vector3 position)
-    {
-        alSource.SetPosition(new Vector3D<float>(position.X, position.Y, position.Z));
-    }
-
-    /// <summary>
-    /// Sets the reference distance for 3D audio (distance at which volume = 100%).
-    /// </summary>
-    public void SetReferenceDistance(float distance)
-    {
-        alSource.SetReferenceDistance(distance);
-    }
-
-    /// <summary>
-    /// Sets the maximum distance at which the stream can be heard.
-    /// </summary>
-    public void SetMaxDistance(float distance)
-    {
-        alSource.SetMaxDistance(distance);
-    }
-
-    /// <summary>
-    /// Sets the rolloff factor (how quickly volume decreases with distance).
-    /// Default is 1.0. Higher values = faster volume decrease.
-    /// </summary>
-    public void SetRolloffFactor(float rolloff)
-    {
-        alSource.SetRolloffFactor(rolloff);
-    }
-
-    /// <summary>
-    /// Sets the velocity of the audio stream (for Doppler effect).
-    /// </summary>
-    public void SetVelocity(Vector3 velocity)
-    {
-        alSource.SetVelocity(new Vector3D<float>(velocity.X, velocity.Y, velocity.Z));
-    }
-
-    private interface IAudioDecoder : IDisposable
-    {
-        int Channels { get; }
-        int SampleRate { get; }
-        int ReadSamples(short[] buffer, int offset, int count);
-        void Reset();
-        void Seek(long samplePosition);
-    }
-
-    private sealed class OggDecoder : IAudioDecoder
-    {
-        private VorbisReader reader;
-        private readonly Func<Stream> streamFactory;
-
-        public OggDecoder(Stream stream, Func<Stream> streamFactory)
-        {
-            this.streamFactory = streamFactory;
-            reader = CreateReader(stream);
-        }
-
-        public int Channels => reader.Channels;
-        public int SampleRate => reader.SampleRate;
-
-        public int ReadSamples(short[] buffer, int offset, int count)
-        {
-            var floatBuffer = ArrayPool<float>.Shared.Rent(count);
-            var read = reader.ReadSamples(floatBuffer, 0, count);
-
-            for (var i = 0; i < read; i++)
-            {
-                var sample = Math.Clamp(floatBuffer[i], -1.0f, 1.0f);
-                buffer[offset + i] = (short)(sample * short.MaxValue);
-            }
-
-            ArrayPool<float>.Shared.Return(floatBuffer);
-
-            return read;
-        }
-
-        public void Reset()
-        {
-            try
-            {
-                reader.SeekTo(0);
-                return;
-            }
-            catch
-            {
-                reader.Dispose();
-                reader = CreateReader(streamFactory());
-            }
-        }
-
-        public void Seek(long samplePosition)
-        {
-            try
-            {
-                reader.SeekTo(samplePosition);
-            }
-            catch
-            {
-                Reset();
-            }
-        }
-
-        public void Dispose()
-        {
-            reader.Dispose();
-        }
-
-        private static VorbisReader CreateReader(Stream stream)
-            => new(stream, closeOnDispose: true);
-    }
-
-    private sealed class Mp3Decoder : IAudioDecoder
-    {
-        private MP3Sharp.MP3Stream mp3Stream;
-        private Stream backingStream;
-        private readonly Func<Stream> streamFactory;
-        private byte[] byteBuffer = new byte[8192];
-
-        public Mp3Decoder(Stream stream, Func<Stream> streamFactory)
-        {
-            this.streamFactory = streamFactory;
-            backingStream = stream;
-            mp3Stream = new MP3Sharp.MP3Stream(backingStream);
-        }
-
-        public int Channels => mp3Stream.ChannelCount;
-        public int SampleRate => mp3Stream.Frequency;
-
-        public int ReadSamples(short[] buffer, int offset, int count)
-        {
-            var bytesNeeded = count * sizeof(short);
-
-            if (byteBuffer.Length < bytesNeeded)
-            {
-                byteBuffer = new byte[bytesNeeded];
-            }
-
-            var bytesRead = mp3Stream.Read(byteBuffer, 0, Math.Min(byteBuffer.Length, bytesNeeded));
-            var samplesRead = bytesRead / sizeof(short);
-
-            for (var i = 0; i < samplesRead; i++)
-            {
-                buffer[offset + i] = BinaryPrimitives.ReadInt16LittleEndian(byteBuffer.AsSpan(i * sizeof(short), sizeof(short)));
-            }
-
-            return samplesRead;
-        }
-
-        public void Reset()
-        {
-            mp3Stream.Dispose();
-            backingStream.Dispose();
-
-            backingStream = streamFactory();
-            mp3Stream = new MP3Sharp.MP3Stream(backingStream);
-        }
-
-        public void Seek(long samplePosition)
-        {
-            Reset();
-
-            if (samplePosition <= 0)
-            {
-                return;
-            }
-
-            var skipBuffer = ArrayPool<short>.Shared.Rent(4096);
-            var remaining = samplePosition;
-
-            while (remaining > 0)
-            {
-                var toRead = (int)Math.Min(remaining, skipBuffer.Length);
-                var read = ReadSamples(skipBuffer, 0, toRead);
-
-                if (read == 0)
-                {
-                    break;
-                }
-                remaining -= read;
-            }
-
-            ArrayPool<short>.Shared.Return(skipBuffer);
-        }
-
-        public void Dispose()
-        {
-            mp3Stream.Dispose();
-            backingStream.Dispose();
-        }
     }
 }

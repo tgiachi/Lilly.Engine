@@ -6,13 +6,10 @@ namespace Lilly.Physics.Plugin.Debuggers;
 
 public class PhysicWorldDebugger : BaseImGuiDebuggerGameObject
 {
-
     private readonly IPhysicWorld3d _physicWorld3d;
 
     public PhysicWorldDebugger(IPhysicWorld3d physicWorld3d) : base("Physic world Debugger")
-    {
-        _physicWorld3d = physicWorld3d;
-    }
+        => _physicWorld3d = physicWorld3d;
 
     protected override void DrawDebug()
     {
@@ -36,6 +33,7 @@ public class PhysicWorldDebugger : BaseImGuiDebuggerGameObject
 
         // Gravity edit
         var gravityVec = stats.Gravity;
+
         if (ImGui.InputFloat3("Gravity", ref gravityVec, "%.2f"))
         {
             _physicWorld3d.SetGravity(gravityVec);

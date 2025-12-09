@@ -1,11 +1,10 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.GameObjects.UI.Theme;
-using Lilly.Engine.GameObjects.Utils;
 using Lilly.Engine.GameObjects.Base;
-using Lilly.Engine.Utils;
+using Lilly.Engine.GameObjects.UI.Theme;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Rendering.Core.Interfaces.Services;
+using Lilly.Engine.Utils;
 using Lilly.Rendering.Core.Interfaces.Input;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Utils;
@@ -266,7 +265,7 @@ public class TextEditGameObject : Base2dGameObject, IInputReceiver
         var borderColor = HasFocus ? Theme.BorderColorFocused : Theme.BorderColor;
         SpriteBatcher.DrawHollowRectangle(
             Transform.Position,
-            new Vector2(Transform.Size.X, Transform.Size.Y),
+            new(Transform.Size.X, Transform.Size.Y),
             borderColor,
             Theme.BorderThickness
         );

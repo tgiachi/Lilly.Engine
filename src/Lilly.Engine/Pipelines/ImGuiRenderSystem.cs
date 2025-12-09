@@ -22,8 +22,15 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
     /// </summary>
     /// <param name="renderContext">The render context.</param>
     public ImGuiRenderSystem(RenderContext renderContext) : base("ImGUI", RenderPriority.Debug)
+        => _renderContext = renderContext;
+
+    /// <summary>
+    /// Disposes the ImGui controller.
+    /// </summary>
+    public void Dispose()
     {
-        _renderContext = renderContext;
+        _imGuiController.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -31,7 +38,7 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
     /// </summary>
     public override void Initialize()
     {
-        _imGuiController = new ImGuiController(_renderContext.OpenGl, _renderContext.Window, _renderContext.Input);
+        _imGuiController = new(_renderContext.OpenGl, _renderContext.Window, _renderContext.Input);
 
         base.Initialize();
     }
@@ -46,9 +53,10 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
         _imGuiController.Update((float)gameTime.ElapsedGameTime);
 
         ProcessedEntityCount = 0;
+
         foreach (var debugger in Entities)
         {
-            ProcessedEntityCount ++;
+            ProcessedEntityCount++;
             ImGui.Begin(debugger.Title);
             debugger.Draw();
             ImGui.End();
@@ -60,20 +68,10 @@ public class ImGuiRenderSystem : BaseRenderLayer<IImGuiDebugger>, IDisposable
 
         _imGuiController.Render();
 
-
         _renderContext.GraphicsDevice.DepthTestingEnabled = true;
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         base.Render(gameTime);
 
         EndUpdateTimer();
-    }
-
-    /// <summary>
-    /// Disposes the ImGui controller.
-    /// </summary>
-    public void Dispose()
-    {
-        _imGuiController.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

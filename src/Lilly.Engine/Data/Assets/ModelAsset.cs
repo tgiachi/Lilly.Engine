@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Numerics;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Primitives;

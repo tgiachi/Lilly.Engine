@@ -1,4 +1,3 @@
-using FontStashSharp;
 using Lilly.Engine.Interfaces.Services;
 using Silk.NET.Maths;
 

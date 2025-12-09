@@ -22,8 +22,18 @@ public class WindowModule
     /// <returns>The current window title.</returns>
     [ScriptFunction("get_title", "Gets the title of the application window.")]
     public string GetTitle()
+        => _renderContext.Window.Title;
+
+    [ScriptFunction("set_refresh_rate", "Sets the refresh rate of the application window.")]
+    public void SetRefreshRate(int refreshRate)
     {
-        return _renderContext.Window.Title;
+        _mainThreadDispatcher.EnqueueAction(
+            () =>
+            {
+                _renderContext.Window.FramesPerSecond = refreshRate;
+                _renderContext.Window.UpdatesPerSecond = refreshRate;
+            }
+        );
     }
 
     [ScriptFunction("set_title", "Sets the title of the application window.")]
@@ -44,18 +54,6 @@ public class WindowModule
             () =>
             {
                 _renderContext.Window.VSync = vSync;
-            }
-        );
-    }
-
-    [ScriptFunction("set_refresh_rate", "Sets the refresh rate of the application window.")]
-    public void SetRefreshRate(int refreshRate)
-    {
-        _mainThreadDispatcher.EnqueueAction(
-            () =>
-            {
-                _renderContext.Window.FramesPerSecond = refreshRate;
-                _renderContext.Window.UpdatesPerSecond = refreshRate;
             }
         );
     }

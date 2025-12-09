@@ -17,9 +17,7 @@ public class BlockTextureSet
     public BlockTextureSet() { }
 
     public BlockTextureSet(BlockTextureObject allFaces)
-    {
-        Top = Bottom = Left = Right = Front = Back = Front = Back = allFaces;
-    }
+        => Top = Bottom = Left = Right = Front = Back = Front = Back = allFaces;
 
     public BlockTextureSet(
         BlockTextureObject top,

@@ -14,7 +14,8 @@ public struct SnowVertex : IVertex
         Vector3 position,
         Vector2 corner,
         float size,
-        float alpha)
+        float alpha
+    )
     {
         Position = position;
         Corner = corner;
@@ -34,15 +35,15 @@ public struct SnowVertex : IVertex
     public void WriteAttribDescriptions(Span<VertexAttribDescription> descriptions)
     {
         // Position: vec3 (3 floats)
-        descriptions[0] = new VertexAttribDescription(AttributeType.FloatVec3);
+        descriptions[0] = new(AttributeType.FloatVec3);
 
         // Corner: vec2 (2 floats) - Billboard corner coordinates (0-1)
-        descriptions[1] = new VertexAttribDescription(AttributeType.FloatVec2);
+        descriptions[1] = new(AttributeType.FloatVec2);
 
         // Size: float (1 float) - Particle size
-        descriptions[2] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[2] = new(AttributeType.Float);
 
         // Alpha: float (1 float) - Particle transparency
-        descriptions[3] = new VertexAttribDescription(AttributeType.Float);
+        descriptions[3] = new(AttributeType.Float);
     }
 }

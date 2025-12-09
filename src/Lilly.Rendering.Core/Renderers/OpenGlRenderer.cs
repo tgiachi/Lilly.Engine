@@ -19,14 +19,6 @@ public class OpenGlRenderer : IGraphicRenderer
     private readonly RenderContext _renderContext = new();
     private readonly GameTime _gameTime = new();
 
-    public void Run()
-    {
-        _logger.Information("Starting render loop");
-        _renderContext.Window.Run();
-
-        _renderContext.Window.Dispose();
-    }
-
     public event IGraphicRenderer.RenderDelegate? OnRender;
     public event IGraphicRenderer.UpdateDelegate? OnUpdate;
     public event IGraphicRenderer.ResizeDelegate? OnResize;
@@ -57,10 +49,25 @@ public class OpenGlRenderer : IGraphicRenderer
         _renderContext.Window.Closing += WindowOnClosing;
     }
 
+    public void Run()
+    {
+        _logger.Information("Starting render loop");
+        _renderContext.Window.Run();
+
+        _renderContext.Window.Dispose();
+    }
+
     private void WindowOnClosing()
     {
         _logger.Information("Window is closing");
         OnClosing?.Invoke();
+    }
+
+    private void WindowOnFramebufferResize(Vector2D<int> obj)
+    {
+        _renderContext.OpenGl.Viewport(0, 0, (uint)obj.X, (uint)obj.Y);
+        _logger.Information("Window resized to {Width}x{Height}", obj.X, obj.Y);
+        OnResize?.Invoke(obj.X, obj.Y);
     }
 
     private void WindowOnLoad()
@@ -106,12 +113,5 @@ public class OpenGlRenderer : IGraphicRenderer
     {
         _gameTime.Update(obj);
         OnUpdate?.Invoke(_gameTime);
-    }
-
-    private void WindowOnFramebufferResize(Vector2D<int> obj)
-    {
-        _renderContext.OpenGl.Viewport(0, 0, (uint)obj.X, (uint)obj.Y);
-        _logger.Information("Window resized to {Width}x{Height}", obj.X, obj.Y);
-        OnResize?.Invoke(obj.X, obj.Y);
     }
 }

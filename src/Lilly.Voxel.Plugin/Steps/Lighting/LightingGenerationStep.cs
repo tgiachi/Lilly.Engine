@@ -11,15 +11,15 @@ public class LightingGenerationStep : IGeneratorStep
     public string Name => "Lighting Generation";
 
     public LightingGenerationStep(ChunkLightPropagationService lightService)
-    {
-        _lightService = lightService;
-    }
+        => _lightService = lightService;
 
     public Task ExecuteAsync(IGeneratorContext context)
     {
         var generatorContext = (GeneratorContext)context;
+
         // Execute lighting calculation on the chunk
         _lightService.PropagateLight(generatorContext.Chunk);
+
         return Task.CompletedTask;
     }
 }

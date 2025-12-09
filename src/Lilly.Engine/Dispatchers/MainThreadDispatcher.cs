@@ -85,7 +85,7 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
     {
         ArgumentNullException.ThrowIfNull(action);
 
-        _actionQueue.Enqueue(new NamedAction("Unnamed Action", action));
+        _actionQueue.Enqueue(new("Unnamed Action", action));
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class MainThreadDispatcher : IMainThreadDispatcher, IDisposable
         ArgumentNullException.ThrowIfNull(action);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        _actionQueue.Enqueue(new NamedAction(name.ToSnakeCase(), action));
+        _actionQueue.Enqueue(new(name.ToSnakeCase(), action));
     }
 
     /// <summary>

@@ -54,7 +54,7 @@ public class FollowCamera : Base3dCamera
         Name = name;
 
         // Default: follow from behind and above
-        _offset = new Vector3(0, FollowHeight, _followDistance);
+        _offset = new(0, FollowHeight, _followDistance);
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public class FollowCamera : Base3dCamera
     {
         var x = FollowDistance * MathF.Sin(angleY);
         var z = FollowDistance * MathF.Cos(angleY);
-        _offset = new Vector3(x, height, z);
+        _offset = new(x, height, z);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public class FollowCamera : Base3dCamera
     {
         FollowDistance = distance;
         FollowHeight = height;
-        _offset = new Vector3(_offset.X, height, distance);
+        _offset = new(_offset.X, height, distance);
     }
 
     /// <summary>
@@ -104,6 +104,6 @@ public class FollowCamera : Base3dCamera
         Position = Vector3.Lerp(Position, targetCameraPosition, lerpFactor);
 
         // Always look at the target
-        LookAt(TargetPosition, new Vector3(0, 1, 0));
+        LookAt(TargetPosition, new(0, 1, 0));
     }
 }

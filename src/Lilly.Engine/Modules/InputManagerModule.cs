@@ -349,12 +349,6 @@ public class InputManagerModule
         _inputManager.IsMouseVisible = false;
     }
 
-    [ScriptFunction("release_mouse", "Releases the mouse cursor and makes it visible.")]
-    public void ReleaseMouse()
-    {
-        _inputManager.IsMouseVisible = true;
-    }
-
     /// <summary>
     /// Checks if a key is currently down.
     /// </summary>
@@ -377,6 +371,12 @@ public class InputManagerModule
     [ScriptFunction("is_mouse_visible", "Checks if the mouse cursor is visible.")]
     public bool IsMouseVisible()
         => _inputManager.IsMouseVisible;
+
+    [ScriptFunction("release_mouse", "Releases the mouse cursor and makes it visible.")]
+    public void ReleaseMouse()
+    {
+        _inputManager.IsMouseVisible = true;
+    }
 
     /// <summary>
     /// Sets the current input context.
@@ -402,12 +402,6 @@ public class InputManagerModule
         _inputManager.IsMouseVisible = true;
     }
 
-    [ScriptFunction("toggle_mouse", "Sets the mouse cursor visibility.")]
-    public void ToggleMouseVisibility()
-    {
-        _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
-    }
-
     [ScriptFunction("test_key_name", "Tests if a key name is valid and returns debug info.")]
     public string TestKeyName(string keyName)
     {
@@ -417,6 +411,12 @@ public class InputManagerModule
         }
 
         return $"Invalid key name: '{keyName}'. Try: Space, ShiftLeft, ControlLeft, etc.";
+    }
+
+    [ScriptFunction("toggle_mouse", "Sets the mouse cursor visibility.")]
+    public void ToggleMouseVisibility()
+    {
+        _inputManager.IsMouseVisible = !_inputManager.IsMouseVisible;
     }
 
     /// <summary>

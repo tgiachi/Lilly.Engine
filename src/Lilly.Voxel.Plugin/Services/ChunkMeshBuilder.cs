@@ -51,7 +51,7 @@ public sealed class ChunkMeshBuilder
 
         if (chunk.BlockCount == 0)
         {
-            return new ChunkMeshData(); // Return empty mesh immediately
+            return new(); // Return empty mesh immediately
         }
 
         try
@@ -186,7 +186,11 @@ public sealed class ChunkMeshBuilder
         var baseIndex = vertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.BillboardTextureHandle, ref context.BillboardAtlasName);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(
+            blockTexture,
+            ref context.BillboardTextureHandle,
+            ref context.BillboardAtlasName
+        );
 
         var t0 = new Vector2(0f, 1f);
         var t1 = new Vector2(1f, 1f);
@@ -249,7 +253,11 @@ public sealed class ChunkMeshBuilder
         var baseIndex = vertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(face);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.FluidTextureHandle, ref context.FluidAtlasName);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(
+            blockTexture,
+            ref context.FluidTextureHandle,
+            ref context.FluidAtlasName
+        );
 
         Vector3 v0,
                 v1,
@@ -440,7 +448,11 @@ public sealed class ChunkMeshBuilder
         t3.Y = 1f - t3.Y;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(face);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.SolidTextureHandle, ref context.SolidAtlasName);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(
+            blockTexture,
+            ref context.SolidTextureHandle,
+            ref context.SolidAtlasName
+        );
         var baseIndex = vertices.Count;
 
         vertices.Add(new(v0, lighting, t0, tileBase, tileSize, blockCoord));
@@ -489,7 +501,11 @@ public sealed class ChunkMeshBuilder
         var baseIndex = context.ItemVertices.Count;
 
         var blockTexture = blockType.TextureSet.GetTextureForFace(BlockFace.Front);
-        var (tileBase, tileSize) = GetAtlasRegionForTexture(blockTexture, ref context.ItemTextureHandle, ref context.ItemAtlasName);
+        var (tileBase, tileSize) = GetAtlasRegionForTexture(
+            blockTexture,
+            ref context.ItemTextureHandle,
+            ref context.ItemAtlasName
+        );
 
         Span<Vector2> offsets = stackalloc Vector2[4]
         {
@@ -554,7 +570,14 @@ public sealed class ChunkMeshBuilder
         ProcessWidthAlignedFaces(chunk, neighbors, BlockFace.Left, context);
     }
 
-    private Color4b CalculateLighting(ChunkEntity chunk, in NeighborChunkCache neighbors, int x, int y, int z, BlockFace face)
+    private Color4b CalculateLighting(
+        ChunkEntity chunk,
+        in NeighborChunkCache neighbors,
+        int x,
+        int y,
+        int z,
+        BlockFace face
+    )
     {
         var neighborChunk = neighbors.Get(face);
         var lighting = _lightingService.CalculateFaceColor(chunk, neighborChunk, x, y, z, face);

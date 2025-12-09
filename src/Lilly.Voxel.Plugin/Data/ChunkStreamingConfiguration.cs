@@ -7,9 +7,8 @@ namespace Lilly.Voxel.Plugin.Data;
 /// </summary>
 public class ChunkStreamingConfiguration
 {
-
     /// <summary>
-    ///  Maximum number of chunks to keep cached in memory.
+    /// Maximum number of chunks to keep cached in memory.
     /// </summary>
     public int MaxCacheSizeChunks { get; set; } = 256;
 

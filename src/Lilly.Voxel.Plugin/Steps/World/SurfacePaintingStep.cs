@@ -14,7 +14,7 @@ public class SurfacePaintingStep : IGeneratorStep
     private readonly ushort _dirtId;
     private readonly ushort _grassId;
     private readonly ushort _waterId;
-    
+
     // Biome blocks
     private readonly ushort _sandId;
     private readonly ushort _sandstoneId;
@@ -38,7 +38,7 @@ public class SurfacePaintingStep : IGeneratorStep
         _dirtId = ResolveBlock(blockRegistry, "dirt", blockRegistry.Air.Id);
         _grassId = ResolveBlock(blockRegistry, "grass", blockRegistry.Air.Id);
         _waterId = ResolveBlock(blockRegistry, "water", blockRegistry.Air.Id);
-        
+
         _sandId = ResolveBlock(blockRegistry, "sand", _dirtId);
         _sandstoneId = ResolveBlock(blockRegistry, "sandstone", _stoneId);
         _snowId = ResolveBlock(blockRegistry, "snow", _grassId);
@@ -53,31 +53,37 @@ public class SurfacePaintingStep : IGeneratorStep
         // Try get biome maps (optional)
         float[]? tempMap = null;
         float[]? humMap = null;
+
         if (context.CustomData.TryGetValue(GenerationKeys.TemperatureMap, out var tempObj))
+        {
             tempMap = tempObj as float[];
+        }
+
         if (context.CustomData.TryGetValue(GenerationKeys.HumidityMap, out var humObj))
+        {
             humMap = humObj as float[];
+        }
 
         var chunk = context.Chunk;
         var chunkSize = ChunkEntity.Size;
         var chunkBaseY = (int)context.WorldPosition.Y;
-        
+
         // 1. Scan the chunk columns to find surface blocks
         for (var z = 0; z < chunkSize; z++)
         {
             for (var x = 0; x < chunkSize; x++)
             {
                 var index = z * chunkSize + x;
-                
-                // Get biome info
-                float temp = tempMap != null ? tempMap[index] : 0.5f;
-                float hum = humMap != null ? humMap[index] : 0.5f;
 
-                ushort topBlock = _grassId;
-                ushort subBlock = _dirtId;
-                bool isDesert = temp > 0.75f && hum < 0.3f;
-                bool isCold = temp < 0.25f;
-                bool isBeach = false; // Will calculate based on height later
+                // Get biome info
+                var temp = tempMap != null ? tempMap[index] : 0.5f;
+                var hum = humMap != null ? humMap[index] : 0.5f;
+
+                var topBlock = _grassId;
+                var subBlock = _dirtId;
+                var isDesert = temp > 0.75f && hum < 0.3f;
+                var isCold = temp < 0.25f;
+                var isBeach = false; // Will calculate based on height later
 
                 if (isDesert)
                 {
@@ -93,22 +99,23 @@ public class SurfacePaintingStep : IGeneratorStep
                 // Iterate column from top down
                 // We only care about modifying the top-most solid blocks into soil/grass
                 // Optimization: Start from top of chunk
-                int soilRemaining = -1; // -1 means we haven't hit surface yet
+                var soilRemaining = -1; // -1 means we haven't hit surface yet
 
                 for (var y = ChunkEntity.Height - 1; y >= 0; y--)
                 {
                     var blockId = chunk.GetBlockFast(x, y, z);
-                    
+
                     // Skip Air or Water
                     if (blockId == 0 || blockId == _waterId || blockId == _iceId)
                     {
                         soilRemaining = -1; // Reset if we hit air (overhangs)
+
                         continue;
                     }
 
                     if (blockId == _stoneId)
                     {
-                        int worldY = chunkBaseY + y;
+                        var worldY = chunkBaseY + y;
 
                         // Check for beach (sand near water level)
                         if (!isDesert && !isCold && worldY >= _waterLevel - 2 && worldY <= _waterLevel + 1)
@@ -121,7 +128,7 @@ public class SurfacePaintingStep : IGeneratorStep
                         {
                             // Found surface stone
                             soilRemaining = _soilDepth;
-                            
+
                             // If underwater, don't place grass, place dirt/sand/gravel
                             if (worldY < _waterLevel)
                             {
@@ -149,6 +156,7 @@ public class SurfacePaintingStep : IGeneratorStep
     private static ushort ResolveBlock(IBlockRegistry registry, string name, ushort fallback)
     {
         var block = registry.GetByName(name);
+
         return block == registry.Air ? fallback : block.Id;
     }
 }

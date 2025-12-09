@@ -407,7 +407,7 @@ internal sealed class KeyboardInputHandler
         // Update repeat timers for keys that should repeat
         foreach (var key in pressedKeys)
         {
-            if (_keyRepeatTimers.TryGetValue(key, out float lastRepeatTime))
+            if (_keyRepeatTimers.TryGetValue(key, out var lastRepeatTime))
             {
                 var pressDuration = _keyPressDuration[key];
 

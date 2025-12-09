@@ -1,7 +1,7 @@
 namespace Lilly.Engine.Attributes;
 
 /// <summary>
-///  Specifies a custom name for a vertex property in rendering contexts.
+/// Specifies a custom name for a vertex property in rendering contexts.
 /// </summary>
 /// <param name="name"></param>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]

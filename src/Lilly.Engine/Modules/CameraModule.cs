@@ -19,7 +19,10 @@ public class CameraModule
         _camera3dService.CurrentCamera?.Move(new(forward, right, up));
     }
 
-    [ScriptFunction("dispatch_keyboard_fps", "Dispatches keyboard input for FPS camera movement relative to camera orientation.")]
+    [ScriptFunction(
+        "dispatch_keyboard_fps",
+        "Dispatches keyboard input for FPS camera movement relative to camera orientation."
+    )]
     public void DispatchKeyboardFps(float forward, float right, float up)
     {
         if (_camera3dService.CurrentCamera is FPSCamera fpsCamera)
@@ -29,10 +32,15 @@ public class CameraModule
 
             // Strafing (right/left) movement is still projected onto the XZ plane for horizontal movement.
             var rightFlat = new Vector3(fpsCamera.Right.X, 0, fpsCamera.Right.Z);
+
             if (rightFlat.Length() > 0.0001f)
+            {
                 rightFlat = Vector3.Normalize(rightFlat);
+            }
             else
+            {
                 rightFlat = Vector3.Zero;
+            }
             var strafeMove = rightFlat * -right; // Inverted 'right' movement as previously corrected
 
             // Vertical movement is separate.
@@ -46,11 +54,10 @@ public class CameraModule
         }
     }
 
-
     [ScriptFunction("dispatch_mouse", "Dispatches mouse movement to the current camera for rotation.")]
     public void DispatchMouse(float yaw, float pitch, float roll)
     {
-        _camera3dService.CurrentCamera?.Rotate(pitch,yaw, roll);
+        _camera3dService.CurrentCamera?.Rotate(pitch, yaw, roll);
     }
 
     [ScriptFunction("dispatch_mouse_fps", "Dispatches mouse delta directly for FPS camera using Look method.")]

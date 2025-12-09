@@ -19,6 +19,12 @@ public class AssetsModule
         return fontName;
     }
 
+    [ScriptFunction("load_model", "Loads a 3D model from the specified file path and returns its name.")]
+    public void LoadModel(string modelName, string modelPath)
+    {
+        _assetManager.LoadModelFromFile(modelName, modelPath);
+    }
+
     [ScriptFunction("load_texture", "Loads a texture from the specified file path and returns its name.")]
     public string LoadTexture(string textureName, string texturePath)
     {
@@ -40,11 +46,5 @@ public class AssetsModule
         _assetManager.LoadTextureAtlasFromFile(atlasName, atlasPath, tileWidth, tileHeight, margin, spacing);
 
         return atlasName;
-    }
-
-    [ScriptFunction("load_model", "Loads a 3D model from the specified file path and returns its name.")]
-    public void LoadModel(string modelName, string modelPath)
-    {
-        _assetManager.LoadModelFromFile(modelName, modelPath);
     }
 }

@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Voxel.Plugin.Interfaces.Generation.Pipeline;
-using Lilly.Voxel.Plugin.Primitives;
 
 namespace Lilly.Voxel.Plugin.Steps;
 
@@ -24,7 +21,7 @@ public class FlatWorldGenerationStep : IGeneratorStep
         var chunkSize = context.ChunkSize();
         var chunkHeight = context.ChunkHeight();
         var chunkWorldY = (int)context.WorldPosition.Y;
-        
+
         // Define global surface height (World Y)
         const int SurfaceY = 15;
         const int DirtDepth = 3;
@@ -38,12 +35,15 @@ public class FlatWorldGenerationStep : IGeneratorStep
         var itemId = context.GetBlockIdByName("item_1");
 
         // Iterate through each vertical layer of the chunk
-        for (int y = 0; y < chunkHeight; y++)
+        for (var y = 0; y < chunkHeight; y++)
         {
-            int currentWorldY = chunkWorldY + y;
+            var currentWorldY = chunkWorldY + y;
 
             // Don't generate anything below world 0 (void)
-            if (currentWorldY < 0) continue;
+            if (currentWorldY < 0)
+            {
+                continue;
+            }
 
             ushort? blockToPlace = null;
 
@@ -76,13 +76,13 @@ public class FlatWorldGenerationStep : IGeneratorStep
 
         // Decorators (Flowers & Items) - placed at SurfaceY + 1
         // We only place them if this chunk contains the layer just above the surface
-        int decorationWorldY = SurfaceY + 1;
-        int localDecorationY = decorationWorldY - chunkWorldY;
+        var decorationWorldY = SurfaceY + 1;
+        var localDecorationY = decorationWorldY - chunkWorldY;
 
         if (localDecorationY >= 0 && localDecorationY < chunkHeight && grassId.HasValue)
         {
-             PlaceFlowers(context, localDecorationY, grassId.Value, flowerIds);
-             PlaceItem(context, localDecorationY, grassId.Value, itemId);
+            PlaceFlowers(context, localDecorationY, grassId.Value, flowerIds);
+            PlaceItem(context, localDecorationY, grassId.Value, itemId);
         }
 
         return Task.CompletedTask;
@@ -92,7 +92,7 @@ public class FlatWorldGenerationStep : IGeneratorStep
     {
         var ids = new List<ushort>();
 
-        for (int i = 1; i <= 8; i++)
+        for (var i = 1; i <= 8; i++)
         {
             var id = context.GetBlockIdByName($"flowers{i}");
 
@@ -107,7 +107,10 @@ public class FlatWorldGenerationStep : IGeneratorStep
 
     private static void PlaceFlowers(IGeneratorContext context, int y, ushort grassId, List<ushort> flowerIds)
     {
-        if (flowerIds.Count == 0) return;
+        if (flowerIds.Count == 0)
+        {
+            return;
+        }
 
         var chunk = context.GetChunk();
         var coordinates = chunk.ChunkCoordinates;
@@ -116,21 +119,25 @@ public class FlatWorldGenerationStep : IGeneratorStep
 
         const double flowerChance = 0.002; // 0.2% per grass column
 
-        for (int z = 0; z < context.ChunkSize(); z++)
+        for (var z = 0; z < context.ChunkSize(); z++)
         {
-            for (int x = 0; x < context.ChunkSize(); x++)
+            for (var x = 0; x < context.ChunkSize(); x++)
             {
                 if (random.NextDouble() > flowerChance)
+                {
                     continue;
+                }
 
                 // Check block below (y-1) to ensure it's grass
                 // Note: We need to be careful if y=0, checking y-1 would be out of bounds for this chunk.
                 // However, since we are strictly placing at SurfaceY+1, and SurfaceY is usually grass, 
                 // we can assume valid placement if the logic above is correct.
                 // But for safety/correctness, we should check the actual block if it's within bounds.
-                
+
                 if (y > 0 && chunk.GetBlock(x, y - 1, z) != grassId)
-                   continue;
+                {
+                    continue;
+                }
 
                 var flowerId = flowerIds[random.Next(flowerIds.Count)];
                 context.SetBlock(x, y, z, flowerId);
@@ -140,17 +147,20 @@ public class FlatWorldGenerationStep : IGeneratorStep
 
     private static void PlaceItem(IGeneratorContext context, int y, ushort grassId, ushort? itemId)
     {
-        if (!itemId.HasValue) return;
+        if (!itemId.HasValue)
+        {
+            return;
+        }
 
         var chunk = context.GetChunk();
         var coordinates = chunk.ChunkCoordinates;
         var randomSeed = HashCode.Combine(context.Seed, coordinates.X, coordinates.Y, coordinates.Z, 1337);
         var random = new Random(randomSeed);
 
-        for (int attempt = 0; attempt < 16; attempt++)
+        for (var attempt = 0; attempt < 16; attempt++)
         {
-            int x = random.Next(0, context.ChunkSize());
-            int z = random.Next(0, context.ChunkSize());
+            var x = random.Next(0, context.ChunkSize());
+            var z = random.Next(0, context.ChunkSize());
 
             if (y > 0 && chunk.GetBlock(x, y - 1, z) != grassId)
             {
@@ -163,6 +173,7 @@ public class FlatWorldGenerationStep : IGeneratorStep
             }
 
             context.SetBlock(x, y, z, itemId.Value);
+
             break;
         }
     }

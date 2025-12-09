@@ -26,11 +26,6 @@ public class Camera3dService : ICamera3dService
         _renderContext.Renderer.OnResize += RendererOnOnResize;
     }
 
-    private void RendererOnOnResize(int width, int height)
-    {
-        UpdateViewport(_renderContext.GraphicsDevice.Viewport);
-    }
-
     //private Viewport _currentViewport;
 
     /// <summary>
@@ -144,4 +139,8 @@ public class Camera3dService : ICamera3dService
         }
     }
 
+    private void RendererOnOnResize(int width, int height)
+    {
+        UpdateViewport(_renderContext.GraphicsDevice.Viewport);
+    }
 }

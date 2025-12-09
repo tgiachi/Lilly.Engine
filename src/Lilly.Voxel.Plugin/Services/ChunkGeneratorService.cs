@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Numerics;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Extensions;
@@ -51,7 +50,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     private long _cacheMisses;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ChunkGeneratorService"/> class.
+    /// Initializes a new instance of the <see cref="ChunkGeneratorService" /> class.
     /// </summary>
     /// <param name="timerService">Timer service for cache management.</param>
     /// <param name="blockRegistry">Block registry for chunk generation.</param>
@@ -70,7 +69,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
         // Initialize concurrency limit (cap at half logical cores to avoid pegging CPU)
         var maxConcurrentGenerations = Math.Max(1, Environment.ProcessorCount / 2);
-        _generationSemaphore = new SemaphoreSlim(maxConcurrentGenerations, maxConcurrentGenerations);
+        _generationSemaphore = new(maxConcurrentGenerations, maxConcurrentGenerations);
         _logger.Information(
             "Chunk generator initialized with max {MaxConcurrent} concurrent chunk generations",
             maxConcurrentGenerations
@@ -80,40 +79,132 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         InitializeNoiseGenerator();
 
         // Initialize cache with expiration time
-        _chunkCache = new ChunkCache(timerService, TimeSpan.FromMinutes(5), _config.MaxCacheSizeChunks);
+        _chunkCache = new(timerService, TimeSpan.FromMinutes(5), _config.MaxCacheSizeChunks);
         _logger.Information("Chunk cache initialized with {Minutes} minute expiration", 5);
     }
 
     /// <summary>
-    /// Initializes the noise generator with the current seed.
+    /// Gets the current number of cached chunks.
     /// </summary>
-    private void InitializeNoiseGenerator()
-    {
-        _noiseGenerator = new FastNoiseLite(Seed);
-        _noiseGenerator.SetNoiseType(NoiseType.Perlin);
+    public int CachedChunkCount => _chunkCache.Count;
 
-        // _noiseGenerator.SetFrequency((float)(Random.Shared.NextDouble() * 1000.0));
+    /// <summary>
+    /// Gets or sets the maximum number of cached chunks retained in memory.
+    /// </summary>
+    public int MaxCachedChunks
+    {
+        get => _config.MaxCacheSizeChunks;
+        set
+        {
+            var newValue = Math.Max(1, value);
+
+            if (_config.MaxCacheSizeChunks == newValue)
+            {
+                return;
+            }
+
+            _config.MaxCacheSizeChunks = newValue;
+            _chunkCache.SetCapacity(_config.MaxCacheSizeChunks);
+            _logger.Information("Chunk cache capacity updated to {Capacity}", _config.MaxCacheSizeChunks);
+        }
     }
 
     /// <summary>
-    /// Creates a thread-safe copy of the noise generator for parallel generation.
+    /// Adds a generation step to the pipeline.
     /// </summary>
-    /// <returns>A new FastNoiseLite instance with the same configuration.</returns>
-    private FastNoiseLite CreateNoiseGeneratorCopy()
+    /// <param name="generationStep">The generator step to add.</param>
+    public void AddGeneratorStep(IGeneratorStep generationStep)
     {
-        var copy = new FastNoiseLite(Seed);
-        copy.SetNoiseType(NoiseType.Perlin);
+        ArgumentNullException.ThrowIfNull(generationStep);
 
-        //copy.SetFrequency((float)(Random.Shared.NextDouble() * 1000.0));
-        //copy.SetFrequency(0.01f);
-        return copy;
+        _pipelineLock.EnterWriteLock();
+
+        try
+        {
+            _pipeline.Add(generationStep);
+            _logger.Information(
+                "Added generator step '{StepName}' to pipeline. Total steps: {Count}",
+                generationStep.Name,
+                _pipeline.Count
+            );
+        }
+        finally
+        {
+            _pipelineLock.ExitWriteLock();
+        }
     }
 
-    public bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk)
+    /// <summary>
+    /// Clears all cached chunks.
+    /// </summary>
+    public void ClearCache()
     {
-        var chunkPosition = ChunkUtils.NormalizeToChunkPosition(position);
+        _logger.Information("Clearing chunk cache");
+        _chunkCache.Clear();
+    }
 
-        return _chunkCache.TryGet(chunkPosition, out chunk);
+    /// <summary>
+    /// Clears all generator steps from the pipeline.
+    /// </summary>
+    public void ClearGeneratorSteps()
+    {
+        _pipelineLock.EnterWriteLock();
+
+        try
+        {
+            _pipeline.Clear();
+            _logger.Information("Cleared all generator steps from pipeline");
+        }
+        finally
+        {
+            _pipelineLock.ExitWriteLock();
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _chunkCache.Dispose();
+        _pipelineLock.Dispose();
+        _generationSemaphore.Dispose();
+
+        GC.SuppressFinalize(this);
+    }
+
+    public async Task GenerateInitialChunksAsync()
+    {
+        _logger.Information(
+            "Generating initial chunks with radius {Radius} around position {Position}",
+            _config.InitialChunkRadius,
+            _config.InitialPosition
+        );
+
+        // var chunksToGenerate = new List<Vector3>();
+
+        // // Normalize the initial position to chunk coordinates
+        var centerChunkPos = ChunkUtils.NormalizeToChunkPosition(_config.InitialPosition);
+
+        //
+        // // Calculate all chunk positions to generate in a radius around the initial position
+        // // Now including vertical layers (from minLayer to maxLayer)
+        for (var y = _config.InitialChunkMinLayer; y <= _config.InitialChunkMaxLayer; y++)
+        {
+            for (var x = -_config.InitialChunkRadius; x <= _config.InitialChunkRadius; x++)
+            {
+                for (var z = -_config.InitialChunkRadius; z <= _config.InitialChunkRadius; z++)
+                {
+                    var chunkPos = new Vector3(
+                        centerChunkPos.X + x * ChunkEntity.Size,
+                        centerChunkPos.Y + y * ChunkEntity.Height,
+                        centerChunkPos.Z + z * ChunkEntity.Size
+                    );
+
+                    //chunksToGenerate.Add(chunkPos);
+
+                    GetChunkByWorldPosition(chunkPos);
+                }
+            }
+        }
     }
 
     public IEnumerable<ChunkEntity> GetActiveChunks()
@@ -150,7 +241,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
     {
         var worldPosition = ChunkUtils.ChunkCoordinatesToWorldPosition(chunkX, chunkY, chunkZ);
 
-        return GetChunkByWorldPosition(new Vector3(worldPosition.X, worldPosition.Y, worldPosition.Z));
+        return GetChunkByWorldPosition(new(worldPosition.X, worldPosition.Y, worldPosition.Z));
     }
 
     public async Task<IEnumerable<ChunkEntity>> GetChunksByPositions(IEnumerable<Vector3> positions)
@@ -168,59 +259,97 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         return chunks;
     }
 
-    public async Task GenerateInitialChunksAsync()
+    /// <summary>
+    /// Gets all generator steps in the pipeline.
+    /// </summary>
+    public IReadOnlyList<IGeneratorStep> GetGeneratorSteps()
     {
-        _logger.Information(
-            "Generating initial chunks with radius {Radius} around position {Position}",
-            _config.InitialChunkRadius,
-            _config.InitialPosition
-        );
+        _pipelineLock.EnterReadLock();
 
-        // var chunksToGenerate = new List<Vector3>();
-
-        // // Normalize the initial position to chunk coordinates
-        var centerChunkPos = ChunkUtils.NormalizeToChunkPosition(_config.InitialPosition);
-
-        //
-        // // Calculate all chunk positions to generate in a radius around the initial position
-        // // Now including vertical layers (from minLayer to maxLayer)
-        for (int y = _config.InitialChunkMinLayer; y <= _config.InitialChunkMaxLayer; y++)
+        try
         {
-            for (int x = -_config.InitialChunkRadius; x <= _config.InitialChunkRadius; x++)
-            {
-                for (int z = -_config.InitialChunkRadius; z <= _config.InitialChunkRadius; z++)
-                {
-                    var chunkPos = new Vector3(
-                        centerChunkPos.X + (x * ChunkEntity.Size),
-                        centerChunkPos.Y + (y * ChunkEntity.Height),
-                        centerChunkPos.Z + (z * ChunkEntity.Size)
-                    );
-
-                    //chunksToGenerate.Add(chunkPos);
-
-                    GetChunkByWorldPosition(chunkPos);
-                }
-            }
+            return _pipeline.ToList().AsReadOnly();
         }
-
-
+        finally
+        {
+            _pipelineLock.ExitReadLock();
+        }
     }
 
-    private async Task<ChunkEntity> GenerateChunkWrap(Vector3 chunkPosition)
+    /// <summary>
+    /// Removes a generation step from the pipeline by name.
+    /// </summary>
+    /// <param name="stepName">The name of the step to remove.</param>
+    /// <returns>True if the step was removed; otherwise, false.</returns>
+    public bool RemoveGeneratorStep(string stepName)
     {
-        var shouldUseJobSystem = _useJobSystem;
+        _pipelineLock.EnterWriteLock();
 
-        if (shouldUseJobSystem)
+        try
         {
-            var handle = _jobSystemService.Schedule(
-                $"chunk_generation_{chunkPosition.ToHumanReadableString()}",
-                _ => GenerateChunkAsync(chunkPosition)
-            );
+            var step = _pipeline.FirstOrDefault(s => s.Name == stepName);
 
-            return await handle.CompletionTask;
+            if (step != null)
+            {
+                _pipeline.Remove(step);
+                _logger.Information(
+                    "Removed generator step '{StepName}' from pipeline. Remaining steps: {Count}",
+                    stepName,
+                    _pipeline.Count
+                );
+
+                return true;
+            }
+
+            _logger.Warning("Generator step '{StepName}' not found in pipeline", stepName);
+
+            return false;
         }
+        finally
+        {
+            _pipelineLock.ExitWriteLock();
+        }
+    }
 
-        return await GenerateChunkAsync(chunkPosition);
+    public Task ShutdownAsync()
+        => Task.CompletedTask;
+
+    public async Task StartAsync()
+    {
+        _logger.Information("Starting ChunkGeneratorService");
+
+        try
+        {
+            await GenerateInitialChunksAsync();
+            _logger.Information("ChunkGeneratorService started successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to start ChunkGeneratorService");
+
+            throw;
+        }
+    }
+
+    public bool TryGetCachedChunk(Vector3 position, out ChunkEntity? chunk)
+    {
+        var chunkPosition = ChunkUtils.NormalizeToChunkPosition(position);
+
+        return _chunkCache.TryGet(chunkPosition, out chunk);
+    }
+
+    /// <summary>
+    /// Creates a thread-safe copy of the noise generator for parallel generation.
+    /// </summary>
+    /// <returns>A new FastNoiseLite instance with the same configuration.</returns>
+    private FastNoiseLite CreateNoiseGeneratorCopy()
+    {
+        var copy = new FastNoiseLite(Seed);
+        copy.SetNoiseType(NoiseType.Perlin);
+
+        //copy.SetFrequency((float)(Random.Shared.NextDouble() * 1000.0));
+        //copy.SetFrequency(0.01f);
+        return copy;
     }
 
     /// <summary>
@@ -235,7 +364,7 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
 
         try
         {
-            var chunk = new ChunkEntity(new Vector3(chunkPosition.X, chunkPosition.Y, chunkPosition.Z));
+            var chunk = new ChunkEntity(new(chunkPosition.X, chunkPosition.Y, chunkPosition.Z));
 
             // Create a thread-safe copy of the noise generator for this chunk
             var noiseGenerator = CreateNoiseGeneratorCopy();
@@ -290,165 +419,31 @@ public class ChunkGeneratorService : IChunkGeneratorService, IDisposable
         }
     }
 
-    /// <summary>
-    /// Gets the current number of cached chunks.
-    /// </summary>
-    public int CachedChunkCount => _chunkCache.Count;
-
-    /// <summary>
-    /// Gets or sets the maximum number of cached chunks retained in memory.
-    /// </summary>
-    public int MaxCachedChunks
+    private async Task<ChunkEntity> GenerateChunkWrap(Vector3 chunkPosition)
     {
-        get => _config.MaxCacheSizeChunks;
-        set
+        var shouldUseJobSystem = _useJobSystem;
+
+        if (shouldUseJobSystem)
         {
-            var newValue = Math.Max(1, value);
-
-            if (_config.MaxCacheSizeChunks == newValue)
-            {
-                return;
-            }
-
-            _config.MaxCacheSizeChunks = newValue;
-            _chunkCache.SetCapacity(_config.MaxCacheSizeChunks);
-            _logger.Information("Chunk cache capacity updated to {Capacity}", _config.MaxCacheSizeChunks);
-        }
-    }
-
-    /// <summary>
-    /// Clears all cached chunks.
-    /// </summary>
-    public void ClearCache()
-    {
-        _logger.Information("Clearing chunk cache");
-        _chunkCache.Clear();
-    }
-
-    /// <summary>
-    /// Adds a generation step to the pipeline.
-    /// </summary>
-    /// <param name="generationStep">The generator step to add.</param>
-    public void AddGeneratorStep(IGeneratorStep generationStep)
-    {
-        ArgumentNullException.ThrowIfNull(generationStep);
-
-        _pipelineLock.EnterWriteLock();
-
-        try
-        {
-            _pipeline.Add(generationStep);
-            _logger.Information(
-                "Added generator step '{StepName}' to pipeline. Total steps: {Count}",
-                generationStep.Name,
-                _pipeline.Count
+            var handle = _jobSystemService.Schedule(
+                $"chunk_generation_{chunkPosition.ToHumanReadableString()}",
+                _ => GenerateChunkAsync(chunkPosition)
             );
+
+            return await handle.CompletionTask;
         }
-        finally
-        {
-            _pipelineLock.ExitWriteLock();
-        }
+
+        return await GenerateChunkAsync(chunkPosition);
     }
 
     /// <summary>
-    /// Removes a generation step from the pipeline by name.
+    /// Initializes the noise generator with the current seed.
     /// </summary>
-    /// <param name="stepName">The name of the step to remove.</param>
-    /// <returns>True if the step was removed; otherwise, false.</returns>
-    public bool RemoveGeneratorStep(string stepName)
+    private void InitializeNoiseGenerator()
     {
-        _pipelineLock.EnterWriteLock();
+        _noiseGenerator = new(Seed);
+        _noiseGenerator.SetNoiseType(NoiseType.Perlin);
 
-        try
-        {
-            var step = _pipeline.FirstOrDefault(s => s.Name == stepName);
-
-            if (step != null)
-            {
-                _pipeline.Remove(step);
-                _logger.Information(
-                    "Removed generator step '{StepName}' from pipeline. Remaining steps: {Count}",
-                    stepName,
-                    _pipeline.Count
-                );
-
-                return true;
-            }
-
-            _logger.Warning("Generator step '{StepName}' not found in pipeline", stepName);
-
-            return false;
-        }
-        finally
-        {
-            _pipelineLock.ExitWriteLock();
-        }
-    }
-
-    /// <summary>
-    /// Gets all generator steps in the pipeline.
-    /// </summary>
-    public IReadOnlyList<IGeneratorStep> GetGeneratorSteps()
-    {
-        _pipelineLock.EnterReadLock();
-
-        try
-        {
-            return _pipeline.ToList().AsReadOnly();
-        }
-        finally
-        {
-            _pipelineLock.ExitReadLock();
-        }
-    }
-
-    /// <summary>
-    /// Clears all generator steps from the pipeline.
-    /// </summary>
-    public void ClearGeneratorSteps()
-    {
-        _pipelineLock.EnterWriteLock();
-
-        try
-        {
-            _pipeline.Clear();
-            _logger.Information("Cleared all generator steps from pipeline");
-        }
-        finally
-        {
-            _pipelineLock.ExitWriteLock();
-        }
-    }
-
-    public async Task StartAsync()
-    {
-        _logger.Information("Starting ChunkGeneratorService");
-
-        try
-        {
-            await GenerateInitialChunksAsync();
-            _logger.Information("ChunkGeneratorService started successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Failed to start ChunkGeneratorService");
-
-            throw;
-        }
-    }
-
-    public Task ShutdownAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        _chunkCache.Dispose();
-        _pipelineLock.Dispose();
-        _generationSemaphore.Dispose();
-
-        GC.SuppressFinalize(this);
+        // _noiseGenerator.SetFrequency((float)(Random.Shared.NextDouble() * 1000.0));
     }
 }

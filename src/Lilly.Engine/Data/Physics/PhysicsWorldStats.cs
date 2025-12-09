@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Lilly.Engine.Data.Physics;
 
 /// <summary>
@@ -9,5 +11,5 @@ public readonly record struct PhysicsWorldStats(
     int StaticBodies,
     int ShapeCount,
     int ThreadCount,
-    System.Numerics.Vector3 Gravity
+    Vector3 Gravity
 );

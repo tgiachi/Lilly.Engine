@@ -1,4 +1,3 @@
-using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
@@ -15,7 +14,7 @@ namespace Lilly.Engine.GameObjects;
 public class LillyGameObjectPlugin : ILillyPlugin
 {
     public LillyPluginData LillyData
-        => new("com.tgiachi.lilly.gameobjects", "Lilly Game Objects Plugin", "0.6.0", "squid squid@stormwind.it", []);
+        => new("com.tgiachi.lilly.gameobjects", "Lilly Game Objects Plugin", "0.6.0", "squid squid@stormwind.it");
 
     public void EngineInitialized(IContainer container) { }
     public void EngineReady(IContainer container) { }
@@ -24,7 +23,6 @@ public class LillyGameObjectPlugin : ILillyPlugin
     {
         yield return gameObjectFactory.Create<NotificationHudGameObject>();
         yield return gameObjectFactory.Create<QuakeConsoleGameObject>();
-
     }
 
     public IContainer RegisterModule(IContainer container)

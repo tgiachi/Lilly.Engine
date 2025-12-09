@@ -1,7 +1,5 @@
 using Lilly.Voxel.Plugin.Blocks;
-using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Types;
-using TrippyGL;
 
 namespace Lilly.Voxel.Plugin.Builders;
 
@@ -30,151 +28,52 @@ public class BlockTypeBuilder
     private BlockTextureObject? _frontTexture;
     private BlockTextureObject? _backTexture;
 
-    public BlockTypeBuilder WithId(ushort id)
+    public BlockTypeBuilder AsActionable(bool isActionable = true)
     {
-        _id = id;
-        return this;
-    }
+        _isActionable = isActionable;
 
-    public BlockTypeBuilder WithName(string name)
-    {
-        _name = name;
-        return this;
-    }
-
-    public BlockTypeBuilder AsSolid(bool isSolid = true)
-    {
-        _isSolid = isSolid;
-        return this;
-    }
-
-    public BlockTypeBuilder AsLiquid(bool isLiquid = true)
-    {
-        _isLiquid = isLiquid;
-        return this;
-    }
-
-    public BlockTypeBuilder AsOpaque(bool isOpaque = true)
-    {
-        _isOpaque = isOpaque;
-        return this;
-    }
-
-    public BlockTypeBuilder AsTransparent(bool isTransparent = true)
-    {
-        _isTransparent = isTransparent;
         return this;
     }
 
     public BlockTypeBuilder AsBillboard(bool isBillboard = true)
     {
-
         _isBillboard = isBillboard;
-        return this;
-    }
 
-    public BlockTypeBuilder AsActionable(bool isActionable = true)
-    {
-        _isActionable = isActionable;
-        return this;
-    }
-
-    public BlockTypeBuilder WithHardness(float hardness)
-    {
-        _hardness = hardness;
         return this;
     }
 
     public BlockTypeBuilder AsBreakable(bool isBreakable = true)
     {
         _isBreakable = isBreakable;
-        return this;
-    }
-
-    public BlockTypeBuilder WithTextures(BlockTextureSet textureSet)
-    {
-        _textureSet = textureSet;
-        return this;
-    }
-
-    public BlockTypeBuilder WithTexture(BlockFace blockFace, string assetName, int index)
-    {
-        var texture = new BlockTextureObject(assetName, index);
-        switch (blockFace)
-        {
-            case BlockFace.Top:
-                _topTexture = texture;
-                break;
-            case BlockFace.Bottom:
-                _bottomTexture = texture;
-                break;
-            case BlockFace.Left:
-                _leftTexture = texture;
-                break;
-            case BlockFace.Right:
-                _rightTexture = texture;
-                break;
-            case BlockFace.Front:
-                _frontTexture = texture;
-                break;
-            case BlockFace.Back:
-                _backTexture = texture;
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(blockFace), blockFace, null);
-        }
 
         return this;
     }
 
-    public BlockTypeBuilder WithTop(string atlasName, int index)
+    public BlockTypeBuilder AsLiquid(bool isLiquid = true)
     {
-        _topTexture = new BlockTextureObject(atlasName, index);
+        _isLiquid = isLiquid;
+
         return this;
     }
 
-    public BlockTypeBuilder WithBottom(string atlasName, int index)
+    public BlockTypeBuilder AsOpaque(bool isOpaque = true)
     {
-        _bottomTexture = new BlockTextureObject(atlasName, index);
+        _isOpaque = isOpaque;
+
         return this;
     }
 
-    public BlockTypeBuilder WithLeft(string atlasName, int index)
+    public BlockTypeBuilder AsSolid(bool isSolid = true)
     {
-        _leftTexture = new BlockTextureObject(atlasName, index);
+        _isSolid = isSolid;
+
         return this;
     }
 
-    public BlockTypeBuilder WithRight(string atlasName, int index)
+    public BlockTypeBuilder AsTransparent(bool isTransparent = true)
     {
-        _rightTexture = new BlockTextureObject(atlasName, index);
-        return this;
-    }
+        _isTransparent = isTransparent;
 
-    public BlockTypeBuilder WithFront(string atlasName, int index)
-    {
-        _frontTexture = new BlockTextureObject(atlasName, index);
-        return this;
-    }
-
-    public BlockTypeBuilder WithBack(string atlasName, int index)
-    {
-        _backTexture = new BlockTextureObject(atlasName, index);
-        return this;
-    }
-
-    public BlockTypeBuilder WithAllFaces(string atlasName, int index)
-    {
-        var texture = new BlockTextureObject(atlasName, index);
-        _topTexture = _bottomTexture = _leftTexture = _rightTexture = _frontTexture = _backTexture = texture;
-        return this;
-    }
-
-    public BlockTypeBuilder WithTopBottomAndSides(string atlasName, int topIndex, int bottomIndex, int sidesIndex)
-    {
-        _topTexture = new BlockTextureObject(atlasName, topIndex);
-        _bottomTexture = new BlockTextureObject(atlasName, bottomIndex);
-        _leftTexture = _rightTexture = _frontTexture = _backTexture = new BlockTextureObject(atlasName, sidesIndex);
         return this;
     }
 
@@ -187,7 +86,7 @@ public class BlockTypeBuilder
 
         if (_textureSet == null && HasAnyTexture())
         {
-            _textureSet = new BlockTextureSet(
+            _textureSet = new(
                 _topTexture ?? throw new InvalidOperationException("Top texture must be set."),
                 _bottomTexture ?? throw new InvalidOperationException("Bottom texture must be set."),
                 _leftTexture ?? throw new InvalidOperationException("Left texture must be set."),
@@ -197,7 +96,7 @@ public class BlockTypeBuilder
             );
         }
 
-        return new BlockType
+        return new()
         {
             Id = _id,
             Name = _name,
@@ -213,9 +112,135 @@ public class BlockTypeBuilder
         };
     }
 
-    private bool HasAnyTexture()
+    public BlockTypeBuilder WithAllFaces(string atlasName, int index)
     {
-        return _topTexture.HasValue || _bottomTexture.HasValue || _leftTexture.HasValue ||
-               _rightTexture.HasValue || _frontTexture.HasValue || _backTexture.HasValue;
+        var texture = new BlockTextureObject(atlasName, index);
+        _topTexture = _bottomTexture = _leftTexture = _rightTexture = _frontTexture = _backTexture = texture;
+
+        return this;
     }
+
+    public BlockTypeBuilder WithBack(string atlasName, int index)
+    {
+        _backTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithBottom(string atlasName, int index)
+    {
+        _bottomTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithFront(string atlasName, int index)
+    {
+        _frontTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithHardness(float hardness)
+    {
+        _hardness = hardness;
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithId(ushort id)
+    {
+        _id = id;
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithLeft(string atlasName, int index)
+    {
+        _leftTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithName(string name)
+    {
+        _name = name;
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithRight(string atlasName, int index)
+    {
+        _rightTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithTexture(BlockFace blockFace, string assetName, int index)
+    {
+        var texture = new BlockTextureObject(assetName, index);
+
+        switch (blockFace)
+        {
+            case BlockFace.Top:
+                _topTexture = texture;
+
+                break;
+            case BlockFace.Bottom:
+                _bottomTexture = texture;
+
+                break;
+            case BlockFace.Left:
+                _leftTexture = texture;
+
+                break;
+            case BlockFace.Right:
+                _rightTexture = texture;
+
+                break;
+            case BlockFace.Front:
+                _frontTexture = texture;
+
+                break;
+            case BlockFace.Back:
+                _backTexture = texture;
+
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(blockFace), blockFace, null);
+        }
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithTextures(BlockTextureSet textureSet)
+    {
+        _textureSet = textureSet;
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithTop(string atlasName, int index)
+    {
+        _topTexture = new BlockTextureObject(atlasName, index);
+
+        return this;
+    }
+
+    public BlockTypeBuilder WithTopBottomAndSides(string atlasName, int topIndex, int bottomIndex, int sidesIndex)
+    {
+        _topTexture = new BlockTextureObject(atlasName, topIndex);
+        _bottomTexture = new BlockTextureObject(atlasName, bottomIndex);
+        _leftTexture = _rightTexture = _frontTexture = _backTexture = new BlockTextureObject(atlasName, sidesIndex);
+
+        return this;
+    }
+
+    private bool HasAnyTexture()
+        => _topTexture.HasValue ||
+           _bottomTexture.HasValue ||
+           _leftTexture.HasValue ||
+           _rightTexture.HasValue ||
+           _frontTexture.HasValue ||
+           _backTexture.HasValue;
 }

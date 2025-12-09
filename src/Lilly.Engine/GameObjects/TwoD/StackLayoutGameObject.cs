@@ -9,7 +9,7 @@ namespace Lilly.Engine.GameObjects.TwoD;
 public enum StackOrientation
 {
     Horizontal,
-    Vertical,
+    Vertical
 }
 
 /// <summary>
@@ -68,9 +68,7 @@ public class StackLayoutGameObject : Base2dGameObject
     }
 
     public StackLayoutGameObject(IRenderPipeline gameObjectManager, string name = "StackLayoutGameObject", uint zIndex = 0)
-        : base(name, gameObjectManager, zIndex)
-    {
-    }
+        : base(name, gameObjectManager, zIndex) { }
 
     /// <summary>
     /// Adds children to the layout and reflows.
@@ -82,6 +80,12 @@ public class StackLayoutGameObject : Base2dGameObject
     }
 
     /// <summary>
+    /// Marks the layout as dirty so it will reflow on the next update (useful if a child size changed).
+    /// </summary>
+    public void MarkDirty()
+        => _isLayoutDirty = true;
+
+    /// <summary>
     /// Removes a child from the layout and reflows.
     /// </summary>
     public void RemoveChild(IGameObject2d gameObject)
@@ -90,15 +94,18 @@ public class StackLayoutGameObject : Base2dGameObject
         _isLayoutDirty = true;
     }
 
-    /// <summary>
-    /// Marks the layout as dirty so it will reflow on the next update (useful if a child size changed).
-    /// </summary>
-    public void MarkDirty() => _isLayoutDirty = true;
-
     public override void Update(GameTime gameTime)
     {
         LayoutIfDirty();
         base.Update(gameTime);
+    }
+
+    private static Vector2 GetLocalSize(IGameObject2d gameObject)
+    {
+        var size = gameObject.Transform.Size;
+        var scale = gameObject.Transform.Scale;
+
+        return new(size.X * scale.X, size.Y * scale.Y);
     }
 
     private void LayoutIfDirty()
@@ -111,15 +118,15 @@ public class StackLayoutGameObject : Base2dGameObject
         var children2d = Children.OfType<IGameObject2d>().ToList();
         var count = children2d.Count;
 
-        float cursorX = _padding.X;
-        float cursorY = _padding.Y;
-        float maxWidth = 0f;
-        float maxHeight = 0f;
+        var cursorX = _padding.X;
+        var cursorY = _padding.Y;
+        var maxWidth = 0f;
+        var maxHeight = 0f;
 
         foreach (var child in children2d)
         {
             var size = GetLocalSize(child);
-            child.Transform.Position = new Vector2(cursorX, cursorY);
+            child.Transform.Position = new(cursorX, cursorY);
 
             maxWidth = MathF.Max(maxWidth, size.X);
             maxHeight = MathF.Max(maxHeight, size.Y);
@@ -148,18 +155,11 @@ public class StackLayoutGameObject : Base2dGameObject
             contentHeight = maxHeight;
         }
 
-        Transform.Size = new Vector2(
+        Transform.Size = new(
             contentWidth + _padding.X * 2,
             contentHeight + _padding.Y * 2
         );
 
         _isLayoutDirty = false;
-    }
-
-    private static Vector2 GetLocalSize(IGameObject2d gameObject)
-    {
-        var size = gameObject.Transform.Size;
-        var scale = gameObject.Transform.Scale;
-        return new Vector2(size.X * scale.X, size.Y * scale.Y);
     }
 }

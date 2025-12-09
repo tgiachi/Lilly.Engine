@@ -44,15 +44,13 @@ public class RectangleGameObject : Base2dGameObject
     public float BorderThickness { get; set; } = 2.0f;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RectangleGameObject"/> class.
+    /// Initializes a new instance of the <see cref="RectangleGameObject" /> class.
     /// </summary>
     /// <param name="name">The name of the game object (default: "RectangleGameObject").</param>
     /// <param name="zIndex">The rendering z-index (default: 0).</param>
     public RectangleGameObject(IRenderPipeline gameObjectManager, string name = "RectangleGameObject", uint zIndex = 0)
         : base(name, gameObjectManager, zIndex)
-    {
-        Transform.Size = _size;
-    }
+        => Transform.Size = _size;
 
     /// <summary>
     /// Draws the rectangle using the SpriteBatcher.
@@ -81,7 +79,7 @@ public class RectangleGameObject : Base2dGameObject
                 worldSize,
                 Color,
                 BorderThickness,
-                depth: ZIndex
+                ZIndex
             );
         }
         else
@@ -92,8 +90,8 @@ public class RectangleGameObject : Base2dGameObject
                 worldSize,
                 Color,
                 worldRotation,
-                origin: Vector2.Zero,
-                depth: ZIndex
+                Vector2.Zero,
+                ZIndex
             );
         }
     }

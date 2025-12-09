@@ -18,5 +18,6 @@ internal sealed record ScheduledJob
 
     public bool IsCancelled => Interlocked.CompareExchange(ref _cancelled, 0, 0) == 1;
 
-    public bool TryCancel() => Interlocked.CompareExchange(ref _cancelled, 1, 0) == 0;
+    public bool TryCancel()
+        => Interlocked.CompareExchange(ref _cancelled, 1, 0) == 0;
 }

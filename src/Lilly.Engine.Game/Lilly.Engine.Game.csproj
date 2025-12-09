@@ -15,7 +15,7 @@
         </PackageReference>
         <PackageReference Include="DryIoc.dll" Version="5.4.3"/>
         <PackageReference Include="Serilog" Version="4.3.0"/>
-        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0"/>
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0"/>
@@ -30,12 +30,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Lilly.Engine.Core\Lilly.Engine.Core.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj" />
+        <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj"/>
         <ProjectReference Include="..\Lilly.Engine.Lua.Scripting\Lilly.Engine.Lua.Scripting.csproj"/>
-        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj" />
-        <ProjectReference Include="..\Lilly.Physics.Plugin\Lilly.Physics.Plugin.csproj" />
-        <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj" />
-        <ProjectReference Include="..\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj" />
+        <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj"/>
+        <ProjectReference Include="..\Lilly.Physics.Plugin\Lilly.Physics.Plugin.csproj"/>
+        <ProjectReference Include="..\Lilly.Rendering.Core\Lilly.Rendering.Core.csproj"/>
+        <ProjectReference Include="..\Lilly.Voxel.Plugin\Lilly.Voxel.Plugin.csproj"/>
     </ItemGroup>
 
 </Project>

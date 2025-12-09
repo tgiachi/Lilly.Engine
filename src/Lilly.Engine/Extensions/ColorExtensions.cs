@@ -26,6 +26,9 @@ public static class ColorExtensions
             (byte)(color.A * alpha)
         );
 
+    public static FSColor ToFsColor(this Color4b c)
+        => new(c.R, c.G, c.B, c.A);
+
     /// <summary>
     /// Converts a TrippyGL Viewport to a System.Drawing.Rectangle.
     /// </summary>
@@ -65,7 +68,4 @@ public static class ColorExtensions
     /// <returns>A Color4b with the RGBA components of the source color.</returns>
     public static Color4b ToTrippy(this FSColor c)
         => new(c.R, c.G, c.B, c.A);
-
-    public static FSColor ToFsColor(this Color4b c)
-        => new FSColor(c.R, c.G, c.B, c.A);
 }

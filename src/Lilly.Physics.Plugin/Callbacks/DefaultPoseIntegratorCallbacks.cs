@@ -17,12 +17,14 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
     private readonly World3dPhysicConfig _config;
 
     /// <summary>
-    /// Fraction of dynamic body linear velocity to remove per unit of time. Values range from 0 to 1. 0 is fully undamped, while values very close to 1 will remove most velocity.
+    /// Fraction of dynamic body linear velocity to remove per unit of time. Values range from 0 to 1. 0 is fully undamped, while
+    /// values very close to 1 will remove most velocity.
     /// </summary>
     private readonly float LinearDamping;
 
     /// <summary>
-    /// Fraction of dynamic body angular velocity to remove per unit of time. Values range from 0 to 1. 0 is fully undamped, while values very close to 1 will remove most velocity.
+    /// Fraction of dynamic body angular velocity to remove per unit of time. Values range from 0 to 1. 0 is fully undamped, while
+    /// values very close to 1 will remove most velocity.
     /// </summary>
     private readonly float AngularDamping;
 
@@ -46,34 +48,21 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
     /// </summary>
     public readonly bool IntegrateVelocityForKinematics => false;
 
-    public void Initialize(Simulation simulation)
-    {
-        //In this demo, we don't need to initialize anything.
-        //If you had a simulation with per body gravity stored in a CollidableProperty<T> or something similar, having the simulation provided in a callback can be helpful.
-    }
-
-    public DefaultPoseIntegratorCallbacks(World3dPhysicConfig config, float linearDamping = .03f, float angularDamping = .03f) : this()
+    public DefaultPoseIntegratorCallbacks(
+        World3dPhysicConfig config,
+        float linearDamping = .03f,
+        float angularDamping = .03f
+    ) : this()
     {
         _config = config;
         LinearDamping = linearDamping;
         AngularDamping = angularDamping;
     }
 
-    /// <summary>
-    /// Callback invoked ahead of dispatches that may call into <see cref="IntegrateVelocity"/>.
-    /// It may be called more than once with different values over a frame. For example, when performing bounding box prediction, velocity is integrated with a full frame time step duration.
-    /// During substepped solves, integration is split into substepCount steps, each with fullFrameDuration / substepCount duration.
-    /// The final integration pass for unconstrained bodies may be either fullFrameDuration or fullFrameDuration / substepCount, depending on the value of AllowSubstepsForUnconstrainedBodies.
-    /// </summary>
-    /// <param name="dt">Current integration time step duration.</param>
-    /// <remarks>This is typically used for precomputing anything expensive that will be used across velocity integration.</remarks>
-    public void PrepareForIntegration(float dt)
+    public void Initialize(Simulation simulation)
     {
-        //No reason to recalculate gravity * dt for every body; just cache it ahead of time.
-        //Since these callbacks don't use per-body damping values, we can precalculate everything.
-        linearDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - LinearDamping, 0, 1), dt));
-        angularDampingDt = new Vector<float>(MathF.Pow(MathHelper.Clamp(1 - AngularDamping, 0, 1), dt));
-        gravityWideDt = Vector3Wide.Broadcast(_config.Gravity * dt);
+        //In this demo, we don't need to initialize anything.
+        //If you had a simulation with per body gravity stored in a CollidableProperty<T> or something similar, having the simulation provided in a callback can be helpful.
     }
 
     /// <summary>
@@ -83,10 +72,16 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
     /// <param name="position">Current body positions.</param>
     /// <param name="orientation">Current body orientations.</param>
     /// <param name="localInertia">Body's current local inertia.</param>
-    /// <param name="integrationMask">Mask indicating which lanes are active in the bundle. Active lanes will contain 0xFFFFFFFF, inactive lanes will contain 0.</param>
+    /// <param name="integrationMask">
+    /// Mask indicating which lanes are active in the bundle. Active lanes will contain 0xFFFFFFFF,
+    /// inactive lanes will contain 0.
+    /// </param>
     /// <param name="workerIndex">Index of the worker thread processing this bundle.</param>
     /// <param name="dt">Durations to integrate the velocity over. Can vary over lanes.</param>
-    /// <param name="velocity">Velocity of bodies in the bundle. Any changes to lanes which are not active by the integrationMask will be discarded.</param>
+    /// <param name="velocity">
+    /// Velocity of bodies in the bundle. Any changes to lanes which are not active by the integrationMask
+    /// will be discarded.
+    /// </param>
     public void IntegrateVelocity(
         Vector<int> bodyIndices,
         Vector3Wide position,
@@ -106,5 +101,24 @@ public struct DefaultPoseIntegratorCallbacks : IPoseIntegratorCallbacks
         //Transforming to "array of structures" (AOS) format for the callback and then back to AOSOA would involve a lot of overhead, so instead the callback works on the AOSOA representation directly.
         velocity.Linear = (velocity.Linear + gravityWideDt) * linearDampingDt;
         velocity.Angular = velocity.Angular * angularDampingDt;
+    }
+
+    /// <summary>
+    /// Callback invoked ahead of dispatches that may call into <see cref="IntegrateVelocity" />.
+    /// It may be called more than once with different values over a frame. For example, when performing bounding box prediction,
+    /// velocity is integrated with a full frame time step duration.
+    /// During substepped solves, integration is split into substepCount steps, each with fullFrameDuration / substepCount duration.
+    /// The final integration pass for unconstrained bodies may be either fullFrameDuration or fullFrameDuration / substepCount,
+    /// depending on the value of AllowSubstepsForUnconstrainedBodies.
+    /// </summary>
+    /// <param name="dt">Current integration time step duration.</param>
+    /// <remarks>This is typically used for precomputing anything expensive that will be used across velocity integration.</remarks>
+    public void PrepareForIntegration(float dt)
+    {
+        //No reason to recalculate gravity * dt for every body; just cache it ahead of time.
+        //Since these callbacks don't use per-body damping values, we can precalculate everything.
+        linearDampingDt = new(MathF.Pow(MathHelper.Clamp(1 - LinearDamping, 0, 1), dt));
+        angularDampingDt = new(MathF.Pow(MathHelper.Clamp(1 - AngularDamping, 0, 1), dt));
+        gravityWideDt = Vector3Wide.Broadcast(_config.Gravity * dt);
     }
 }

@@ -53,84 +53,6 @@ public class RenderPipeline : IRenderPipeline
         renderContext.Renderer.OnRender += Render;
     }
 
-    private void CreateLayers()
-    {
-        foreach (var value in Enum.GetValues<RenderPriority>())
-        {
-            lock (_renderLayersLock)
-            {
-                _renderLayers[value] = [];
-            }
-        }
-    }
-
-    private void AddRegisteredRenderLayer()
-    {
-        foreach (var renderLayerRegistration in _renderLayerRegistrations)
-        {
-            var renderLayer = (IRenderLayer)_container.Resolve(renderLayerRegistration.LayerType);
-
-            AddRenderLayer(renderLayer);
-        }
-    }
-
-    public void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer
-    {
-        lock (_renderLayersLock)
-        {
-            _logger.Information(
-                "Adding render layer {RenderLayer} with priority {Priority}",
-                renderLayer.Name,
-                renderLayer.Priority
-            );
-
-            if (!_renderLayers.TryGetValue(renderLayer.Priority, out List<IRenderLayer>? value))
-            {
-                value = [];
-                _renderLayers[renderLayer.Priority] = value;
-            }
-
-            value.Add(renderLayer);
-
-            renderLayer.IsActive = true;
-            renderLayer.Initialize();
-        }
-    }
-
-    public void Update(GameTime gameTime)
-    {
-        lock (_renderLayersLock)
-        {
-            foreach (var renderLayerList in _renderLayers.Values)
-            {
-                foreach (var renderLayer in renderLayerList)
-                {
-                    if (renderLayer.IsActive)
-                    {
-                        renderLayer.Update(gameTime);
-                    }
-                }
-            }
-        }
-    }
-
-    public void Render(GameTime gameTime)
-    {
-        lock (_renderLayersLock)
-        {
-            foreach (var renderLayerList in _renderLayers.Values)
-            {
-                foreach (var renderLayer in renderLayerList)
-                {
-                    if (renderLayer.IsActive)
-                    {
-                        renderLayer.Render(gameTime);
-                    }
-                }
-            }
-        }
-    }
-
     public void AddGameObject<TEntity>(TEntity entity) where TEntity : IGameObject
     {
         var addedToLayer = new List<string>();
@@ -164,15 +86,35 @@ public class RenderPipeline : IRenderPipeline
 
             GameObjectAdded?.Invoke(entity);
 
-
-
-
             _logger.Information(
                 "Entity of type {EntityType} (Parent: {Parent}) was added to render layers: {RenderLayers}",
                 entity.Name,
                 entity.Parent?.Name ?? "None",
                 string.Join(", ", addedToLayer)
             );
+        }
+    }
+
+    public void AddRenderLayer<TRenderLayer>(TRenderLayer renderLayer) where TRenderLayer : IRenderLayer
+    {
+        lock (_renderLayersLock)
+        {
+            _logger.Information(
+                "Adding render layer {RenderLayer} with priority {Priority}",
+                renderLayer.Name,
+                renderLayer.Priority
+            );
+
+            if (!_renderLayers.TryGetValue(renderLayer.Priority, out var value))
+            {
+                value = [];
+                _renderLayers[renderLayer.Priority] = value;
+            }
+
+            value.Add(renderLayer);
+
+            renderLayer.IsActive = true;
+            renderLayer.Initialize();
         }
     }
 
@@ -183,6 +125,27 @@ public class RenderPipeline : IRenderPipeline
         AddGameObject(entity);
 
         return entity;
+    }
+
+    public TGameObject? GetGameObjectOfType<TGameObject>() where TGameObject : IGameObject
+    {
+        lock (_renderLayersLock)
+        {
+            foreach (var renderLayerList in _renderLayers.Values)
+            {
+                foreach (var renderLayer in renderLayerList)
+                {
+                    var entity = renderLayer.GetEntity<TGameObject>();
+
+                    if (entity != null)
+                    {
+                        return entity;
+                    }
+                }
+            }
+
+            return default;
+        }
     }
 
     public void RemoveGameObject<TEntity>(TEntity entity) where TEntity : IGameObject
@@ -199,14 +162,13 @@ public class RenderPipeline : IRenderPipeline
                     }
                 }
 
-
                 entity.OnRemoved();
                 GameObjectRemoved?.Invoke(entity);
             }
         }
     }
 
-    public TGameObject? GetGameObjectOfType<TGameObject>() where TGameObject : IGameObject
+    public void Render(GameTime gameTime)
     {
         lock (_renderLayersLock)
         {
@@ -214,15 +176,50 @@ public class RenderPipeline : IRenderPipeline
             {
                 foreach (var renderLayer in renderLayerList)
                 {
-                    var entity = renderLayer.GetEntity<TGameObject>();
-                    if (entity != null)
+                    if (renderLayer.IsActive)
                     {
-                        return entity;
+                        renderLayer.Render(gameTime);
                     }
                 }
             }
+        }
+    }
 
-            return default;
+    public void Update(GameTime gameTime)
+    {
+        lock (_renderLayersLock)
+        {
+            foreach (var renderLayerList in _renderLayers.Values)
+            {
+                foreach (var renderLayer in renderLayerList)
+                {
+                    if (renderLayer.IsActive)
+                    {
+                        renderLayer.Update(gameTime);
+                    }
+                }
+            }
+        }
+    }
+
+    private void AddRegisteredRenderLayer()
+    {
+        foreach (var renderLayerRegistration in _renderLayerRegistrations)
+        {
+            var renderLayer = (IRenderLayer)_container.Resolve(renderLayerRegistration.LayerType);
+
+            AddRenderLayer(renderLayer);
+        }
+    }
+
+    private void CreateLayers()
+    {
+        foreach (var value in Enum.GetValues<RenderPriority>())
+        {
+            lock (_renderLayersLock)
+            {
+                _renderLayers[value] = [];
+            }
         }
     }
 }

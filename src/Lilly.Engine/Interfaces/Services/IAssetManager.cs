@@ -1,6 +1,6 @@
 using FontStashSharp;
-using Lilly.Engine.Data.Atlas;
 using Lilly.Engine.Data.Assets;
+using Lilly.Engine.Data.Atlas;
 using TrippyGL;
 
 namespace Lilly.Engine.Interfaces.Services;
@@ -11,41 +11,14 @@ namespace Lilly.Engine.Interfaces.Services;
 public interface IAssetManager
 {
     /// <summary>
-    /// Gets the font by name and size.
+    /// Creates a vertex buffer from vertex data.
     /// </summary>
-    /// <param name="fontName">The name of the font.</param>
-    /// <param name="size">The size of the font.</param>
-    /// <returns>The font.</returns>
-    DynamicSpriteFont GetFont(string fontName, int size);
-
-    /// <summary>
-    /// Gets the shader program by name.
-    /// </summary>
-    /// <param name="shaderName">The name of the shader.</param>
-    /// <returns>The shader program.</returns>
-    ShaderProgram GetShaderProgram(string shaderName);
-
-    /// <summary>
-    ///  Loads a texture atlas from a file.
-    /// </summary>
-    /// <param name="atlasName"></param>
-    /// <param name="atlasPath"></param>
-    /// <param name="tileWidth"></param>
-    /// <param name="tileHeight"></param>
-    /// <param name="spacing"></param>
-    /// <param name="margin"></param>
-    void LoadTextureAtlasFromFile(string atlasName, string atlasPath, int tileWidth, int tileHeight, int spacing = 0, int margin = 0);
-
-    /// <summary>
-    ///  Loads a texture atlas from memory.
-    /// </summary>
-    /// <param name="atlasName"></param>
-    /// <param name="stream"></param>
-    /// <param name="tileWidth"></param>
-    /// <param name="tileHeight"></param>
-    /// <param name="spacing"></param>
-    /// <param name="margin"></param>
-    void LoadTextureAtlasFromMemory(string atlasName, Stream stream, int tileWidth, int tileHeight, int spacing = 0, int margin = 0);
+    /// <typeparam name="TVertex">The vertex type.</typeparam>
+    /// <param name="vertices">The vertex data array.</param>
+    /// <param name="usage">The buffer usage hint.</param>
+    /// <returns>The created vertex buffer.</returns>
+    VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
+        where TVertex : unmanaged, IVertex;
 
     /// <summary>
     /// Gets a specific region from a loaded texture atlas.
@@ -56,13 +29,35 @@ public interface IAssetManager
     AtlasRegion GetAtlasRegion(string atlasName, int tileIndex);
 
     /// <summary>
-    ///  Gets a specific region from a loaded texture atlas by its x and y indices.
+    /// Gets a specific region from a loaded texture atlas by its x and y indices.
     /// </summary>
     /// <param name="atlasName"></param>
     /// <param name="xIndex"></param>
     /// <param name="yIndex"></param>
     /// <returns></returns>
     AtlasRegion GetAtlasRegion(string atlasName, int xIndex, int yIndex);
+
+    /// <summary>
+    /// Gets the font by name and size.
+    /// </summary>
+    /// <param name="fontName">The name of the font.</param>
+    /// <param name="size">The size of the font.</param>
+    /// <returns>The font.</returns>
+    DynamicSpriteFont GetFont(string fontName, int size);
+
+    /// <summary>
+    /// Retrieves a previously loaded 3D model.
+    /// </summary>
+    /// <param name="modelName"></param>
+    /// <returns></returns>
+    ModelAsset GetModel(string modelName);
+
+    /// <summary>
+    /// Gets the shader program by name.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader.</param>
+    /// <returns>The shader program.</returns>
+    ShaderProgram GetShaderProgram(string shaderName);
 
     /// <summary>
     /// Gets the texture by name.
@@ -73,7 +68,7 @@ public interface IAssetManager
     TTexture GetTexture<TTexture>(string textureName) where TTexture : class;
 
     /// <summary>
-    ///  Gets the texture handle by name.
+    /// Gets the texture handle by name.
     /// </summary>
     /// <param name="textureName"></param>
     /// <returns></returns>
@@ -97,6 +92,13 @@ public interface IAssetManager
     /// <param name="fontName">The name of the font.</param>
     /// <param name="stream">The stream containing the font data.</param>
     void LoadFontFromMemory(string fontName, Stream stream);
+
+    /// <summary>
+    /// Loads a 3D model from a file.
+    /// </summary>
+    /// <param name="modelName"></param>
+    /// <param name="modelPath"></param>
+    void LoadModelFromFile(string modelName, string modelPath);
 
     /// <summary>
     /// Loads a shader from files.
@@ -126,8 +128,11 @@ public interface IAssetManager
     /// <param name="shaderName">The name of the shader.</param>
     /// <param name="vertexStream">The stream containing the vertex shader data.</param>
     /// <param name="fragmentStream">The stream containing the fragment shader data.</param>
-    void LoadShaderFromMemory<TVertex>(string shaderName, Stream vertexStream, Stream fragmentStream,
-                                       string[] attributesNames
+    void LoadShaderFromMemory<TVertex>(
+        string shaderName,
+        Stream vertexStream,
+        Stream fragmentStream,
+        string[] attributesNames
     )
         where TVertex : unmanaged, IVertex;
 
@@ -142,6 +147,42 @@ public interface IAssetManager
         where TVertex : unmanaged, IVertex;
 
     /// <summary>
+    /// Loads a texture atlas from a file.
+    /// </summary>
+    /// <param name="atlasName"></param>
+    /// <param name="atlasPath"></param>
+    /// <param name="tileWidth"></param>
+    /// <param name="tileHeight"></param>
+    /// <param name="spacing"></param>
+    /// <param name="margin"></param>
+    void LoadTextureAtlasFromFile(
+        string atlasName,
+        string atlasPath,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    );
+
+    /// <summary>
+    /// Loads a texture atlas from memory.
+    /// </summary>
+    /// <param name="atlasName"></param>
+    /// <param name="stream"></param>
+    /// <param name="tileWidth"></param>
+    /// <param name="tileHeight"></param>
+    /// <param name="spacing"></param>
+    /// <param name="margin"></param>
+    void LoadTextureAtlasFromMemory(
+        string atlasName,
+        Stream stream,
+        int tileWidth,
+        int tileHeight,
+        int spacing = 0,
+        int margin = 0
+    );
+
+    /// <summary>
     /// Loads a texture from a file.
     /// </summary>
     /// <param name="textureName">The name of the texture.</param>
@@ -154,31 +195,4 @@ public interface IAssetManager
     /// <param name="textureName">The name to associate with the loaded texture.</param>
     /// <param name="stream">The stream containing the texture data.</param>
     void LoadTextureFromMemory(string textureName, Stream stream);
-
-
-    /// <summary>
-    ///  Loads a 3D model from a file.
-    /// </summary>
-    /// <param name="modelName"></param>
-    /// <param name="modelPath"></param>
-    void LoadModelFromFile(string modelName, string modelPath);
-
-    /// <summary>
-    /// Retrieves a previously loaded 3D model.
-    /// </summary>
-    /// <param name="modelName"></param>
-    /// <returns></returns>
-    ModelAsset GetModel(string modelName);
-
-    /// <summary>
-    /// Creates a vertex buffer from vertex data.
-    /// </summary>
-    /// <typeparam name="TVertex">The vertex type.</typeparam>
-    /// <param name="vertices">The vertex data array.</param>
-    /// <param name="usage">The buffer usage hint.</param>
-    /// <returns>The created vertex buffer.</returns>
-    VertexBuffer<TVertex> CreateVertexBuffer<TVertex>(TVertex[] vertices, BufferUsage usage = BufferUsage.StaticCopy)
-        where TVertex : unmanaged, IVertex;
-
-
 }

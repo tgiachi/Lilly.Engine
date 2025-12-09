@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TrippyGL;
@@ -39,24 +40,26 @@ public class HexColorConverter : JsonConverter<Color4b>
         try
         {
             // Parse hex string to integer
-            int hexValue = int.Parse(value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture);
+            var hexValue = int.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
             if (value.Length == 6)
             {
                 // RGB format: extract R, G, B and set alpha to 255
-                int r = (hexValue >> 16) & 0xFF;
-                int g = (hexValue >> 8) & 0xFF;
-                int b = hexValue & 0xFF;
-                return new Color4b(r, g, b, 255);
+                var r = (hexValue >> 16) & 0xFF;
+                var g = (hexValue >> 8) & 0xFF;
+                var b = hexValue & 0xFF;
+
+                return new(r, g, b, 255);
             }
             else
             {
                 // RGBA format: extract R, G, B, A
-                int r = (hexValue >> 24) & 0xFF;
-                int g = (hexValue >> 16) & 0xFF;
-                int b = (hexValue >> 8) & 0xFF;
-                int a = hexValue & 0xFF;
-                return new Color4b(r, g, b, a);
+                var r = (hexValue >> 24) & 0xFF;
+                var g = (hexValue >> 16) & 0xFF;
+                var b = (hexValue >> 8) & 0xFF;
+                var a = hexValue & 0xFF;
+
+                return new(r, g, b, a);
             }
         }
         catch (FormatException ex)
@@ -68,7 +71,7 @@ public class HexColorConverter : JsonConverter<Color4b>
     public override void Write(Utf8JsonWriter writer, Color4b value, JsonSerializerOptions options)
     {
         // Convert Color to hex string in format #RRGGBBAA
-        string hexColor = $"#{value.R:X2}{value.G:X2}{value.B:X2}{value.A:X2}";
+        var hexColor = $"#{value.R:X2}{value.G:X2}{value.B:X2}{value.A:X2}";
         writer.WriteStringValue(hexColor);
     }
 }

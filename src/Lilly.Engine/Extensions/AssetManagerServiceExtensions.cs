@@ -39,29 +39,6 @@ public static class AssetManagerServiceExtensions
     }
 
     /// <summary>
-    /// Loads a texture from an embedded resource and registers it with the asset manager.
-    /// </summary>
-    /// <param name="textureName">The name to register the texture under.</param>
-    /// <param name="resourcePath">The path to the embedded resource.</param>
-    /// <param name="assembly">The assembly containing the resource.</param>
-    public static void LoadTextureFromResource(
-        this IAssetManager assetManager,
-        string textureName,
-        string resourcePath,
-        Assembly assembly
-    )
-    {
-        using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
-
-        if (textureStream == null)
-        {
-            throw new InvalidOperationException($"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'.");
-        }
-
-        assetManager.LoadTextureFromMemory(textureName, textureStream);
-    }
-
-    /// <summary>
     /// Loads a texture atlas from an embedded resource and registers it with the asset manager.
     /// </summary>
     /// <param name="atlasName">The name to register the atlas under.</param>
@@ -90,5 +67,28 @@ public static class AssetManagerServiceExtensions
         }
 
         assetManager.LoadTextureAtlasFromMemory(atlasName, textureStream, tileWidth, tileHeight, spacing, margin);
+    }
+
+    /// <summary>
+    /// Loads a texture from an embedded resource and registers it with the asset manager.
+    /// </summary>
+    /// <param name="textureName">The name to register the texture under.</param>
+    /// <param name="resourcePath">The path to the embedded resource.</param>
+    /// <param name="assembly">The assembly containing the resource.</param>
+    public static void LoadTextureFromResource(
+        this IAssetManager assetManager,
+        string textureName,
+        string resourcePath,
+        Assembly assembly
+    )
+    {
+        using var textureStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+        if (textureStream == null)
+        {
+            throw new InvalidOperationException($"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'.");
+        }
+
+        assetManager.LoadTextureFromMemory(textureName, textureStream);
     }
 }

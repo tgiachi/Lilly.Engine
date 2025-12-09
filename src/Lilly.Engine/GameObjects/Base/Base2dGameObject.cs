@@ -1,12 +1,11 @@
-using System;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Rendering.Core.Collections;
+using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
+using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.SpriteBatcher;
 using Lilly.Rendering.Core.Primitives;
-using Lilly.Rendering.Core.Context;
-using Lilly.Rendering.Core.Interfaces.Services;
 
 namespace Lilly.Engine.GameObjects.Base;
 
@@ -59,14 +58,6 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// </summary>
     public IEnumerable<IGameObject> Children { get; } = new GameObjectCollection<IGameObject>();
 
-    public void OnRemoved()
-    {
-        foreach (var child in Children)
-        {
-            _gameObjectManager.RemoveGameObject(child);
-        }
-    }
-
     /// <summary>
     /// Gets the sprite batcher used for rendering.
     /// </summary>
@@ -75,8 +66,7 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// <summary>
     /// Gets the 2D transform containing position, rotation, scale, and size.
     /// </summary>
-    private readonly Transform2D _transform = new();
-    public Transform2D Transform => _transform;
+    public Transform2D Transform { get; } = new();
 
     public Vector2 Position
     {
@@ -127,7 +117,34 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         _gameObjectManager = gameObjectManager;
         ZIndex = zIndex;
         IsActive = true;
-        _transform.Changed += HandleTransformChanged;
+        Transform.Changed += HandleTransformChanged;
+    }
+
+    private enum HorizontalAnchor
+    {
+        None,
+        Left,
+        Center,
+        Right
+    }
+
+    private enum VerticalAnchor
+    {
+        None,
+        Top,
+        Center,
+        Bottom
+    }
+
+    /// <summary>
+    /// Removes any active anchoring so manual positioning is respected again.
+    /// </summary>
+    public void ClearAnchors()
+    {
+        _horizontalAnchor = HorizontalAnchor.None;
+        _verticalAnchor = VerticalAnchor.None;
+        _horizontalOffset = 0f;
+        _verticalOffset = 0f;
     }
 
     /// <summary>
@@ -153,71 +170,6 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
             if (child is IGameObject2d child2d)
             {
                 child2d.Draw(gameTime, spriteBatcher);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Adds a 2D game object as a child.
-    /// </summary>
-    /// <param name="gameObject">The game object to add.</param>
-    protected void AddGameObject2d(params IGameObject2d[] gameObjects)
-    {
-        ArgumentNullException.ThrowIfNull(gameObjects);
-
-        foreach (var gameObject in gameObjects)
-        {
-            if (Children is GameObjectCollection<IGameObject> collection)
-            {
-                collection.Add(gameObject);
-                gameObject.Parent = this;
-                _gameObjectManager.AddGameObject(gameObject);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Removes a 2D game object from the children collection.
-    /// </summary>
-    /// <param name="gameObject">The game object to remove.</param>
-    protected void RemoveGameObject2d(IGameObject2d gameObject)
-    {
-        ArgumentNullException.ThrowIfNull(gameObject);
-
-        if (Children is GameObjectCollection<IGameObject> collection)
-        {
-            if (collection.Remove(gameObject))
-            {
-                gameObject.Parent = null;
-                _gameObjectManager.RemoveGameObject(gameObject);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Called when the game object is drawn. Override to implement custom drawing logic.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    protected virtual void OnDraw(GameTime gameTime) { }
-
-    /// <summary>
-    /// Updates the game object. Override to implement custom update logic.
-    /// </summary>
-    /// <param name="gameTime">The current game time.</param>
-    public virtual void Update(GameTime gameTime)
-    {
-        ApplyAnchoredLayout();
-
-        if (!IsActive)
-        {
-            return;
-        }
-
-        foreach (var child in Children)
-        {
-            if (child is IUpdateble child2d)
-            {
-                child2d.Update(gameTime);
             }
         }
     }
@@ -286,27 +238,19 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     /// Gets the world size by multiplying the local size by the world scale.
     /// </summary>
     public Vector2 GetWorldSize()
-    {
-        return Transform.Size * GetWorldScale();
-    }
+        => Transform.Size * GetWorldScale();
 
     /// <summary>
-    ///  Initializes the game object. Override to implement custom initialization logic.
+    /// Initializes the game object. Override to implement custom initialization logic.
     /// </summary>
     public virtual void Initialize() { }
 
-    private void HandleTransformChanged(Transform2D obj)
+    public void OnRemoved()
     {
-        TransformChanged?.Invoke();
-    }
-
-    /// <summary>
-    /// Sets the render context so the object can react to viewport changes (e.g., ToCenter, ToLeft).
-    /// </summary>
-    public void UseRenderContext(RenderContext renderContext)
-    {
-        RenderContext = renderContext;
-        ApplyAnchoredLayout();
+        foreach (var child in Children)
+        {
+            _gameObjectManager.RemoveGameObject(child);
+        }
     }
 
     /// <summary>
@@ -315,6 +259,16 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     public void SetViewportSize(Vector2 viewportSize)
     {
         _manualViewportSize = viewportSize;
+        ApplyAnchoredLayout();
+    }
+
+    /// <summary>
+    /// Anchors the object to the bottom edge of the viewport.
+    /// </summary>
+    public void ToBottom(float padding = 0f)
+    {
+        _verticalAnchor = VerticalAnchor.Bottom;
+        _verticalOffset = padding;
         ApplyAnchoredLayout();
     }
 
@@ -361,24 +315,77 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
     }
 
     /// <summary>
-    /// Anchors the object to the bottom edge of the viewport.
+    /// Updates the game object. Override to implement custom update logic.
     /// </summary>
-    public void ToBottom(float padding = 0f)
+    /// <param name="gameTime">The current game time.</param>
+    public virtual void Update(GameTime gameTime)
     {
-        _verticalAnchor = VerticalAnchor.Bottom;
-        _verticalOffset = padding;
+        ApplyAnchoredLayout();
+
+        if (!IsActive)
+        {
+            return;
+        }
+
+        foreach (var child in Children)
+        {
+            if (child is IUpdateble child2d)
+            {
+                child2d.Update(gameTime);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets the render context so the object can react to viewport changes (e.g., ToCenter, ToLeft).
+    /// </summary>
+    public void UseRenderContext(RenderContext renderContext)
+    {
+        RenderContext = renderContext;
         ApplyAnchoredLayout();
     }
 
     /// <summary>
-    /// Removes any active anchoring so manual positioning is respected again.
+    /// Adds a 2D game object as a child.
     /// </summary>
-    public void ClearAnchors()
+    /// <param name="gameObject">The game object to add.</param>
+    protected void AddGameObject2d(params IGameObject2d[] gameObjects)
     {
-        _horizontalAnchor = HorizontalAnchor.None;
-        _verticalAnchor = VerticalAnchor.None;
-        _horizontalOffset = 0f;
-        _verticalOffset = 0f;
+        ArgumentNullException.ThrowIfNull(gameObjects);
+
+        foreach (var gameObject in gameObjects)
+        {
+            if (Children is GameObjectCollection<IGameObject> collection)
+            {
+                collection.Add(gameObject);
+                gameObject.Parent = this;
+                _gameObjectManager.AddGameObject(gameObject);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when the game object is drawn. Override to implement custom drawing logic.
+    /// </summary>
+    /// <param name="gameTime">The current game time.</param>
+    protected virtual void OnDraw(GameTime gameTime) { }
+
+    /// <summary>
+    /// Removes a 2D game object from the children collection.
+    /// </summary>
+    /// <param name="gameObject">The game object to remove.</param>
+    protected void RemoveGameObject2d(IGameObject2d gameObject)
+    {
+        ArgumentNullException.ThrowIfNull(gameObject);
+
+        if (Children is GameObjectCollection<IGameObject> collection)
+        {
+            if (collection.Remove(gameObject))
+            {
+                gameObject.Parent = null;
+                _gameObjectManager.RemoveGameObject(gameObject);
+            }
+        }
     }
 
     private void ApplyAnchoredLayout()
@@ -433,39 +440,28 @@ public abstract class Base2dGameObject : IGameObject2d, IUpdateble, IInitializab
         Transform.Position = position;
     }
 
+    private Vector2 GetLocalScaledSize()
+    {
+        var size = Transform.Size;
+        var scale = Transform.Scale;
+
+        return new(size.X * scale.X, size.Y * scale.Y);
+    }
+
     private Vector2 GetViewportSize()
     {
         if (RenderContext != null)
         {
             var viewport = RenderContext.GraphicsDevice.Viewport;
 
-            return new Vector2(viewport.Width, viewport.Height);
+            return new(viewport.Width, viewport.Height);
         }
 
         return _manualViewportSize;
     }
 
-    private Vector2 GetLocalScaledSize()
+    private void HandleTransformChanged(Transform2D obj)
     {
-        var size = Transform.Size;
-        var scale = Transform.Scale;
-
-        return new Vector2(size.X * scale.X, size.Y * scale.Y);
-    }
-
-    private enum HorizontalAnchor
-    {
-        None,
-        Left,
-        Center,
-        Right
-    }
-
-    private enum VerticalAnchor
-    {
-        None,
-        Top,
-        Center,
-        Bottom
+        TransformChanged?.Invoke();
     }
 }

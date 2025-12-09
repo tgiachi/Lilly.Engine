@@ -10,14 +10,10 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
     private int _version;
 
     public GameObjectCollection()
-    {
-        _items = [];
-    }
+        => _items = [];
 
     public GameObjectCollection(int capacity)
-    {
-        _items = new(capacity);
-    }
+        => _items = new(capacity);
 
     public int Count
     {
@@ -31,6 +27,69 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _items[index];
+    }
+
+    public struct Enumerator : IEnumerator<TGameObject>
+    {
+        private readonly GameObjectCollection<TGameObject> _collection;
+        private readonly int _version;
+        private int _index;
+        private TGameObject? _current;
+
+        internal Enumerator(GameObjectCollection<TGameObject> collection)
+        {
+            _collection = collection;
+            _version = collection._version;
+            _index = 0;
+            _current = default;
+        }
+
+        public readonly TGameObject Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _current!;
+        }
+
+        readonly object IEnumerator.Current => Current;
+
+        public readonly void Dispose() { }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext()
+        {
+            if (_version != _collection._version)
+            {
+                ThrowVersionMismatch();
+            }
+
+            if (_index < _collection._items.Count)
+            {
+                _current = _collection._items[_index];
+                _index++;
+
+                return true;
+            }
+
+            _current = default;
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            if (_version != _collection._version)
+            {
+                ThrowVersionMismatch();
+            }
+
+            _index = 0;
+            _current = default;
+        }
+
+        private static void ThrowVersionMismatch()
+        {
+            throw new InvalidOperationException("Collection was modified during enumeration.");
+        }
     }
 
     public void Add(TGameObject item)
@@ -52,16 +111,6 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
         }
     }
 
-    public bool Remove(TGameObject item)
-    {
-        var removed = _items.Remove(item);
-        if (removed)
-        {
-            _version++;
-        }
-        return removed;
-    }
-
     public void Clear()
     {
         _items.Clear();
@@ -69,47 +118,11 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
     }
 
     public bool Contains(TGameObject item)
-    {
-        return _items.Contains(item);
-    }
+        => _items.Contains(item);
 
     public void CopyTo(TGameObject[] array, int arrayIndex)
     {
         _items.CopyTo(array, arrayIndex);
-    }
-
-    public void NotifyZIndexChanged(TGameObject item)
-    {
-        if (_items.Remove(item))
-        {
-            var index = FindInsertionIndex(item.ZIndex);
-            _items.Insert(index, item);
-            _version++;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int FindInsertionIndex(uint zIndex)
-    {
-        var low = 0;
-        var high = _items.Count - 1;
-
-        while (low <= high)
-        {
-            var mid = low + ((high - low) >> 1);
-            var midZIndex = _items[mid].ZIndex;
-
-            if (midZIndex <= zIndex)
-            {
-                low = mid + 1;
-            }
-            else
-            {
-                high = mid - 1;
-            }
-        }
-
-        return low;
     }
 
     public IEnumerable<TGameObject> Flatten()
@@ -126,9 +139,11 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
                 if (enumerator.MoveNext())
                 {
                     var current = enumerator.Current;
+
                     yield return current;
 
                     var children = current.Children;
+
                     if (children.Any())
                     {
                         var typedChildren = children.OfType<TGameObject>();
@@ -165,9 +180,11 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
                 if (enumerator.MoveNext())
                 {
                     var current = enumerator.Current;
+
                     yield return current;
 
                     var children = current.Children;
+
                     if (children.Any())
                     {
                         stack.Push(children.GetEnumerator());
@@ -189,70 +206,58 @@ public class GameObjectCollection<TGameObject> : ICollection<TGameObject> where 
         }
     }
 
-    public Enumerator GetEnumerator() => new(this);
+    public Enumerator GetEnumerator()
+        => new(this);
 
-    IEnumerator<TGameObject> IEnumerable<TGameObject>.GetEnumerator() => GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    public struct Enumerator : IEnumerator<TGameObject>
+    public void NotifyZIndexChanged(TGameObject item)
     {
-        private readonly GameObjectCollection<TGameObject> _collection;
-        private readonly int _version;
-        private int _index;
-        private TGameObject? _current;
-
-        internal Enumerator(GameObjectCollection<TGameObject> collection)
+        if (_items.Remove(item))
         {
-            _collection = collection;
-            _version = collection._version;
-            _index = 0;
-            _current = default;
-        }
-
-        public readonly TGameObject Current
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _current!;
-        }
-
-        readonly object IEnumerator.Current => Current;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool MoveNext()
-        {
-            if (_version != _collection._version)
-            {
-                ThrowVersionMismatch();
-            }
-
-            if (_index < _collection._items.Count)
-            {
-                _current = _collection._items[_index];
-                _index++;
-                return true;
-            }
-
-            _current = default;
-            return false;
-        }
-
-        public void Reset()
-        {
-            if (_version != _collection._version)
-            {
-                ThrowVersionMismatch();
-            }
-
-            _index = 0;
-            _current = default;
-        }
-
-        public readonly void Dispose() { }
-
-        private static void ThrowVersionMismatch()
-        {
-            throw new InvalidOperationException("Collection was modified during enumeration.");
+            var index = FindInsertionIndex(item.ZIndex);
+            _items.Insert(index, item);
+            _version++;
         }
     }
+
+    public bool Remove(TGameObject item)
+    {
+        var removed = _items.Remove(item);
+
+        if (removed)
+        {
+            _version++;
+        }
+
+        return removed;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int FindInsertionIndex(uint zIndex)
+    {
+        var low = 0;
+        var high = _items.Count - 1;
+
+        while (low <= high)
+        {
+            var mid = low + ((high - low) >> 1);
+            var midZIndex = _items[mid].ZIndex;
+
+            if (midZIndex <= zIndex)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+
+        return low;
+    }
+
+    IEnumerator<TGameObject> IEnumerable<TGameObject>.GetEnumerator()
+        => GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator()
+        => GetEnumerator();
 }

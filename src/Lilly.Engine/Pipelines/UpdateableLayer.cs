@@ -13,10 +13,7 @@ public class UpdateableLayer : BaseRenderLayer<IUpdateble>
     /// <summary>
     /// Initializes a new instance of the UpdateableLayer class.
     /// </summary>
-    public UpdateableLayer() : base("UpdateableLayer", RenderPriority.Background)
-    {
-
-    }
+    public UpdateableLayer() : base("UpdateableLayer", RenderPriority.Background) { }
 
     /// <summary>
     /// Updates all entities in the layer.
@@ -26,6 +23,7 @@ public class UpdateableLayer : BaseRenderLayer<IUpdateble>
     {
         ProcessedEntityCount = 0;
         StartUpdateTimer();
+
         foreach (var entity in Entities.ToArray())
         {
             ProcessedEntityCount++;

@@ -37,7 +37,5 @@ public static class RegisterSingletonExtensions
     /// <typeparam name="TService">The service type.</typeparam>
     /// <returns>The container for method chaining.</returns>
     public static IContainer RegisterService<TService>(this IContainer container)
-    {
-        return container.RegisterService<TService, TService>();
-    }
+        => container.RegisterService<TService, TService>();
 }

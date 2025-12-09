@@ -135,7 +135,7 @@ public class OrthographicCamera : Base3dCamera
     public OrthographicCamera(string name = "OrthographicCamera")
     {
         Name = name;
-        Position = new Vector3(0, 0, -10);
+        Position = new(0, 0, -10);
         Target = Vector3.Zero;
     }
 
@@ -145,6 +145,121 @@ public class OrthographicCamera : Base3dCamera
     public void ClearBounds()
     {
         EnableBoundsConstraints = false;
+    }
+
+    /// <summary>
+    /// Creates an orthographic camera configured for 2D side-scrolling view.
+    /// </summary>
+    /// <param name="width">Viewport width in world units</param>
+    /// <param name="height">Viewport height in world units</param>
+    /// <returns>Configured orthographic camera</returns>
+    public static OrthographicCamera Create2DSideScroll(float width, float height)
+    {
+        var camera = new OrthographicCamera("SideScrollCamera")
+        {
+            OrthoWidth = width,
+            OrthoHeight = height,
+            Position = new(0, 0, -10),
+            Target = Vector3.Zero
+        };
+
+        camera.LookAt(Vector3.Zero, new(0, 1, 0));
+
+        return camera;
+    }
+
+    /// <summary>
+    /// Creates an orthographic camera configured for 2D top-down view.
+    /// </summary>
+    /// <param name="width">Viewport width in world units</param>
+    /// <param name="height">Viewport height in world units</param>
+    /// <returns>Configured orthographic camera</returns>
+    public static OrthographicCamera Create2DTopDown(float width, float height)
+    {
+        var camera = new OrthographicCamera("TopDownCamera")
+        {
+            OrthoWidth = width,
+            OrthoHeight = height,
+            Position = new(0, 0, -10),
+            Target = Vector3.Zero
+        };
+
+        camera.LookAt(Vector3.Zero, new(0, 1, 0));
+
+        return camera;
+    }
+
+    /// <summary>
+    /// Creates an orthographic camera configured for isometric view.
+    /// Typical isometric angle is ~35.264 degrees from horizontal.
+    /// </summary>
+    /// <param name="width">Viewport width in world units</param>
+    /// <param name="height">Viewport height in world units</param>
+    /// <returns>Configured orthographic camera</returns>
+    public static OrthographicCamera CreateIsometric(float width = 20f, float height = 20f)
+    {
+        var camera = new OrthographicCamera("IsometricCamera")
+        {
+            OrthoWidth = width,
+            OrthoHeight = height
+        };
+
+        // Standard isometric angles: 45 degrees rotation, ~35.264 degrees pitch
+        var distance = 20f;
+        var angle = MathF.PI / 4f;                   // 45 degrees
+        var pitch = MathF.Atan(1f / MathF.Sqrt(2f)); // ~35.264 degrees
+
+        var x = distance * MathF.Sin(angle) * MathF.Cos(pitch);
+        var y = distance * MathF.Sin(pitch);
+        var z = distance * MathF.Cos(angle) * MathF.Cos(pitch);
+
+        camera.Position = new(x, y, z);
+        camera.LookAt(Vector3.Zero, new(0, 1, 0));
+
+        return camera;
+    }
+
+    /// <summary>
+    /// Creates an orthographic camera for a minimap view.
+    /// </summary>
+    /// <param name="worldWidth">Width of the world area to show</param>
+    /// <param name="worldHeight">Height of the world area to show</param>
+    /// <param name="height">Height of the camera above the world</param>
+    /// <returns>Configured orthographic camera</returns>
+    public static OrthographicCamera CreateMinimap(float worldWidth, float worldHeight, float height = 50f)
+    {
+        var camera = new OrthographicCamera("MinimapCamera")
+        {
+            OrthoWidth = worldWidth,
+            OrthoHeight = worldHeight,
+            Position = new(0, height, 0),
+            Target = Vector3.Zero
+        };
+
+        camera.LookAt(Vector3.Zero, new(0, 0, 1));
+
+        return camera;
+    }
+
+    /// <summary>
+    /// Creates an orthographic camera for UI or HUD rendering.
+    /// </summary>
+    /// <param name="screenWidth">Screen width in pixels</param>
+    /// <param name="screenHeight">Screen height in pixels</param>
+    /// <returns>Configured orthographic camera</returns>
+    public static OrthographicCamera CreateUI(float screenWidth, float screenHeight)
+    {
+        var camera = new OrthographicCamera("UICamera")
+        {
+            OrthoWidth = screenWidth,
+            OrthoHeight = screenHeight,
+            Position = new(screenWidth / 2f, screenHeight / 2f, -10),
+            Target = new(screenWidth / 2f, screenHeight / 2f, 0),
+            NearPlane = 0.1f,
+            FarPlane = 100f
+        };
+
+        return camera;
     }
 
     /// <summary>
@@ -179,7 +294,7 @@ public class OrthographicCamera : Base3dCamera
         var worldX = Position.X + x * effectiveWidth * 0.5f;
         var worldY = Position.Y + y * effectiveHeight * 0.5f;
 
-        return new Vector3(worldX, worldY, Position.Z);
+        return new(worldX, worldY, Position.Z);
     }
 
     /// <summary>
@@ -256,7 +371,7 @@ public class OrthographicCamera : Base3dCamera
         var screenX = (relativeX + 1.0f) * 0.5f * viewport.Width;
         var screenY = (1.0f - relativeY) * 0.5f * viewport.Height;
 
-        return new Vector2(screenX, screenY);
+        return new(screenX, screenY);
     }
 
     /// <summary>
@@ -343,7 +458,7 @@ public class OrthographicCamera : Base3dCamera
         if (pos != Position)
         {
             Position = pos;
-            Target = new Vector3(pos.X, pos.Y, 0);
+            Target = new(pos.X, pos.Y, 0);
         }
     }
 
@@ -353,120 +468,5 @@ public class OrthographicCamera : Base3dCamera
     private void MarkProjectionDirty()
     {
         SetProjectionDirty();
-    }
-
-    /// <summary>
-    /// Creates an orthographic camera configured for 2D top-down view.
-    /// </summary>
-    /// <param name="width">Viewport width in world units</param>
-    /// <param name="height">Viewport height in world units</param>
-    /// <returns>Configured orthographic camera</returns>
-    public static OrthographicCamera Create2DTopDown(float width, float height)
-    {
-        var camera = new OrthographicCamera("TopDownCamera")
-        {
-            OrthoWidth = width,
-            OrthoHeight = height,
-            Position = new Vector3(0, 0, -10),
-            Target = Vector3.Zero
-        };
-
-        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
-
-        return camera;
-    }
-
-    /// <summary>
-    /// Creates an orthographic camera configured for 2D side-scrolling view.
-    /// </summary>
-    /// <param name="width">Viewport width in world units</param>
-    /// <param name="height">Viewport height in world units</param>
-    /// <returns>Configured orthographic camera</returns>
-    public static OrthographicCamera Create2DSideScroll(float width, float height)
-    {
-        var camera = new OrthographicCamera("SideScrollCamera")
-        {
-            OrthoWidth = width,
-            OrthoHeight = height,
-            Position = new Vector3(0, 0, -10),
-            Target = Vector3.Zero
-        };
-
-        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
-
-        return camera;
-    }
-
-    /// <summary>
-    /// Creates an orthographic camera configured for isometric view.
-    /// Typical isometric angle is ~35.264 degrees from horizontal.
-    /// </summary>
-    /// <param name="width">Viewport width in world units</param>
-    /// <param name="height">Viewport height in world units</param>
-    /// <returns>Configured orthographic camera</returns>
-    public static OrthographicCamera CreateIsometric(float width = 20f, float height = 20f)
-    {
-        var camera = new OrthographicCamera("IsometricCamera")
-        {
-            OrthoWidth = width,
-            OrthoHeight = height
-        };
-
-        // Standard isometric angles: 45 degrees rotation, ~35.264 degrees pitch
-        var distance = 20f;
-        var angle = MathF.PI / 4f;                   // 45 degrees
-        var pitch = MathF.Atan(1f / MathF.Sqrt(2f)); // ~35.264 degrees
-
-        var x = distance * MathF.Sin(angle) * MathF.Cos(pitch);
-        var y = distance * MathF.Sin(pitch);
-        var z = distance * MathF.Cos(angle) * MathF.Cos(pitch);
-
-        camera.Position = new Vector3(x, y, z);
-        camera.LookAt(Vector3.Zero, new Vector3(0, 1, 0));
-
-        return camera;
-    }
-
-    /// <summary>
-    /// Creates an orthographic camera for UI or HUD rendering.
-    /// </summary>
-    /// <param name="screenWidth">Screen width in pixels</param>
-    /// <param name="screenHeight">Screen height in pixels</param>
-    /// <returns>Configured orthographic camera</returns>
-    public static OrthographicCamera CreateUI(float screenWidth, float screenHeight)
-    {
-        var camera = new OrthographicCamera("UICamera")
-        {
-            OrthoWidth = screenWidth,
-            OrthoHeight = screenHeight,
-            Position = new Vector3(screenWidth / 2f, screenHeight / 2f, -10),
-            Target = new Vector3(screenWidth / 2f, screenHeight / 2f, 0),
-            NearPlane = 0.1f,
-            FarPlane = 100f
-        };
-
-        return camera;
-    }
-
-    /// <summary>
-    /// Creates an orthographic camera for a minimap view.
-    /// </summary>
-    /// <param name="worldWidth">Width of the world area to show</param>
-    /// <param name="worldHeight">Height of the world area to show</param>
-    /// <param name="height">Height of the camera above the world</param>
-    /// <returns>Configured orthographic camera</returns>
-    public static OrthographicCamera CreateMinimap(float worldWidth, float worldHeight, float height = 50f)
-    {
-        var camera = new OrthographicCamera("MinimapCamera")
-        {
-            OrthoWidth = worldWidth,
-            OrthoHeight = worldHeight,
-            Position = new Vector3(0, height, 0),
-            Target = Vector3.Zero
-        };
-
-        camera.LookAt(Vector3.Zero, new Vector3(0, 0, 1));
-
-        return camera;
     }
 }

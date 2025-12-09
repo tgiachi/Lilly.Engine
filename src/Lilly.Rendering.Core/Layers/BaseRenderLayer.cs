@@ -36,8 +36,16 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
         Priority = priority;
     }
 
-    public virtual void Initialize() { }
-    public virtual void Update(GameTime gameTime) { }
+    public virtual void AddEntity<TEntity>(TEntity entity) where TEntity : IGameObject
+    {
+        if (entity is TGameObject typedEntity)
+        {
+            Entities.Add(typedEntity);
+        }
+    }
+
+    public virtual bool CanAdd<TEntity>(TEntity entity)
+        => typeof(TGameObject).IsAssignableFrom(entity.GetType());
 
     public TEntity? GetEntity<TEntity>() where TEntity : IGameObject
     {
@@ -52,20 +60,7 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
         return default;
     }
 
-    public virtual void Render(GameTime gameTime) { }
-
-    public virtual bool CanAdd<TEntity>(TEntity entity)
-    {
-        return typeof(TGameObject).IsAssignableFrom(entity.GetType());
-    }
-
-    public virtual void AddEntity<TEntity>(TEntity entity) where TEntity : IGameObject
-    {
-        if (entity is TGameObject typedEntity)
-        {
-            Entities.Add(typedEntity);
-        }
-    }
+    public virtual void Initialize() { }
 
     public void RemoveEntity<TEntity>(TEntity entity) where TEntity : IGameObject
     {
@@ -75,25 +70,19 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
         }
     }
 
-    protected void StartRenderTimer()
-    {
-        _renderStartTime = Stopwatch.GetTimestamp();
-    }
+    public virtual void Render(GameTime gameTime) { }
+    public virtual void Update(GameTime gameTime) { }
 
     protected void EndRenderTimer()
     {
         if (_renderStartTime == 0)
         {
             RenderTimeMilliseconds = 0;
+
             return;
         }
 
         RenderTimeMilliseconds = (Stopwatch.GetTimestamp() - _renderStartTime) * TickToMilliseconds;
-    }
-
-    protected void StartUpdateTimer()
-    {
-        _updateStartTime = Stopwatch.GetTimestamp();
     }
 
     protected void EndUpdateTimer()
@@ -101,9 +90,20 @@ public class BaseRenderLayer<TGameObject> : IRenderLayer where TGameObject : cla
         if (_updateStartTime == 0)
         {
             UpdateTimeMilliseconds = 0;
+
             return;
         }
 
         UpdateTimeMilliseconds = (Stopwatch.GetTimestamp() - _updateStartTime) * TickToMilliseconds;
+    }
+
+    protected void StartRenderTimer()
+    {
+        _renderStartTime = Stopwatch.GetTimestamp();
+    }
+
+    protected void StartUpdateTimer()
+    {
+        _updateStartTime = Stopwatch.GetTimestamp();
     }
 }

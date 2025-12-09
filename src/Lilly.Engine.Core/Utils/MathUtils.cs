@@ -12,5 +12,6 @@ public static class MathUtils
     /// <param name="b">The ending value.</param>
     /// <param name="t">The interpolation factor (0 to 1).</param>
     /// <returns>The interpolated value.</returns>
-    public static float Lerp(float a, float b, float t) => a + (b - a) * t;
+    public static float Lerp(float a, float b, float t)
+        => a + (b - a) * t;
 }

@@ -14,10 +14,6 @@ public abstract class TransitionGameObject : Transition, IGameObject
     public IGameObject? Parent { get; set; }
 
     public IEnumerable<IGameObject> Children => Enumerable.Empty<IGameObject>();
-    public void OnRemoved()
-    {
-
-    }
 
     public uint Id { get; set; }
 
@@ -26,4 +22,6 @@ public abstract class TransitionGameObject : Transition, IGameObject
     public uint ZIndex { get; set; } = 1000; // High z-index to render on top
 
     public bool IsActive { get; set; } = true;
+
+    public void OnRemoved() { }
 }

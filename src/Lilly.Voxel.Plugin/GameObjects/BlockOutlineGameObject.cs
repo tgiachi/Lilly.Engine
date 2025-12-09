@@ -39,6 +39,43 @@ public sealed class BlockOutlineGameObject : Base3dGameObject, IDisposable
         IgnoreFrustumCulling = true;
     }
 
+    public void Dispose()
+    {
+        _vertexBuffer?.Dispose();
+        _shaderProgram?.Dispose();
+    }
+
+    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
+    {
+        if (!_hasTarget || _vertexBuffer == null || _shaderProgram == null)
+        {
+            return;
+        }
+
+        graphicsDevice.ShaderProgram = _shaderProgram;
+        _shaderProgram.World = Transform.GetTransformationMatrix();
+        _shaderProgram.View = camera.View;
+        _shaderProgram.Projection = camera.Projection;
+
+        // Render lines on top of the target block
+        var oldBlend = graphicsDevice.BlendState;
+        var oldDepth = graphicsDevice.DepthState;
+        var oldCulling = graphicsDevice.FaceCullingEnabled;
+        var oldCullMode = graphicsDevice.CullFaceMode;
+
+        graphicsDevice.BlendState = BlendState.AlphaBlend;
+        graphicsDevice.DepthState = DepthState.Default;
+        graphicsDevice.FaceCullingEnabled = false;
+
+        graphicsDevice.VertexArray = _vertexBuffer;
+        graphicsDevice.DrawArrays(PrimitiveType.Lines, 0, _vertexBuffer.Value.StorageLength);
+
+        graphicsDevice.BlendState = oldBlend;
+        graphicsDevice.DepthState = oldDepth;
+        graphicsDevice.FaceCullingEnabled = oldCulling;
+        graphicsDevice.CullFaceMode = oldCullMode;
+    }
+
     public override void Initialize()
     {
         // Define the 8 corners of the unit cube (0,0,0) to (1,1,1)
@@ -92,8 +129,8 @@ public sealed class BlockOutlineGameObject : Base3dGameObject, IDisposable
         }
 
         var ray = new Ray(
-            new Vector3(camera.Position.X, camera.Position.Y, camera.Position.Z),
-            new Vector3(camera.Forward.X, camera.Forward.Y, camera.Forward.Z)
+            new(camera.Position.X, camera.Position.Y, camera.Position.Z),
+            new(camera.Forward.X, camera.Forward.Y, camera.Forward.Z)
         );
 
         if (world.Raycast(ray, RayDistance, out var blockPos))
@@ -103,7 +140,7 @@ public sealed class BlockOutlineGameObject : Base3dGameObject, IDisposable
 
             // Slightly grow and offset the outline to reduce z-fighting with block faces
             const float inset = 0.001f;
-            Transform.Scale = new Vector3(1f + inset);
+            Transform.Scale = new(1f + inset);
             Transform.Position = new Vector3(blockPos.X, blockPos.Y, blockPos.Z) - new Vector3(inset * 0.5f);
         }
         else
@@ -111,42 +148,5 @@ public sealed class BlockOutlineGameObject : Base3dGameObject, IDisposable
             _hasTarget = false;
             TargetBlockPosition = null;
         }
-    }
-
-    public override void Draw(GameTime gameTime, GraphicsDevice graphicsDevice, ICamera3D camera)
-    {
-        if (!_hasTarget || _vertexBuffer == null || _shaderProgram == null)
-        {
-            return;
-        }
-
-        graphicsDevice.ShaderProgram = _shaderProgram;
-        _shaderProgram.World = Transform.GetTransformationMatrix();
-        _shaderProgram.View = camera.View;
-        _shaderProgram.Projection = camera.Projection;
-
-        // Render lines on top of the target block
-        var oldBlend = graphicsDevice.BlendState;
-        var oldDepth = graphicsDevice.DepthState;
-        var oldCulling = graphicsDevice.FaceCullingEnabled;
-        var oldCullMode = graphicsDevice.CullFaceMode;
-
-        graphicsDevice.BlendState = BlendState.AlphaBlend;
-        graphicsDevice.DepthState = DepthState.Default;
-        graphicsDevice.FaceCullingEnabled = false;
-
-        graphicsDevice.VertexArray = _vertexBuffer;
-        graphicsDevice.DrawArrays(PrimitiveType.Lines, 0, _vertexBuffer.Value.StorageLength);
-
-        graphicsDevice.BlendState = oldBlend;
-        graphicsDevice.DepthState = oldDepth;
-        graphicsDevice.FaceCullingEnabled = oldCulling;
-        graphicsDevice.CullFaceMode = oldCullMode;
-    }
-
-    public void Dispose()
-    {
-        _vertexBuffer?.Dispose();
-        _shaderProgram?.Dispose();
     }
 }

@@ -24,36 +24,36 @@ uniform float uFade;
 
 void main()
 {
-    vec2 tiledCoord = fract(vec2(vTileCoord.x, 1.0 - vTileCoord.y));
-    vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
-    vec4 texResult = texture(uTexture, atlasCoord * uTexMultiplier);
+vec2 tiledCoord = fract(vec2(vTileCoord.x, 1.0 - vTileCoord.y));
+vec2 atlasCoord = vTileBase + tiledCoord * vTileSize;
+vec4 texResult = texture(uTexture, atlasCoord * uTexMultiplier);
 
-    // Discard transparent pixels
-    if (texResult.a == 0.0)
-        discard;
+// Discard transparent pixels
+if (texResult.a == 0.0)
+discard;
 
-    // Treat fully white textures (clouds) as softer lit so they don't get harsh shading.
-    bool isCloud = all(greaterThanEqual(texResult.rgb, vec3(0.99)));
+// Treat fully white textures (clouds) as softer lit so they don't get harsh shading.
+bool isCloud = all(greaterThanEqual(texResult.rgb, vec3(0.99)));
 
-    vec3 lightDir = normalize(uLightDirection);
-    float diff = max(dot(vNormal, lightDir), 0.0);
-    float diffTerm = isCloud ? (1.0 - diff * 0.2) : diff;
-    vec3 diffuse = diffTerm * vec3(1.0, 1.0, 1.0);
+vec3 lightDir = normalize(uLightDirection);
+float diff = max(dot(vNormal, lightDir), 0.0);
+float diffTerm = isCloud ? (1.0 - diff * 0.2) : diff;
+vec3 diffuse = diffTerm * vec3(1.0, 1.0, 1.0);
 
-    vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
-    if (isCloud) {
-        vertexLight = max(vertexLight, vec3(0.75)); // keep clouds bright even with low light
-    }
+vec3 vertexLight = clamp(vVertexLight, 0.0, 1.0);
+if (isCloud) {
+vertexLight = max(vertexLight, vec3(0.75)); // keep clouds bright even with low light
+}
 
-    vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight * uFade;
+vec3 color = texResult.rgb * (uAmbient + diffuse) * vertexLight * uFade;
 
-    // Apply fog
-    if (uFogEnabled)
-    {
-        color = mix(uFogColor, color, vFogFactor);
-    }
+// Apply fog
+if (uFogEnabled)
+{
+color = mix(uFogColor, color, vFogFactor);
+}
 
-    FragColor = vec4(color, texResult.a * uFade);
+FragColor = vec4(color, texResult.a * uFade);
 }
 
 #shader vertex
@@ -86,39 +86,39 @@ out vec3 vVertexLight;
 
 // Array of possible normals based on direction
 const vec3 normals[7] = vec3[7](
-    vec3( 0,  0,  1), // 0 - South
-    vec3( 0,  0, -1), // 1 - North
-    vec3( 1,  0,  0), // 2 - East
-    vec3(-1,  0,  0), // 3 - West
-    vec3( 0,  1,  0), // 4 - Top
-    vec3( 0, -1,  0), // 5 - Bottom
-    vec3( 0, -1,  0)  // 6 - Default
+vec3( 0, 0, 1), // 0 - South
+vec3( 0, 0, -1), // 1 - North
+vec3( 1, 0, 0), // 2 - East
+vec3(-1, 0, 0), // 3 - West
+vec3( 0, 1, 0), // 4 - Top
+vec3( 0, -1, 0), // 5 - Bottom
+vec3( 0, -1, 0) // 6 - Default
 );
 
 void main()
 {
-    vec4 worldPosition = vec4(aPosition + uModel, 1.0);
-    vec4 viewPosition = uView * worldPosition;
-    gl_Position = uProjection * viewPosition;
+vec4 worldPosition = vec4(aPosition + uModel, 1.0);
+vec4 viewPosition = uView * worldPosition;
+gl_Position = uProjection * viewPosition;
 
-    vTileCoord = aTileCoord;
-    vTileBase = aTileBase;
-    vTileSize = aTileSize;
-    vBlockCoord = aBlockCoord;
-    vVertexLight = aColor.rgb;
+vTileCoord = aTileCoord;
+vTileBase = aTileBase;
+vTileSize = aTileSize;
+vBlockCoord = aBlockCoord;
+vVertexLight = aColor.rgb;
 
-    // Extract direction from color.a and use it to get normal
-    int direction = int(round(aColor.a * 255.0));
-    vNormal = normals[clamp(direction, 0, 6)];
+// Extract direction from color.a and use it to get normal
+int direction = int(round(aColor.a * 255.0));
+vNormal = normals[clamp(direction, 0, 6)];
 
-    // Calculate fog
-    if (uFogEnabled)
-    {
-        float distance = length(viewPosition.xyz);
-        vFogFactor = clamp((uFogEnd - distance) / (uFogEnd - uFogStart), 0.0, 1.0);
-    }
-    else
-    {
-        vFogFactor = 1.0;
-    }
+// Calculate fog
+if (uFogEnabled)
+{
+float distance = length(viewPosition.xyz);
+vFogFactor = clamp((uFogEnd - distance) / (uFogEnd - uFogStart), 0.0, 1.0);
+}
+else
+{
+vFogFactor = 1.0;
+}
 }

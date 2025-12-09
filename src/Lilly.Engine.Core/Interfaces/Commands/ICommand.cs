@@ -8,15 +8,14 @@ namespace Lilly.Engine.Core.Interfaces.Commands;
 public interface ICommand
 {
     /// <summary>
+    /// Gets the definition of the command.
+    /// </summary>
+    CommandDefinition CommandDefinition { get; }
+
+    /// <summary>
     /// Executes the command asynchronously with the given parameters.
     /// </summary>
     /// <param name="parameters">The parameters to pass to the command.</param>
     /// <returns>The result of the command execution.</returns>
     Task<CommandExecuteResult> ExecuteAsync(params string[] parameters);
-
-    /// <summary>
-    /// Gets the definition of the command.
-    /// </summary>
-    CommandDefinition CommandDefinition { get; }
-
 }

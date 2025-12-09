@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using NVorbis;
-using Silk.NET.Maths;
 using Silk.NET.OpenAL;
 
 namespace Lilly.Engine.Audio;
@@ -57,11 +56,11 @@ public class AudioEffect : IDisposable
     }
 
     /// <summary>
-    /// Sets the volume of the sound effect. Range: 0.0 to 1.0+
+    /// Sets the maximum distance at which the sound can be heard.
     /// </summary>
-    public void SetVolume(float volume)
+    public void SetMaxDistance(float distance)
     {
-        alSource.SetProperty(SourceFloat.Gain, Math.Max(0.0f, volume));
+        alSource.SetMaxDistance(distance);
     }
 
     /// <summary>
@@ -69,7 +68,7 @@ public class AudioEffect : IDisposable
     /// </summary>
     public void SetPosition(Vector3 position)
     {
-        alSource.SetPosition(new Vector3D<float>(position.X, position.Y, position.Z));
+        alSource.SetPosition(new(position.X, position.Y, position.Z));
     }
 
     /// <summary>
@@ -78,14 +77,6 @@ public class AudioEffect : IDisposable
     public void SetReferenceDistance(float distance)
     {
         alSource.SetReferenceDistance(distance);
-    }
-
-    /// <summary>
-    /// Sets the maximum distance at which the sound can be heard.
-    /// </summary>
-    public void SetMaxDistance(float distance)
-    {
-        alSource.SetMaxDistance(distance);
     }
 
     /// <summary>
@@ -102,6 +93,14 @@ public class AudioEffect : IDisposable
     /// </summary>
     public void SetVelocity(Vector3 velocity)
     {
-        alSource.SetVelocity(new Vector3D<float>(velocity.X, velocity.Y, velocity.Z));
+        alSource.SetVelocity(new(velocity.X, velocity.Y, velocity.Z));
+    }
+
+    /// <summary>
+    /// Sets the volume of the sound effect. Range: 0.0 to 1.0+
+    /// </summary>
+    public void SetVolume(float volume)
+    {
+        alSource.SetProperty(SourceFloat.Gain, Math.Max(0.0f, volume));
     }
 }

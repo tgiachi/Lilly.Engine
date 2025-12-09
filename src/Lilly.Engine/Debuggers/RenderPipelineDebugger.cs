@@ -1,4 +1,3 @@
-
 using ImGuiNET;
 using Lilly.Engine.GameObjects.Base;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -7,14 +6,10 @@ namespace Lilly.Engine.Debuggers;
 
 public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
 {
-
     private readonly IRenderPipeline _renderPipeline;
 
-
     public RenderPipelineDebugger(IRenderPipeline renderPipeline) : base("Render pipeline")
-    {
-        _renderPipeline = renderPipeline;
-    }
+        => _renderPipeline = renderPipeline;
 
     protected override void DrawDebug()
     {
@@ -81,7 +76,5 @@ public class RenderPipelineDebugger : BaseImGuiDebuggerGameObject
 
         ImGui.Separator();
         ImGui.TextUnformatted("Timings (ms) history");
-
-
     }
 }
