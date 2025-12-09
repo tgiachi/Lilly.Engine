@@ -61,18 +61,6 @@ public record MeshShape(IReadOnlyList<Vector3> Vertices, IReadOnlyList<int> Indi
 /// <param name="Vertices">Hull vertices.</param>
 public record ConvexHullShape(IReadOnlyList<Vector3> Vertices) : PhysicsShape;
 
-/// <summary>
-/// Represents a child shape within a compound shape.
-/// </summary>
-/// <param name="Shape">The child shape.</param>
-/// <param name="LocalPose">Local position and rotation relative to the compound center.</param>
-public record CompoundChild(PhysicsShape Shape, RigidPose LocalPose);
-
-/// <summary>
-/// Compound shape composed of multiple child shapes.
-/// </summary>
-/// <param name="Children">List of child shapes.</param>
-public record CompoundShape(IReadOnlyList<CompoundChild> Children) : PhysicsShape;
 
 /// <summary>
 /// Configuration used to create a dynamic body.
