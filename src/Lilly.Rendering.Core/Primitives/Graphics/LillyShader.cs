@@ -113,13 +113,13 @@ public class LillyShader : IDisposable
     }
 
     public void SetUniform(string name, ReadOnlySpan<Vector2> values)
-        => SetUniformVectorArray(name, values, 2, (loc, count, ref float data) => gl.Uniform2(loc, count, ref data));
+        => SetUniformVectorArray(name, values, 2);
 
     public void SetUniform(string name, ReadOnlySpan<Vector3> values)
-        => SetUniformVectorArray(name, values, 3, (loc, count, ref float data) => gl.Uniform3(loc, count, ref data));
+        => SetUniformVectorArray(name, values, 3);
 
     public void SetUniform(string name, ReadOnlySpan<Vector4> values)
-        => SetUniformVectorArray(name, values, 4, (loc, count, ref float data) => gl.Uniform4(loc, count, ref data));
+        => SetUniformVectorArray(name, values, 4);
 
     public int GetUniformLocation(string name)
     {
@@ -193,12 +193,8 @@ public class LillyShader : IDisposable
         return handle;
     }
 
-    private unsafe void SetUniformVectorArray<T>(
-        string name,
-        ReadOnlySpan<T> values,
-        int componentsPerElement,
-        Action<int, uint, ref float> upload
-    ) where T : struct
+    private unsafe void SetUniformVectorArray<T>(string name, ReadOnlySpan<T> values, int componentsPerElement)
+        where T : struct
     {
         if (values.IsEmpty) return;
 
@@ -206,26 +202,35 @@ public class LillyShader : IDisposable
         var floatCount = values.Length * componentsPerElement;
 
         const int stackThreshold = 256;
-        if (floatCount <= stackThreshold)
+        float[]? rented = null;
+        Span<float> buffer = floatCount <= stackThreshold
+            ? stackalloc float[stackThreshold]
+            : (rented = ArrayPool<float>.Shared.Rent(floatCount)).AsSpan(0, floatCount);
+
+        var target = buffer[..floatCount];
+        FillFlatten(values, componentsPerElement, target);
+
+        fixed (float* ptr = target)
         {
-            Span<float> buffer = stackalloc float[stackThreshold];
-            FillFlatten(values, componentsPerElement, buffer);
-            upload(location, (uint)values.Length, ref buffer[0]);
+            switch (componentsPerElement)
+            {
+                case 2:
+                    gl.Uniform2(location, (uint)values.Length, ptr);
+                    break;
+                case 3:
+                    gl.Uniform3(location, (uint)values.Length, ptr);
+                    break;
+                case 4:
+                    gl.Uniform4(location, (uint)values.Length, ptr);
+                    break;
+                default:
+                    throw new NotSupportedException($"Unsupported component count {componentsPerElement}.");
+            }
         }
-        else
+
+        if (rented is not null)
         {
-            var pool = ArrayPool<float>.Shared;
-            var rented = pool.Rent(floatCount);
-            try
-            {
-                var span = rented.AsSpan(0, floatCount);
-                FillFlatten(values, componentsPerElement, span);
-                upload(location, (uint)values.Length, ref span[0]);
-            }
-            finally
-            {
-                pool.Return(rented);
-            }
+            ArrayPool<float>.Shared.Return(rented);
         }
     }
 
