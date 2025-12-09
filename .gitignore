@@ -568,6 +568,7 @@ crashlytics-build.properties
 *.dll
 **/**/.DS_Store
 coverage/*
+/definizions.lua
 
 # DocFX generated documentation
 docs/_site/
