@@ -78,7 +78,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             "K",
             () =>
             {
-                var crateGameObject = gameObjectFactory.Create<ModelGameObject>();
+                var crateGameObject = gameObjectFactory.Create<ActionableModelGameObject>();
                 crateGameObject.ModelName = "crate";
                 crateGameObject.Transform.Position =
                     cameraService.ActiveCamera.Position + cameraService.ActiveCamera.Forward * 2f;
