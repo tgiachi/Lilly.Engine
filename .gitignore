@@ -580,3 +580,5 @@ docs/log.txt
 
 # Source Generator - auto-generated files (regenerated on build)
 src/**/Generated/
+
+definitions.lua
