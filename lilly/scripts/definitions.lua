@@ -2,7 +2,7 @@
 
 ---
 --- Lilly.Engine vVersionInfoData { AppName = Lilly.Engine, CodeName = Oceanus, Version = 0.5.0.0 } Lua API
---- Auto-generated on 2025-12-10 10:35:54
+--- Auto-generated on 2025-12-10 10:36:51
 ---
 
 --- Global constants
@@ -1213,10 +1213,70 @@ quake_console = {}
 function quake_console.toggle() end
 
 ---
+--- BlockRegistryModule module
+---
+--- Provides access to the block registry, allowing retrieval of block types and their properties.
+---
+---@class block_registry
+block_registry.load_blocks_from_data = function() end
+block_registry.new_block = function() end
+block_registry.register_block = function() end
+block_registry = {}
+
+---
+--- Loads block definitions from a JSON file in the data directory.
+---
+---@param file_name string The filename text
+function block_registry.load_blocks_from_data(file_name) end
+
+---
+--- Creates a new block type with the specified name.
+---
+---@param name string The name text
+---@return BlockType The result as BlockType
+function block_registry.new_block(name) end
+
+---
+--- Registers a new block type with the given name and properties defined in the builder closure.
+---
+---@param name string The name text
+---@param builder function The builder of type function
+function block_registry.register_block(name, builder) end
+
+---
+--- GenerationModule module
+---
+--- Provides functionalities related to voxel world generation.
+---
+---@class generation
+generation = {}
+
+---
+--- WorldModule module
+---
+--- Provides access to world-related functionalities.
+---
+---@class world
+world.remove_block = function() end
+world = {}
+
+---
+--- Removes the block at the current targeted position in the voxel world.
+---
+function world.remove_block() end
+
+---
 --- game_objects module 
 ---
 ---@class game_objects
 game_objects = {}
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_block_outline(...) end
 
 ---
 --- Dynamically registered function
@@ -1237,7 +1297,28 @@ function game_objects.new_camera_debugger(...) end
 ---
 ---@param ... any
 ---@return any
+function game_objects.new_chunk(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_chunk_debugger_viewer(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
 function game_objects.new_combo_box(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_crosshair(...) end
 
 ---
 --- Dynamically registered function
@@ -1300,6 +1381,13 @@ function game_objects.new_quake_console(...) end
 ---
 ---@param ... any
 ---@return any
+function game_objects.new_rain_effect(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
 function game_objects.new_rectangle(...) end
 
 ---
@@ -1335,6 +1423,20 @@ function game_objects.new_simple_cube(...) end
 ---
 ---@param ... any
 ---@return any
+function game_objects.new_sky(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_snow_effect(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
 function game_objects.new_stack_layout(...) end
 
 ---
@@ -1364,6 +1466,46 @@ function game_objects.new_texture(...) end
 ---@param ... any
 ---@return any
 function game_objects.new_version(...) end
+
+---
+--- Dynamically registered function
+---
+---@param ... any
+---@return any
+function game_objects.new_world(...) end
+
+
+---
+--- Enum: Lilly.Voxel.Plugin.Types.BlockRenderType
+--- This enum is read-only and case-insensitive
+---
+---@class block_render_type
+---@field public readonly Solid number # Enum value: 0
+---@field public readonly Transparent number # Enum value: 1
+---@field public readonly Billboard number # Enum value: 2
+---@field public readonly Cutout number # Enum value: 3
+---@field public readonly Item number # Enum value: 4
+---@field public readonly Fluid number # Enum value: 5
+---@field public readonly Clouds number # Enum value: 6
+
+--- Read-only enum table
+block_render_type = {}
+
+
+---
+--- Enum: Lilly.Voxel.Plugin.Types.BlockFace
+--- This enum is read-only and case-insensitive
+---
+---@class block_face
+---@field public readonly Top number # Enum value: 0
+---@field public readonly Bottom number # Enum value: 1
+---@field public readonly Front number # Enum value: 2
+---@field public readonly Back number # Enum value: 3
+---@field public readonly Left number # Enum value: 4
+---@field public readonly Right number # Enum value: 5
+
+--- Read-only enum table
+block_face = {}
 
 
 ---
@@ -1402,6 +1544,36 @@ data_type = {}
 --- Read-only enum table
 type_validation_flags = {}
 
+
+
+---
+--- Class Lilly.Voxel.Plugin.Blocks.BlockType
+---
+---@class BlockType
+---@field id number # Property
+---@field name string # Property
+---@field is_solid boolean # Property
+---@field is_liquid boolean # Property
+---@field is_opaque boolean # Property
+---@field is_transparent boolean # Property
+---@field hardness number # Property
+---@field is_breakable boolean # Property
+---@field is_billboard boolean # Property
+---@field is_actionable boolean # Property
+---@field is_light_source boolean # Property
+---@field emits_light number # Property
+---@field emits_color Color4b # Property
+---@field texture_set BlockTextureSet # Property
+---@field render_type block_render_type # Property
+---
+--- Methods:
+---@overload fun(asset_name: string, index: number):nil
+---@overload fun(asset_name: string, index: number):nil
+---@overload fun(asset_name: string, index: number):nil
+---@overload fun(asset_name: string, index: number):nil
+---@overload fun(asset_name: string, index: number):nil
+---@overload fun(face: block_face, asset_name: string, index: number):nil
+---@overload fun(asset_name: string, index: number):nil
 
 
 ---
@@ -1507,6 +1679,9 @@ type_validation_flags = {}
 GameTime = {}
 Table = {}
 DynValue = {}
+BlockType = {}
+Color4b = {}
+BlockTextureSet = {}
 Coroutine = {}
 CallbackFunction = {}
 TailCallData = {}
