@@ -11,4 +11,11 @@
         <ProjectReference Include="..\Lilly.Engine.GameObjects\Lilly.Engine.GameObjects.csproj"/>
         <ProjectReference Include="..\Lilly.Engine\Lilly.Engine.csproj"/>
     </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
 </Project>

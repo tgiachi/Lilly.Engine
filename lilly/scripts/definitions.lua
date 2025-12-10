@@ -2,7 +2,7 @@
 
 ---
 --- Lilly.Engine vVersionInfoData { AppName = Lilly.Engine, CodeName = Oceanus, Version = 0.5.0.0 } Lua API
---- Auto-generated on 2025-12-09 20:48:27
+--- Auto-generated on 2025-12-10 09:12:24
 ---
 
 --- Global constants
