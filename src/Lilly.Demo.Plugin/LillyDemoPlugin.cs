@@ -91,7 +91,7 @@ public class LillyDemoPlugin : ILillyPlugin
         var cat = gameObjectFactory.Create<ModelGameObject>();
         cat.ModelName = "cat";
         cat.IsStatic = false;
-        cat.UseCompoundCollider = true;
+        cat.UseCompoundCollider = false;
         cat.Transform.Position = new(-10f, 3f, 0f);
 
         yield return cat;
