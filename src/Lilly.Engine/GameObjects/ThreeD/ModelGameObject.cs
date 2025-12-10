@@ -35,6 +35,8 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
     public Vector4 Tint { get; set; } = Vector4.One;
     public bool IsStatic { get; set; }
 
+    public bool UseCompoundCollider { get; set; }
+
     public float Mass { get; set; } = 1f;
 
     public ModelGameObject(
@@ -234,6 +236,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
 
         var verts = new List<Vector3>();
         var inds = new List<int>();
+        List<CompoundShapeChild>? compoundChildren = UseCompoundCollider ? new() : null;
 
         if (_model != null)
         {
@@ -248,12 +251,25 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
 
                 var mesh = _model.Meshes[instance.MeshIndex];
                 var baseIndex = verts.Count;
+                List<Vector3>? childVerts = compoundChildren != null ? new(mesh.Positions.Count) : null;
 
                 foreach (var p in mesh.Positions)
                 {
                     var pos = Vector3.Transform(p, instance.Transform);
                     pos = Vector3.Transform(pos, scaleMatrix);
                     verts.Add(pos);
+                    childVerts?.Add(pos);
+                }
+
+                if (childVerts is { Count: > 3 })
+                {
+                    compoundChildren!.Add(
+                        new(
+                            new ConvexHullShape(childVerts),
+                            Vector3.Zero,
+                            Quaternion.Identity
+                        )
+                    );
                 }
 
                 foreach (var idx in mesh.Indices)
@@ -267,7 +283,11 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
 
         if (IsStatic)
         {
-            if (verts.Count > 0 && inds.Count >= 3)
+            if (UseCompoundCollider && compoundChildren is { Count: > 0 })
+            {
+                shape = new CompoundShape(compoundChildren);
+            }
+            else if (verts.Count > 0 && inds.Count >= 3)
             {
                 shape = new MeshShape(verts, inds);
             }
@@ -280,7 +300,11 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
         else
         {
             // Dynamic: use convex hull if we have verts, else fallback to box.
-            if (verts.Count > 0)
+            if (UseCompoundCollider && compoundChildren is { Count: > 0 })
+            {
+                shape = new CompoundShape(compoundChildren);
+            }
+            else if (verts.Count > 0)
             {
                 shape = new ConvexHullShape(verts);
             }

@@ -99,8 +99,18 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     public IPhysicsBodyHandle CreateDynamic(PhysicsBodyConfig config)
     {
-        var shapeIndex = GetOrCreateShape(config.Shape);
-        var inertia = ComputeInertia(config.Shape, config.Mass);
+        TypedIndex shapeIndex;
+        BodyInertia inertia;
+
+        if (config.Shape is CompoundShape compoundShape)
+        {
+            (shapeIndex, inertia) = CreateCompoundDynamic(compoundShape, config.Mass);
+        }
+        else
+        {
+            shapeIndex = GetOrCreateShape(config.Shape);
+            inertia = ComputeInertia(config.Shape, config.Mass);
+        }
 
         var bodyDesc = BodyDescription.CreateDynamic(
             new(config.Pose.Position, config.Pose.Rotation),
@@ -119,7 +129,9 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     public IPhysicsBodyHandle CreateStatic(PhysicsShape shape, EngineRigidPose pose)
     {
-        var shapeIndex = GetOrCreateShape(shape);
+        var shapeIndex = shape is CompoundShape compoundShape
+                             ? GetOrCreateCompoundShape(compoundShape)
+                             : GetOrCreateShape(shape);
         var handle = Simulation.Statics.Add(new(pose.Position, pose.Rotation, shapeIndex));
         var id = _nextId++;
 
@@ -301,6 +313,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             CapsuleShape c    => new Capsule(c.Radius, c.Length).ComputeInertia(mass),
             ConvexHullShape h => CreateConvexHull(h).ComputeInertia(mass),
             MeshShape         => throw new NotSupportedException("Triangle meshes are intended for static bodies in BEPU."),
+            CompoundShape     => throw new NotSupportedException("Compound shapes compute inertia during creation."),
             _                 => default
         };
     }
@@ -361,6 +374,93 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         return hull;
     }
 
+    private void AddCompoundChild(CompoundBuilder builder, CompoundShapeChild child)
+    {
+        var pose = new BepuPhysics.RigidPose(child.LocalPosition, child.LocalOrientation);
+
+        switch (child.Shape)
+        {
+            case BoxShape box:
+                builder.Add(new Box(box.Width, box.Height, box.Depth), pose, child.Weight);
+                break;
+            case SphereShape sphere:
+                builder.Add(new Sphere(sphere.Radius), pose, child.Weight);
+                break;
+            case CapsuleShape capsule:
+                builder.Add(new Capsule(capsule.Radius, capsule.Length), pose, child.Weight);
+                break;
+            case ConvexHullShape hull:
+                builder.Add(CreateConvexHull(hull), pose, child.Weight);
+                break;
+            default:
+                throw new NotSupportedException("Compound shapes only support convex child shapes.");
+        }
+    }
+
+    private (TypedIndex ShapeIndex, BodyInertia Inertia) CreateCompoundDynamic(
+        CompoundShape compoundShape,
+        float mass
+    )
+    {
+        using var builder = new CompoundBuilder(Pool, Simulation.Shapes, compoundShape.Children.Count);
+
+        foreach (var child in compoundShape.Children)
+        {
+            AddCompoundChild(builder, child);
+        }
+
+        if (builder.Children.Count == 0)
+        {
+            var fallback = new Box(1f, 1f, 1f);
+            return (Simulation.Shapes.Add(fallback), fallback.ComputeInertia(mass));
+        }
+
+        builder.BuildDynamicCompound(out var children, out var inertia);
+
+        var totalWeight = 1f / inertia.InverseMass;
+        if (mass > 0f)
+        {
+            var scale = totalWeight / mass;
+            inertia.InverseMass = 1f / mass;
+            inertia.InverseInertiaTensor.XX *= scale;
+            inertia.InverseInertiaTensor.YX *= scale;
+            inertia.InverseInertiaTensor.YY *= scale;
+            inertia.InverseInertiaTensor.ZX *= scale;
+            inertia.InverseInertiaTensor.ZY *= scale;
+            inertia.InverseInertiaTensor.ZZ *= scale;
+        }
+
+        var shapeIndex = Simulation.Shapes.Add(new Compound(children));
+
+        return (shapeIndex, inertia);
+    }
+
+    private TypedIndex GetOrCreateCompoundShape(CompoundShape compoundShape)
+    {
+        if (_shapeCache.TryGetValue(compoundShape, out var cached))
+        {
+            return cached;
+        }
+
+        using var builder = new CompoundBuilder(Pool, Simulation.Shapes, compoundShape.Children.Count);
+
+        foreach (var child in compoundShape.Children)
+        {
+            AddCompoundChild(builder, child);
+        }
+
+        if (builder.Children.Count == 0)
+        {
+            return Simulation.Shapes.Add(new Box(1f, 1f, 1f));
+        }
+
+        builder.BuildKinematicCompound(out var children);
+        var shapeIndex = Simulation.Shapes.Add(new Compound(children));
+        _shapeCache[compoundShape] = shapeIndex;
+
+        return shapeIndex;
+    }
+
     private TypedIndex GetOrCreateShape(PhysicsShape shape)
     {
         if (_shapeCache.TryGetValue(shape, out var cached))
@@ -375,6 +475,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             CapsuleShape c    => Simulation.Shapes.Add(new Capsule(c.Radius, c.Length)),
             ConvexHullShape h => Simulation.Shapes.Add(CreateConvexHull(h)),
             MeshShape m       => Simulation.Shapes.Add(CreateMesh(m)),
+            CompoundShape c   => GetOrCreateCompoundShape(c),
 
             _                 => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
         };

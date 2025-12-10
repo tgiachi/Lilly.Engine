@@ -80,6 +80,7 @@ public class LillyDemoPlugin : ILillyPlugin
         var jeep = gameObjectFactory.Create<ModelGameObject>();
         jeep.ModelName = "jeep";
         jeep.IsStatic = false;
+        jeep.UseCompoundCollider = true;
         jeep.Transform.Position = new(-3f, 3f, 0f);
 
         yield return jeep;
