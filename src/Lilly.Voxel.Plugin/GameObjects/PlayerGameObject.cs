@@ -113,7 +113,7 @@ public class PlayerGameObject : Base3dGameObject, IPhysicsGameObject3d
         if (moveDirection.LengthSquared() > 1e-8f)
         {
             var impulse = moveDirection * MoveImpulse * deltaTime;
-            _physicWorld3d.ApplyImpulse(_bodyHandle, impulse, Vector3.Zero);
+            _physicWorld3d.ApplyImpulse(_bodyHandle, impulse, Vector3.One);
         }
 
         if (up > 0.1f)

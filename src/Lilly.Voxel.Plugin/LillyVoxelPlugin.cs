@@ -36,6 +36,8 @@ public class LillyVoxelPlugin : ILillyPlugin
             "com.tgiachi.lilly.gameobjects"
         );
 
+    private IRenderPipeline _renderPipeline;
+
     public LillyVoxelPlugin()
     {
         JsonUtils.RegisterJsonContext(LillyVoxelJsonContext.Default);
@@ -75,6 +77,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         var gameObjectFactory = container.Resolve<IGameObjectFactory>();
         var cameraService = container.Resolve<ICamera3dService>();
         var renderPipeline = container.Resolve<IRenderPipeline>();
+        _renderPipeline = renderPipeline;
         var actionableService = container.Resolve<IActionableService>();
 
         actionableService.AddActionListener(container.Resolve<SoundListener>());
@@ -106,12 +109,22 @@ public class LillyVoxelPlugin : ILillyPlugin
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
     {
         yield return gameObjectFactory.Create<SkyGameObject>();
-        yield return gameObjectFactory.Create<WorldGameObject>();
 
-        var playerGameObject = gameObjectFactory.Create<PlayerGameObject>();
-        playerGameObject.Transform.Position = new(0f, 150f, 0f);
+        var worldGameObject = gameObjectFactory.Create<WorldGameObject>();
 
-        yield return playerGameObject;
+        worldGameObject.WorldGenerated += () =>
+                                          {
+                                              if (_renderPipeline.GetGameObjectOfType<PlayerGameObject>() != null)
+                                              {
+                                                  return;
+                                              }
+                                              var playerGameObject = gameObjectFactory.Create<PlayerGameObject>();
+                                              playerGameObject.Transform.Position = new(0f, 60f, 0f);
+
+                                              _renderPipeline.AddGameObject(playerGameObject);
+                                          };
+
+        yield return worldGameObject;
 
         // yield return gameObjectFactory.Create<RainEffectGameObject>();
     }

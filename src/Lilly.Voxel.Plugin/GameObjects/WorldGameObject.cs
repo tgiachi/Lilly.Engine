@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Jobs;
@@ -52,6 +54,7 @@ public sealed class WorldGameObject : Base3dGameObject
     private int _cachedHorizontalRadius = int.MinValue;
     private int _cachedVerticalBelow = int.MinValue;
     private int _cachedVerticalAbove = int.MinValue;
+    private bool _isWorldReady;
 
     public ChunkStreamingConfiguration StreamingConfig { get; } = new();
 
@@ -96,6 +99,12 @@ public sealed class WorldGameObject : Base3dGameObject
         _physicsWorld = physicsWorld;
         IgnoreFrustumCulling = true;
     }
+
+    /// <summary>
+    /// Raised when all target chunks for the current streaming window are generated and active.
+    /// Fires again after the world becomes not-ready (e.g., player moves) and returns to ready.
+    /// </summary>
+    public event Action? WorldGenerated;
 
     public bool GetBlockAtPosition(Vector3 position, out BlockType blockType)
     {
@@ -259,6 +268,7 @@ public sealed class WorldGameObject : Base3dGameObject
         ProcessCompletedJobs();
         UnloadFarChunks(targets);
         UpdatePhysicsAttachments(physicsTargets);
+        NotifyWorldReadyIfNeeded(targets);
 
         _actionableService.Update(gameTime);
     }
@@ -440,6 +450,22 @@ public sealed class WorldGameObject : Base3dGameObject
 
     private Vector3 GetStreamingOrigin()
         => _cameraService.ActiveCamera?.Position ?? Transform.Position;
+
+    private void NotifyWorldReadyIfNeeded(HashSet<Vector3> targets)
+    {
+        var allTargetsActive = targets.All(coord => _activeChunks.ContainsKey(coord));
+        var isReady = allTargetsActive && _pending.IsEmpty;
+
+        if (isReady && !_isWorldReady)
+        {
+            _isWorldReady = true;
+            WorldGenerated?.Invoke();
+        }
+        else if (!isReady && _isWorldReady)
+        {
+            _isWorldReady = false;
+        }
+    }
 
     private void ProcessCompletedJobs()
     {
