@@ -1,4 +1,5 @@
 using System.Numerics;
+using Lilly.Engine.Core.Extensions.Strings;
 using Silk.NET.Maths;
 
 namespace Lilly.Rendering.Core.Extensions;
@@ -9,7 +10,7 @@ namespace Lilly.Rendering.Core.Extensions;
 public static class VectorExtensions
 {
     public static string ToHumanReadableString(this Vector3 vector)
-        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2}";
+        => $"X{vector.X:F2}_Y{vector.Y:F2}_Z{vector.Z:F2}".ToSnakeCase();
 
     /// <summary>
     /// Converts a System.Numerics.Vector2 to Silk.NET.Maths.Vector2D&lt;int&gt;.
