@@ -28,6 +28,7 @@ public class WindowModule
     public void SetRefreshRate(int refreshRate)
     {
         _mainThreadDispatcher.EnqueueAction(
+            "Set Window Refresh Rate",
             () =>
             {
                 _renderContext.Window.FramesPerSecond = refreshRate;
@@ -40,6 +41,7 @@ public class WindowModule
     public void SetTitle(string title)
     {
         _mainThreadDispatcher.EnqueueAction(
+            "Set Window Title",
             () =>
             {
                 _renderContext.Window.Title = title;
@@ -51,6 +53,7 @@ public class WindowModule
     public void SetVSync(bool vSync)
     {
         _mainThreadDispatcher.EnqueueAction(
+            "Set Window VSync",
             () =>
             {
                 _renderContext.Window.VSync = vSync;

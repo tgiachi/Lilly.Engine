@@ -71,7 +71,11 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
     public PhysicsBodyConfig BuildBodyConfig()
 
         // Cube size is 1x1x1 (from -0.5 to 0.5 in all dimensions)
-        => new(new BoxShape(1, 1, 1f), Mass, new(Transform.Position, Transform.Rotation));
+        => new(
+            new BoxShape(Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z),
+            Mass,
+            new(Transform.Position, Transform.Rotation)
+        );
 
     public void Dispose()
     {

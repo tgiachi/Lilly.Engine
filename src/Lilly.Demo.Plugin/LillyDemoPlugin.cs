@@ -50,15 +50,18 @@ public class LillyDemoPlugin : ILillyPlugin
             // );
 
             cube.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
-            );
+                    Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
+                    Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
+                    Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
+                )
+                ;
             cube.Transform.Position = new(
                 index % 5 * 2f - 4f,
                 +100f,
-                index / 5 * 2f - 1f
+                index / 5 * 2f - 14f
             );
+            var scale = Random.Shared.NextSingle() * 0.51f + 0.5f;
+            cube.Transform.Scale = new(scale, scale, scale);
 
             yield return cube;
         }
@@ -75,7 +78,6 @@ public class LillyDemoPlugin : ILillyPlugin
         model.Transform.Position = new(-5f, 3f, 0f);
 
         yield return model;
-
 
         var jeep = gameObjectFactory.Create<ModelGameObject>();
         jeep.ModelName = "jeep";
