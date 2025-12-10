@@ -1,4 +1,3 @@
-using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Types;
 
@@ -22,8 +21,8 @@ public abstract class ComponentQueryListener : IActionableListener
     /// <summary>
     /// Determines if the instance satisfies this listener's component requirements.
     /// </summary>
-    public virtual bool CanHandle(BlockInstance instance)
-        => Query.Matches(instance.Components);
+    public virtual bool CanHandle(IActionableTarget target)
+        => Query.Matches(target.Components);
 
     /// <summary>
     /// Dispatches an action event to the listener.

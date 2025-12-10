@@ -1,6 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
+using Lilly.Rendering.Core.Primitives;
 using Lilly.Voxel.Plugin.Actionables;
 using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Interfaces.Actionables;
@@ -19,8 +20,8 @@ public class ActionableService : IActionableService
     private readonly IBlockRegistry _blockRegistry;
 
     private readonly IMainThreadDispatcher _mainThreadDispatcher;
-
     private readonly Dictionary<ActionEventType, List<IActionableListener>> _listeners = new();
+    private readonly List<IRaycastableActionableTarget> _raycastTargets = new();
 
     public ActionableService(
         IChunkGeneratorService chunkGenerator,
@@ -46,14 +47,14 @@ public class ActionableService : IActionableService
 
     public void Handle(ActionEventContext ctx)
     {
-        var instance = ctx.Instance;
+        var target = ctx.Target;
 
-        if (instance is null && !TryGetInstance(ctx.WorldPosition, out instance))
+        if (target is null && !TryGetInstance(ctx.WorldPosition, out target))
         {
             return;
         }
 
-        Dispatch(ctx with { Instance = instance });
+        Dispatch(ctx with { Target = target });
     }
 
     public void OnPlace(Vector3 worldPos, ushort blockTypeId, BlockType type)
@@ -84,11 +85,56 @@ public class ActionableService : IActionableService
         chunk.RemoveActionable(localIndex);
     }
 
-    public bool TryGetInstance(Vector3 worldPos, out BlockInstance inst)
+    public bool TryGetInstance(Vector3 worldPos, out IActionableTarget inst)
     {
         inst = null!;
 
         return TryResolve(worldPos, out var chunk, out var localIndex) && chunk.TryGetActionable(localIndex, out inst);
+    }
+
+    public void RegisterRaycastTarget(IRaycastableActionableTarget target)
+    {
+        if (!_raycastTargets.Contains(target))
+        {
+            _raycastTargets.Add(target);
+        }
+    }
+
+    public void UnregisterRaycastTarget(IRaycastableActionableTarget target)
+        => _raycastTargets.Remove(target);
+
+    public bool TryRaycastTarget(Ray ray, float maxDistance, out IActionableTarget target, out Vector3 hitPoint)
+    {
+        target = null!;
+        hitPoint = default;
+        var bestDistance = float.MaxValue;
+
+        for (var i = _raycastTargets.Count - 1; i >= 0; i--)
+        {
+            var t = _raycastTargets[i];
+
+            if (t == null)
+            {
+                _raycastTargets.RemoveAt(i);
+                continue;
+            }
+
+            if (!t.Raycast(ray, maxDistance, out var distance, out var hp))
+            {
+                continue;
+            }
+
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
+            bestDistance = distance;
+            target = t;
+            hitPoint = hp;
+        }
+
+        return bestDistance < float.MaxValue;
     }
 
     public void Update(GameTime gameTime)
@@ -103,12 +149,13 @@ public class ActionableService : IActionableService
             foreach (var instance in chunk.Actionables.Values)
             {
                 var worldPos = ChunkEntity.GetWorldPosition(chunk, instance.LocalIndex);
-                var ctx = new ActionEventContext(
-                    ActionEventType.OnTick,
-                    worldPos,
-                    gameTime,
-                    instance
-                );
+                var ctx = new ActionEventContext
+                {
+                    Event = ActionEventType.OnTick,
+                    WorldPosition = worldPos,
+                    GameTime = gameTime,
+                    Target = instance
+                };
 
                 Dispatch(ctx);
             }
@@ -117,7 +164,7 @@ public class ActionableService : IActionableService
 
     private void Dispatch(ActionEventContext ctx)
     {
-        if (ctx.Instance is null)
+        if (ctx.Target is null)
         {
             return;
         }
@@ -129,7 +176,7 @@ public class ActionableService : IActionableService
 
         foreach (var listener in listeners)
         {
-            if (!listener.CanHandle(ctx.Instance))
+            if (!listener.CanHandle(ctx.Target))
             {
                 continue;
             }
@@ -144,9 +191,9 @@ public class ActionableService : IActionableService
         }
 
         // // Simple sound handling on use/place
-        // if (ctx.Event is ActionEventType.OnUse or ActionEventType.OnPlace)
+        // if (ctx.Event is ActionEventType.OnUse or ActionEventType.OnPlace && ctx.Target is not null)
         // {
-        //     var sound = ctx.Instance.Components.Get<SoundComponent>();
+        //     var sound = ctx.Target.Components.Get<SoundComponent>();
         //
         //     if (sound != null)
         //     {

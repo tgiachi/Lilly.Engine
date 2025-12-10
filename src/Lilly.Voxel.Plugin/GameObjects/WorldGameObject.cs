@@ -13,6 +13,7 @@ using Lilly.Voxel.Plugin.Actionables;
 using Lilly.Voxel.Plugin.Blocks;
 using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.Interfaces.Services;
+using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Primitives;
 using Lilly.Voxel.Plugin.Services;
 using Lilly.Voxel.Plugin.Types;
@@ -227,7 +228,7 @@ public sealed class WorldGameObject : Base3dGameObject
                 {
                     Event = ActionEventType.OnBreak,
                     WorldPosition = position,
-                    Instance = null
+                    Target = null
                 }
             );
         }
@@ -240,7 +241,7 @@ public sealed class WorldGameObject : Base3dGameObject
                 {
                     Event = ActionEventType.OnPlace,
                     WorldPosition = position,
-                    Instance = null
+                    Target = null
                 }
             );
         }
@@ -264,6 +265,27 @@ public sealed class WorldGameObject : Base3dGameObject
 
     public void UseBlockAtCurrentPosition()
     {
+        const float maxUseDistance = 8f;
+        var camera = _cameraService.ActiveCamera;
+        var bestDistance = float.MaxValue;
+        IActionableTarget? chosenTarget = null;
+        var chosenPosition = Vector3.Zero;
+        var hasHit = false;
+
+        if (camera != null)
+        {
+            var ray = new Ray(camera.Position, Vector3.Normalize(camera.Forward));
+
+            if (_actionableService.TryRaycastTarget(ray, maxUseDistance, out var target, out var hitPoint))
+            {
+                var dist = (hitPoint - camera.Position).Length();
+                chosenTarget = target;
+                chosenPosition = hitPoint;
+                bestDistance = dist;
+                hasHit = true;
+            }
+        }
+
         var blockOutline = GetGameObject<BlockOutlineGameObject>();
 
         if (blockOutline.TargetBlockPosition.HasValue)
@@ -272,15 +294,29 @@ public sealed class WorldGameObject : Base3dGameObject
 
             if (GetBlockAtPosition(pos, out var blockType))
             {
-                var ctx = new ActionEventContext
+                var blockCenter = pos + new Vector3(0.5f, 0.5f, 0.5f);
+                var dist = camera != null ? (blockCenter - camera.Position).Length() : 0f;
+
+                if (dist < bestDistance && dist <= maxUseDistance)
+                {
+                    chosenTarget = null;
+                    chosenPosition = pos;
+                    bestDistance = dist;
+                    hasHit = true;
+                }
+            }
+        }
+
+        if (hasHit)
+        {
+            _actionableService.Handle(
+                new ActionEventContext
                 {
                     Event = ActionEventType.OnUse,
-                    WorldPosition = pos,
-                    Instance = null
-                };
-
-                _actionableService.Handle(ctx);
-            }
+                    WorldPosition = chosenPosition,
+                    Target = chosenTarget
+                }
+            );
         }
     }
 

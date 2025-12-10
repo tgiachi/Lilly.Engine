@@ -1,5 +1,5 @@
 using Lilly.Voxel.Plugin.Actionables;
-using Lilly.Voxel.Plugin.Blocks;
+using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Types;
 
 namespace Lilly.Voxel.Plugin.Interfaces.Actionables;
@@ -16,7 +16,7 @@ public interface IActionableListener
     /// </summary>
     /// <param name="instance"></param>
     /// <returns></returns>
-    bool CanHandle(BlockInstance instance);
+    bool CanHandle(IActionableTarget target);
 
     /// <summary>
     /// Dispatches an action event to the listener.

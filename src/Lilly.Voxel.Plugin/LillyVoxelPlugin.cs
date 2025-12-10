@@ -86,6 +86,16 @@ public class LillyVoxelPlugin : ILillyPlugin
                 renderPipeline.AddGameObject(crateGameObject);
             }
         );
+
+        inputManager.BindKey(
+            "E",
+            () =>
+            {
+                var worldGameObject = renderPipeline.GetGameObjectOfType<WorldGameObject>();
+
+                worldGameObject.UseBlockAtCurrentPosition();
+            }
+        );
     }
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
@@ -128,6 +138,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterGameObject<SnowEffectGameObject>()
             .RegisterGameObject<RainEffectGameObject>()
             .RegisterGameObject<SkyGameObject>()
+            .RegisterGameObject<PlayerGameObject>()
             .RegisterGameObject<CrosshairGameObject>()
             ;
 

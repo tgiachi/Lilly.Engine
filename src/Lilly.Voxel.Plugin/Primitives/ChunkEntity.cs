@@ -1,5 +1,6 @@
 using System.Numerics;
 using Lilly.Voxel.Plugin.Blocks;
+using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Types;
 using TrippyGL;
 
@@ -416,12 +417,20 @@ public class ChunkEntity
     public override string ToString()
         => $"{Position} ({Size})";
 
-    public bool TryGetActionable(int idx, out BlockInstance inst)
+    public bool TryGetActionable(int idx, out IActionableTarget inst)
     {
         inst = null;
-        var result = Actionables?.TryGetValue(idx, out inst);
+        BlockInstance? blockInst = null;
+        var result = Actionables?.TryGetValue(idx, out blockInst);
 
-        return result.HasValue && result.Value;
+        if (result.HasValue && result.Value)
+        {
+            inst = blockInst!;
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
