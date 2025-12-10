@@ -17,22 +17,32 @@ public interface IAudioService : IDisposable
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    void LoadAudioStream(string streamName, string filePath, AudioType audioType = AudioType.Ogg, bool isLooping = true);
+    AudioStream LoadAudioStream(
+        string streamName,
+        string filePath,
+        AudioType audioType = AudioType.Ogg,
+        bool isLooping = true
+    );
 
     /// <summary>
     /// Loads an audio stream from a stream.
     /// </summary>
-    void LoadAudioStream(string streamName, Stream stream, AudioType audioType = AudioType.Ogg, bool isLooping = true);
+    AudioStream LoadAudioStream(
+        string streamName,
+        Stream stream,
+        AudioType audioType = AudioType.Ogg,
+        bool isLooping = true
+    );
 
     /// <summary>
     /// Loads a sound effect from file.
     /// </summary>
-    void LoadSoundEffect(string soundName, string filePath);
+    void LoadSoundEffect(string soundName, string filePath, AudioType audioType = AudioType.Ogg);
 
     /// <summary>
     /// Loads a sound effect from a stream.
     /// </summary>
-    void LoadSoundEffect(string soundName, Stream stream);
+    void LoadSoundEffect(string soundName, Stream stream, AudioType audioType = AudioType.Ogg);
 
     /// <summary>
     /// Plays a sound effect at the listener's position (non-spatial).
@@ -40,9 +50,24 @@ public interface IAudioService : IDisposable
     void PlaySoundEffect(string soundName, float volume = 1.0f);
 
     /// <summary>
+    /// Plays a specific sound effect instance at the listener's position (non-spatial).
+    /// </summary>
+    void PlaySoundEffect(AudioEffect effect, float volume = 1.0f);
+
+    /// <summary>
     /// Plays a sound effect at a specific position in 3D space.
     /// </summary>
     void PlaySoundEffect3D(string soundName, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f);
+
+    /// <summary>
+    /// Plays a specific sound effect instance at a position in 3D space.
+    /// </summary>
+    void PlaySoundEffect3D(
+        AudioEffect effect,
+        Vector3 position,
+        float volume = 1.0f,
+        float referenceDistance = 1.0f
+    );
 
     /// <summary>
     /// Plays a looping audio stream.

@@ -114,7 +114,7 @@ stream.Close();
     /// <summary>
     /// Loads an audio stream from file.
     /// </summary>
-    public void LoadAudioStream(
+    public AudioStream LoadAudioStream(
         string streamName,
         string filePath,
         AudioType audioType = AudioType.Ogg,
@@ -126,11 +126,14 @@ stream.Close();
             var stream = new AudioStream(filePath, audioType, isLooping);
             _streams[streamName] = stream;
             _logger.Information("Loaded audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
+            return stream;
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Error loading audio stream '{StreamName}' from '{FilePath}'", streamName, filePath);
         }
+
+        throw new InvalidOperationException($"Failed to load audio stream '{streamName}'");
     }
 
     private string CreateTempFileForAudio(Stream stream, AudioType audioType)
@@ -154,20 +157,20 @@ stream.Close();
         return tempPath;
     }
 
-    public void LoadAudioStream(string streamName, Stream stream, AudioType audioType = AudioType.Ogg, bool isLooping = true)
+    public AudioStream LoadAudioStream(string streamName, Stream stream, AudioType audioType = AudioType.Ogg, bool isLooping = true)
     {
         var tempPath = CreateTempFileForAudio(stream, audioType);
-        LoadAudioStream(streamName, tempPath, audioType, isLooping);
+        return LoadAudioStream(streamName, tempPath, audioType, isLooping);
     }
 
     /// <summary>
     /// Loads a sound effect from file.
     /// </summary>
-    public void LoadSoundEffect(string soundName, string filePath)
+    public void LoadSoundEffect(string soundName, string filePath, AudioType audioType = AudioType.Ogg)
     {
         try
         {
-            var effect = new AudioEffect(filePath);
+            var effect = new AudioEffect(filePath, audioType);
             _soundEffects[soundName] = effect;
             _logger.Information("Loaded sound effect '{SoundName}' from '{FilePath}'", soundName, filePath);
         }
@@ -177,10 +180,10 @@ stream.Close();
         }
     }
 
-    public void LoadSoundEffect(string soundName, Stream stream)
+    public void LoadSoundEffect(string soundName, Stream stream, AudioType audioType = AudioType.Ogg)
     {
-        var tempPath = CreateTempFileForAudio(stream, AudioType.Ogg);
-        LoadSoundEffect(soundName, tempPath);
+        var tempPath = CreateTempFileForAudio(stream, audioType);
+        LoadSoundEffect(soundName, tempPath, audioType);
     }
 
     /// <summary>
@@ -206,6 +209,19 @@ stream.Close();
         }
     }
 
+    public void PlaySoundEffect(AudioEffect effect, float volume = 1.0f)
+    {
+        try
+        {
+            effect.SetVolume(volume);
+            effect.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing provided sound effect instance");
+        }
+    }
+
     /// <summary>
     /// Plays a sound effect at a specific position in 3D space.
     /// </summary>
@@ -228,6 +244,21 @@ stream.Close();
         catch (Exception ex)
         {
             _logger.Error(ex, "Error playing 3D sound effect '{SoundName}'", soundName);
+        }
+    }
+
+    public void PlaySoundEffect3D(AudioEffect effect, Vector3 position, float volume = 1.0f, float referenceDistance = 1.0f)
+    {
+        try
+        {
+            effect.SetVolume(volume);
+            effect.SetPosition(position);
+            effect.SetReferenceDistance(referenceDistance);
+            effect.Play();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error playing provided 3D sound effect instance");
         }
     }
 

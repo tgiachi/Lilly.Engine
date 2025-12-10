@@ -41,6 +41,7 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly ILogger _logger = Log.ForContext<AssetManager>();
     private readonly DirectoriesConfig _directoriesConfig;
     private readonly RenderContext _context;
+    private readonly IAudioService _audioService;
 
     private readonly Dictionary<string, FontSystem> _fontSystems = new();
     private readonly Dictionary<string, DynamicSpriteFont> _dynamicSpriteFonts = new();
@@ -77,10 +78,11 @@ public class AssetManager : IAssetManager, IDisposable
     /// </summary>
     /// <param name="directoriesConfig">The directories configuration.</param>
     /// <param name="context">The render context.</param>
-    public AssetManager(DirectoriesConfig directoriesConfig, RenderContext context)
+    public AssetManager(DirectoriesConfig directoriesConfig, RenderContext context, IAudioService audioService)
     {
         _directoriesConfig = directoriesConfig;
         _context = context;
+        _audioService = audioService;
         GetWhiteTexture<Texture2D>();
         _texture2Ds[DefaultTextures.WhiteTextureKey] = _whiteTexture!;
         _assimpContext.SetConfig(new NormalSmoothingAngleConfig(66.0f));
@@ -258,8 +260,8 @@ public class AssetManager : IAssetManager, IDisposable
 
         try
         {
-            var effect = new AudioEffect(fullPath);
-            _soundEffects[soundName] = effect;
+            _audioService.LoadSoundEffect(soundName, fullPath, audioType);
+
             _logger.Information("Loaded sound {SoundName} from {Path}", soundName, fullPath);
         }
         catch (Exception ex)
@@ -272,6 +274,7 @@ public class AssetManager : IAssetManager, IDisposable
     {
         try
         {
+
             var tempPath = CreateTempAudioFile(stream, audioType);
             LoadSoundFromFile(soundName, tempPath, audioType);
         }

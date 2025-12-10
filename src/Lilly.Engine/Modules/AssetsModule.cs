@@ -1,3 +1,4 @@
+using Lilly.Engine.Audio;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
@@ -59,6 +60,19 @@ public class AssetsModule
         _assetManager.LoadTextureAtlasFromFile(atlasName, atlasPath, tileWidth, tileHeight, margin, spacing);
 
         return atlasName;
+    }
+
+    [ScriptFunction("load_sound", "Loads a sound from the specified file path.")]
+    public void LoadSound(string soundName, string soundPath)
+    {
+        AudioType audioType = AudioType.Ogg;
+
+        if (soundPath.EndsWith(".mp3"))
+        {
+            audioType = AudioType.Mp3;
+        }
+
+        _assetManager.LoadSoundFromFile(soundName, soundPath, audioType);
     }
 
     public void LoadAssetsFromJson(string jsonPath)

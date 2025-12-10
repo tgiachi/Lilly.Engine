@@ -155,6 +155,22 @@
     }
   },
   {
+    "name": "tree_trunk",
+    "isSolid": true,
+    "faces": {
+      "All": "default2@209",
+      "Top": "default2@208",
+      "Bottom": "default2@208"
+    }
+  },
+  {
+    "name": "leaves",
+    "isSolid": true,
+    "faces": {
+      "All": "default2@305"
+    }
+  },
+  {
     "name": "light_1",
     "isSolid": true,
     "isOpaque": true,

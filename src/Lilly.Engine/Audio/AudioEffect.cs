@@ -1,5 +1,8 @@
 using System.Buffers.Binary;
+using System.IO;
 using System.Numerics;
+using Lilly.Engine.Interfaces.Services;
+using MP3Sharp;
 using NVorbis;
 using Silk.NET.OpenAL;
 
@@ -11,35 +14,23 @@ public class AudioEffect : IDisposable
     private readonly AlSource alSource;
     private readonly AlBuffer alBuffer;
 
-    public AudioEffect(string path)
+    public AudioEffect(string path, AudioType audioType = AudioType.Ogg)
     {
         al = AudioMaster.GetInstance().Al;
-        var vorbisReader = new VorbisReader(path);
-
-        var channels = vorbisReader.Channels;
-        var sampleRate = vorbisReader.SampleRate;
-        var format = BufferFormat.Mono16;
-
-        if (channels == 2)
-        {
-            format = BufferFormat.Stereo16;
-        }
-
         alSource = new();
         alBuffer = new();
 
-        var readBuffer = new float[channels * vorbisReader.TotalSamples];
-        var rawData = new Span<byte>(new byte[readBuffer.Length * sizeof(short)]);
-        var samplesRead = vorbisReader.ReadSamples(readBuffer, 0, readBuffer.Length);
-
-        for (var i = 0; i < samplesRead; i++)
+        switch (audioType)
         {
-            var sampleShort = (short)(readBuffer[i] * short.MaxValue);
-            BinaryPrimitives.WriteInt16LittleEndian(rawData.Slice(i * sizeof(short), sizeof(short)), sampleShort);
-        }
+            case AudioType.Mp3:
+                LoadMp3(path);
 
-        alBuffer.SetData(format, rawData, sampleRate);
-        alSource.SetBuffer(alBuffer);
+                break;
+            default:
+                LoadOgg(path);
+
+                break;
+        }
     }
 
     public void Dispose()
@@ -102,5 +93,50 @@ public class AudioEffect : IDisposable
     public void SetVolume(float volume)
     {
         alSource.SetProperty(SourceFloat.Gain, Math.Max(0.0f, volume));
+    }
+
+    private void LoadOgg(string path)
+    {
+        using var vorbisReader = new VorbisReader(path);
+
+        var channels = vorbisReader.Channels;
+        var sampleRate = vorbisReader.SampleRate;
+        var format = channels == 2 ? BufferFormat.Stereo16 : BufferFormat.Mono16;
+
+        var readBuffer = new float[channels * vorbisReader.TotalSamples];
+        var rawData = new byte[readBuffer.Length * sizeof(short)];
+        var samplesRead = vorbisReader.ReadSamples(readBuffer, 0, readBuffer.Length);
+
+        for (var i = 0; i < samplesRead; i++)
+        {
+            var sampleShort = (short)(readBuffer[i] * short.MaxValue);
+            BinaryPrimitives.WriteInt16LittleEndian(rawData.AsSpan(i * sizeof(short), sizeof(short)), sampleShort);
+        }
+
+        alBuffer.SetData(format, rawData, sampleRate);
+        alSource.SetBuffer(alBuffer);
+    }
+
+    private void LoadMp3(string path)
+    {
+        using var fileStream = File.OpenRead(path);
+        using var mp3Stream = new MP3Stream(fileStream);
+
+        var channels = mp3Stream.ChannelCount;
+        var sampleRate = mp3Stream.Frequency;
+        var format = channels == 2 ? BufferFormat.Stereo16 : BufferFormat.Mono16;
+
+        var temp = new byte[8192];
+        using var pcm = new MemoryStream();
+
+        int read;
+        while ((read = mp3Stream.Read(temp, 0, temp.Length)) > 0)
+        {
+            pcm.Write(temp, 0, read);
+        }
+
+        var rawData = pcm.ToArray();
+        alBuffer.SetData(format, rawData, sampleRate);
+        alSource.SetBuffer(alBuffer);
     }
 }
