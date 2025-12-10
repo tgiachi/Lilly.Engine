@@ -3,9 +3,11 @@ using Lilly.Engine.Core.Extensions.Container;
 using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.Extensions;
+using Lilly.Engine.GameObjects.ThreeD;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Engine.Lua.Scripting.Extensions.Scripts;
+using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -67,6 +69,23 @@ public class LillyVoxelPlugin : ILillyPlugin
             // Lighting must run last to calculate correct light levels
             chunkGeneratorService.AddGeneratorStep(new LightingGenerationStep(lightingService));
         }
+
+        var inputManager = container.Resolve<IInputManagerService>();
+        var gameObjectFactory = container.Resolve<IGameObjectFactory>();
+        var cameraService = container.Resolve<ICamera3dService>();
+        var renderPipeline = container.Resolve<IRenderPipeline>();
+        inputManager.BindKey(
+            "K",
+            () =>
+            {
+                var crateGameObject = gameObjectFactory.Create<ModelGameObject>();
+                crateGameObject.ModelName = "crate";
+                crateGameObject.Transform.Position =
+                    cameraService.ActiveCamera.Position + cameraService.ActiveCamera.Forward * 2f;
+
+                renderPipeline.AddGameObject(crateGameObject);
+            }
+        );
     }
 
     public IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory)
