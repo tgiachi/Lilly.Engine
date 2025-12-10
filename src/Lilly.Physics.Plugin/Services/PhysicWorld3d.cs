@@ -34,22 +34,39 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     private int _nextId = 1;
 
+    private float _timeAccumulator;
+
+    private readonly float _targetTimestepDuration = 1 / 60f;
+    private readonly float _maxAccumulatedTime;
+
     private readonly IRenderPipeline _renderPipeline;
+
+    private readonly ICamera3dService _camera3dService;
 
     private readonly ILogger _logger = Log.ForContext<PhysicWorld3d>();
     public BufferPool Pool { get; }
 
     public ThreadDispatcher ThreadDispatcher { get; }
 
+    /// <summary>
+    ///  Distance beyond which objects are considered out of bounds and can be removed from the simulation.
+    /// </summary>
+    public float ByeByeDistance { get; set; } = 500f;
+
     public Simulation Simulation { get; private set; }
 
-    private readonly RenderContext _renderContext;
 
-    public PhysicWorld3d(World3dPhysicConfig config, RenderContext renderContext, IRenderPipeline renderPipeline)
+    public PhysicWorld3d(
+        World3dPhysicConfig config,
+        RenderContext renderContext,
+        IRenderPipeline renderPipeline,
+        ICamera3dService camera3dService
+    )
     {
         _config = config;
-        _renderContext = renderContext;
         _renderPipeline = renderPipeline;
+        _camera3dService = camera3dService;
+        _maxAccumulatedTime = _targetTimestepDuration * 4f; // cap to avoid spiral of death
         Pool = new();
         ThreadDispatcher = new(config.ThreadCount);
         renderContext.Renderer.OnUpdate += Update;
@@ -357,6 +374,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         var points = hullShape.Vertices;
 
         Pool.Take(points.Count, out Buffer<Vector3> buffer);
+
         for (var i = 0; i < points.Count; i++)
         {
             buffer[i] = points[i];
@@ -370,7 +388,6 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             Stopwatch.GetElapsedTime(start)
         );
 
-
         return hull;
     }
 
@@ -382,15 +399,19 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         {
             case BoxShape box:
                 builder.Add(new Box(box.Width, box.Height, box.Depth), pose, child.Weight);
+
                 break;
             case SphereShape sphere:
                 builder.Add(new Sphere(sphere.Radius), pose, child.Weight);
+
                 break;
             case CapsuleShape capsule:
                 builder.Add(new Capsule(capsule.Radius, capsule.Length), pose, child.Weight);
+
                 break;
             case ConvexHullShape hull:
                 builder.Add(CreateConvexHull(hull), pose, child.Weight);
+
                 break;
             default:
                 throw new NotSupportedException("Compound shapes only support convex child shapes.");
@@ -412,12 +433,14 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
         if (builder.Children.Count == 0)
         {
             var fallback = new Box(1f, 1f, 1f);
+
             return (Simulation.Shapes.Add(fallback), fallback.ComputeInertia(mass));
         }
 
         builder.BuildDynamicCompound(out var children, out var inertia);
 
         var totalWeight = 1f / inertia.InverseMass;
+
         if (mass > 0f)
         {
             var scale = totalWeight / mass;
@@ -477,7 +500,7 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             MeshShape m       => Simulation.Shapes.Add(CreateMesh(m)),
             CompoundShape c   => GetOrCreateCompoundShape(c),
 
-            _                 => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
+            _ => throw new ArgumentOutOfRangeException(nameof(shape), "Unsupported shape type")
         };
 
         _shapeCache[shape] = index;
@@ -587,7 +610,20 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
 
     private void Update(GameTime gameTime)
     {
-        Simulation.Timestep(1 / 60f, ThreadDispatcher);
+        if (Simulation == null)
+        {
+            return;
+        }
+
+        // GameTime reports milliseconds; accumulate seconds to match _targetTimestepDuration units.
+        var dt = gameTime.GetElapsedSeconds();
+        _timeAccumulator = MathF.Min(_timeAccumulator + dt, _maxAccumulatedTime);
+
+        while (_timeAccumulator >= _targetTimestepDuration)
+        {
+            Simulation.Timestep(_targetTimestepDuration, ThreadDispatcher);
+            _timeAccumulator -= _targetTimestepDuration;
+        }
 
         // Sync dynamic bodies back to their game object transforms
         for (var i = 0; i < _syncEntries.Count; i++)
@@ -606,6 +642,32 @@ public class PhysicWorld3d : IPhysicWorld3d, IDisposable
             if (entry.SyncMode == PhysicsSyncMode.FullPose)
             {
                 entry.Transform.Rotation = pose.Orientation;
+            }
+
+            if (_camera3dService.ActiveCamera != null)
+            {
+                var cameraPosition = _camera3dService.ActiveCamera.Position;
+                var toBody = entry.Transform.Position - cameraPosition;
+                var distanceSquared = toBody.LengthSquared();
+
+                if (distanceSquared > ByeByeDistance * ByeByeDistance)
+                {
+                    if (_bodyOwners.TryGetValue(entry.BodyId, out var owner))
+                    {
+                        if (owner is IGameObject3d gameObject)
+                        {
+                            _logger.Information(
+                                "Removing body ID {BodyId} owned by {GameObjectName} for exceeding ByeByeDistance ({Distance} > {ByeByeDistance})",
+                                entry.BodyId,
+                                gameObject.Name,
+                                MathF.Sqrt(distanceSquared),
+                                ByeByeDistance
+                            );
+
+                            _renderPipeline.RemoveGameObject(gameObject);
+                        }
+                    }
+                }
             }
         }
     }
