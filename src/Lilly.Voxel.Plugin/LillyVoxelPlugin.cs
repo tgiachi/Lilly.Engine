@@ -55,13 +55,7 @@ public class LillyVoxelPlugin : ILillyPlugin
         }
         else
         {
-            chunkGeneratorService.AddGeneratorStep(new HeightMapGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new TerrainErosionGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new TerrainFillGenerationStep(blockRegistry));
-            chunkGeneratorService.AddGeneratorStep(new CaveGenerationStep());
-            chunkGeneratorService.AddGeneratorStep(new WaterFillGenerationStep(blockRegistry));
-            chunkGeneratorService.AddGeneratorStep(new SurfacePaintingStep(blockRegistry));
-            chunkGeneratorService.AddGeneratorStep(new DecorationGenerationStep(blockRegistry));
+            chunkGeneratorService.AddGeneratorStep(new NaturalWorldGenerationStep(blockRegistry));
             chunkGeneratorService.AddGeneratorStep(new CloudGenerationStep(blockRegistry));
 
             // Lighting must run last to calculate correct light levels

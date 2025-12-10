@@ -171,6 +171,12 @@
     }
   },
   {
+    "name": "diamond",
+    "isSolid": true,
+    "isBreakable": true,
+    "faces": { "All": "default2@131" }
+  },
+  {
     "name": "light_1",
     "isSolid": true,
     "isOpaque": true,
