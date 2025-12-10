@@ -86,6 +86,15 @@ public class LillyDemoPlugin : ILillyPlugin
         jeep.Transform.Position = new(-3f, 3f, 0f);
 
         yield return jeep;
+
+
+        var cat = gameObjectFactory.Create<ModelGameObject>();
+        cat.ModelName = "cat";
+        cat.IsStatic = false;
+        cat.UseCompoundCollider = true;
+        cat.Transform.Position = new(-10f, 3f, 0f);
+
+        yield return cat;
     }
 
     public IContainer RegisterModule(IContainer container)

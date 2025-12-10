@@ -84,6 +84,7 @@ assets.load_atlas("default3", "textures/block_map.png", 16, 16, 0, 0)
 --assets.load_model("jeep", "3dmodels/Renegade/Jeep_Renegade_2016.obj")
 assets.load_model("crate", "3dmodels/crate/crateModel.obj")
 assets.load_model("jeep", "3dmodels/Renegade/Jeep_Renegade_2016.obj")
+assets.load_model("cat", "3dmodels/minecraft_tuxedo_cat.glb")
 block_definition.load_tiles()
 
 input_manager.grab_mouse()
