@@ -149,4 +149,10 @@ public interface IScriptEngineService : ILillyService
     /// <param name="name">The name of the global to unregister.</param>
     /// <returns>True if the global was found and removed, false otherwise.</returns>
     bool UnregisterGlobal(string name);
+
+    /// <summary>
+    ///  Executes a function defined in the bootstrap script.
+    /// </summary>
+    /// <param name="name"></param>
+    void ExecuteFunctionFromBootstrap(string name);
 }

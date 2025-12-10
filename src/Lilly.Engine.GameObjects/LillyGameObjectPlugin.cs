@@ -39,4 +39,7 @@ public class LillyGameObjectPlugin : ILillyPlugin
 
         return container;
     }
+
+    public string? GetScriptOnLoadFunctionName()
+        => null;
 }

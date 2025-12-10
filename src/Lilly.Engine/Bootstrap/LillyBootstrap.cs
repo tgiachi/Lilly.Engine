@@ -4,6 +4,7 @@ using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Core.Data.Services;
 using Lilly.Engine.Core.Extensions.Container;
+using Lilly.Engine.Core.Extensions.Strings;
 using Lilly.Engine.Core.Interfaces.Dispatchers;
 using Lilly.Engine.Core.Interfaces.Services;
 using Lilly.Engine.Core.Interfaces.Services.Base;
@@ -92,52 +93,6 @@ public class LillyBootstrap : ILillyBootstrap
 
     public Task ShutdownAsync()
         => Task.CompletedTask;
-
-    private void AddDemoGameObjects(IGameObjectFactory gameObjectFactory, IRenderPipeline pipeline)
-    {
-        var plane = gameObjectFactory.Create<SimpleBoxGameObject>();
-        plane.Transform.Position = new(0f, -10f, 0f);
-
-        //plane.IgnoreFrustumCulling = true;
-        plane.Transform.Scale = new(10f, 1f, 10f);
-        plane.Width = 10f;
-        plane.Height = 4f;
-        plane.Depth = 10f;
-
-        plane.TextureName = "ground_texture";
-        pipeline.AddGameObject(plane);
-
-        foreach (var index in Enumerable.Range(0, 1000))
-        {
-            var cube = gameObjectFactory.Create<SimpleCubeGameObject>();
-
-            cube.YRotationSpeed = Random.Shared.NextSingle() * 0.1f;
-
-            // cube.Transform.Rotation = new Vector3(;
-            //     Random.Shared.NextSingle() * MathF.PI,
-            //     Random.Shared.NextSingle() * MathF.PI,
-            //     Random.Shared.NextSingle() * MathF.PI
-            // );
-
-            cube.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Yaw (Y axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f, // Pitch (X axis)
-                Random.Shared.NextSingle() * MathF.PI * 2f  // Roll (Z axis)
-            );
-            cube.Transform.Position = new(
-                index % 5 * 2f - 4f,
-                +100f,
-                index / 5 * 2f - 1f
-            );
-            pipeline.AddGameObject(cube);
-        }
-
-        var capsule = gameObjectFactory.Create<SimpleCapsuleGameObject>();
-        capsule.Transform.Position = new(5f, 0f, 0f);
-        capsule.Height = 3f;
-        capsule.Radius = 0.5f;
-        pipeline.AddGameObject(capsule);
-    }
 
     private void InitializePlugins()
     {
@@ -259,6 +214,18 @@ public class LillyBootstrap : ILillyBootstrap
         }
     }
 
+    private void InitializeScriptFunctionFromPlugins()
+    {
+        var scriptEngineService = _container.Resolve<IScriptEngineService>();
+        var pluginRegistry = _container.Resolve<PluginRegistry>();
+
+        foreach (var functionName in pluginRegistry.GetScriptEngineLoadFunctions())
+        {
+            _logger.Debug("Executing script on load function: {FunctionName}", functionName.ToSnakeCase());
+            scriptEngineService.ExecuteFunction(functionName.ToSnakeCase());
+        }
+    }
+
     private void IntializeRenders()
     {
         var renderPipeLine = _container.Resolve<IRenderPipeline>();
@@ -308,7 +275,6 @@ public class LillyBootstrap : ILillyBootstrap
             ),
             ["Position", "Normal", "TexCoords"]
         );
-
 
         assetManager.LoadFontFromMemory(
             "default",
@@ -459,6 +425,8 @@ public class LillyBootstrap : ILillyBootstrap
 
             InizializeGameObjectFromPlugins();
 
+            InitializeScriptFunctionFromPlugins();
+
             _isServiceStarted = true;
 
             var pipeline = _container.Resolve<IRenderPipeline>();
@@ -476,7 +444,6 @@ public class LillyBootstrap : ILillyBootstrap
 
             pipeline.AddGameObject(versionGameObject);
 
-            //AddDemoGameObjects(gameObjectFactory, pipeline);
         }
         OnRender?.Invoke(gameTime);
     }

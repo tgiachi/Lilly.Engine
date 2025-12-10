@@ -1005,7 +1005,7 @@ public class LuaScriptEngineService : IScriptEngineService, IDisposable
         }
     }
 
-    private void ExecuteFunctionFromBootstrap(string name)
+    public void ExecuteFunctionFromBootstrap(string name)
     {
         try
         {

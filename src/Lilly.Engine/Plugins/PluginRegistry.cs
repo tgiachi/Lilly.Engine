@@ -13,6 +13,8 @@ public class PluginRegistry
     private readonly List<LillyPluginData> _loadedPluginData = [];
     private readonly PluginDependencyValidator _dependencyValidator;
 
+    private List<string> _scriptEngineLoadFunctions = [];
+
     public PluginRegistry(PluginDependencyValidator dependencyValidator = null)
         => _dependencyValidator = dependencyValidator ?? new PluginDependencyValidator();
 
@@ -126,5 +128,13 @@ public class PluginRegistry
         // Register the plugin
         _loadedPlugins.Add(plugin);
         _loadedPluginData.Add(pluginData);
+
+        if (plugin.GetScriptOnLoadFunctionName() != null)
+        {
+            _scriptEngineLoadFunctions.Add(plugin.GetScriptOnLoadFunctionName());
+        }
     }
+
+    public IReadOnlyList<string> GetScriptEngineLoadFunctions()
+        => _scriptEngineLoadFunctions.AsReadOnly();
 }

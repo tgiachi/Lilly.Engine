@@ -40,4 +40,7 @@ public class LillyPhysicPlugin : ILillyPlugin
 
         return container;
     }
+
+    public string? GetScriptOnLoadFunctionName()
+        => null;
 }

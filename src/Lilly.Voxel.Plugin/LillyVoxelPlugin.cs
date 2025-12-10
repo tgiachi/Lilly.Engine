@@ -93,6 +93,11 @@ public class LillyVoxelPlugin : ILillyPlugin
         yield return gameObjectFactory.Create<SkyGameObject>();
         yield return gameObjectFactory.Create<WorldGameObject>();
 
+        var playerGameObject = gameObjectFactory.Create<PlayerGameObject>();
+        playerGameObject.Transform.Position = new(0f, 150f, 0f);
+
+        yield return playerGameObject;
+
         // yield return gameObjectFactory.Create<RainEffectGameObject>();
     }
 
@@ -128,6 +133,9 @@ public class LillyVoxelPlugin : ILillyPlugin
 
         return container;
     }
+
+    public string? GetScriptOnLoadFunctionName()
+        => "on_voxel_plugin_load";
 
     private void LoadAssets(IAssetManager assetManager)
     {

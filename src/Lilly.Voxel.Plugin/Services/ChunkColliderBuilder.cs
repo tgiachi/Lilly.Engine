@@ -12,7 +12,7 @@ public sealed class ChunkColliderBuilder
     private readonly IBlockRegistry _blockRegistry;
 
     // Tuneable granularity: smaller values increase accuracy but create more boxes.
-    private const int CellSize = 8;
+    private const int CellSize = 3;
 
     public ChunkColliderBuilder(IBlockRegistry blockRegistry)
         => _blockRegistry = blockRegistry;

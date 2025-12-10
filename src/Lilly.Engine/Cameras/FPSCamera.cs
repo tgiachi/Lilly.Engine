@@ -109,7 +109,7 @@ public class FPSCamera : Base3dCamera
     /// <param name="right">Right movement amount (-1 to 1)</param>
     /// <param name="up">Up movement amount (-1 to 1)</param>
     /// <param name="deltaTime">Time elapsed since last frame</param>
-    public void MoveInFPSStyle(float forward, float right, float up, float deltaTime)
+    public virtual void MoveInFPSStyle(float forward, float right, float up, float deltaTime)
     {
         // Project forward and right vectors onto XZ plane for horizontal movement
         var forwardFlat = new Vector3(Forward.X, 0, Forward.Z);

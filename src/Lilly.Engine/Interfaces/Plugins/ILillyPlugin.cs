@@ -16,4 +16,6 @@ public interface ILillyPlugin
     IEnumerable<IGameObject> GetGlobalGameObjects(IGameObjectFactory gameObjectFactory);
 
     IContainer RegisterModule(IContainer container);
+
+    string? GetScriptOnLoadFunctionName();
 }

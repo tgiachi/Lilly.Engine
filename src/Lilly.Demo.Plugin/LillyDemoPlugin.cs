@@ -101,4 +101,7 @@ public class LillyDemoPlugin : ILillyPlugin
     {
         return container;
     }
+
+    public string? GetScriptOnLoadFunctionName()
+        => null;
 }
