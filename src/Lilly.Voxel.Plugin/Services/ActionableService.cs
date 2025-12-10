@@ -97,6 +97,7 @@ public class ActionableService : IActionableService
         if (!_raycastTargets.Contains(target))
         {
             _raycastTargets.Add(target);
+            _logger.Debug("Registered raycast target {Target}", target.GetType().Name);
         }
     }
 
@@ -164,6 +165,7 @@ public class ActionableService : IActionableService
 
     private void Dispatch(ActionEventContext ctx)
     {
+        _logger.Debug("Dispatching event {Event} at {Position} (Target: {Target})", ctx.Event, ctx.WorldPosition, ctx.Target);
         if (ctx.Target is null)
         {
             return;

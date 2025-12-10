@@ -3,6 +3,7 @@ using Lilly.Engine.GameObjects.ThreeD;
 using Lilly.Engine.Interfaces.Services;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Primitives;
+using Lilly.Voxel.Plugin.Actionables.Components;
 using Lilly.Voxel.Plugin.Collections;
 using Lilly.Voxel.Plugin.Interfaces.Actionables;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -26,7 +27,9 @@ public class ActionableModelGameObject : ModelGameObject, IRaycastableActionable
         _actionableService = actionableService;
     }
 
-    public new void Initialize()
+
+
+    public override void Initialize()
     {
         base.Initialize();
 
@@ -34,6 +37,8 @@ public class ActionableModelGameObject : ModelGameObject, IRaycastableActionable
         {
             _actionableService.RegisterRaycastTarget(this);
             _registered = true;
+
+            Components.Set(new SoundComponent("splat"));
         }
     }
 

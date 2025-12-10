@@ -11,6 +11,7 @@ using Lilly.Engine.Rendering.Core.Interfaces.Services;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Voxel.Plugin.Actionables.Listeners;
 using Lilly.Voxel.Plugin.Data;
 using Lilly.Voxel.Plugin.GameObjects;
 using Lilly.Voxel.Plugin.Interfaces.Services;
@@ -74,6 +75,10 @@ public class LillyVoxelPlugin : ILillyPlugin
         var gameObjectFactory = container.Resolve<IGameObjectFactory>();
         var cameraService = container.Resolve<ICamera3dService>();
         var renderPipeline = container.Resolve<IRenderPipeline>();
+        var actionableService = container.Resolve<IActionableService>();
+
+        actionableService.AddActionListener(container.Resolve<SoundListener>());
+
         inputManager.BindKey(
             "K",
             () =>
@@ -130,6 +135,8 @@ public class LillyVoxelPlugin : ILillyPlugin
                  .RegisterScriptModule<GenerationModule>()
                  .RegisterScriptModule<WorldModule>();
 
+        container.RegisterService<SoundListener>();
+
         container
             .RegisterGameObject<WorldGameObject>()
             .RegisterGameObject<ChunkGameObject>()
@@ -139,6 +146,7 @@ public class LillyVoxelPlugin : ILillyPlugin
             .RegisterGameObject<RainEffectGameObject>()
             .RegisterGameObject<SkyGameObject>()
             .RegisterGameObject<PlayerGameObject>()
+            .RegisterGameObject<ActionableModelGameObject>()
             .RegisterGameObject<CrosshairGameObject>()
             ;
 

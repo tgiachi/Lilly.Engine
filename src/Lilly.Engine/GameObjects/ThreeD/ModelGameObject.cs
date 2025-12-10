@@ -139,7 +139,7 @@ public class ModelGameObject : Base3dGameObject, IInitializable, IPhysicsGameObj
         }
     }
 
-    public void Initialize()
+    public virtual void Initialize()
     {
         RefreshModel();
         _shaderProgram = _assetManager.GetShaderProgram(_shaderName);
