@@ -81,6 +81,18 @@ public interface IAssetManager
     TTexture GetWhiteTexture<TTexture>() where TTexture : class;
 
     /// <summary>
+    ///  Gets the white texture.
+    /// </summary>
+    /// <returns></returns>
+    Texture2D GetWhiteTexture();
+
+    /// <summary>
+    ///  Gets the black texture.
+    /// </summary>
+    /// <returns></returns>
+    Texture2D GetBlackTexture();
+
+    /// <summary>
     /// Loads a font from a file.
     /// </summary>
     /// <param name="fontName">The name of the font.</param>

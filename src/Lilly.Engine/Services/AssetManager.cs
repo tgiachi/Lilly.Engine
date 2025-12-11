@@ -53,7 +53,6 @@ public class AssetManager : IAssetManager, IDisposable
 
     private readonly AssimpContext _assimpContext = new();
     private readonly Dictionary<string, string> _modelExtractionDirectories = new();
-    private readonly Dictionary<string, AudioEffect> _soundEffects = new();
     private readonly List<string> _tempAudioFiles = new();
 
     private readonly PostProcessSteps _defaultPostProcessSteps = PostProcessSteps.Triangulate |
@@ -65,6 +64,8 @@ public class AssetManager : IAssetManager, IDisposable
 
     // Cached white texture (1x1 white pixel) for drawing colored rectangles and fallback
     private Texture2D? _whiteTexture;
+
+    private Texture2D? _blackTexture;
 
     private readonly FontSystemSettings _defaultFontSettings = new()
     {
@@ -111,19 +112,6 @@ public class AssetManager : IAssetManager, IDisposable
     /// </summary>
     public void Dispose()
     {
-        foreach (var effect in _soundEffects.Values)
-        {
-            try
-            {
-                effect.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.Warning(ex, "Failed to dispose sound effect");
-            }
-        }
-        _soundEffects.Clear();
-
         foreach (var (_, dir) in _modelExtractionDirectories)
         {
             try
@@ -274,7 +262,6 @@ public class AssetManager : IAssetManager, IDisposable
     {
         try
         {
-
             var tempPath = CreateTempAudioFile(stream, audioType);
             LoadSoundFromFile(soundName, tempPath, audioType);
         }
@@ -369,6 +356,40 @@ public class AssetManager : IAssetManager, IDisposable
 
         return _whiteTexture as TTexture ??
                throw new InvalidOperationException($"Cannot cast white texture to {typeof(TTexture).Name}");
+    }
+
+    public Texture2D GetWhiteTexture()
+        => GetWhiteTexture<Texture2D>();
+
+    public Texture2D GetBlackTexture()
+    {
+        if (_blackTexture == null)
+        {
+            _blackTexture = CreateTexture("black_texture", new Color4b(0, 0, 0));
+        }
+
+        return _blackTexture;
+    }
+
+    public Texture2D CreateTexture(string name, Color4b color)
+    {
+        var texture = new Texture2D(_context.GraphicsDevice, 1, 1);
+
+        ReadOnlySpan<Color4b> pixelData = [color];
+        texture.SetData(pixelData, PixelFormat.Rgba);
+
+        _texture2Ds[name] = texture;
+
+        _logger.Debug(
+            "Created texture {TextureName} (1x1) with color R:{R} G:{G} B:{B} A:{A}",
+            name,
+            color.R,
+            color.G,
+            color.B,
+            color.A
+        );
+
+        return texture;
     }
 
     /// <summary>
