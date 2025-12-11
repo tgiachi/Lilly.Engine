@@ -8,8 +8,10 @@ namespace Lilly.Engine.GameObjects.Base;
 /// <summary>
 /// Base 3D game object that can render into the shadow map.
 /// </summary>
-public abstract class Base3dShadowGameObject : Base3dGameObject, IShadowCaster3d
+public abstract class Base3dShadowGameObject : Base3dGameObject, IShadowCaster3d, IShadowReceiver3d
 {
+    public virtual bool ReceiveShadows { get; set; } = true;
+
     protected Base3dShadowGameObject(string name, IGameObjectManager gameObjectManager, uint zIndex = 0)
         : base(name, gameObjectManager, zIndex)
     {

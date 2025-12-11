@@ -64,6 +64,7 @@ uniform vec3 uEmissiveColor = vec3(0.0, 0.0, 0.0);
 uniform float uEmissiveIntensity = 0.0;
 
 /// Shadow parameters
+uniform bool uEnableShadows = true;
 uniform float uShadowBias = 0.002;
 
   // Light structures
@@ -170,7 +171,7 @@ vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec
 
     /// Calculate shadow if this light casts shadows
     float shadow = 0.0;
-    if (light.castShadows)
+    if (uEnableShadows && light.castShadows)
     {
         shadow = CalculateShadow(fs_in.FragPosLightSpace, normal, lightDir);
     }

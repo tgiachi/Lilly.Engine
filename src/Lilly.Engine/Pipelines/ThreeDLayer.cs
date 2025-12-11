@@ -141,6 +141,12 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         // 3. Draw Opaque Pass (Front-to-Back)
         foreach (var entity in EntitiesInCullingFrustum)
         {
+            if (entity is IMaterialCaster materialCaster && entity is IShadowReceiver3d shadowReceiver)
+            {
+                var materialLit = _assetManager.GetShaderProgram("material_lit");
+                ApplyMaterial(materialLit, materialCaster, shadowReceiver.ReceiveShadows);
+            }
+
             entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
 
             ProcessedEntityCount++;
@@ -483,6 +489,74 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         {
             materialLit.Uniforms["uShadowMap"].SetValueTexture(_assetManager.GetWhiteTexture());
         }
+    }
+
+    private void ApplyMaterial(
+        ShaderProgram materialLit,
+        IMaterialCaster caster,
+        bool receiveShadows
+    )
+    {
+        var material = caster.Material;
+
+        if (material == null)
+        {
+            BindDefaultMaterial(materialLit, receiveShadows);
+
+            return;
+        }
+
+        var white = _assetManager.GetWhiteTexture();
+        var black = _assetManager.GetBlackTexture();
+
+        materialLit.Uniforms["uAlbedoMap"]
+                   .SetValueTexture(
+                       material.HaveAlbedoTexture ? _assetManager.GetTexture<Texture2D>(material.AlbedoTexture) : white
+                   );
+        materialLit.Uniforms["uNormalMap"]
+                   .SetValueTexture(
+                       material.HaveNormalTexture ? _assetManager.GetTexture<Texture2D>(material.NormalTexture) : white
+                   );
+        materialLit.Uniforms["uRoughnessMap"]
+                   .SetValueTexture(
+                       material.HaveRoughnessTexture ? _assetManager.GetTexture<Texture2D>(material.RoughnessTexture) : white
+                   );
+        materialLit.Uniforms["uMetallicMap"]
+                   .SetValueTexture(
+                       material.HaveMetallicTexture ? _assetManager.GetTexture<Texture2D>(material.MetallicTexture) : white
+                   );
+        materialLit.Uniforms["uEmissiveMap"]
+                   .SetValueTexture(
+                       material.HaveEmissiveTexture ? _assetManager.GetTexture<Texture2D>(material.EmissiveTexture) : black
+                   );
+
+        materialLit.Uniforms["uTint"].SetValueVec4(material.Tint);
+        materialLit.Uniforms["uRoughness"].SetValueFloat(material.Roughness);
+        materialLit.Uniforms["uMetallic"].SetValueFloat(material.Metallic);
+        materialLit.Uniforms["uEmissiveColor"].SetValueVec3(material.EmissiveColor);
+        materialLit.Uniforms["uEmissiveIntensity"].SetValueFloat(material.EmissiveIntensity);
+
+        materialLit.Uniforms["uEnableShadows"].SetValueBool(receiveShadows && material.ReceiveShadows);
+    }
+
+    private void BindDefaultMaterial(ShaderProgram materialLit, bool receiveShadows)
+    {
+        var white = _assetManager.GetWhiteTexture();
+        var black = _assetManager.GetBlackTexture();
+
+        materialLit.Uniforms["uAlbedoMap"].SetValueTexture(white);
+        materialLit.Uniforms["uNormalMap"].SetValueTexture(white);
+        materialLit.Uniforms["uRoughnessMap"].SetValueTexture(white);
+        materialLit.Uniforms["uMetallicMap"].SetValueTexture(white);
+        materialLit.Uniforms["uEmissiveMap"].SetValueTexture(black);
+
+        materialLit.Uniforms["uTint"].SetValueVec4(Vector4.One);
+        materialLit.Uniforms["uRoughness"].SetValueFloat(0.5f);
+        materialLit.Uniforms["uMetallic"].SetValueFloat(0.0f);
+        materialLit.Uniforms["uEmissiveColor"].SetValueVec3(Vector3.Zero);
+        materialLit.Uniforms["uEmissiveIntensity"].SetValueFloat(0.0f);
+
+        materialLit.Uniforms["uEnableShadows"].SetValueBool(receiveShadows);
     }
 
     private static void ApplyLights(
