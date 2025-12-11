@@ -1,8 +1,12 @@
+using Lilly.Engine.GameObjects.ThreeD.Lights;
+using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Lights;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Lights;
+using Lilly.Rendering.Core.Types;
+using Serilog;
 
-namespace Lilly.Rendering.Core.Managers;
+namespace Lilly.Engine.Services;
 
 /// <summary>
 /// Stores and clamps active lights for rendering and tracks the main shadow-casting light.
@@ -13,15 +17,69 @@ public sealed class LightManager : ILightManager
     public int MaxPointLights => 32;
     public int MaxSpotLights => 16;
 
+    private readonly IGameObjectManager _gameObjectManager;
+
+    private readonly ILogger _logger = Log.ForContext<LightManager>();
+
     public DirectionalLight? ShadowLight { get; set; }
 
     public IReadOnlyList<DirectionalLight> DirectionalLights => _directionalLights;
     public IReadOnlyList<PointLight> PointLights => _pointLights;
     public IReadOnlyList<SpotLight> SpotLights => _spotLights;
 
-    private readonly List<DirectionalLight> _directionalLights = new();
-    private readonly List<PointLight> _pointLights = new();
-    private readonly List<SpotLight> _spotLights = new();
+    private readonly List<DirectionalLight> _directionalLights = [];
+    private readonly List<PointLight> _pointLights = [];
+    private readonly List<SpotLight> _spotLights = [];
+
+
+    public LightManager(IGameObjectManager gameObjectManager)
+    {
+        _gameObjectManager = gameObjectManager;
+        _gameObjectManager.GameObjectAdded += OnGameObjectAdded;
+        _gameObjectManager.GameObjectRemoved += OnGameObjectRemoved;
+    }
+
+    private void OnGameObjectRemoved(IGameObject gameObject)
+    {
+
+    }
+
+    private void OnGameObjectAdded(IGameObject gameObject)
+    {
+        _logger.Debug("Checking game object {GameObjectName} for lights", gameObject.Name);
+
+        var added = false;
+        LightType lightType = LightType.Point; // Default value to satisfy definite assignment
+
+        if (gameObject is DirectionalLightGameObject directionalLightGameObject)
+        {
+            Add(directionalLightGameObject.Light);
+            added = true;
+            lightType = LightType.Directional;
+        }
+
+        if (gameObject is PointLightGameObject pointLightGameObject)
+        {
+            Add(pointLightGameObject.Light);
+            added = true;
+            lightType = LightType.Point;
+
+        }
+
+        if (gameObject is SpotLightGameObject spotLightGameObject)
+        {
+            Add(spotLightGameObject.Light);
+            added = true;
+            lightType = LightType.Spot;
+        }
+
+        if (added)
+        {
+            _logger.Information("Added {LightType} light from game object {GameObjectName}", lightType, gameObject.Name);
+        }
+
+
+    }
 
     public void Add(ILight light)
     {

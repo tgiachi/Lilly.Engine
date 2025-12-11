@@ -9,6 +9,26 @@ namespace Lilly.Rendering.Core.Interfaces.Services;
 public interface IGameObjectManager
 {
     /// <summary>
+    ///  Delegate for handling the addition of a game object.
+    /// </summary>
+    delegate void GameObjectAddedHandler(IGameObject gameObject);
+
+    /// <summary>
+    ///  Delegate for handling the removal of a game object.
+    /// </summary>
+    delegate void GameObjectRemovedHandler(IGameObject gameObject);
+
+    /// <summary>
+    ///  Triggered when a new game object is added to the manager.
+    /// </summary>
+    event GameObjectAddedHandler GameObjectAdded;
+
+    /// <summary>
+    ///  Triggered when a game object is removed from the manager.
+    /// </summary>
+    event GameObjectRemovedHandler GameObjectRemoved;
+
+    /// <summary>
     /// Adds an existing game object to the manager's collection.
     /// </summary>
     /// <typeparam name="TEntity">The type of the game object, must implement IGameObject.</typeparam>

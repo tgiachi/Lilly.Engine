@@ -128,7 +128,7 @@ public abstract class Base3dGameObject : IGameObject3d, IUpdateble, IInitializab
 
     public virtual void Initialize() { }
 
-    public void OnRemoved()
+    public virtual void OnRemoved()
     {
         foreach (var child in Children)
         {

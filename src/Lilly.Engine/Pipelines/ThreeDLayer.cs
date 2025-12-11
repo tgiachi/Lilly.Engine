@@ -9,7 +9,6 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
-using Lilly.Rendering.Core.Interfaces.Lights;
 using Lilly.Rendering.Core.Layers;
 using Lilly.Rendering.Core.Lights;
 using Lilly.Rendering.Core.Primitives;

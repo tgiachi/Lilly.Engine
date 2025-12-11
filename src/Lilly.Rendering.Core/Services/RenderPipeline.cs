@@ -42,6 +42,7 @@ public class RenderPipeline : IRenderPipeline
     )
 
     {
+        container.RegisterInstance<IGameObjectManager>(this);
         _container = container;
         _renderLayerRegistrations = renderLayerRegistrations;
         _gameObjectFactory = gameObjectFactory;

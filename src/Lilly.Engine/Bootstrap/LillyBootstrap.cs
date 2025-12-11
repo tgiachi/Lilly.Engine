@@ -229,8 +229,7 @@ public class LillyBootstrap : ILillyBootstrap
 
     private void IntializeRenders()
     {
-        var renderPipeLine = _container.Resolve<IRenderPipeline>();
-        _container.RegisterInstance<IGameObjectManager>(renderPipeLine);
+        _container.Resolve<IRenderPipeline>();
     }
 
     private void LoadDefaultAssets()
