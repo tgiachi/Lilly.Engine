@@ -9,6 +9,7 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Interfaces.Lights;
 using Lilly.Rendering.Core.Layers;
 using Lilly.Rendering.Core.Lights;
 using Lilly.Rendering.Core.Primitives;
@@ -16,6 +17,9 @@ using Lilly.Rendering.Core.Types;
 using Silk.NET.OpenGL;
 using TrippyGL;
 using PrimitiveType = TrippyGL.PrimitiveType;
+using DirectionalLight = Lilly.Rendering.Core.Lights.DirectionalLight;
+using PointLight = Lilly.Rendering.Core.Lights.PointLight;
+using SpotLight = Lilly.Rendering.Core.Lights.SpotLight;
 
 namespace Lilly.Engine.Pipelines;
 
@@ -23,48 +27,55 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
 {
     private readonly RenderContext _renderContext;
     private readonly IAssetManager _assetManager;
+    private readonly ILightManager _lightManager;
 
     public bool IsWireframe { get; set; }
     public float WireframeLineWidth { get; set; } = 1.0f;
 
     private readonly ICamera3dService _camera3dService;
-    public bool DebugDrawBoundingBoxes { get; set; } = false;
+    public bool DebugDrawBoundingBoxes { get; set; }
     public bool DebugDrawPhysicsShapes { get; set; } = true;
     public Color4b DebugBoundsColor { get; set; } = Color4b.Green;
     public Color4b DebugPhysicsColor { get; set; } = Color4b.Magenta;
     public float DebugLineWidth { get; set; } = 1.5f;
 
     private ShaderProgram? _debugLineShader;
+    private ShaderProgram? _shadowDepthShader;
+    private Matrix4x4 _lightViewMatrix = Matrix4x4.Identity;
+    private Matrix4x4 _lightProjectionMatrix = Matrix4x4.Identity;
+
     private VertexBuffer<PositionVertex>? _lineVbo;
 
-
-    private  ShadowFramebuffer _shadowFramebuffer;
+    private ShadowFramebuffer _shadowFramebuffer;
 
     public List<IGameObject3d> EntitiesInCullingFrustum { get; } = new();
 
     public List<IGameObject3d> EntitiesOutsideCullingFrustum { get; } = new();
 
-
     public ThreeDLayer(
         RenderContext renderContext,
         ICamera3dService camera3dService,
-        IAssetManager assetManager
+        IAssetManager assetManager,
+        ILightManager lightManager
     ) : base("ThreeD", RenderPriority.ThreeD)
     {
         _renderContext = renderContext;
         _camera3dService = camera3dService;
         _assetManager = assetManager;
+        _lightManager = lightManager;
     }
 
     public override void Initialize()
     {
         _camera3dService.UpdateViewport(_renderContext.GraphicsDevice.Viewport);
         _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, 2048, 2048);
+
         base.Initialize();
     }
 
     public override void Render(GameTime gameTime)
     {
+        _shadowDepthShader ??= _assetManager.GetShaderProgram("shadow_depth");
         _renderContext.OpenGl.Enable(GLEnum.Multisample);
 
         // Revert to CullFront (though irrelevant if culling is disabled below) to match original state
@@ -114,6 +125,19 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
                 return distA.CompareTo(distB); // Ascending order (Near -> Far)
             }
         );
+
+        var (dirLights, pointLights, spotLights) = _lightManager.GetActiveLights();
+        var shadowLight = _lightManager.ShadowLight is { IsActive: true, CastsShadows: true }
+                              ? _lightManager.ShadowLight
+                              : null;
+
+        if (shadowLight != null)
+        {
+            BuildLightMatrices(shadowLight, cameraPos);
+            RenderShadowPass();
+        }
+
+        PrepareMaterialLitShader(cameraPos, dirLights, pointLights, spotLights, shadowLight != null);
 
         // 3. Draw Opaque Pass (Front-to-Back)
         foreach (var entity in EntitiesInCullingFrustum)
@@ -332,6 +356,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
                     {
                         var min = vertices[0];
                         var max = vertices[0];
+
                         foreach (var v in vertices)
                         {
                             min = Vector3.Min(min, v);
@@ -344,12 +369,14 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
                         vertices.Clear();
                         vertices.AddRange(cornersArray);
 
-                        edges.AddRange(new[]
-                        {
-                            (0, 1), (1, 2), (2, 3), (3, 0), // top
-                            (4, 5), (5, 6), (6, 7), (7, 4), // bottom
-                            (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
-                        });
+                        edges.AddRange(
+                            new[]
+                            {
+                                (0, 1), (1, 2), (2, 3), (3, 0), // top
+                                (4, 5), (5, 6), (6, 7), (7, 4), // bottom
+                                (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
+                            }
+                        );
                     }
 
                     break;
@@ -376,5 +403,115 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
         _renderContext.GraphicsDevice.DepthState = DepthState.None;
         _renderContext.GraphicsDevice.BlendState = BlendState.Opaque;
+    }
+
+    private void BuildLightMatrices(DirectionalLight light, Vector3 targetCenter, float orthoSize = 50f)
+    {
+        _lightViewMatrix = light.GetShadowViewMatrix(targetCenter, distance: 100f);
+        _lightProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(
+            -orthoSize,
+            orthoSize,
+            -orthoSize,
+            orthoSize,
+            0.1f,
+            200f
+        );
+    }
+
+    private void RenderShadowPass()
+    {
+        if (_shadowDepthShader == null)
+        {
+            return;
+        }
+
+        var originalViewport = _renderContext.GraphicsDevice.Viewport;
+
+        _shadowFramebuffer.Bind();
+        _renderContext.OpenGl.Clear(ClearBufferMask.DepthBufferBit);
+        _renderContext.OpenGl.CullFace(GLEnum.Front);
+
+        foreach (var entity in EntitiesInCullingFrustum)
+        {
+            if (entity is not IShadowCaster3d shadowCaster)
+            {
+                continue;
+            }
+
+            shadowCaster.DrawShadow(_shadowDepthShader, _lightViewMatrix, _lightProjectionMatrix);
+        }
+
+        _renderContext.OpenGl.CullFace(GLEnum.Back);
+        _shadowFramebuffer.Unbind();
+        _renderContext.GraphicsDevice.Viewport = originalViewport;
+    }
+
+    private void PrepareMaterialLitShader(
+        Vector3 cameraPosition,
+        DirectionalLight[] dirLights,
+        PointLight[] pointLights,
+        SpotLight[] spotLights,
+        bool hasShadowMap
+    )
+    {
+        ShaderProgram? materialLit = null;
+
+        try
+        {
+            materialLit = _assetManager.GetShaderProgram("material_lit");
+        }
+        catch
+        {
+            // Shader not loaded; skip lighting setup.
+        }
+
+        if (materialLit == null)
+        {
+            return;
+        }
+
+        materialLit.Uniforms["uCameraPos"].SetValueVec3(cameraPosition);
+        materialLit.Uniforms["uLightView"].SetValueMat4(_lightViewMatrix);
+        materialLit.Uniforms["uLightProjection"].SetValueMat4(_lightProjectionMatrix);
+
+        ApplyLights(materialLit, dirLights, pointLights, spotLights);
+
+        if (hasShadowMap)
+        {
+            materialLit.Uniforms["uShadowMap"].SetValueTexture(_shadowFramebuffer.DepthTexture);
+        }
+        else
+        {
+            materialLit.Uniforms["uShadowMap"].SetValueTexture(_assetManager.GetWhiteTexture());
+        }
+    }
+
+    private static void ApplyLights(
+        ShaderProgram shader,
+        DirectionalLight[] dirLights,
+        PointLight[] pointLights,
+        SpotLight[] spotLights
+    )
+    {
+        shader.Uniforms["uDirectionalLightCount"].SetValueInt(dirLights.Length);
+
+        for (var i = 0; i < dirLights.Length; i++)
+        {
+            dirLights[i].ApplyToShader(shader, $"uDirectionalLights[{i}]");
+        }
+
+        shader.Uniforms["uPointLightCount"].SetValueInt(pointLights.Length);
+
+        for (var i = 0; i < pointLights.Length; i++)
+        {
+            pointLights[i].ApplyToShader(shader, $"uPointLights[{i}]");
+        }
+
+        shader.Uniforms["uSpotLightCount"].SetValueInt(spotLights.Length);
+
+        for (var i = 0; i < spotLights.Length; i++)
+        {
+            spotLights[i].ApplyToShader(shader, $"uSpotLights[{i}]");
+        }
     }
 }

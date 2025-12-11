@@ -44,7 +44,14 @@ public class ShadowFramebuffer : IDisposable
         Height = height;
 
         // Create depth texture
-        DepthTexture = new(device, width, height);
+        DepthTexture = new(
+            device,
+            width,
+            height,
+            generateMipmaps: false,
+            samples: 0,
+            imageFormat: TextureImageFormat.Depth24
+        );
 
         // Configure texture filtering for shadow sampling
         _gl.BindTexture(TextureTarget.Texture2D, DepthTexture.Handle);

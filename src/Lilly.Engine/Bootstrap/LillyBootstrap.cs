@@ -36,6 +36,7 @@ using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Extensions;
 using Lilly.Rendering.Core.Interfaces.Renderers;
 using Lilly.Rendering.Core.Interfaces.Services;
+using Lilly.Rendering.Core.Managers;
 using Lilly.Rendering.Core.Renderers;
 using Lilly.Rendering.Core.Services;
 using Serilog;
@@ -285,6 +286,15 @@ public class LillyBootstrap : ILillyBootstrap
             ["Position", "Normal", "TexCoords"]
         );
 
+        assetManager.LoadShaderFromMemory<PositionVertex>(
+            "shadow_depth",
+            ResourceUtils.GetEmbeddedResourceString(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Shaders/shadow_depth.shader"
+            ),
+            ["Position"]
+        );
+
         assetManager.LoadFontFromMemory(
             "default",
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Fonts/DefaultMonoFont.ttf")
@@ -395,6 +405,7 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterService<ISceneManager, SceneManager>()
             .RegisterService<IScriptEngineService, LuaScriptEngineService>(true)
             .RegisterService<IPerformanceProfilerService, PerformanceProfilerService>()
+            .RegisterService<ILightManager, LightManager>()
             .RegisterService<PluginRegistry>()
             ;
 
