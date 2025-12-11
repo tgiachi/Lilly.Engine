@@ -10,6 +10,7 @@ using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Layers;
+using Lilly.Rendering.Core.Lights;
 using Lilly.Rendering.Core.Primitives;
 using Lilly.Rendering.Core.Types;
 using Silk.NET.OpenGL;
@@ -36,9 +37,13 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     private ShaderProgram? _debugLineShader;
     private VertexBuffer<PositionVertex>? _lineVbo;
 
+
+    private  ShadowFramebuffer _shadowFramebuffer;
+
     public List<IGameObject3d> EntitiesInCullingFrustum { get; } = new();
 
     public List<IGameObject3d> EntitiesOutsideCullingFrustum { get; } = new();
+
 
     public ThreeDLayer(
         RenderContext renderContext,
@@ -54,6 +59,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
     public override void Initialize()
     {
         _camera3dService.UpdateViewport(_renderContext.GraphicsDevice.Viewport);
+        _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, 2048, 2048);
         base.Initialize();
     }
 
