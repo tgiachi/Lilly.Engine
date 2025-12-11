@@ -44,7 +44,7 @@ public interface ILight
     /// <summary>
     /// Applies this light's parameters to the specified shader
     /// </summary>
-    /// <param name="shaderProgram">The shader to apply parameters to</param>
+    /// <param name="shader">The shader to apply parameters to</param>
     /// <param name="uniformPrefix">Uniform prefix (e.g., "uPointLights[0]")</param>
-    void ApplyToShader(ShaderProgram shaderProgram, string uniformPrefix);
+    void ApplyToShader(ShaderProgram shader, string uniformPrefix);
 }

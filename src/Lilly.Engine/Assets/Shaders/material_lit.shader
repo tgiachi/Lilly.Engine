@@ -1,54 +1,70 @@
 #shader vertex
 #version 330 core
-  layout (location = 0) in vec3 Position;
-  layout (location = 1) in vec3 Normal;
-  layout (location = 2) in vec2 TexCoords;
+layout (location = 0) in vec3 Position;
+layout (location = 1) in vec3 Normal;
+layout (location = 2) in vec2 TexCoords;
 
-  uniform mat4 World;
-  uniform mat4 View;
-  uniform mat4 Projection;
+uniform mat4 World;
+uniform mat4 View;
+uniform mat4 Projection;
 
-  out VS_OUT {
-      vec3 FragPos;
-      vec3 Normal;
-      vec2 TexCoords;
-  } vs_out;
+/// Shadow mapping matrices
+uniform mat4 uLightView;
+uniform mat4 uLightProjection;
 
-  void main()
-  {
-      vec4 worldPos = World * vec4(Position, 1.0);
-      vs_out.FragPos = worldPos.xyz;
-      vs_out.Normal = mat3(transpose(inverse(World))) * Normal;
-      vs_out.TexCoords = TexCoords;
-      gl_Position = Projection * View * worldPos;
-  }
+out VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 FragPosLightSpace;
+} vs_out;
+
+void main()
+{
+    vec4 worldPos = World * vec4(Position, 1.0);
+    vs_out.FragPos = worldPos.xyz;
+    vs_out.Normal = mat3(transpose(inverse(World))) * Normal;
+    vs_out.TexCoords = TexCoords;
+
+    /// Calculate fragment position in light space for shadow mapping
+    vs_out.FragPosLightSpace = uLightProjection * uLightView * worldPos;
+
+    gl_Position = Projection * View * worldPos;
+}
 
 #shader fragment
-  #version 330 core
+#version 330 core
 
-  // Input from vertex shader
-  in VS_OUT {
-      vec3 FragPos;
-      vec3 Normal;
-      vec2 TexCoords;
-  } fs_in;
+/// Input from vertex shader
+in VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 FragPosLightSpace;
+} fs_in;
 
-  // Output
-  out vec4 FragColor;
+/// Output
+out vec4 FragColor;
 
-  // Material textures
-  uniform sampler2D uAlbedoMap;
-  uniform sampler2D uNormalMap;
-  uniform sampler2D uRoughnessMap;
-  uniform sampler2D uMetallicMap;
-  uniform sampler2D uEmissiveMap;
+/// Material textures
+uniform sampler2D uAlbedoMap;
+uniform sampler2D uNormalMap;
+uniform sampler2D uRoughnessMap;
+uniform sampler2D uMetallicMap;
+uniform sampler2D uEmissiveMap;
 
-  // Material properties
-  uniform vec4 uTint = vec4(1.0, 1.0, 1.0, 1.0);
-  uniform float uRoughness = 0.5;
-  uniform float uMetallic = 0.0;
-  uniform vec3 uEmissiveColor = vec3(0.0, 0.0, 0.0);
-  uniform float uEmissiveIntensity = 0.0;
+/// Shadow map
+uniform sampler2D uShadowMap;
+
+/// Material properties
+uniform vec4 uTint = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float uRoughness = 0.5;
+uniform float uMetallic = 0.0;
+uniform vec3 uEmissiveColor = vec3(0.0, 0.0, 0.0);
+uniform float uEmissiveIntensity = 0.0;
+
+/// Shadow parameters
+uniform float uShadowBias = 0.002;
 
   // Light structures
   struct DirectionalLight {
@@ -91,28 +107,77 @@
   uniform PointLight uPointLights[MAX_POINT_LIGHTS];
   uniform SpotLight uSpotLights[MAX_SPOT_LIGHTS];
 
-  uniform vec3 uAmbient = vec3(0.1, 0.1, 0.1);
-  uniform vec3 uCameraPos;
+uniform vec3 uAmbient = vec3(0.1, 0.1, 0.1);
+uniform vec3 uCameraPos;
 
-  // Calculate directional light contribution
-  vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic)
-  {
-      vec3 lightDir = normalize(-light.direction);
+/// Calculate shadow using PCF (Percentage Closer Filtering)
+float CalculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
+{
+    /// Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 
-      // Diffuse
-      float diff = max(dot(normal, lightDir), 0.0);
+    /// Convert from NDC [-1,1] to texture coordinates [0,1]
+    projCoords = projCoords * 0.5 + 0.5;
 
-      // Specular (Blinn-Phong)
-      vec3 halfwayDir = normalize(lightDir + viewDir);
-      float shininess = (1.0 - roughness) * 128.0;
-      float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+    /// Outside shadow map bounds
+    if(projCoords.z > 1.0)
+        return 0.0;
 
-      vec3 lightColor = light.color.rgb * light.color.a;
-      vec3 diffuse = lightColor * diff * albedo;
-      vec3 specular = lightColor * spec * mix(vec3(0.04), albedo, metallic);
+    float currentDepth = projCoords.z;
 
-      return diffuse + specular;
-  }
+    /// Dynamic bias based on angle
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), uShadowBias);
+
+    /// PCF (Percentage Closer Filtering) for smooth shadows
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
+
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+
+    /// Smooth edge at shadow map boundary
+    float edgeSmooth = smoothstep(0.0, 0.1, projCoords.x) *
+                       smoothstep(1.0, 0.9, projCoords.x) *
+                       smoothstep(0.0, 0.1, projCoords.y) *
+                       smoothstep(1.0, 0.9, projCoords.y);
+
+    return mix(0.0, shadow, edgeSmooth);
+}
+
+/// Calculate directional light contribution
+vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 albedo, float roughness, float metallic)
+{
+    vec3 lightDir = normalize(-light.direction);
+
+    /// Diffuse
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    /// Specular (Blinn-Phong)
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float shininess = (1.0 - roughness) * 128.0;
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+
+    vec3 lightColor = light.color.rgb * light.color.a;
+    vec3 diffuse = lightColor * diff * albedo;
+    vec3 specular = lightColor * spec * mix(vec3(0.04), albedo, metallic);
+
+    /// Calculate shadow if this light casts shadows
+    float shadow = 0.0;
+    if (light.castShadows)
+    {
+        shadow = CalculateShadow(fs_in.FragPosLightSpace, normal, lightDir);
+    }
+
+    /// Apply shadow only to direct lighting (not ambient)
+    return (diffuse + specular) * (1.0 - shadow);
+}
 
   // Calculate point light contribution
   vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 albedo, float roughness, float metallic)
