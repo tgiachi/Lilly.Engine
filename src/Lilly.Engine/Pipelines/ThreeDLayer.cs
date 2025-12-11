@@ -22,7 +22,7 @@ using SpotLight = Lilly.Rendering.Core.Lights.SpotLight;
 
 namespace Lilly.Engine.Pipelines;
 
-public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
+public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
 {
     private readonly RenderContext _renderContext;
     private readonly IAssetManager _assetManager;
@@ -173,6 +173,13 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         EndRenderTimer();
 
         _renderContext.GraphicsDevice.ResetStates();
+    }
+
+    public void Dispose()
+    {
+        _shadowFramebuffer?.Dispose();
+        _lineVbo?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private static void AddEdge(HashSet<(int, int)> edges, int a, int b)
