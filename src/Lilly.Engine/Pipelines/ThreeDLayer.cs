@@ -141,10 +141,11 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>
         // 3. Draw Opaque Pass (Front-to-Back)
         foreach (var entity in EntitiesInCullingFrustum)
         {
-            if (entity is IMaterialCaster materialCaster && entity is IShadowReceiver3d shadowReceiver)
+            if (entity is IMaterialCaster materialCaster)
             {
                 var materialLit = _assetManager.GetShaderProgram("material_lit");
-                ApplyMaterial(materialLit, materialCaster, shadowReceiver.ReceiveShadows);
+                var receiveShadows = entity is IShadowReceiver3d shadowReceiver ? shadowReceiver.ReceiveShadows : true;
+                ApplyMaterial(materialLit, materialCaster, receiveShadows);
             }
 
             entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
