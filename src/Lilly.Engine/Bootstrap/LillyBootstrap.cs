@@ -276,6 +276,15 @@ public class LillyBootstrap : ILillyBootstrap
             ["Position", "Normal", "TexCoords"]
         );
 
+        assetManager.LoadShaderFromMemory<VertexPositionNormalTex>(
+            "material_lit",
+            ResourceUtils.GetEmbeddedResourceString(
+                typeof(LillyBootstrap).Assembly,
+                "Assets/Shaders/material_lit.shader"
+            ),
+            ["Position", "Normal", "TexCoords"]
+        );
+
         assetManager.LoadFontFromMemory(
             "default",
             ResourceUtils.GetEmbeddedResourceStream(typeof(LillyBootstrap).Assembly, "Assets/Fonts/DefaultMonoFont.ttf")
@@ -443,7 +452,6 @@ public class LillyBootstrap : ILillyBootstrap
             _container.Resolve<IScriptEngineService>().ExecuteEngineReady();
 
             pipeline.AddGameObject(versionGameObject);
-
         }
         OnRender?.Invoke(gameTime);
     }
