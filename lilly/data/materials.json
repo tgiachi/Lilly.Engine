@@ -1,0 +1,28 @@
+{
+  "assets": [
+    { "name": "emerald", "path": "materials/emerald.json", "type": "Material" },
+    { "name": "jade", "path": "materials/jade.json", "type": "Material" },
+    { "name": "obsidian", "path": "materials/obsidian.json", "type": "Material" },
+    { "name": "pearl", "path": "materials/pearl.json", "type": "Material" },
+    { "name": "ruby", "path": "materials/ruby.json", "type": "Material" },
+    { "name": "turquoise", "path": "materials/turquoise.json", "type": "Material" },
+    { "name": "brass", "path": "materials/brass.json", "type": "Material" },
+    { "name": "bronze", "path": "materials/bronze.json", "type": "Material" },
+    { "name": "chrome", "path": "materials/chrome.json", "type": "Material" },
+    { "name": "copper", "path": "materials/copper.json", "type": "Material" },
+    { "name": "gold", "path": "materials/gold.json", "type": "Material" },
+    { "name": "silver", "path": "materials/silver.json", "type": "Material" },
+    { "name": "plastic_black", "path": "materials/plastic_black.json", "type": "Material" },
+    { "name": "plastic_cyan", "path": "materials/plastic_cyan.json", "type": "Material" },
+    { "name": "plastic_green", "path": "materials/plastic_green.json", "type": "Material" },
+    { "name": "plastic_red", "path": "materials/plastic_red.json", "type": "Material" },
+    { "name": "plastic_white", "path": "materials/plastic_white.json", "type": "Material" },
+    { "name": "plastic_yellow", "path": "materials/plastic_yellow.json", "type": "Material" },
+    { "name": "rubber_black", "path": "materials/rubber_black.json", "type": "Material" },
+    { "name": "rubber_cyan", "path": "materials/rubber_cyan.json", "type": "Material" },
+    { "name": "rubber_green", "path": "materials/rubber_green.json", "type": "Material" },
+    { "name": "rubber_red", "path": "materials/rubber_red.json", "type": "Material" },
+    { "name": "rubber_white", "path": "materials/rubber_white.json", "type": "Material" },
+    { "name": "rubber_yellow", "path": "materials/rubber_yellow.json", "type": "Material" }
+  ]
+}

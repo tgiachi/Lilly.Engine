@@ -1051,7 +1051,63 @@ public class AssetManager : IAssetManager, IDisposable
         var materialDto = JsonUtils.Deserialize<LillyMaterialJson>(json)
                           ?? throw new JsonException("Failed to deserialize material JSON.");
 
-        var material = materialDto.ToMaterial();
+        Material material;
+        if (!string.IsNullOrWhiteSpace(materialDto.BaseMaterial) &&
+            _materials.TryGetValue(materialDto.BaseMaterial, out var baseMaterial))
+        {
+            material = baseMaterial.Clone();
+        }
+        else
+        {
+            material = new Material();
+        }
+
+        // Apply overrides (strings only when provided)
+        if (!string.IsNullOrWhiteSpace(materialDto.Name))
+        {
+            material.Name = materialDto.Name;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.ShaderName))
+        {
+            material.ShaderName = materialDto.ShaderName;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.AlbedoTexture))
+        {
+            material.AlbedoTexture = materialDto.AlbedoTexture;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.NormalTexture))
+        {
+            material.NormalTexture = materialDto.NormalTexture;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.RoughnessTexture))
+        {
+            material.RoughnessTexture = materialDto.RoughnessTexture;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.MetallicTexture))
+        {
+            material.MetallicTexture = materialDto.MetallicTexture;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.EmissiveTexture))
+        {
+            material.EmissiveTexture = materialDto.EmissiveTexture;
+        }
+        if (!string.IsNullOrWhiteSpace(materialDto.AOTexture))
+        {
+            material.AOTexture = materialDto.AOTexture;
+        }
+
+        material.Tint = materialDto.Tint;
+        material.Roughness = materialDto.Roughness;
+        material.Metallic = materialDto.Metallic;
+        material.EmissiveColor = materialDto.EmissiveColor;
+        material.EmissiveIntensity = materialDto.EmissiveIntensity;
+        material.IsTransparent = materialDto.IsTransparent;
+        material.AlphaThreshold = materialDto.AlphaThreshold;
+        material.CastShadows = materialDto.CastShadows;
+        material.ReceiveShadows = materialDto.ReceiveShadows;
+        material.TextureScale = materialDto.TextureScale;
+        material.TextureOffset = materialDto.TextureOffset;
+
         var finalName = string.IsNullOrWhiteSpace(material.Name) ? fallbackName : material.Name;
         material.Name = finalName;
 

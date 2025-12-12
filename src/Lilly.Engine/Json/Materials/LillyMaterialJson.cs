@@ -11,6 +11,9 @@ namespace Lilly.Engine.Json.Materials;
 /// </summary>
 public class LillyMaterialJson
 {
+    /// <summary>Optional base material to clone before applying overrides.</summary>
+    public string? BaseMaterial { get; set; }
+
     public string Name { get; set; } = string.Empty;
     public string ShaderName { get; set; } = string.Empty;
     public string AlbedoTexture { get; set; } = string.Empty;

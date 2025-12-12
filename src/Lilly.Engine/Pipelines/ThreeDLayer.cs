@@ -1,21 +1,15 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Lilly.Engine.Core.Data.Privimitives;
-using Lilly.Engine.Data.Physics;
-using Lilly.Engine.Interfaces.Physics;
 using Lilly.Engine.Interfaces.Services;
-using Lilly.Engine.Vertexts;
+using Lilly.Engine.Pipelines.Renderers;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Entities.Transparent;
 using Lilly.Rendering.Core.Interfaces.Services;
 using Lilly.Rendering.Core.Layers;
-using Lilly.Rendering.Core.Lights;
-using Lilly.Rendering.Core.Primitives;
 using Lilly.Rendering.Core.Types;
 using Silk.NET.OpenGL;
 using TrippyGL;
-using PrimitiveType = TrippyGL.PrimitiveType;
 using DirectionalLight = Lilly.Rendering.Core.Lights.DirectionalLight;
 using PointLight = Lilly.Rendering.Core.Lights.PointLight;
 using SpotLight = Lilly.Rendering.Core.Lights.SpotLight;
@@ -27,25 +21,44 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
     private readonly RenderContext _renderContext;
     private readonly IAssetManager _assetManager;
     private readonly ILightManager _lightManager;
+    private readonly ICamera3dService _camera3dService;
+
+    private readonly ShadowRenderer _shadowRenderer;
+    private readonly DebugRenderer _debugRenderer;
 
     public bool IsWireframe { get; set; }
     public float WireframeLineWidth { get; set; } = 1.0f;
 
-    private readonly ICamera3dService _camera3dService;
-    public bool DebugDrawBoundingBoxes { get; set; }
-    public bool DebugDrawPhysicsShapes { get; set; } = true;
-    public Color4b DebugBoundsColor { get; set; } = Color4b.Green;
-    public Color4b DebugPhysicsColor { get; set; } = Color4b.Magenta;
-    public float DebugLineWidth { get; set; } = 1.5f;
+    // Delegate Debug properties to DebugRenderer
+    public bool DebugDrawBoundingBoxes
+    {
+        get => _debugRenderer.DrawBoundingBoxes;
+        set => _debugRenderer.DrawBoundingBoxes = value;
+    }
 
-    private ShaderProgram? _debugLineShader;
-    private ShaderProgram? _shadowDepthShader;
-    private Matrix4x4 _lightViewMatrix = Matrix4x4.Identity;
-    private Matrix4x4 _lightProjectionMatrix = Matrix4x4.Identity;
+    public bool DebugDrawPhysicsShapes
+    {
+        get => _debugRenderer.DrawPhysicsShapes;
+        set => _debugRenderer.DrawPhysicsShapes = value;
+    }
 
-    private VertexBuffer<PositionVertex>? _lineVbo;
+    public Color4b DebugBoundsColor
+    {
+        get => _debugRenderer.BoundsColor;
+        set => _debugRenderer.BoundsColor = value;
+    }
 
-    private ShadowFramebuffer _shadowFramebuffer;
+    public Color4b DebugPhysicsColor
+    {
+        get => _debugRenderer.PhysicsColor;
+        set => _debugRenderer.PhysicsColor = value;
+    }
+
+    public float DebugLineWidth
+    {
+        get => _debugRenderer.LineWidth;
+        set => _debugRenderer.LineWidth = value;
+    }
 
     public List<IGameObject3d> EntitiesInCullingFrustum { get; } = new();
 
@@ -62,19 +75,21 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         _camera3dService = camera3dService;
         _assetManager = assetManager;
         _lightManager = lightManager;
+
+        // Initialize helper renderers
+        _shadowRenderer = new ShadowRenderer(renderContext, assetManager);
+        _debugRenderer = new DebugRenderer(renderContext, assetManager);
     }
 
     public override void Initialize()
     {
         _camera3dService.UpdateViewport(_renderContext.GraphicsDevice.Viewport);
-        _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, 2048, 2048);
-
+        _shadowRenderer.Initialize();
         base.Initialize();
     }
 
     public override void Render(GameTime gameTime)
     {
-        _shadowDepthShader ??= _assetManager.GetShaderProgram("shadow_depth");
         _renderContext.OpenGl.Enable(GLEnum.Multisample);
 
         // Revert to CullFront (though irrelevant if culling is disabled below) to match original state
@@ -130,11 +145,8 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
                               ? _lightManager.ShadowLight
                               : null;
 
-        if (shadowLight != null)
-        {
-            BuildLightMatrices(shadowLight, cameraPos);
-            RenderShadowPass();
-        }
+        // Render Shadows
+        _shadowRenderer.Render(EntitiesInCullingFrustum, shadowLight, cameraPos);
 
         PrepareMaterialLitShader(cameraPos, dirLights, pointLights, spotLights, shadowLight != null);
 
@@ -164,10 +176,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
             }
         }
 
-        if (DebugDrawBoundingBoxes || DebugDrawPhysicsShapes)
-        {
-            DrawDebugOverlays();
-        }
+        _debugRenderer.Render(EntitiesInCullingFrustum, _camera3dService.ActiveCamera);
 
         RestoreState();
         EndRenderTimer();
@@ -177,20 +186,9 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
 
     public void Dispose()
     {
-        _shadowFramebuffer?.Dispose();
-        _lineVbo?.Dispose();
+        _shadowRenderer.Dispose();
+        _debugRenderer.Dispose();
         GC.SuppressFinalize(this);
-    }
-
-    private static void AddEdge(HashSet<(int, int)> edges, int a, int b)
-    {
-        if (a == b)
-        {
-            return;
-        }
-
-        var key = a < b ? (a, b) : (b, a);
-        edges.Add(key);
     }
 
     private void CheckWireframe()
@@ -208,253 +206,11 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         }
     }
 
-    private void DrawBoundingBox(BoundingBox bounds, Vector4 color, Matrix4x4 view, Matrix4x4 projection)
-    {
-        var cornersArray = new Vector3[8];
-        bounds.GetCorners(cornersArray);
-        var corners = cornersArray.AsSpan();
-        var edges = new[]
-        {
-            (0, 1), (1, 2), (2, 3), (3, 0), // top
-            (4, 5), (5, 6), (6, 7), (7, 4), // bottom
-            (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
-        };
-
-        DrawLineList(corners, edges, color, view, projection);
-    }
-
-    private void DrawDebugOverlays()
-    {
-        var camera = _camera3dService.ActiveCamera;
-
-        if (camera == null)
-        {
-            return;
-        }
-
-        EnsureLineShader();
-        _renderContext.OpenGl.LineWidth(DebugLineWidth);
-
-        foreach (var entity in EntitiesInCullingFrustum)
-        {
-            if (DebugDrawBoundingBoxes)
-            {
-                DrawBoundingBox(entity.BoundingBox, DebugBoundsColor, camera.View, camera.Projection);
-            }
-
-            if (DebugDrawPhysicsShapes && entity is IPhysicsGameObject3d physicsGameObject)
-            {
-                DrawPhysicsShape(physicsGameObject, DebugPhysicsColor, camera.View, camera.Projection);
-            }
-        }
-
-        _renderContext.OpenGl.LineWidth(1f);
-    }
-
-    private void DrawLineList(
-        ReadOnlySpan<Vector3> vertices,
-        ReadOnlySpan<(int, int)> edges,
-        Vector4 color,
-        Matrix4x4 view,
-        Matrix4x4 projection
-    )
-    {
-        if (_debugLineShader == null)
-        {
-            return;
-        }
-
-        var lineVertices = new PositionVertex[edges.Length * 2];
-
-        for (var i = 0; i < edges.Length; i++)
-        {
-            var edge = edges[i];
-            lineVertices[i * 2] = new(vertices[edge.Item1]);
-            lineVertices[i * 2 + 1] = new(vertices[edge.Item2]);
-        }
-
-        _lineVbo?.Dispose();
-        _lineVbo = new VertexBuffer<PositionVertex>(_renderContext.GraphicsDevice, lineVertices, BufferUsage.DynamicDraw);
-
-        _renderContext.GraphicsDevice.DepthState = DepthState.Default;
-        _renderContext.GraphicsDevice.BlendState = BlendState.NonPremultiplied;
-        _renderContext.GraphicsDevice.FaceCullingEnabled = false;
-
-        _renderContext.GraphicsDevice.ShaderProgram = _debugLineShader;
-        _debugLineShader!.Uniforms["World"].SetValueMat4(Matrix4x4.Identity);
-        _debugLineShader.Uniforms["View"].SetValueMat4(view);
-        _debugLineShader.Uniforms["Projection"].SetValueMat4(projection);
-        _debugLineShader.Uniforms["Color"].SetValueVec4(color);
-
-        _renderContext.GraphicsDevice.VertexArray = _lineVbo;
-        _renderContext.GraphicsDevice.DrawArrays(PrimitiveType.Lines, 0, (uint)lineVertices.Length);
-    }
-
-    private void DrawPhysicsShape(
-        IPhysicsGameObject3d physicsGameObject,
-        Vector4 color,
-        Matrix4x4 view,
-        Matrix4x4 projection
-    )
-    {
-        var config = physicsGameObject.BuildBodyConfig();
-        var pose = config.Pose;
-
-        List<Vector3> vertices = new();
-        List<(int, int)> edges = new();
-
-        switch (config.Shape)
-        {
-            case BoxShape box:
-                {
-                    var half = new Vector3(box.Width, box.Height, box.Depth) * 0.5f;
-                    var localCorners = new[]
-                    {
-                        new Vector3(-half.X, -half.Y, -half.Z),
-                        new Vector3(-half.X, -half.Y, half.Z),
-                        new Vector3(-half.X, half.Y, -half.Z),
-                        new Vector3(-half.X, half.Y, half.Z),
-                        new Vector3(half.X, -half.Y, -half.Z),
-                        new Vector3(half.X, -half.Y, half.Z),
-                        new Vector3(half.X, half.Y, -half.Z),
-                        new Vector3(half.X, half.Y, half.Z)
-                    };
-
-                    foreach (var c in localCorners)
-                    {
-                        vertices.Add(Vector3.Transform(c, pose.Rotation) + pose.Position);
-                    }
-
-                    edges.AddRange(
-                        [
-                            (0, 1), (1, 3), (3, 2), (2, 0),
-                            (4, 5), (5, 7), (7, 6), (6, 4),
-                            (0, 4), (1, 5), (2, 6), (3, 7)
-                        ]
-                    );
-
-                    break;
-                }
-            case MeshShape mesh:
-                {
-                    for (var i = 0; i < mesh.Vertices.Count; i++)
-                    {
-                        vertices.Add(Vector3.Transform(mesh.Vertices[i], pose.Rotation) + pose.Position);
-                    }
-
-                    var edgeSet = new HashSet<(int, int)>();
-
-                    for (var i = 0; i < mesh.Indices.Count; i += 3)
-                    {
-                        AddEdge(edgeSet, mesh.Indices[i], mesh.Indices[i + 1]);
-                        AddEdge(edgeSet, mesh.Indices[i + 1], mesh.Indices[i + 2]);
-                        AddEdge(edgeSet, mesh.Indices[i + 2], mesh.Indices[i]);
-                    }
-
-                    edges.AddRange(edgeSet);
-
-                    break;
-                }
-            case ConvexHullShape hull:
-                {
-                    for (var i = 0; i < hull.Vertices.Count; i++)
-                    {
-                        vertices.Add(Vector3.Transform(hull.Vertices[i], pose.Rotation) + pose.Position);
-                    }
-
-                    // For visualization, draw edges of a convex hull by connecting each pair of vertices that form a hull edge is non-trivial without the faces.
-                    // As a simple fallback, draw a bounding box around hull points.
-                    if (vertices.Count > 0)
-                    {
-                        var min = vertices[0];
-                        var max = vertices[0];
-
-                        foreach (var v in vertices)
-                        {
-                            min = Vector3.Min(min, v);
-                            max = Vector3.Max(max, v);
-                        }
-
-                        var bbox = new BoundingBox(min, max);
-                        var cornersArray = new Vector3[8];
-                        bbox.GetCorners(cornersArray);
-                        vertices.Clear();
-                        vertices.AddRange(cornersArray);
-
-                        edges.AddRange(
-                            [
-                                (0, 1), (1, 2), (2, 3), (3, 0), // top
-                                (4, 5), (5, 6), (6, 7), (7, 4), // bottom
-                                (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
-                            ]
-                        );
-                    }
-
-                    break;
-                }
-            default:
-                return;
-        }
-
-        if (vertices.Count == 0 || edges.Count == 0)
-        {
-            return;
-        }
-
-        DrawLineList(CollectionsMarshal.AsSpan(vertices), CollectionsMarshal.AsSpan(edges), color, view, projection);
-    }
-
-    private void EnsureLineShader()
-    {
-        _debugLineShader ??= _assetManager.GetShaderProgram("debug_line");
-    }
-
     private void RestoreState()
     {
         _renderContext.OpenGl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
         _renderContext.GraphicsDevice.DepthState = DepthState.None;
         _renderContext.GraphicsDevice.BlendState = BlendState.Opaque;
-    }
-
-    private void BuildLightMatrices(DirectionalLight light, Vector3 targetCenter, float orthoSize = 50f)
-    {
-        _lightViewMatrix = light.GetShadowViewMatrix(targetCenter, distance: 100f);
-        _lightProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(
-            -orthoSize,
-            orthoSize,
-            -orthoSize,
-            orthoSize,
-            0.1f,
-            200f
-        );
-    }
-
-    private void RenderShadowPass()
-    {
-        if (_shadowDepthShader == null)
-        {
-            return;
-        }
-
-        var originalViewport = _renderContext.GraphicsDevice.Viewport;
-
-        _shadowFramebuffer.Bind();
-        _renderContext.OpenGl.Clear(ClearBufferMask.DepthBufferBit);
-        _renderContext.OpenGl.CullFace(GLEnum.Front);
-
-        foreach (var entity in EntitiesInCullingFrustum)
-        {
-            if (entity is not IShadowCaster3d shadowCaster)
-            {
-                continue;
-            }
-
-            shadowCaster.DrawShadow(_shadowDepthShader, _lightViewMatrix, _lightProjectionMatrix);
-        }
-
-        _renderContext.OpenGl.CullFace(GLEnum.Back);
-        _shadowFramebuffer.Unbind();
-        _renderContext.GraphicsDevice.Viewport = originalViewport;
     }
 
     private void PrepareMaterialLitShader(
@@ -467,14 +223,14 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
     {
         var materialLit = _assetManager.GetShaderProgram("material_lit");
         materialLit.Uniforms["uCameraPos"].SetValueVec3(cameraPosition);
-        materialLit.Uniforms["uLightView"].SetValueMat4(_lightViewMatrix);
-        materialLit.Uniforms["uLightProjection"].SetValueMat4(_lightProjectionMatrix);
+        materialLit.Uniforms["uLightView"].SetValueMat4(_shadowRenderer.LightViewMatrix);
+        materialLit.Uniforms["uLightProjection"].SetValueMat4(_shadowRenderer.LightProjectionMatrix);
 
         ApplyLights(materialLit, dirLights, pointLights, spotLights);
 
         if (hasShadowMap)
         {
-            materialLit.Uniforms["uShadowMap"].SetValueTexture(_shadowFramebuffer.DepthTexture);
+            materialLit.Uniforms["uShadowMap"].SetValueTexture(_shadowRenderer.DepthTexture);
         }
         else
         {

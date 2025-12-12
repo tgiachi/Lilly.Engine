@@ -1,0 +1,15 @@
+{
+  "name": "silver",
+  "shaderName": "default",
+  "tint": "#818181FF",
+  "roughness": 0.6,
+  "metallic": 1.0,
+  "emissiveColor": [0.0, 0.0, 0.0],
+  "emissiveIntensity": 0.0,
+  "isTransparent": false,
+  "alphaThreshold": 0.5,
+  "castShadows": true,
+  "receiveShadows": true,
+  "textureScale": [1.0, 1.0],
+  "textureOffset": [0.0, 0.0]
+}
