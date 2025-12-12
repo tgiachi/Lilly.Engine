@@ -33,7 +33,7 @@ public class ShadowRenderer : IDisposable
 
     public void Initialize()
     {
-        _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, 2048, 2048);
+        _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, (uint)_renderContext.Window.Size.X, (uint)_renderContext.Window.Size.Y );w
     }
 
     public void Render(List<IGameObject3d> entities, DirectionalLight? shadowLight, Vector3 cameraPos)

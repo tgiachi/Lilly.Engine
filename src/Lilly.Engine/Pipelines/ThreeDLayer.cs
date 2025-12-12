@@ -122,6 +122,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         _shadowRenderer.Render(_sceneCuller.OpaqueEntities, shadowLight, cameraPos);
 
         PrepareMaterialLitShader(cameraPos, dirLights, pointLights, spotLights, shadowLight != null);
+        PrepareModelShader(shadowLight != null);
 
         // 3. Draw Opaque Pass (Front-to-Back)
         foreach (var entity in _sceneCuller.OpaqueEntities)
@@ -207,6 +208,25 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         else
         {
             materialLit.Uniforms["uShadowMap"].SetValueTexture(_assetManager.GetWhiteTexture());
+        }
+    }
+
+    private void PrepareModelShader(bool hasShadowMap)
+    {
+        var modelShader = _assetManager.GetShaderProgram("model");
+        modelShader.Uniforms["uLightView"].SetValueMat4(_shadowRenderer.LightViewMatrix);
+        modelShader.Uniforms["uLightProjection"].SetValueMat4(_shadowRenderer.LightProjectionMatrix);
+        modelShader.Uniforms["uShadowBias"].SetValueFloat(0.002f);
+
+        if (hasShadowMap)
+        {
+            modelShader.Uniforms["uShadowMap"].SetValueTexture(_shadowRenderer.DepthTexture);
+            modelShader.Uniforms["uEnableShadows"].SetValueBool(true);
+        }
+        else
+        {
+            modelShader.Uniforms["uShadowMap"].SetValueTexture(_assetManager.GetWhiteTexture());
+            modelShader.Uniforms["uEnableShadows"].SetValueBool(false);
         }
     }
 

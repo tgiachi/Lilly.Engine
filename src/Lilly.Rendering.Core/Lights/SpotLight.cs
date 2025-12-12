@@ -99,15 +99,38 @@ public class SpotLight : ILight
     /// <param name="uniformPrefix">Uniform prefix (e.g., "uSpotLights[0]")</param>
     public void ApplyToShader(ShaderProgram shader, string uniformPrefix)
     {
-        shader.Uniforms[$"{uniformPrefix}.position"].SetValueVec3(Position);
-        shader.Uniforms[$"{uniformPrefix}.direction"].SetValueVec3(Direction);
-        shader.Uniforms[$"{uniformPrefix}.color"].SetValueVec4(GetEffectiveColor());
-        shader.Uniforms[$"{uniformPrefix}.innerCutoff"].SetValueFloat(MathF.Cos(InnerConeAngle));
-        shader.Uniforms[$"{uniformPrefix}.outerCutoff"].SetValueFloat(MathF.Cos(OuterConeAngle));
-        shader.Uniforms[$"{uniformPrefix}.range"].SetValueFloat(Range);
-        shader.Uniforms[$"{uniformPrefix}.constant"].SetValueFloat(Constant);
-        shader.Uniforms[$"{uniformPrefix}.linear"].SetValueFloat(Linear);
-        shader.Uniforms[$"{uniformPrefix}.quadratic"].SetValueFloat(Quadratic);
+        var positionUniform = shader.Uniforms[$"{uniformPrefix}.position"];
+        var directionUniform = shader.Uniforms[$"{uniformPrefix}.direction"];
+        var colorUniform = shader.Uniforms[$"{uniformPrefix}.color"];
+        var innerCutoffUniform = shader.Uniforms[$"{uniformPrefix}.innerCutoff"];
+        var outerCutoffUniform = shader.Uniforms[$"{uniformPrefix}.outerCutoff"];
+        var rangeUniform = shader.Uniforms[$"{uniformPrefix}.range"];
+        var constantUniform = shader.Uniforms[$"{uniformPrefix}.constant"];
+        var linearUniform = shader.Uniforms[$"{uniformPrefix}.linear"];
+        var quadraticUniform = shader.Uniforms[$"{uniformPrefix}.quadratic"];
+
+        if (positionUniform.IsEmpty ||
+            directionUniform.IsEmpty ||
+            colorUniform.IsEmpty ||
+            innerCutoffUniform.IsEmpty ||
+            outerCutoffUniform.IsEmpty ||
+            rangeUniform.IsEmpty ||
+            constantUniform.IsEmpty ||
+            linearUniform.IsEmpty ||
+            quadraticUniform.IsEmpty)
+        {
+            return;
+        }
+
+        positionUniform.SetValueVec3(Position);
+        directionUniform.SetValueVec3(Direction);
+        colorUniform.SetValueVec4(GetEffectiveColor());
+        innerCutoffUniform.SetValueFloat(MathF.Cos(InnerConeAngle));
+        outerCutoffUniform.SetValueFloat(MathF.Cos(OuterConeAngle));
+        rangeUniform.SetValueFloat(Range);
+        constantUniform.SetValueFloat(Constant);
+        linearUniform.SetValueFloat(Linear);
+        quadraticUniform.SetValueFloat(Quadratic);
     }
 
     /// <summary>

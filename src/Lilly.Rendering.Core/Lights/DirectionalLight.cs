@@ -67,9 +67,18 @@ public class DirectionalLight : ILight
             return;
         }
 
-        shader.Uniforms[$"{uniformPrefix}.direction"].SetValueVec3(Direction);
-        shader.Uniforms[$"{uniformPrefix}.color"].SetValueVec4(GetEffectiveColor());
-        shader.Uniforms[$"{uniformPrefix}.castShadows"].SetValueBool(CastsShadows);
+        var directionUniform = shader.Uniforms[$"{uniformPrefix}.direction"];
+        var colorUniform = shader.Uniforms[$"{uniformPrefix}.color"];
+        var shadowsUniform = shader.Uniforms[$"{uniformPrefix}.castShadows"];
+
+        if (directionUniform.IsEmpty || colorUniform.IsEmpty || shadowsUniform.IsEmpty)
+        {
+            return;
+        }
+
+        directionUniform.SetValueVec3(Direction);
+        colorUniform.SetValueVec4(GetEffectiveColor());
+        shadowsUniform.SetValueBool(CastsShadows);
     }
 
     /// <summary>

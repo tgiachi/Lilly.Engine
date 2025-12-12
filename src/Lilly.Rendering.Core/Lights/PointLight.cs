@@ -234,11 +234,28 @@ public class PointLight : ILight
     /// <param name="uniformPrefix">Uniform prefix (e.g., "uPointLights[0]")</param>
     public void ApplyToShader(ShaderProgram shader, string uniformPrefix)
     {
-        shader.Uniforms[$"{uniformPrefix}.position"].SetValueVec3(Position);
-        shader.Uniforms[$"{uniformPrefix}.color"].SetValueVec4(GetEffectiveColor());
-        shader.Uniforms[$"{uniformPrefix}.radius"].SetValueFloat(Radius);
-        shader.Uniforms[$"{uniformPrefix}.constant"].SetValueFloat(Constant);
-        shader.Uniforms[$"{uniformPrefix}.linear"].SetValueFloat(Linear);
-        shader.Uniforms[$"{uniformPrefix}.quadratic"].SetValueFloat(Quadratic);
+        var positionUniform = shader.Uniforms[$"{uniformPrefix}.position"];
+        var colorUniform = shader.Uniforms[$"{uniformPrefix}.color"];
+        var radiusUniform = shader.Uniforms[$"{uniformPrefix}.radius"];
+        var constantUniform = shader.Uniforms[$"{uniformPrefix}.constant"];
+        var linearUniform = shader.Uniforms[$"{uniformPrefix}.linear"];
+        var quadraticUniform = shader.Uniforms[$"{uniformPrefix}.quadratic"];
+
+        if (positionUniform.IsEmpty ||
+            colorUniform.IsEmpty ||
+            radiusUniform.IsEmpty ||
+            constantUniform.IsEmpty ||
+            linearUniform.IsEmpty ||
+            quadraticUniform.IsEmpty)
+        {
+            return;
+        }
+
+        positionUniform.SetValueVec3(Position);
+        colorUniform.SetValueVec4(GetEffectiveColor());
+        radiusUniform.SetValueFloat(Radius);
+        constantUniform.SetValueFloat(Constant);
+        linearUniform.SetValueFloat(Linear);
+        quadraticUniform.SetValueFloat(Quadratic);
     }
 }

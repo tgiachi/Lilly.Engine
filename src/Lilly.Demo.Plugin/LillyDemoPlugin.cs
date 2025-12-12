@@ -38,6 +38,14 @@ public class LillyDemoPlugin : ILillyPlugin
 
         yield return plane;
 
+        var sun = gameObjectFactory.Create<DirectionalLightGameObject>();
+        sun.Light.CastsShadows = true;
+        sun.Light.Intensity = 1.2f;
+        sun.Light.Color = new(1.0f, 0.97f, 0.92f);
+        sun.Transform.Rotation = Quaternion.CreateFromYawPitchRoll(-0.8f, -0.9f, 0f);
+
+        yield return sun;
+
         var light = gameObjectFactory.Create<PointLightGameObject>();
 
         light.Light.Color = new(1f, 1f, 1f);
