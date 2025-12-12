@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using System.Text.Json.Serialization;
 using Lilly.Engine.Json.Converters;

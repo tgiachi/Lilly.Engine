@@ -33,5 +33,9 @@ public enum AssetType
     /// <summary>
     /// Shader asset (vertex shaders, fragment shaders, compute shaders).
     /// </summary>
-    Shader
+    Shader,
+    /// <summary>
+    ///  Material asset (defines surface properties for 3D models).
+    /// </summary>
+    Material,
 }

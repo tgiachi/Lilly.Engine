@@ -1,6 +1,7 @@
 using System.Reflection;
 using Lilly.Engine.Core.Utils;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Json.Materials;
 using TrippyGL;
 
 namespace Lilly.Engine.Extensions;
@@ -90,5 +91,28 @@ public static class AssetManagerServiceExtensions
         }
 
         assetManager.LoadTextureFromMemory(textureName, textureStream);
+    }
+
+    /// <summary>
+    /// Loads a material definition from an embedded JSON resource and registers it with the asset manager.
+    /// </summary>
+    /// <param name="materialName">The name to register the material under.</param>
+    /// <param name="resourcePath">The path to the embedded resource.</param>
+    /// <param name="assembly">The assembly containing the resource.</param>
+    public static void LoadMaterialFromResource(
+        this IAssetManager assetManager,
+        string materialName,
+        string resourcePath,
+        Assembly assembly
+    )
+    {
+        using var materialStream = ResourceUtils.GetEmbeddedResourceStream(assembly, resourcePath);
+
+        if (materialStream == null)
+        {
+            throw new InvalidOperationException($"Resource '{resourcePath}' not found in assembly '{assembly.FullName}'.");
+        }
+
+        assetManager.LoadMaterialFromStream(materialName, materialStream);
     }
 }

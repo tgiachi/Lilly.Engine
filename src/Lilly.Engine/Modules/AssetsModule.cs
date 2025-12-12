@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text.Json;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Core.Attributes.Scripts;
 using Lilly.Engine.Core.Data.Directories;
@@ -137,6 +139,127 @@ public class AssetsModule
                     break;
                 case AssetType.Sound:
                     _assetManager.LoadSoundFromFile(asset.Name, asset.Path);
+
+                    break;
+                case AssetType.Material:
+                    _assetManager.LoadMaterialFromFile(asset.Name, asset.Path);
+
+                    break;
+                case AssetType.Shader:
+                default:
+                    _logger.Warning("Unsupported asset type: {Type} for asset: {Name}", asset.Type, asset.Name);
+
+                    break;
+            }
+        }
+    }
+
+    public void LoadAssetsFromZip(string zipPath, string manifestName = "assets.json")
+    {
+        var fullZipPath = Path.Combine(_directoriesConfig.Root, zipPath);
+
+        if (!File.Exists(fullZipPath))
+        {
+            throw new FileNotFoundException($"Asset zip file not found at path: {fullZipPath}");
+        }
+
+        using var archive = ZipFile.OpenRead(fullZipPath);
+        var manifestEntry = archive.GetEntry(manifestName);
+
+        if (manifestEntry == null)
+        {
+            throw new FileNotFoundException($"Manifest '{manifestName}' not found inside zip '{fullZipPath}'");
+        }
+
+        LillyAssetManifestJson? manifest;
+
+        using (var manifestStream = manifestEntry.Open())
+        {
+            using (var reader = new StreamReader(manifestStream))
+            {
+                var manifestJson = reader.ReadToEnd();
+                manifest = JsonUtils.Deserialize<LillyAssetManifestJson>(manifestJson);
+            }
+        }
+
+        if (manifest == null)
+        {
+            throw new JsonException($"Failed to deserialize manifest '{manifestName}' in zip '{fullZipPath}'");
+        }
+
+        _logger.Debug("Loading assets from zip: {FullPath} with {Count} entries", fullZipPath, manifest.Assets.Length);
+
+        foreach (var asset in manifest.Assets)
+        {
+            var entry = archive.GetEntry(asset.Path);
+
+            if (asset.Type != AssetType.Model && entry == null)
+            {
+                _logger.Warning("Asset entry '{Path}' not found in zip {Zip}", asset.Path, fullZipPath);
+
+                continue;
+            }
+
+            switch (asset.Type)
+            {
+                case AssetType.Font:
+                    using (var stream = entry!.Open())
+                    {
+                        _assetManager.LoadFontFromMemory(asset.Name, stream);
+                    }
+
+                    break;
+                case AssetType.Texture:
+                    using (var stream = entry!.Open())
+                    {
+                        _assetManager.LoadTextureFromMemory(asset.Name, stream);
+                    }
+
+                    break;
+                case AssetType.Atlas:
+                    {
+                        var tileWidth = Convert.ToInt32(asset.Metadata.GetValueOrDefault("tileWidth") ?? 0);
+                        var tileHeight = Convert.ToInt32(asset.Metadata.GetValueOrDefault("tileHeight") ?? 0);
+                        var spacing = Convert.ToInt32(asset.Metadata.GetValueOrDefault("spacing") ?? 0);
+                        var margin = Convert.ToInt32(asset.Metadata.GetValueOrDefault("margin") ?? 0);
+
+                        if (tileHeight == 0 || tileWidth == 0)
+                        {
+                            throw new AssetAtlasInvalidSizeException("Invalid tile height/width/height");
+                        }
+
+                        using var stream = entry!.Open();
+                        _assetManager.LoadTextureAtlasFromMemory(asset.Name, stream, tileWidth, tileHeight, spacing, margin);
+                    }
+
+                    break;
+                case AssetType.Sound:
+                    using (var stream = entry!.Open())
+                    {
+                        var audioType = asset.Path.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)
+                                            ? AudioType.Mp3
+                                            : AudioType.Ogg;
+                        _assetManager.LoadSoundFromStream(asset.Name, stream, audioType);
+                    }
+
+                    break;
+                case AssetType.Material:
+                    using (var stream = entry!.Open())
+                    {
+                        _assetManager.LoadMaterialFromStream(asset.Name, stream);
+                    }
+
+                    break;
+                case AssetType.Model:
+                    if (archive.GetEntry(asset.Path) == null)
+                    {
+                        _logger.Warning("Model file {ModelPath} not found inside zip {ZipPath}", asset.Path, fullZipPath);
+
+                        break;
+                    }
+
+                    // Let the asset manager extract and load the model from the zip itself
+                    _assetManager.LoadModelFromZip(asset.Name, zipPath, asset.Path);
 
                     break;
                 case AssetType.Shader:

@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using Assimp;
 using Assimp.Configs;
 using AssimpNet;
@@ -10,12 +11,15 @@ using Lilly.Engine.Attributes;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Core.Data.Directories;
 using Lilly.Engine.Core.Enums;
+using Lilly.Engine.Core.Json;
 using Lilly.Engine.Data.Assets;
 using Lilly.Engine.Data.Atlas;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Json.Materials;
 using Lilly.Engine.Utils;
 using Lilly.Engine.Vertexts;
 using Lilly.Rendering.Core.Context;
+using Lilly.Rendering.Core.Materials;
 using Serilog;
 using Silk.NET.OpenGL;
 using SixLabors.ImageSharp;
@@ -28,6 +32,7 @@ using AssimpMatrix4x4 = Assimp.Matrix4x4;
 using AssimpVector3D = Assimp.Vector3D;
 using AssimpTextureType = Assimp.TextureType;
 using BoundingBox = Lilly.Rendering.Core.Primitives.BoundingBox;
+using Material = Lilly.Rendering.Core.Materials.Material;
 
 namespace Lilly.Engine.Services;
 
@@ -54,6 +59,7 @@ public class AssetManager : IAssetManager, IDisposable
     private readonly AssimpContext _assimpContext = new();
     private readonly Dictionary<string, string> _modelExtractionDirectories = new();
     private readonly List<string> _tempAudioFiles = new();
+    private readonly Dictionary<string, Material> _materials = new();
 
     private readonly PostProcessSteps _defaultPostProcessSteps = PostProcessSteps.Triangulate |
                                                                  PostProcessSteps.CalculateTangentSpace |
@@ -235,6 +241,11 @@ public class AssetManager : IAssetManager, IDisposable
                ? model
                : throw new InvalidOperationException($"Model '{modelName}' is not loaded.");
 
+    public Material GetMaterial(string materialName)
+        => _materials.TryGetValue(materialName, out var material)
+               ? material
+               : throw new InvalidOperationException($"Material '{materialName}' is not loaded.");
+
     public void LoadSoundFromFile(string soundName, string soundPath, AudioType audioType = AudioType.Ogg)
     {
         var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], soundPath);
@@ -390,6 +401,47 @@ public class AssetManager : IAssetManager, IDisposable
         );
 
         return texture;
+    }
+
+    public void LoadMaterialFromFile(string materialName, string materialPath)
+    {
+        var fullPath = Path.Combine(_directoriesConfig[DirectoryType.Assets], materialPath);
+
+        if (!File.Exists(fullPath))
+        {
+            _logger.Warning("Material file not found at {Path}", fullPath);
+
+            return;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(fullPath);
+            LoadMaterialFromJson(materialName, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading material {MaterialName} from file {Path}", materialName, fullPath);
+        }
+    }
+
+    public void LoadMaterialFromStream(string materialName, Stream stream)
+    {
+        try
+        {
+            using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+            var json = reader.ReadToEnd();
+            LoadMaterialFromJson(materialName, json);
+
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error loading material {MaterialName} from stream", materialName);
+        }
     }
 
     /// <summary>
@@ -992,6 +1044,20 @@ public class AssetManager : IAssetManager, IDisposable
         }
 
         return result;
+    }
+
+    private void LoadMaterialFromJson(string fallbackName, string json)
+    {
+        var materialDto = JsonUtils.Deserialize<LillyMaterialJson>(json)
+                          ?? throw new JsonException("Failed to deserialize material JSON.");
+
+        var material = materialDto.ToMaterial();
+        var finalName = string.IsNullOrWhiteSpace(material.Name) ? fallbackName : material.Name;
+        material.Name = finalName;
+
+        _materials[finalName] = material;
+
+        _logger.Information("Loaded material {MaterialName}", finalName);
     }
 
     private static Dictionary<ShaderType, string> ParseShaderSource(string source)

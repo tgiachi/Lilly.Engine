@@ -2,6 +2,7 @@ using FontStashSharp;
 using Lilly.Engine.Audio;
 using Lilly.Engine.Data.Assets;
 using Lilly.Engine.Data.Atlas;
+using Lilly.Rendering.Core.Materials;
 using TrippyGL;
 
 namespace Lilly.Engine.Interfaces.Services;
@@ -59,6 +60,11 @@ public interface IAssetManager
     /// <param name="shaderName">The name of the shader.</param>
     /// <returns>The shader program.</returns>
     ShaderProgram GetShaderProgram(string shaderName);
+
+    /// <summary>
+    /// Retrieves a previously loaded material by name.
+    /// </summary>
+    Material GetMaterial(string materialName);
 
     /// <summary>
     /// Gets the texture by name.
@@ -232,4 +238,18 @@ public interface IAssetManager
     /// <param name="textureName">The name to associate with the loaded texture.</param>
     /// <param name="stream">The stream containing the texture data.</param>
     void LoadTextureFromMemory(string textureName, Stream stream);
+
+    /// <summary>
+    /// Loads a material definition from a JSON file located under the assets directory.
+    /// </summary>
+    /// <param name="materialName">Key to store the material.</param>
+    /// <param name="materialPath">Path relative to assets.</param>
+    void LoadMaterialFromFile(string materialName, string materialPath);
+
+    /// <summary>
+    /// Loads a material definition from a JSON stream.
+    /// </summary>
+    /// <param name="materialName">Key to store the material.</param>
+    /// <param name="stream">Stream containing JSON.</param>
+    void LoadMaterialFromStream(string materialName, Stream stream);
 }
