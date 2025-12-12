@@ -2,6 +2,7 @@ using System.Numerics;
 using DryIoc;
 using Lilly.Engine.Data.Plugins;
 using Lilly.Engine.GameObjects.ThreeD;
+using Lilly.Engine.GameObjects.ThreeD.Lights;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
@@ -36,6 +37,14 @@ public class LillyDemoPlugin : ILillyPlugin
         plane.TextureName = "ground_texture";
 
         yield return plane;
+
+        var light = gameObjectFactory.Create<PointLightGameObject>();
+
+        light.Light.Color = new(1f, 1f, 1f);
+        light.Light.Intensity = 2f;
+        light.Transform.Position = new(0f, 10f, 0f);
+
+        yield return light;
 
         foreach (var index in Enumerable.Range(0, 1000))
         {

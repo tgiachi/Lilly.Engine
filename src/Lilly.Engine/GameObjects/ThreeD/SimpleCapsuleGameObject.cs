@@ -13,7 +13,7 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Simple capsule renderable built from triangles (hemispheres + cylinder).
 /// </summary>
-public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable
+public class SimpleCapsuleGameObject : Base3dShadowGameObject, IInitializable, IUpdateble, IDisposable
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -184,5 +184,13 @@ public class SimpleCapsuleGameObject : Base3dGameObject, IInitializable, IUpdate
         const float inv = 1f / 255f;
 
         return new(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
+    }
+
+    protected override void DrawShadowGeometry(ShaderProgram shadowShader)
+    {
+
+        _graphicsDevice.ShaderProgram = shadowShader;
+        _graphicsDevice.VertexArray = _vertexBuffer;
+        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 }

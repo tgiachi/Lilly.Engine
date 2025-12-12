@@ -16,7 +16,7 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Simple box object with customizable width, height, and depth dimensions.
 /// </summary>
-public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
+public class SimpleBoxGameObject : Base3dShadowGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -267,5 +267,22 @@ public class SimpleBoxGameObject : Base3dGameObject, IInitializable, IUpdateble,
         const float inv = 1f / 255f;
 
         return new(color.R * inv, color.G * inv, color.B * inv, color.A * inv);
+    }
+
+    protected override void DrawShadowGeometry(ShaderProgram shadowShader)
+    {
+        if (_vertexBuffer == null)
+        {
+            return;
+        }
+
+        if (_needsRebuild)
+        {
+            RebuildGeometry();
+        }
+
+        _graphicsDevice.ShaderProgram = shadowShader;
+        _graphicsDevice.VertexArray = _vertexBuffer;
+        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 }

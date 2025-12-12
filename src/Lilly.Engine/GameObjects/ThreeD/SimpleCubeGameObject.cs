@@ -16,7 +16,7 @@ namespace Lilly.Engine.GameObjects.ThreeD;
 /// <summary>
 /// Simple animated cube that randomizes its vertex colors over time.
 /// </summary>
-public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
+public class SimpleCubeGameObject : Base3dShadowGameObject, IInitializable, IUpdateble, IDisposable, IPhysicsGameObject3d
 {
     private readonly GraphicsDevice _graphicsDevice;
     private readonly IAssetManager _assetManager;
@@ -206,5 +206,17 @@ public class SimpleCubeGameObject : Base3dGameObject, IInitializable, IUpdateble
             new(frontTopLeft, -Vector3.UnitX, uvTopRight),
             new(backTopLeft, -Vector3.UnitX, uvTopLeft)
         ];
+    }
+
+    protected override void DrawShadowGeometry(ShaderProgram shadowShader)
+    {
+        if (_vertexBuffer == null)
+        {
+            return;
+        }
+
+        _graphicsDevice.ShaderProgram = shadowShader;
+        _graphicsDevice.VertexArray = _vertexBuffer;
+        _graphicsDevice.DrawArrays(PrimitiveType.Triangles, 0, _vertexBuffer.StorageLength);
     }
 }

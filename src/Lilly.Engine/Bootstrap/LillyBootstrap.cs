@@ -17,6 +17,7 @@ using Lilly.Engine.Dispatchers;
 using Lilly.Engine.Exceptions;
 using Lilly.Engine.Extensions;
 using Lilly.Engine.GameObjects.ThreeD;
+using Lilly.Engine.GameObjects.ThreeD.Lights;
 using Lilly.Engine.GameObjects.TwoD;
 using Lilly.Engine.Interfaces.Bootstrap;
 using Lilly.Engine.Interfaces.Plugins;
@@ -344,6 +345,13 @@ public class LillyBootstrap : ILillyBootstrap
             .RegisterGameObject<SimpleCubeGameObject>()
             .RegisterGameObject<SimpleCapsuleGameObject>()
             .RegisterGameObject<ModelGameObject>()
+
+            // Lights
+            .RegisterGameObject<PointLightGameObject>()
+            .RegisterGameObject<DirectionalLightGameObject>()
+            .RegisterGameObject<SpotLightGameObject>()
+
+
             ;
 
         _container
