@@ -33,7 +33,12 @@ public class ShadowRenderer : IDisposable
 
     public void Initialize()
     {
-        _shadowFramebuffer = new ShadowFramebuffer(_renderContext.OpenGl, _renderContext.GraphicsDevice, (uint)_renderContext.Window.Size.X, (uint)_renderContext.Window.Size.Y );w
+        _shadowFramebuffer = new ShadowFramebuffer(
+            _renderContext.OpenGl,
+            _renderContext.GraphicsDevice,
+            (uint)_renderContext.Window.Size.X,
+            (uint)_renderContext.Window.Size.Y
+        );
     }
 
     public void Render(List<IGameObject3d> entities, DirectionalLight? shadowLight, Vector3 cameraPos)
@@ -68,7 +73,7 @@ public class ShadowRenderer : IDisposable
         _renderContext.GraphicsDevice.Viewport = originalViewport;
     }
 
-    private void BuildLightMatrices(DirectionalLight light, Vector3 targetCenter, float orthoSize = 50f)
+    private void BuildLightMatrices(DirectionalLight light, Vector3 targetCenter, float orthoSize = 30f)
     {
         LightViewMatrix = light.GetShadowViewMatrix(targetCenter, distance: 100f);
         LightProjectionMatrix = Matrix4x4.CreateOrthographicOffCenter(

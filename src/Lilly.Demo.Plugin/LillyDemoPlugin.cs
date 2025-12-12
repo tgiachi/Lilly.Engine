@@ -6,6 +6,7 @@ using Lilly.Engine.GameObjects.ThreeD.Lights;
 using Lilly.Engine.Interfaces.Plugins;
 using Lilly.Rendering.Core.Interfaces.Entities;
 using Lilly.Rendering.Core.Interfaces.Services;
+using TrippyGL;
 
 namespace Lilly.Demo.Plugin;
 
@@ -48,9 +49,10 @@ public class LillyDemoPlugin : ILillyPlugin
 
         var light = gameObjectFactory.Create<PointLightGameObject>();
 
-        light.Light.Color = new(1f, 1f, 1f);
+        light.Light.Color = Color4b.Red;
+
         light.Light.Intensity = 2f;
-        light.Transform.Position = new(0f, 10f, 0f);
+        light.Transform.Position = new(0f, 4f, 0f);
 
         yield return light;
 

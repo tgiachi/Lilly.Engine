@@ -65,7 +65,7 @@ uniform float uEmissiveIntensity = 0.0;
 
 /// Shadow parameters
 uniform bool uEnableShadows = true;
-uniform float uShadowBias = 0.002;
+uniform float uShadowBias = 0.0005;
 
   // Light structures
   struct DirectionalLight {
@@ -127,7 +127,7 @@ float CalculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     float currentDepth = projCoords.z;
 
     /// Dynamic bias based on angle
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), uShadowBias);
+    float bias = max(0.02 * (1.0 - dot(normal, lightDir)), uShadowBias);
 
     /// PCF (Percentage Closer Filtering) for smooth shadows
     float shadow = 0.0;

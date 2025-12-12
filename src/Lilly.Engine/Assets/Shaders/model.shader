@@ -38,7 +38,7 @@ uniform vec3 LightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 Ambient = vec3(0.15, 0.15, 0.15);
 uniform vec4 Tint = vec4(1.0, 1.0, 1.0, 1.0);
 uniform bool uEnableShadows = true;
-uniform float uShadowBias = 0.002;
+uniform float uShadowBias = 0.0005;
 
 float CalculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
@@ -49,7 +49,7 @@ float CalculateShadow(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         return 0.0;
 
     float currentDepth = projCoords.z;
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), uShadowBias);
+    float bias = max(0.02 * (1.0 - dot(normal, lightDir)), uShadowBias);
 
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
