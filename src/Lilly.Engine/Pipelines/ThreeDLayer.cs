@@ -1,6 +1,7 @@
 using System.Numerics;
 using Lilly.Engine.Core.Data.Privimitives;
 using Lilly.Engine.Interfaces.Services;
+using Lilly.Engine.Pipelines.Culling;
 using Lilly.Engine.Pipelines.Renderers;
 using Lilly.Rendering.Core.Context;
 using Lilly.Rendering.Core.Interfaces.Entities;
@@ -25,6 +26,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
 
     private readonly ShadowRenderer _shadowRenderer;
     private readonly DebugRenderer _debugRenderer;
+    private readonly SceneCuller _sceneCuller;
 
     public bool IsWireframe { get; set; }
     public float WireframeLineWidth { get; set; } = 1.0f;
@@ -60,10 +62,6 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         set => _debugRenderer.LineWidth = value;
     }
 
-    public List<IGameObject3d> EntitiesInCullingFrustum { get; } = new();
-
-    public List<IGameObject3d> EntitiesOutsideCullingFrustum { get; } = new();
-
     public ThreeDLayer(
         RenderContext renderContext,
         ICamera3dService camera3dService,
@@ -79,6 +77,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         // Initialize helper renderers
         _shadowRenderer = new ShadowRenderer(renderContext, assetManager);
         _debugRenderer = new DebugRenderer(renderContext, assetManager);
+        _sceneCuller = new SceneCuller();
     }
 
     public override void Initialize()
@@ -92,7 +91,6 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
     {
         _renderContext.OpenGl.Enable(GLEnum.Multisample);
 
-        // Revert to CullFront (though irrelevant if culling is disabled below) to match original state
         _renderContext.GraphicsDevice.CullFaceMode = CullingMode.CullFront;
 
         StartRenderTimer();
@@ -104,54 +102,29 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
             return;
         }
 
-        EntitiesInCullingFrustum.Clear();
-        EntitiesOutsideCullingFrustum.Clear();
-        ProcessedEntityCount = 0;
-        SkippedEntityCount = 0;
-
         CheckWireframe();
         _renderContext.GraphicsDevice.DepthState = DepthState.Default;
         _renderContext.GraphicsDevice.BlendState = BlendState.AlphaBlend;
 
-        // 1. Filter and Categorize (Culling)
-        foreach (var entity in Entities)
-        {
-            if (entity.IsActive && _camera3dService.ActiveCamera.IsInFrustum(entity))
-            {
-                EntitiesInCullingFrustum.Add(entity);
-            }
-            else
-            {
-                EntitiesOutsideCullingFrustum.Add(entity);
-                SkippedEntityCount++;
-            }
-        }
+        // 1. Culling & Sorting via SceneCuller
+        _sceneCuller.Process(_camera3dService.ActiveCamera, Entities);
 
-        // 2. Sort (Front-to-Back for Early-Z Optimization)
+        ProcessedEntityCount = _sceneCuller.ProcessedCount;
+        SkippedEntityCount = _sceneCuller.SkippedCount;
+
         var cameraPos = _camera3dService.ActiveCamera.Position;
-
-        EntitiesInCullingFrustum.Sort(
-            (a, b) =>
-            {
-                var distA = Vector3.DistanceSquared(a.Transform.Position, cameraPos);
-                var distB = Vector3.DistanceSquared(b.Transform.Position, cameraPos);
-
-                return distA.CompareTo(distB); // Ascending order (Near -> Far)
-            }
-        );
-
         var (dirLights, pointLights, spotLights) = _lightManager.GetActiveLights();
         var shadowLight = _lightManager.ShadowLight is { IsActive: true, CastsShadows: true }
                               ? _lightManager.ShadowLight
                               : null;
 
         // Render Shadows
-        _shadowRenderer.Render(EntitiesInCullingFrustum, shadowLight, cameraPos);
+        _shadowRenderer.Render(_sceneCuller.OpaqueEntities, shadowLight, cameraPos);
 
         PrepareMaterialLitShader(cameraPos, dirLights, pointLights, spotLights, shadowLight != null);
 
         // 3. Draw Opaque Pass (Front-to-Back)
-        foreach (var entity in EntitiesInCullingFrustum)
+        foreach (var entity in _sceneCuller.OpaqueEntities)
         {
             if (entity is IMaterialCaster materialCaster)
             {
@@ -161,34 +134,33 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
             }
 
             entity.Draw(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
-
-            ProcessedEntityCount++;
         }
 
         // 4. Draw Transparent Pass (Back-to-Front)
-        for (var i = EntitiesInCullingFrustum.Count - 1; i >= 0; i--)
+        foreach (var entity in _sceneCuller.TransparentEntities)
         {
-            var entity = EntitiesInCullingFrustum[i];
-
             if (entity is ITransparentRenderable3d transparentEntity)
             {
                 transparentEntity.DrawTransparent(gameTime, _renderContext.GraphicsDevice, _camera3dService.ActiveCamera);
             }
         }
 
-        _debugRenderer.Render(EntitiesInCullingFrustum, _camera3dService.ActiveCamera);
+        // Debug uses all visible entities (merging lists for debug visualization)
+        // Or simply iterate both.
+        if (DebugDrawBoundingBoxes || DebugDrawPhysicsShapes)
+        {
+            var debugList =
+                new List<IGameObject3d>(_sceneCuller.OpaqueEntities.Count + _sceneCuller.TransparentEntities.Count);
+            debugList.AddRange(_sceneCuller.OpaqueEntities);
+            debugList.AddRange(_sceneCuller.TransparentEntities);
+
+            _debugRenderer.Render(debugList, _camera3dService.ActiveCamera);
+        }
 
         RestoreState();
         EndRenderTimer();
 
         _renderContext.GraphicsDevice.ResetStates();
-    }
-
-    public void Dispose()
-    {
-        _shadowRenderer.Dispose();
-        _debugRenderer.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     private void CheckWireframe()
@@ -333,5 +305,12 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         {
             spotLights[i].ApplyToShader(shader, $"uSpotLights[{i}]");
         }
+    }
+
+    public void Dispose()
+    {
+        _shadowRenderer.Dispose();
+        _debugRenderer.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
