@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TrippyGL;
 
-namespace Lilly.Voxel.Plugin.Json.Converters;
+namespace Lilly.Engine.Json.Converters;
 
 /// <summary>
 /// Converts Color to and from a hexadecimal string in the format "#RRGGBB" or "#RRGGBBAA".

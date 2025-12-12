@@ -326,12 +326,11 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
                     }
 
                     edges.AddRange(
-                        new[]
-                        {
+                        [
                             (0, 1), (1, 3), (3, 2), (2, 0),
                             (4, 5), (5, 7), (7, 6), (6, 4),
                             (0, 4), (1, 5), (2, 6), (3, 7)
-                        }
+                        ]
                     );
 
                     break;
@@ -383,12 +382,11 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
                         vertices.AddRange(cornersArray);
 
                         edges.AddRange(
-                            new[]
-                            {
+                            [
                                 (0, 1), (1, 2), (2, 3), (3, 0), // top
                                 (4, 5), (5, 6), (6, 7), (7, 4), // bottom
                                 (0, 4), (1, 5), (2, 6), (3, 7)  // verticals
-                            }
+                            ]
                         );
                     }
 
@@ -467,22 +465,7 @@ public class ThreeDLayer : BaseRenderLayer<IGameObject3d>, IDisposable
         bool hasShadowMap
     )
     {
-        ShaderProgram? materialLit = null;
-
-        try
-        {
-            materialLit = _assetManager.GetShaderProgram("material_lit");
-        }
-        catch
-        {
-            // Shader not loaded; skip lighting setup.
-        }
-
-        if (materialLit == null)
-        {
-            return;
-        }
-
+        var materialLit = _assetManager.GetShaderProgram("material_lit");
         materialLit.Uniforms["uCameraPos"].SetValueVec3(cameraPosition);
         materialLit.Uniforms["uLightView"].SetValueMat4(_lightViewMatrix);
         materialLit.Uniforms["uLightProjection"].SetValueMat4(_lightProjectionMatrix);

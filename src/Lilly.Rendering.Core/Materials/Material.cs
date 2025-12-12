@@ -7,7 +7,6 @@ public class Material
 {
     public string Name { get; set; }
     public string ShaderName { get; set; }
-
     public string AlbedoTexture { get; set; }
     public string NormalTexture { get; set; }
     public string RoughnessTexture { get; set; }
@@ -22,11 +21,14 @@ public class Material
     public float EmissiveIntensity { get; set; }
 
     public bool IsTransparent { get; set; }
+
     public float AlphaThreshold { get; set; } = 0.5f; // Per alpha clipping
+
     public bool CastShadows { get; set; } = true;
     public bool ReceiveShadows { get; set; } = true;
 
     public Vector2 TextureScale { get; set; } = Vector2.One;
+
     public Vector2 TextureOffset { get; set; } = Vector2.Zero;
 
     public bool HaveAlbedoTexture => !string.IsNullOrEmpty(AlbedoTexture);
